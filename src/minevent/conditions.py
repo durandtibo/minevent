@@ -16,6 +16,27 @@ class PeriodicCondition:
     Args:
     ----
         freq (int): Specifies the frequency.
+
+    Example usage:
+
+    .. code-block:: pycon
+
+        >>> from minevent import PeriodicCondition
+        >>> condition = PeriodicCondition(freq=3)
+        >>> condition()
+        True
+        >>> condition()
+        False
+        >>> condition()
+        False
+        >>> condition()
+        True
+        >>> condition()
+        False
+        >>> condition()
+        False
+        >>> condition()
+        True
     """
 
     def __init__(self, freq: int) -> None:
