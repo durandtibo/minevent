@@ -6,6 +6,7 @@ __all__ = [
     "ConditionalEventHandler",
     "EventHandler",
     "EventHandlerEqualityOperator",
+    "EventManager",
     "PeriodicCondition",
 ]
 
@@ -17,3 +18,4 @@ from minevent.handlers import (
     ConditionalEventHandler,
     EventHandler,
 )
+from minevent.manager import EventManager
