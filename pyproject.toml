@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "minevent"
-version = "0.0.0a0"
+version = "0.0.0a1"
 description = "Minimal event system for Machine Learning"
 readme = "README.md"
 authors = ["Thibaut Durand <durand.tibo+gh@gmail.com>"]
@@ -29,6 +29,7 @@ packages = [
 
 [tool.poetry.dependencies]
 # Core dependencies
+coola = ">=0.0.20,<0.0.23"
 python = ">=3.9,<3.12"
 
 # Optional dependencies
