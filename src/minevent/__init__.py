@@ -5,9 +5,11 @@ __all__ = [
     "BaseEventHandlerWithArguments",
     "ConditionalEventHandler",
     "EventHandler",
+    "EventHandlerEqualityOperator",
     "PeriodicCondition",
 ]
 
+from minevent.comparators import EventHandlerEqualityOperator
 from minevent.conditions import PeriodicCondition
 from minevent.handlers import (
     BaseEventHandler,
