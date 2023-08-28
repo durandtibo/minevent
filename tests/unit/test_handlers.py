@@ -117,6 +117,11 @@ def test_event_handler_with_args_and_kwargs() -> None:
     assert event_handler.handler_kwargs == {"last_name": "Doe"}
 
 
+def test_event_handler_incorrect_handler() -> None:
+    with raises(TypeError, match="handler is not callable:"):
+        EventHandler("abc")
+
+
 def test_event_handler_handle_without_args_and_kwargs() -> None:
     EventHandler(hello_handler).handle()
     assert hello_handler.called

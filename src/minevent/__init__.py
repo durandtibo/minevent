@@ -9,7 +9,7 @@ __all__ = [
 ]
 
 from minevent.conditions import PeriodicCondition
-from src.minevent.handlers import (
+from minevent.handlers import (
     BaseEventHandler,
     BaseEventHandlerWithArguments,
     ConditionalEventHandler,
