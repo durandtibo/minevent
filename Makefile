@@ -16,11 +16,15 @@ config-poetry :
 
 .PHONY : install
 install :
-	poetry install --no-interaction
+	poetry install --no-interaction --all-extras
 
 .PHONY : install-all
 install-all :
 	poetry install --no-interaction --all-extras
+
+.PHONY : install-min
+install-min :
+	poetry install --no-interaction
 
 .PHONY : update
 update :
