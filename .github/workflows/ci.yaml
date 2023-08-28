@@ -58,7 +58,7 @@ jobs:
           poetry run make doctest-src
 
       - name: Upload coverage to Codecov
-        if: github.repository == 'durandtibo/coola' && (github.event_name == 'push' || github.event_name == 'pull_request')
+        if: github.repository == 'durandtibo/minevent' && (github.event_name == 'push' || github.event_name == 'pull_request')
         uses: codecov/codecov-action@v3
         with:
           files: ./coverage.xml
