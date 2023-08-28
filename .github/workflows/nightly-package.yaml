@@ -1,0 +1,99 @@
+name: Nightly Package Tests
+on:
+  schedule:
+    - cron: '0 10 * * *' # run at 10 AM UTC
+  workflow_dispatch:  # to trigger manually
+
+jobs:
+  package:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      max-parallel: 8
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, macos-latest ]
+        python-version: [ '3.9', '3.10', '3.11' ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install package
+        run: |
+          pip install "minevent[all]"
+
+      - name: Tests
+        run: |
+          python -c "from minevent import EventHandler, EventManager; " \
+            "event_manager = EventManager(); " \
+            "event_manager.add_event_handler("my_event", EventHandler(print, ['Hello!'])); " \
+            "event_manager.fire_event("my_event"); "
+
+
+  package-minimal:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      max-parallel: 8
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, macos-latest ]
+        python-version: [ '3.9', '3.10', '3.11' ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install package
+        run: |
+          pip install minevent
+
+      - name: Tests
+        run: |
+          python -c "from minevent import EventHandler, EventManager; " \
+            "event_manager = EventManager(); " \
+            "event_manager.add_event_handler("my_event", EventHandler(print, ['Hello!'])); " \
+            "event_manager.fire_event("my_event"); "
+
+
+  package-coola:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      max-parallel: 8
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest ]
+        python-version: [ '3.9', '3.10', '3.11' ]
+        coola-version: [ '0.0.22', '0.0.21', '0.0.20' ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install package
+        run: |
+          pip install minevent coola==${{ matrix.coola-version }}
+
+      - name: Tests
+        run: |
+          python -c "from minevent import EventHandler, EventManager; " \
+            "event_manager = EventManager(); " \
+            "event_manager.add_event_handler("my_event", EventHandler(print, ['Hello!'])); " \
+            "event_manager.fire_event("my_event"); "
