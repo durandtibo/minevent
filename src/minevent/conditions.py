@@ -48,8 +48,8 @@ class PeriodicCondition:
 
         Returns
         -------
-            bool: ``True`` if the condition is ``True``, otherwise
-                ``False``.
+            bool: ``True`` if the condition is ``True`` and the event
+                handler logic should be executed, otherwise ``False``.
         """
         condition = self._step % self._freq == 0
         self._step += 1
