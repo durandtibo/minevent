@@ -19,8 +19,8 @@ theme:
 nav:
   - Home: index.md
   - get_started.md
-  #  - User Guide:
-  #      - quickstart.md
+  - User Guide:
+      - quickstart.md
   - GitHub: https://github.com/durandtibo/minevent
 
 repo_url: https://github.com/durandtibo/minevent
