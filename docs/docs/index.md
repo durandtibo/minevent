@@ -1,4 +1,4 @@
-# minevent
+# Home
 
 <p align="center">
     <a href="https://github.com/durandtibo/minevent/actions">
@@ -56,54 +56,14 @@ It allows to customize a code by adding some piece of code that are executed whe
 fired.
 The goal of this documentation is to explain how the event system works and how to use it.
 
-- [Motivation](#motivation)
-- [Documentation](https://durandtibo.github.io/minevent/)
-- [Installation](#installation)
-- [Contributing](#contributing)
-- [API stability](#api-stability)
-- [License](#license)
-
-## Installation
-
-We highly recommend installing
-a [virtual environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/).
-`minevent` can be installed from pip using the following command:
-
-```shell
-pip install minevent
-```
-
-To make the package as slim as possible, only the minimal packages required to use `minevent` are
-installed.
-To include all the dependencies, you can use the following command:
-
-```shell
-pip install minevent[all]
-```
-
-Please check the [get started page](https://durandtibo.github.io/minevent/get_started) to see how to
-install only some specific dependencies or other alternatives to install the library.
-The following is the corresponding `minevent` versions and supported dependencies.
-
-| `minevent` | `coola`            | `python`      |
-|------------|--------------------|---------------|
-| `0.0.1`    | `>=0.0.20,<0.0.23` | `>=3.9,<3.12` |
-
-<sup>*</sup> indicates an optional dependency
-
-## Contributing
-
-Please check the instructions in [CONTRIBUTING.md](.github/CONTRIBUTING.md).
-
 ## API stability
 
 :warning: While `minevent` is in development stage, no API is guaranteed to be stable from one
-release to the next.
-In fact, it is very likely that the API will change multiple times before a stable 1.0.0 release.
-In practice, this means that upgrading `minevent` to a new version will possibly break any code that
-was using the old version of `minevent`.
+release to the next. In fact, it is very likely that the API will change multiple times before a
+stable 1.0.0 release. In practice, this means that upgrading `minevent` to a new version will
+possibly break any code that was using the old version of `minevent`.
 
 ## License
 
-`minevent` is licensed under BSD 3-Clause "New" or "Revised" license available in [LICENSE](LICENSE)
-file.
+`minevent` is licensed under BSD 3-Clause "New" or "Revised" license available
+in [LICENSE](https://github.com/durandtibo/minevent/blob/main/LICENSE) file.

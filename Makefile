@@ -20,7 +20,7 @@ install :
 
 .PHONY : install-all
 install-all :
-	poetry install --no-interaction --all-extras
+	poetry install --no-interaction --all-extras --with docs
 
 .PHONY : install-min
 install-min :
