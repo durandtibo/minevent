@@ -1,7 +1,5 @@
 # quickstart
 
-This page presents the design used in `minevent`, but other designs exist.
-
 ## Overview
 
 The `minevent` event system is composed of three main components:
@@ -11,6 +9,9 @@ The `minevent` event system is composed of three main components:
 - an event manager
 
 It is a synchronous system i.e. only one event and event handler are executed at the same time.
+This page presents the design used in `minevent`, but other designs exist.
+The proposed design was not designed to work in all the scenarios, so it is highly recommended to
+read the documentation to understand if it fits your needs/requirements before to use it.
 
 ## Event
 
