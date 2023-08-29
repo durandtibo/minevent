@@ -54,6 +54,12 @@
 `minevent` is a Python library that provides a minimal event system for Machine Learning.
 It allows to customize a code by adding some piece of code that are executed when an event is
 fired.
+`minevent` is organized around three main components:
+
+- **event** which defines the thing that should happen.
+- **event handler** which is the piece of code to execute when the event happens
+- **event manager** which is responsible to manage the events and event handlers.
+
 The goal of this documentation is to explain how the event system works and how to use it.
 
 ## API stability
