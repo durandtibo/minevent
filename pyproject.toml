@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "minevent"
-version = "0.0.1"
+version = "0.0.2a0"
 description = "Minimal event system for Machine Learning"
 readme = "README.md"
 authors = ["Thibaut Durand <durand.tibo+gh@gmail.com>"]
