@@ -126,8 +126,6 @@ The following is the corresponding `minevent` versions and supported dependencie
 |------------|--------------------|---------------|
 | `0.0.1`    | `>=0.0.20,<0.0.23` | `>=3.9,<3.12` |
 
-<sup>*</sup> indicates an optional dependency
-
 ## Contributing
 
 Please check the instructions in [CONTRIBUTING.md](.github/CONTRIBUTING.md).
