@@ -201,9 +201,9 @@ To create an event manager, you can write:
 ```pycon
 >>> from minevent import EventManager
 >>> manager = EventManager()
->>> manager
+>>> manager  #doctest: +NORMALIZE_WHITESPACE
 EventManager(
-  (event_handlers): 
+  (event_handlers):
   (last_fired_event): None
 )
 
@@ -230,12 +230,12 @@ The following example shows how to add a `hello_handler` handler to the `'my_eve
 ...
 >>> manager = EventManager()
 >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
->>> manager
+>>> manager  #doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
 EventManager(
   (event_handlers):
     (my_event):
         (0): EventHandler(
-          (handler): <function hello_handler at 0x123456789>
+          (handler): <function hello_handler at  0x...>
           (handler_args): ()
           (handler_kwargs): {}
         )
@@ -257,17 +257,17 @@ The following example shows how to add an event handler with some positional arg
 >>> manager = EventManager()
 >>> manager.add_event_handler("my_event", EventHandler(hello_handler, ('John', 'Smith')))
 >>> manager.add_event_handler("my_event", EventHandler(hello_handler, ('Jane', 'Doe')))
->>> manager
+>>> manager  #doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
 EventManager(
   (event_handlers):
     (my_event):
       (0): EventHandler(
-          (handler): <function hello_handler at 0x123456789>
+          (handler): <function hello_handler at  0x...>
           (handler_args): ('John', 'Smith')
           (handler_kwargs): {}
         )
       (1): EventHandler(
-          (handler): <function hello_handler at 0x123456789>
+          (handler): <function hello_handler at  0x...>
           (handler_args): ('Jane', 'Doe')
           (handler_kwargs): {}
         )
@@ -289,17 +289,17 @@ It is possible to add the same event handler multiple times:
 >>> manager = EventManager()
 >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
->>> manager
+>>> manager  #doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
 EventManager(
   (event_handlers):
     (my_event):
       (0): EventHandler(
-          (handler): <function hello_handler at 0x123456789>
+          (handler): <function hello_handler at  0x...>
           (handler_args): ()
           (handler_kwargs): {}
         )
       (1): EventHandler(
-          (handler): <function hello_handler at 0x123456789>
+          (handler): <function hello_handler at  0x...>
           (handler_args): ()
           (handler_kwargs): {}
         )
@@ -361,15 +361,14 @@ If you want to add an event handler only once, you can write something like:
 ...
 >>> manager = EventManager()
 >>> for _ in range(5):
-...     event = Event("my_event")
-...     if not manager.has_event_handler(EventHandler(hello_handler), event):
-...         manager.add_event_handler(event, EventHandler(hello_handler))
->>> manager
+...     if not manager.has_event_handler(EventHandler(hello_handler), "my_event"):
+...         manager.add_event_handler("my_event", EventHandler(hello_handler))
+>>> manager  #doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
 EventManager(
   (event_handlers):
     (my_event):
       (0): EventHandler(
-          (handler): <function hello_handler at 0x123456789>
+          (handler): <function hello_handler at  0x...>
           (handler_args): ()
           (handler_kwargs): {}
         )
@@ -394,12 +393,12 @@ The following example shows how to fire the `hello_handler` for the event `'my_e
 ...
 >>> manager = EventManager()
 >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
->>> manager
+>>> manager  #doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
 EventManager(
   (event_handlers):
     (my_event):
       (0): EventHandler(
-          (handler): <function hello_handler at 0x123456789>
+          (handler): <function hello_handler at  0x...>
           (handler_args): ()
           (handler_kwargs): {}
         )
@@ -407,12 +406,12 @@ EventManager(
 )
 >>> manager.fire_event("my_event")
 Hello!
->>> manager
+>>> manager  #doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
 EventManager(
   (event_handlers):
     (my_event):
       (0): EventHandler(
-          (handler): <function hello_handler at 0x123456789>
+          (handler): <function hello_handler at  0x...>
           (handler_args): ()
           (handler_kwargs): {}
         )
@@ -428,22 +427,22 @@ The event manager uses the arguments that were given when the event handler was 
 ```pycon
 >>> from minevent import EventHandler, EventManager
 >>> def hello_handler(first_name: str, last_name: str) -> None:
-...     print(f"Hello. I am {last_name}, {first_name} {last_name}")
+...     print(f"Hello. I am {first_name} {last_name}")
 ...
 >>> manager = EventManager()
 >>> manager.add_event_handler("my_event", EventHandler(hello_handler, ('John', 'Smith')))
 >>> manager.add_event_handler("my_event", EventHandler(hello_handler, ('Jane', 'Doe')))
->>> manager
+>>> manager  #doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
 EventManager(
   (event_handlers):
     (my_event):
       (0): EventHandler(
-          (handler): <function hello_handler at 0x123456789>
+          (handler): <function hello_handler at  0x...>
           (handler_args): ('John', 'Smith')
           (handler_kwargs): {}
         )
       (1): EventHandler(
-          (handler): <function hello_handler at 0x123456789>
+          (handler): <function hello_handler at  0x...>
           (handler_args): ('Jane', 'Doe')
           (handler_kwargs): {}
         )
@@ -465,12 +464,12 @@ The following shows how to execute the `hello_handler` every 3 `'my_event'` even
 ...
 >>> manager = EventManager()
 >>> manager.add_event_handler("my_event", ConditionalEventHandler(hello_handler, PeriodicCondition(freq=3)))
->>> manager
+>>> manager  #doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
 EventManager(
   (event_handlers):
     (my_event):
       (0): ConditionalEventHandler(
-          (handler): <function hello_handler at 0x123456789>
+          (handler): <function hello_handler at  0x...>
           (handler_args): ()
           (handler_kwargs): {}
           (condition): PeriodicCondition(freq=3, step=0)
@@ -479,7 +478,7 @@ EventManager(
 )
 >>> for i in range(10):
 ...     print(f'i={i}')
-...     manager.fire_event(Event("my_event"))
+...     manager.fire_event("my_event")
 ...
 i=0
 Hello!
@@ -503,7 +502,8 @@ The `fire_event` method does nothing if there is no event handler registered for
 ```pycon
 >>> from minevent import EventManager
 >>> manager = EventManager()
->>> manager.fire_event(Event("my_event"))
+>>> manager.fire_event("my_event")
+
 ```
 
 ### Remove an event handler
@@ -521,21 +521,21 @@ The following example shows how to add and remove an event handler:
 ...
 >>> manager = EventManager()
 >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
->>> manager
+>>> manager  #doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
 EventManager(
   (event_handlers):
     (my_event):
         (0): EventHandler(
-          (handler): <function hello_handler at 0x123456789>
+          (handler): <function hello_handler at  0x...>
           (handler_args): ()
           (handler_kwargs): {}
         )
   (last_fired_event): None
 )
 >>> manager.remove_event_handler("my_event", EventHandler(hello_handler))
->>> manager
+>>> manager  #doctest: +NORMALIZE_WHITESPACE
 EventManager(
-  (event_handlers): 
+  (event_handlers):
   (last_fired_event): None
 )
 
@@ -552,22 +552,22 @@ If there are multiple event handlers that match, they are all removed from the e
 >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> manager.add_event_handler("my_event", ConditionalEventHandler(hello_handler, PeriodicCondition(freq=3)))
->>> manager
+>>> manager  #doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
 EventManager(
   (event_handlers):
     (my_event):
       (0): EventHandler(
-          (handler): <function hello_handler at 0x123456789>
+          (handler): <function hello_handler at  0x...>
           (handler_args): ()
           (handler_kwargs): {}
         )
       (1): EventHandler(
-          (handler): <function hello_handler at 0x123456789>
+          (handler): <function hello_handler at  0x...>
           (handler_args): ()
           (handler_kwargs): {}
         )
       (2): ConditionalEventHandler(
-          (handler): <function hello_handler at 0x123456789>
+          (handler): <function hello_handler at  0x...>
           (handler_args): ()
           (handler_kwargs): {}
           (condition): PeriodicCondition(freq=3, step=0)
@@ -575,12 +575,12 @@ EventManager(
   (last_fired_event): None
 )
 >>> manager.remove_event_handler("my_event", EventHandler(hello_handler))
->>> manager
+>>> manager  #doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
 EventManager(
   (event_handlers):
     (my_event):
       (0): ConditionalEventHandler(
-          (handler): <function hello_handler at 0x123456789>
+          (handler): <function hello_handler at  0x...>
           (handler_args): ()
           (handler_kwargs): {}
           (condition): PeriodicCondition(freq=3, step=0)
@@ -600,30 +600,30 @@ If a handler is used for multiple events, only the handler associated to the eve
 >>> manager = EventManager()
 >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> manager.add_event_handler("my_other_event", EventHandler(hello_handler))
->>> manager
+>>> manager  #doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
 EventManager(
   (event_handlers):
     (my_event):
       (0): EventHandler(
-          (handler): <function hello_handler at 0x123456789>
+          (handler): <function hello_handler at  0x...>
           (handler_args): ()
           (handler_kwargs): {}
         )
     (my_other_event):
       (0): EventHandler(
-          (handler): <function hello_handler at 0x123456789>
+          (handler): <function hello_handler at  0x...>
           (handler_args): ()
           (handler_kwargs): {}
         )
   (last_fired_event): None
 )
 >>> manager.remove_event_handler("my_event", EventHandler(hello_handler))
->>> manager
+>>> manager  #doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
 EventManager(
   (event_handlers):
     (my_other_event):
       (0): EventHandler(
-          (handler): <function hello_handler at 0x123456789>
+          (handler): <function hello_handler at  0x...>
           (handler_args): ()
           (handler_kwargs): {}
         )
@@ -648,7 +648,7 @@ fired event name to `None`. It is equivalent to create a new experiment manager.
 >>> manager = EventManager()
 >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> manager.add_event_handler("my_other_event", EventHandler(hello_handler))
->>> manager  #doctest: +ELLIPSIS
+>>> manager  #doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
 EventManager(
   (event_handlers):
     (my_event):
@@ -666,9 +666,9 @@ EventManager(
   (last_fired_event): None
 )
 >>> manager.reset()
->>> manager
+>>> manager  #doctest: +NORMALIZE_WHITESPACE
 EventManager(
-  (event_handlers): 
+  (event_handlers):
   (last_fired_event): None
 )
 

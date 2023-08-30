@@ -9,7 +9,7 @@ from collections import defaultdict
 
 from coola.utils import str_indent, str_mapping, str_sequence
 
-from minevent.handlers import BaseEventHandler, EventHandler
+from minevent.handlers import BaseEventHandler
 
 logger = logging.getLogger(__name__)
 
@@ -259,14 +259,3 @@ class EventManager:
         """
         self._event_handlers.clear()
         self._last_fired_event = None
-
-
-if __name__ == "__main__":
-    manager = EventManager()
-
-    def hello_handler():
-        print("Hello!")
-
-    print(manager)
-    manager.add_event_handler("my_event", EventHandler(hello_handler))
-    print(manager)
