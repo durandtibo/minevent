@@ -77,12 +77,12 @@ Below is an example on how to use `minevent` library.
 ...     print("Hello, I am Bob!")
 ...     manager.fire_event("after")
 ...
->>> def hello_handler() -> None:
-...     print("Hello!")
-...
 >>> manager = EventManager()
 >>> say_something(manager)
 Hello, I am Bob!
+>>> def hello_handler() -> None:
+...     print("Hello!")
+...
 >>> manager.add_event_handler("after", EventHandler(hello_handler))
 >>> say_something(manager)
 Hello, I am Bob!
