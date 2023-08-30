@@ -9,7 +9,7 @@ from collections import defaultdict
 
 from coola.utils import str_indent, str_mapping, str_sequence
 
-from minevent.handlers import BaseEventHandler
+from minevent.handlers import BaseEventHandler, EventHandler
 
 logger = logging.getLogger(__name__)
 
@@ -28,9 +28,9 @@ class EventManager:
         >>> def hello_handler():
         ...     print("Hello!")
         ...
-        >>> event_manager = EventManager()
-        >>> event_manager.add_event_handler("my_event", EventHandler(hello_handler))
-        >>> event_manager.fire_event("my_event")
+        >>> manager = EventManager()
+        >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
+        >>> manager.fire_event("my_event")
         Hello!
     """
 
@@ -43,11 +43,17 @@ class EventManager:
 
     def __repr__(self) -> str:
         event_handlers = str_mapping(
-            {event: str_sequence(handler) for event, handler in self._event_handlers.items()}
+            {
+                event: "\n" + str_sequence(handler) if handler else ""
+                for event, handler in self._event_handlers.items()
+            }
         )
         args = str_indent(
             str_mapping(
-                {"event_handlers": event_handlers, "last_fired_event": self._last_fired_event}
+                {
+                    "event_handlers": "\n" + event_handlers if event_handlers else event_handlers,
+                    "last_fired_event": self._last_fired_event,
+                }
             )
         )
         return f"{self.__class__.__qualname__}(\n  {args}\n)"
@@ -83,8 +89,8 @@ class EventManager:
             >>> def hello_handler():
             ...     print("Hello!")
             ...
-            >>> event_manager = EventManager()
-            >>> event_manager.add_event_handler("my_event", EventHandler(hello_handler))
+            >>> manager = EventManager()
+            >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
         """
         self._event_handlers[str(event)].append(event_handler)
         logger.debug(f"Added {event_handler} to event {event}")
@@ -101,15 +107,15 @@ class EventManager:
         .. code-block:: pycon
 
             >>> from minevent import EventHandler, EventManager
-            >>> event_manager = EventManager()
+            >>> manager = EventManager()
             >>> # Fire the 'my_event' event
-            >>> event_manager.fire_event("my_event")  # do nothing because there is no event handler
+            >>> manager.fire_event("my_event")  # do nothing because there is no event handler
             >>> def hello_handler():
             ...     print("Hello!")
             ...
-            >>> event_manager.add_event_handler("my_event", EventHandler(hello_handler))
+            >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
             >>> # Fire the 'my_event' event
-            >>> event_manager.fire_event("my_event")
+            >>> manager.fire_event("my_event")
             Hello!
         """
         logger.debug(f"Firing {event} event")
@@ -120,7 +126,7 @@ class EventManager:
     def has_event_handler(self, event_handler: BaseEventHandler, event: str | None = None) -> bool:
         r"""Indicates if a handler is registered in the event manager.
 
-        Note that this method relies on the ``__eq__`` method of the
+        Note that this method relies on the ``equal`` method of the
         input event handler to compare event handlers.
 
         Args:
@@ -139,23 +145,23 @@ class EventManager:
             >>> def hello_handler():
             ...     print("Hello!")
             ...
-            >>> event_manager = EventManager()
+            >>> manager = EventManager()
             >>> # Check if `hello_handler` is registered in the event manager
-            >>> event_manager.has_event_handler(EventHandler(hello_handler))
+            >>> manager.has_event_handler(EventHandler(hello_handler))
             False
             >>> # Check if `hello_handler` is registered in the event manager for 'my_event' event
-            >>> event_manager.has_event_handler(EventHandler(hello_handler), "my_event")
+            >>> manager.has_event_handler(EventHandler(hello_handler), "my_event")
             False
             >>> # Add an event handler
-            >>> event_manager.add_event_handler("my_event", EventHandler(hello_handler))
+            >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
             >>> # Check if `hello_handler` is registered in the event manager
-            >>> event_manager.has_event_handler(EventHandler(hello_handler))
+            >>> manager.has_event_handler(EventHandler(hello_handler))
             True
             >>> # Check if `hello_handler` is registered in the event manager for 'my_event' event
-            >>> event_manager.has_event_handler(EventHandler(hello_handler), "my_event")
+            >>> manager.has_event_handler(EventHandler(hello_handler), "my_event")
             True
             >>> # Check if `hello_handler` is registered in the event manager for 'my_other_event' event
-            >>> event_manager.has_event_handler(EventHandler(hello_handler), "my_other_event")
+            >>> manager.has_event_handler(EventHandler(hello_handler), "my_other_event")
             False
         """
         events = [event] if event else self._event_handlers
@@ -170,7 +176,7 @@ class EventManager:
 
         Note that if the same event handler was added multiple times
         the event, all the duplicated handlers are removed. This
-        method relies on the ``__eq__`` method of the input event
+        method relies on the ``equal`` method of the input event
         handler to compare event handlers.
 
         Args:
@@ -189,18 +195,18 @@ class EventManager:
         .. code-block:: pycon
 
             >>> from minevent import EventHandler, EventManager
-            >>> event_manager = EventManager()
+            >>> manager = EventManager()
             >>> def hello_handler():
             ...     print("Hello!")
             ...
-            >>> event_manager.add_event_handler("my_event", EventHandler(hello_handler))
+            >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
             >>> # Check if `hello_handler` is registered in the event manager for 'my_event' event
-            >>> event_manager.has_event_handler(EventHandler(hello_handler), "my_event")
+            >>> manager.has_event_handler(EventHandler(hello_handler), "my_event")
             True
             >>> # Remove the event handler of the engine
-            >>> event_manager.remove_event_handler("my_event", EventHandler(hello_handler))
+            >>> manager.remove_event_handler("my_event", EventHandler(hello_handler))
             >>> # Check if `hello_handler` is registered in the event manager for 'my_event' event
-            >>> event_manager.has_event_handler(EventHandler(hello_handler), "my_event")
+            >>> manager.has_event_handler(EventHandler(hello_handler), "my_event")
             False
         """
         if event not in self._event_handlers:
@@ -230,26 +236,37 @@ class EventManager:
 
             >>> # Create an event manager
             >>> from minevent import EventManager
-            >>> event_manager = EventManager()
+            >>> manager = EventManager()
             >>> # Add an event handler to the engine
             >>> def hello_handler():
             ...     print("Hello!")
             ...
             >>> from minevent import EventHandler
-            >>> event_manager.add_event_handler("my_event", EventHandler(hello_handler))
+            >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
             >>> # Check if `hello_handler` is registered in the event manager for 'my_event' event
-            >>> event_manager.has_event_handler(EventHandler(hello_handler), "my_event")
+            >>> manager.has_event_handler(EventHandler(hello_handler), "my_event")
             True
-            >>> event_manager.fire_event("my_event")
-            >>> event_manager.last_fired_event
+            >>> manager.fire_event("my_event")
+            >>> manager.last_fired_event
             my_event
             >>> # Reset the event manager
-            >>> event_manager.reset()
+            >>> manager.reset()
             >>> # Check if `hello_handler` is registered in the event manager for 'my_event' event
-            >>> event_manager.has_event_handler(EventHandler(hello_handler), "my_event")
+            >>> manager.has_event_handler(EventHandler(hello_handler), "my_event")
             False
-            >>> event_manager.last_fired_event
+            >>> manager.last_fired_event
             None
         """
         self._event_handlers.clear()
         self._last_fired_event = None
+
+
+if __name__ == "__main__":
+    manager = EventManager()
+
+    def hello_handler():
+        print("Hello!")
+
+    print(manager)
+    manager.add_event_handler("my_event", EventHandler(hello_handler))
+    print(manager)

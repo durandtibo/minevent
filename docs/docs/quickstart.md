@@ -52,6 +52,7 @@ It is possible to implement this scenario as follow by using `minvent.EventHandl
 >>> handler = EventHandler(hello_handler)
 >>> handler.handle()
 Hello!
+
 ```
 
 ### Event handler with arguments
@@ -68,6 +69,7 @@ The arguments can be given as positional arguments using `handler_args`:
 >>> handler = EventHandler(hello_handler, handler_args=("Bob", "Monday"))
 >>> handler.handle()
 Hello Bob! Happy Monday!
+
 ```
 
 It is also possible to give the arguments as keyword arguments using `handler_kwargs`:
@@ -80,6 +82,7 @@ It is also possible to give the arguments as keyword arguments using `handler_kw
 >>> handler = EventHandler(hello_handler, handler_kwargs={'name': "Bob", 'day': "Monday"})
 >>> handler.handle()
 Hello Bob! Happy Monday!
+
 ```
 
 It is also possible to use `handler_args` and `handler_kwargs`:
@@ -92,6 +95,7 @@ It is also possible to use `handler_args` and `handler_kwargs`:
 >>> handler = EventHandler(hello_handler, handler_args=["Bob"], handler_kwargs={'day': "Monday"})
 >>> handler.handle()
 Hello Bob! Happy Monday!
+
 ```
 
 It is possible to define event handlers with a large range of functions.
@@ -102,6 +106,7 @@ For example, it is possible to implement the same logic by using directly `print
 >>> handler = EventHandler(print, handler_args=("Hello Bob! Happy Monday!",))
 >>> handler.handle()
 Hello Bob! Happy Monday!
+
 ```
 
 ### Event handler with condition
@@ -122,6 +127,7 @@ Hello!
 >>> handler.handle()
 >>> handler.handle()
 Hello!
+
 ```
 
 `PeriodicCondition` is a condition implemented in `minevent` to execute an event handler with a
@@ -145,6 +151,7 @@ Two `EventHandler`s are equal if they have the same handler and the same argumen
 True
 >>> handler.equal(EventHandler(print, handler_args=("Hello Bob! Happy Monday!",)))
 False
+
 ```
 
 Two `EventHandler`s are equal if they have the same handler, the same arguments and the same
@@ -160,6 +167,7 @@ condition:
 True
 >>> handler.equal(ConditionalEventHandler(hello_handler, PeriodicCondition(freq=2)))
 False
+
 ```
 
 ## Event manager
@@ -195,9 +203,10 @@ To create an event manager, you can write:
 >>> manager = EventManager()
 >>> manager
 EventManager(
-  (event_handlers):
+  (event_handlers): 
   (last_fired_event): None
 )
+
 ```
 
 The main pieces of information about the experiment manager state are the list of event handlers for
@@ -232,6 +241,7 @@ EventManager(
         )
   (last_fired_event): None
 )
+
 ```
 
 You can see there is a registered event handler for the event name `my_event`.
@@ -263,6 +273,7 @@ EventManager(
         )
   (last_fired_event): None
 )
+
 ```
 
 For a given event, the event handlers are ordered by using the order of addition.
@@ -294,6 +305,7 @@ EventManager(
         )
   (last_fired_event): None
 )
+
 ```
 
 ### Check the presence of an event handler
@@ -315,6 +327,7 @@ False
 >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> manager.has_event_handler(EventHandler(hello_handler))
 True
+
 ```
 
 Note that it is not necessary to specify an event.
@@ -336,6 +349,7 @@ False
 True
 >>> manager.has_event_handler(EventHandler(hello_handler), "my_other_event")
 False
+
 ```
 
 If you want to add an event handler only once, you can write something like:
@@ -361,6 +375,7 @@ EventManager(
         )
   (last_fired_event): None
 )
+
 ```
 
 The `hello_handler` handler has been added only one time to the `'my_event'` event.
@@ -403,6 +418,7 @@ EventManager(
         )
   (last_fired_event): my_event
 )
+
 ```
 
 You can note that the last fired event name has been updated.
@@ -436,6 +452,7 @@ EventManager(
 >>> manager.fire_event("my_event")
 Hello. I am John Smith
 Hello. I am Jane Doe
+
 ```
 
 As explained above, it is possible to add a condition to control when to execute the handler.
@@ -478,6 +495,7 @@ i=7
 i=8
 i=9
 Hello!
+
 ```
 
 The `fire_event` method does nothing if there is no event handler registered for the event
@@ -517,9 +535,10 @@ EventManager(
 >>> manager.remove_event_handler("my_event", EventHandler(hello_handler))
 >>> manager
 EventManager(
-  (event_handlers):
+  (event_handlers): 
   (last_fired_event): None
 )
+
 ```
 
 If there are multiple event handlers that match, they are all removed from the event manager:
@@ -610,6 +629,7 @@ EventManager(
         )
   (last_fired_event): None
 )
+
 ```
 
 A `RuntimeError` exception is raised if you try to remove an event handler that does not exist.
@@ -628,18 +648,18 @@ fired event name to `None`. It is equivalent to create a new experiment manager.
 >>> manager = EventManager()
 >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> manager.add_event_handler("my_other_event", EventHandler(hello_handler))
->>> manager
+>>> manager  #doctest: +ELLIPSIS
 EventManager(
   (event_handlers):
     (my_event):
       (0): EventHandler(
-          (handler): <function hello_handler at 0x123456789>
+          (handler): <function hello_handler at 0x...>
           (handler_args): ()
           (handler_kwargs): {}
         )
     (my_other_event):
       (0): EventHandler(
-          (handler): <function hello_handler at 0x123456789>
+          (handler): <function hello_handler at 0x...>
           (handler_args): ()
           (handler_kwargs): {}
         )
@@ -648,7 +668,8 @@ EventManager(
 >>> manager.reset()
 >>> manager
 EventManager(
-  (event_handlers):
+  (event_handlers): 
   (last_fired_event): None
 )
+
 ```

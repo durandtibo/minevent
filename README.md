@@ -93,6 +93,7 @@ Hello, I am Bob!
 >>> say_something(manager)
 Hello, I am Bob!
 Hello!
+
 ```
 
 It allows to customize the function `say_something` without changing its implementation.
