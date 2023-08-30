@@ -71,6 +71,34 @@ For example, an event handler can be used without the event manager.
 - [API stability](#api-stability)
 - [License](#license)
 
+## Motivation
+
+`minevent` provides a minimal event system to customize a piece of code without changing its
+implementation.
+Below is an example on how to use `minevent` library.
+
+```pycon
+>>> from minevent import EventHandler, EventManager
+>>> def say_something(manager: EventManager) -> None:
+...     print("Hello, I am Bob!")
+...     manager.fire_event("after")
+...
+>>> def hello_handler() -> None:
+...     print("Hello!")
+...
+>>> manager = EventManager()
+>>> say_something(manager)
+Hello, I am Bob!
+>>> manager.add_event_handler("after", EventHandler(hello_handler))
+>>> say_something(manager)
+Hello, I am Bob!
+Hello!
+```
+
+It allows to customize the function `say_something` without changing its implementation.
+Please read the [quickstart page](https://durandtibo.github.io/minevent/quickstart/) to learn more
+about the library.
+
 ## Installation
 
 We highly recommend installing
