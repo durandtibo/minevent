@@ -5,14 +5,21 @@ import logging
 from coola import EqualityTester
 from pytest import LogCaptureFixture
 
-from minevent import BaseEventHandler, EventHandler, PeriodicCondition
-from minevent.comparators import ConditionEqualityOperator, EventHandlerEqualityOperator
+from minevent import (
+    BaseCondition,
+    BaseEventHandler,
+    ConditionEqualityOperator,
+    EventHandler,
+    EventHandlerEqualityOperator,
+    PeriodicCondition,
+)
 from tests.unit.test_handlers import hello_handler, hello_name_handler
 
 logger = logging.getLogger(__name__)
 
 
 def test_registered_event_handler_comparators() -> None:
+    assert isinstance(EqualityTester.registry[BaseCondition], ConditionEqualityOperator)
     assert isinstance(EqualityTester.registry[BaseEventHandler], EventHandlerEqualityOperator)
 
 
