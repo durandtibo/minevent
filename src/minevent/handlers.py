@@ -36,6 +36,9 @@ class BaseEventHandler(ABC):
         Hello!
     """
 
+    def __eq__(self, other: Any) -> bool:
+        return self.equal(other)
+
     @abstractmethod
     def equal(self, other: Any) -> bool:
         r"""Compares two event handlers.
