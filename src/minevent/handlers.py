@@ -14,6 +14,8 @@ from typing import Any
 from coola import objects_are_equal
 from coola.utils import str_indent, str_mapping
 
+from minevent.conditions import BaseCondition
+
 
 class BaseEventHandler(ABC):
     r"""Defines the base class to implement an event handler.
@@ -223,13 +225,11 @@ class ConditionalEventHandler(BaseEventHandlerWithArguments):
     def __init__(
         self,
         handler: Callable,
-        condition: Callable[[], bool],
+        condition: BaseCondition,
         handler_args: Sequence | None = None,
         handler_kwargs: dict | None = None,
     ) -> None:
         super().__init__(handler=handler, handler_args=handler_args, handler_kwargs=handler_kwargs)
-        if not callable(condition):
-            raise TypeError(f"The condition is not callable (received: {condition})")
         self._condition = condition
 
     def __repr__(self) -> str:
@@ -246,8 +246,8 @@ class ConditionalEventHandler(BaseEventHandlerWithArguments):
         return f"{self.__class__.__qualname__}(\n  {args}\n)"
 
     @property
-    def condition(self) -> Callable[[], bool]:
-        r"""``Callable``: The condition."""
+    def condition(self) -> BaseCondition:
+        r"""``BaseCondition``: The condition."""
         return self._condition
 
     def equal(self, other: Any) -> bool:
@@ -261,5 +261,5 @@ class ConditionalEventHandler(BaseEventHandlerWithArguments):
         )
 
     def handle(self) -> None:
-        if self._condition():
+        if self._condition.evaluate():
             super().handle()
