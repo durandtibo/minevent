@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 __all__ = [
+    "BaseCondition",
     "BaseEventHandler",
     "BaseEventHandlerWithArguments",
     "ConditionalEventHandler",
@@ -11,7 +12,7 @@ __all__ = [
 ]
 
 from minevent.comparators import EventHandlerEqualityOperator
-from minevent.conditions import PeriodicCondition
+from minevent.conditions import BaseCondition, PeriodicCondition
 from minevent.handlers import (
     BaseEventHandler,
     BaseEventHandlerWithArguments,

@@ -3,7 +3,7 @@ system."""
 
 from __future__ import annotations
 
-__all__ = ["PeriodicCondition"]
+__all__ = ["BaseCondition", "PeriodicCondition"]
 
 from abc import ABC, abstractmethod
 from typing import Any
