@@ -73,6 +73,14 @@ def test_event_handler_str() -> None:
     assert str(EventHandler(hello_handler)).startswith("EventHandler(")
 
 
+def test_event_handler__eq__true() -> None:
+    assert EventHandler(hello_handler) == EventHandler(hello_handler)
+
+
+def test_event_handler__eq__false() -> None:
+    assert EventHandler(hello_handler) != EventHandler(hello_name_handler)
+
+
 def test_event_handler_equal_true() -> None:
     assert EventHandler(hello_handler).equal(EventHandler(hello_handler))
 
