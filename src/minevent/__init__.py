@@ -4,6 +4,7 @@ __all__ = [
     "BaseCondition",
     "BaseEventHandler",
     "BaseEventHandlerWithArguments",
+    "ConditionEqualityOperator",
     "ConditionalEventHandler",
     "EventHandler",
     "EventHandlerEqualityOperator",
@@ -11,7 +12,7 @@ __all__ = [
     "PeriodicCondition",
 ]
 
-from minevent.comparators import EventHandlerEqualityOperator
+from minevent.comparators import ConditionEqualityOperator, EventHandlerEqualityOperator
 from minevent.conditions import BaseCondition, PeriodicCondition
 from minevent.handlers import (
     BaseEventHandler,
