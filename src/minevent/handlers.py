@@ -22,8 +22,8 @@ class BaseEventHandler(ABC):
 
     A child class has to implement the following methods:
 
-        - ``equal``
         - ``handle``
+        - ``equal``
 
     Example usage:
 
