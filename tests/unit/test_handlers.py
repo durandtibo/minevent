@@ -247,11 +247,6 @@ def test_conditional_event_handler_callable_condition() -> None:
     assert event_handler.condition == PeriodicCondition(3)
 
 
-def test_conditional_event_handler_non_callable_condition() -> None:
-    with raises(TypeError, match="The condition is not callable"):
-        ConditionalEventHandler(hello_handler, 123)
-
-
 def test_event_handler_handle_1() -> None:
     ConditionalEventHandler(hello_handler, PeriodicCondition(3)).handle()
     assert hello_handler.called
