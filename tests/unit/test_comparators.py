@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from coola import EqualityTester
+from coola import EqualityTester, objects_are_equal
 from pytest import LogCaptureFixture
 
 from minevent import (
@@ -21,6 +21,14 @@ logger = logging.getLogger(__name__)
 def test_registered_event_handler_comparators() -> None:
     assert isinstance(EqualityTester.registry[BaseCondition], ConditionEqualityOperator)
     assert isinstance(EqualityTester.registry[BaseEventHandler], EventHandlerEqualityOperator)
+
+
+def test_objects_are_equal_condition() -> None:
+    assert objects_are_equal(PeriodicCondition(freq=3), PeriodicCondition(freq=3))
+
+
+def test_objects_are_equal_event_handler() -> None:
+    assert objects_are_equal(EventHandler(hello_handler), EventHandler(hello_handler))
 
 
 ###############################################
