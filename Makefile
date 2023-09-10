@@ -48,7 +48,6 @@ docformat :
 doctest-src :
 	python -m pytest --xdoctest $(SOURCE)
 	find . -type f -name "*.md" | xargs python -m doctest -o NORMALIZE_WHITESPACE -o ELLIPSIS -o REPORT_NDIFF
-	#find . -type f -name "*.md" | xargs python -m pytest --markdown-docs
 
 .PHONY : test
 test :
