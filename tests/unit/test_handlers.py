@@ -69,8 +69,12 @@ def test_registered_event_handler_comparators() -> None:
 ##################################
 
 
+def test_event_handler_repr() -> None:
+    assert repr(EventHandler(hello_handler)).startswith("EventHandler(")
+
+
 def test_event_handler_str() -> None:
-    assert str(EventHandler(hello_handler)).startswith("EventHandler(")
+    assert str(EventHandler(hello_handler)) == "EventHandler()"
 
 
 def test_event_handler__eq__true() -> None:
@@ -189,8 +193,15 @@ def test_event_handler_handle_called_2_times() -> None:
 
 
 def test_conditional_event_handler_str() -> None:
-    assert str(ConditionalEventHandler(hello_handler, PeriodicCondition(2))).startswith(
+    assert repr(ConditionalEventHandler(hello_handler, PeriodicCondition(2))).startswith(
         "ConditionalEventHandler("
+    )
+
+
+def test_conditional_event_handler_repr() -> None:
+    assert (
+        str(ConditionalEventHandler(hello_handler, PeriodicCondition(2)))
+        == "ConditionalEventHandler()"
     )
 
 

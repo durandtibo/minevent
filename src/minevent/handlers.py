@@ -143,6 +143,9 @@ class BaseEventHandlerWithArguments(BaseEventHandler):
         )
         return f"{self.__class__.__qualname__}(\n  {args}\n)"
 
+    def __str__(self) -> str:
+        return f"{self.__class__.__qualname__}()"
+
     @property
     def handler(self) -> Callable:
         r"""Callable: The handler."""
