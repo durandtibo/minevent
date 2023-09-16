@@ -34,7 +34,7 @@ class BaseEventHandler(ABC):
         ...     print("Hello!")
         ...
         >>> handler = EventHandler(hello_handler)
-        >>> handler  # doctest:+ELLIPSIS
+        >>> handler
         EventHandler(
           (handler): <function hello_handler at 0x...>
           (handler_args): ()
@@ -118,7 +118,7 @@ class BaseEventHandlerWithArguments(BaseEventHandler):
         ...     print("Hello!")
         ...
         >>> handler = EventHandler(hello_handler)
-        >>> handler  # doctest:+ELLIPSIS
+        >>> handler
         EventHandler(
           (handler): <function hello_handler at 0x...>
           (handler_args): ()
@@ -186,7 +186,7 @@ class EventHandler(BaseEventHandlerWithArguments):
         ...     print("Hello!")
         ...
         >>> handler = EventHandler(hello_handler)
-        >>> handler  # doctest:+ELLIPSIS
+        >>> handler
         EventHandler(
           (handler): <function hello_handler at 0x...>
           (handler_args): ()
@@ -232,7 +232,7 @@ class ConditionalEventHandler(BaseEventHandlerWithArguments):
         ...     print("Hello!")
         ...
         >>> handler = ConditionalEventHandler(hello_handler, PeriodicCondition(freq=3))
-        >>> handler  # doctest:+ELLIPSIS
+        >>> handler
         ConditionalEventHandler(
           (handler): <function hello_handler at 0x...>
           (handler_args): ()
