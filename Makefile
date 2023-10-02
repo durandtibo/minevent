@@ -34,7 +34,7 @@ update :
 
 .PHONY : lint
 lint :
-	ruff check --format=github .
+	ruff check --output-format=github .
 
 .PHONY : format
 format :
