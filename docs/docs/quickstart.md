@@ -497,7 +497,7 @@ Hello!
 
 ```
 
-The `fire_event` method does nothing if there is no event handler registered for the event
+The `trigger_event` method does nothing if there is no event handler registered for the event:
 
 ```pycon
 >>> from minevent import EventManager

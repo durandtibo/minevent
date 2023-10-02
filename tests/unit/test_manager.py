@@ -102,7 +102,7 @@ def test_event_manager_add_event_handler_duplicate_event_handlers() -> None:
 
 
 @mark.parametrize("event", EVENTS)
-def test_event_manager_fire_event(event: str) -> None:
+def test_event_manager_trigger_event(event: str) -> None:
     event_manager = EventManager()
     event_manager.add_event_handler(event, EventHandler(hello_handler))
     event_manager.trigger_event(event)
@@ -110,7 +110,7 @@ def test_event_manager_fire_event(event: str) -> None:
     assert hello_handler.call_count == 1
 
 
-def test_event_manager_fire_event_2_times() -> None:
+def test_event_manager_trigger_event_2_times() -> None:
     event_manager = EventManager()
     event_manager.add_event_handler("my_event", EventHandler(hello_handler))
     event_manager.trigger_event("my_event")
@@ -119,7 +119,7 @@ def test_event_manager_fire_event_2_times() -> None:
     assert hello_handler.call_count == 2
 
 
-def test_event_manager_fire_event_without_event_handler() -> None:
+def test_event_manager_trigger_event_without_event_handler() -> None:
     event_manager = EventManager()
     event_manager.trigger_event("my_event")
     assert event_manager.last_triggered_event == "my_event"
