@@ -33,7 +33,7 @@ jobs:
           python -c "from minevent import EventHandler, EventManager; " \
             "event_manager = EventManager(); " \
             "event_manager.add_event_handler("my_event", EventHandler(print, ['Hello!'])); " \
-            "event_manager.fire_event("my_event"); "
+            "event_manager.trigger_event("my_event"); "
 
 
   package-minimal:
@@ -64,7 +64,7 @@ jobs:
           python -c "from minevent import EventHandler, EventManager; " \
             "event_manager = EventManager(); " \
             "event_manager.add_event_handler("my_event", EventHandler(print, ['Hello!'])); " \
-            "event_manager.fire_event("my_event"); "
+            "event_manager.trigger_event("my_event"); "
 
 
   package-coola:
@@ -96,4 +96,4 @@ jobs:
           python -c "from minevent import EventHandler, EventManager; " \
             "event_manager = EventManager(); " \
             "event_manager.add_event_handler("my_event", EventHandler(print, ['Hello!'])); " \
-            "event_manager.fire_event("my_event"); "
+            "event_manager.trigger_event("my_event"); "
