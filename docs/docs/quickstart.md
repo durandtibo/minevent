@@ -204,7 +204,7 @@ To create an event manager, you can write:
 >>> manager
 EventManager(
   (event_handlers):
-  (last_fired_event): None
+  (last_triggered_event): None
 )
 
 ```
@@ -239,7 +239,7 @@ EventManager(
           (handler_args): ()
           (handler_kwargs): {}
         )
-  (last_fired_event): None
+  (last_triggered_event): None
 )
 
 ```
@@ -271,7 +271,7 @@ EventManager(
           (handler_args): ('Jane', 'Doe')
           (handler_kwargs): {}
         )
-  (last_fired_event): None
+  (last_triggered_event): None
 )
 
 ```
@@ -303,7 +303,7 @@ EventManager(
           (handler_args): ()
           (handler_kwargs): {}
         )
-  (last_fired_event): None
+  (last_triggered_event): None
 )
 
 ```
@@ -372,7 +372,7 @@ EventManager(
           (handler_args): ()
           (handler_kwargs): {}
         )
-  (last_fired_event): None
+  (last_triggered_event): None
 )
 
 ```
@@ -402,7 +402,7 @@ EventManager(
           (handler_args): ()
           (handler_kwargs): {}
         )
-  (last_fired_event): None
+  (last_triggered_event): None
 )
 >>> manager.trigger_event("my_event")
 Hello!
@@ -415,7 +415,7 @@ EventManager(
           (handler_args): ()
           (handler_kwargs): {}
         )
-  (last_fired_event): my_event
+  (last_triggered_event): my_event
 )
 
 ```
@@ -446,7 +446,7 @@ EventManager(
           (handler_args): ('Jane', 'Doe')
           (handler_kwargs): {}
         )
-  (last_fired_event): None
+  (last_triggered_event): None
 )
 >>> manager.trigger_event("my_event")
 Hello. I am John Smith
@@ -474,7 +474,7 @@ EventManager(
           (handler_kwargs): {}
           (condition): PeriodicCondition(freq=3, step=0)
         )
-  (last_fired_event): None
+  (last_triggered_event): None
 )
 >>> for i in range(10):
 ...     print(f'i={i}')
@@ -530,13 +530,13 @@ EventManager(
           (handler_args): ()
           (handler_kwargs): {}
         )
-  (last_fired_event): None
+  (last_triggered_event): None
 )
 >>> manager.remove_event_handler("my_event", EventHandler(hello_handler))
 >>> manager
 EventManager(
   (event_handlers):
-  (last_fired_event): None
+  (last_triggered_event): None
 )
 
 ```
@@ -572,7 +572,7 @@ EventManager(
           (handler_kwargs): {}
           (condition): PeriodicCondition(freq=3, step=0)
         )
-  (last_fired_event): None
+  (last_triggered_event): None
 )
 >>> manager.remove_event_handler("my_event", EventHandler(hello_handler))
 >>> manager
@@ -585,7 +585,7 @@ EventManager(
           (handler_kwargs): {}
           (condition): PeriodicCondition(freq=3, step=0)
         )
-  (last_fired_event): None
+  (last_triggered_event): None
 )
 
 ```
@@ -615,7 +615,7 @@ EventManager(
           (handler_args): ()
           (handler_kwargs): {}
         )
-  (last_fired_event): None
+  (last_triggered_event): None
 )
 >>> manager.remove_event_handler("my_event", EventHandler(hello_handler))
 >>> manager
@@ -627,7 +627,7 @@ EventManager(
           (handler_args): ()
           (handler_kwargs): {}
         )
-  (last_fired_event): None
+  (last_triggered_event): None
 )
 
 ```
@@ -663,13 +663,13 @@ EventManager(
           (handler_args): ()
           (handler_kwargs): {}
         )
-  (last_fired_event): None
+  (last_triggered_event): None
 )
 >>> manager.reset()
 >>> manager
 EventManager(
   (event_handlers):
-  (last_fired_event): None
+  (last_triggered_event): None
 )
 
 ```

@@ -63,11 +63,11 @@ def test_event_manager_str_with_event_handler() -> None:
     assert str(event_manager).startswith("EventManager(")
 
 
-def test_event_manager_last_fired_event_none() -> None:
+def test_event_manager_last_triggered_event_none() -> None:
     assert EventManager().last_triggered_event is None
 
 
-def test_last_fired_event_name_after_fire() -> None:
+def test_last_triggered_event_name_after_fire() -> None:
     event_manager = EventManager()
     event_manager.trigger_event("my_event")
     assert event_manager.last_triggered_event == "my_event"
@@ -77,7 +77,7 @@ def test_last_fired_event_name_after_fire() -> None:
     assert event_manager.last_triggered_event == "my_event"
 
 
-def test_event_manager_last_fired_event() -> None:
+def test_event_manager_last_triggered_event() -> None:
     event_manager = EventManager()
     event_manager.trigger_event("my_event")
     event_manager.trigger_event("my_other_event")

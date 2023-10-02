@@ -38,7 +38,7 @@ class EventManager:
         # This variable is used to store the handlers associated to each event.
         self._event_handlers = defaultdict(list)
         # This variable is used to track the last fired event name
-        self._last_fired_event = None
+        self._last_triggered_event = None
         self.reset()
 
     def __repr__(self) -> str:
@@ -52,7 +52,7 @@ class EventManager:
             str_mapping(
                 {
                     "event_handlers": "\n" + event_handlers if event_handlers else event_handlers,
-                    "last_fired_event": self._last_fired_event,
+                    "last_triggered_event": self._last_triggered_event,
                 }
             )
         )
@@ -81,7 +81,7 @@ class EventManager:
             Hello!
             >>> manager.last_triggered_event
         """
-        return self._last_fired_event
+        return self._last_triggered_event
 
     def add_event_handler(self, event: str, event_handler: BaseEventHandler) -> None:
         r"""Adds an event handler to an event.
@@ -131,7 +131,7 @@ class EventManager:
             Hello!
         """
         logger.debug(f"Firing {event} event")
-        self._last_fired_event = event
+        self._last_triggered_event = event
         for event_handler in self._event_handlers[event]:
             event_handler.handle()
 
@@ -270,4 +270,4 @@ class EventManager:
             None
         """
         self._event_handlers.clear()
-        self._last_fired_event = None
+        self._last_triggered_event = None
