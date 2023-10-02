@@ -404,7 +404,7 @@ EventManager(
         )
   (last_fired_event): None
 )
->>> manager.fire_event("my_event")
+>>> manager.trigger_event("my_event")
 Hello!
 >>> manager
 EventManager(
@@ -448,7 +448,7 @@ EventManager(
         )
   (last_fired_event): None
 )
->>> manager.fire_event("my_event")
+>>> manager.trigger_event("my_event")
 Hello. I am John Smith
 Hello. I am Jane Doe
 
@@ -478,7 +478,7 @@ EventManager(
 )
 >>> for i in range(10):
 ...     print(f'i={i}')
-...     manager.fire_event("my_event")
+...     manager.trigger_event("my_event")
 ...
 i=0
 Hello!
@@ -502,7 +502,7 @@ The `fire_event` method does nothing if there is no event handler registered for
 ```pycon
 >>> from minevent import EventManager
 >>> manager = EventManager()
->>> manager.fire_event("my_event")
+>>> manager.trigger_event("my_event")
 
 ```
 

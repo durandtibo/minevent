@@ -30,7 +30,7 @@ class EventManager:
         ...
         >>> manager = EventManager()
         >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
-        >>> manager.fire_event("my_event")
+        >>> manager.trigger_event("my_event")
         Hello!
     """
 
@@ -59,13 +59,27 @@ class EventManager:
         return f"{self.__class__.__qualname__}(\n  {args}\n)"
 
     @property
-    def last_fired_event(self) -> str | None:
-        r"""Gets the last event name that was fired.
+    def last_triggered_event(self) -> str | None:
+        r"""Gets the last event name that was triggered.
 
         Returns
         -------
             str or ``None``: The last event name that was fired or
                 ``None`` if no event was fired.
+
+        Example usage:
+
+        .. code-block:: pycon
+
+            >>> from minevent import EventHandler, EventManager
+            >>> manager = EventManager()
+            >>> def hello_handler():
+            ...     print("Hello!")
+            ...
+            >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
+            >>> manager.trigger_event("my_event")
+            Hello!
+            >>> manager.last_triggered_event
         """
         return self._last_fired_event
 
@@ -95,8 +109,8 @@ class EventManager:
         self._event_handlers[str(event)].append(event_handler)
         logger.debug(f"Added {event_handler} to event {event}")
 
-    def fire_event(self, event: str) -> None:
-        r"""Fires the handler(s) for the given event.
+    def trigger_event(self, event: str) -> None:
+        r"""Triggers the handler(s) for the given event.
 
         Args:
         ----
@@ -108,14 +122,12 @@ class EventManager:
 
             >>> from minevent import EventHandler, EventManager
             >>> manager = EventManager()
-            >>> # Fire the 'my_event' event
-            >>> manager.fire_event("my_event")  # do nothing because there is no event handler
+            >>> manager.trigger_event("my_event")  # do nothing because there is no event handler
             >>> def hello_handler():
             ...     print("Hello!")
             ...
             >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
-            >>> # Fire the 'my_event' event
-            >>> manager.fire_event("my_event")
+            >>> manager.trigger_event("my_event")
             Hello!
         """
         logger.debug(f"Firing {event} event")
@@ -246,15 +258,15 @@ class EventManager:
             >>> # Check if `hello_handler` is registered in the event manager for 'my_event' event
             >>> manager.has_event_handler(EventHandler(hello_handler), "my_event")
             True
-            >>> manager.fire_event("my_event")
-            >>> manager.last_fired_event
+            >>> manager.trigger_event("my_event")
+            >>> manager.last_triggered_event
             my_event
             >>> # Reset the event manager
             >>> manager.reset()
             >>> # Check if `hello_handler` is registered in the event manager for 'my_event' event
             >>> manager.has_event_handler(EventHandler(hello_handler), "my_event")
             False
-            >>> manager.last_fired_event
+            >>> manager.last_triggered_event
             None
         """
         self._event_handlers.clear()
