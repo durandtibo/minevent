@@ -75,7 +75,7 @@ Below is an example on how to use `minevent` library.
 >>> from minevent import EventHandler, EventManager
 >>> def say_something(manager: EventManager) -> None:
 ...     print("Hello, I am Bob!")
-...     manager.fire_event("after")
+...     manager.trigger_event("after")
 ...
 >>> manager = EventManager()
 >>> say_something(manager)

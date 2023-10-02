@@ -204,7 +204,7 @@ To create an event manager, you can write:
 >>> manager
 EventManager(
   (event_handlers):
-  (last_fired_event): None
+  (last_triggered_event): None
 )
 
 ```
@@ -239,7 +239,7 @@ EventManager(
           (handler_args): ()
           (handler_kwargs): {}
         )
-  (last_fired_event): None
+  (last_triggered_event): None
 )
 
 ```
@@ -271,7 +271,7 @@ EventManager(
           (handler_args): ('Jane', 'Doe')
           (handler_kwargs): {}
         )
-  (last_fired_event): None
+  (last_triggered_event): None
 )
 
 ```
@@ -303,7 +303,7 @@ EventManager(
           (handler_args): ()
           (handler_kwargs): {}
         )
-  (last_fired_event): None
+  (last_triggered_event): None
 )
 
 ```
@@ -372,7 +372,7 @@ EventManager(
           (handler_args): ()
           (handler_kwargs): {}
         )
-  (last_fired_event): None
+  (last_triggered_event): None
 )
 
 ```
@@ -402,9 +402,9 @@ EventManager(
           (handler_args): ()
           (handler_kwargs): {}
         )
-  (last_fired_event): None
+  (last_triggered_event): None
 )
->>> manager.fire_event("my_event")
+>>> manager.trigger_event("my_event")
 Hello!
 >>> manager
 EventManager(
@@ -415,7 +415,7 @@ EventManager(
           (handler_args): ()
           (handler_kwargs): {}
         )
-  (last_fired_event): my_event
+  (last_triggered_event): my_event
 )
 
 ```
@@ -446,9 +446,9 @@ EventManager(
           (handler_args): ('Jane', 'Doe')
           (handler_kwargs): {}
         )
-  (last_fired_event): None
+  (last_triggered_event): None
 )
->>> manager.fire_event("my_event")
+>>> manager.trigger_event("my_event")
 Hello. I am John Smith
 Hello. I am Jane Doe
 
@@ -474,11 +474,11 @@ EventManager(
           (handler_kwargs): {}
           (condition): PeriodicCondition(freq=3, step=0)
         )
-  (last_fired_event): None
+  (last_triggered_event): None
 )
 >>> for i in range(10):
 ...     print(f'i={i}')
-...     manager.fire_event("my_event")
+...     manager.trigger_event("my_event")
 ...
 i=0
 Hello!
@@ -497,12 +497,12 @@ Hello!
 
 ```
 
-The `fire_event` method does nothing if there is no event handler registered for the event
+The `trigger_event` method does nothing if there is no event handler registered for the event:
 
 ```pycon
 >>> from minevent import EventManager
 >>> manager = EventManager()
->>> manager.fire_event("my_event")
+>>> manager.trigger_event("my_event")
 
 ```
 
@@ -530,13 +530,13 @@ EventManager(
           (handler_args): ()
           (handler_kwargs): {}
         )
-  (last_fired_event): None
+  (last_triggered_event): None
 )
 >>> manager.remove_event_handler("my_event", EventHandler(hello_handler))
 >>> manager
 EventManager(
   (event_handlers):
-  (last_fired_event): None
+  (last_triggered_event): None
 )
 
 ```
@@ -572,7 +572,7 @@ EventManager(
           (handler_kwargs): {}
           (condition): PeriodicCondition(freq=3, step=0)
         )
-  (last_fired_event): None
+  (last_triggered_event): None
 )
 >>> manager.remove_event_handler("my_event", EventHandler(hello_handler))
 >>> manager
@@ -585,7 +585,7 @@ EventManager(
           (handler_kwargs): {}
           (condition): PeriodicCondition(freq=3, step=0)
         )
-  (last_fired_event): None
+  (last_triggered_event): None
 )
 
 ```
@@ -615,7 +615,7 @@ EventManager(
           (handler_args): ()
           (handler_kwargs): {}
         )
-  (last_fired_event): None
+  (last_triggered_event): None
 )
 >>> manager.remove_event_handler("my_event", EventHandler(hello_handler))
 >>> manager
@@ -627,7 +627,7 @@ EventManager(
           (handler_args): ()
           (handler_kwargs): {}
         )
-  (last_fired_event): None
+  (last_triggered_event): None
 )
 
 ```
@@ -663,13 +663,13 @@ EventManager(
           (handler_args): ()
           (handler_kwargs): {}
         )
-  (last_fired_event): None
+  (last_triggered_event): None
 )
 >>> manager.reset()
 >>> manager
 EventManager(
   (event_handlers):
-  (last_fired_event): None
+  (last_triggered_event): None
 )
 
 ```
