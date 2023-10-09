@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "minevent"
-version = "0.0.5a0"
+version = "0.0.5a1"
 description = "Minimal event system for Machine Learning"
 readme = "README.md"
 authors = ["Thibaut Durand <durand.tibo+gh@gmail.com>"]
@@ -29,7 +29,7 @@ packages = [
 
 [tool.poetry.dependencies]
 # Core dependencies
-coola = ">=0.0.20,<0.0.24"
+coola = ">=0.0.20,<0.0.25"
 python = ">=3.9,<3.12"
 
 # Optional dependencies
@@ -49,7 +49,7 @@ pre-commit = "^3.4"
 pygments = "^2.16"
 pytest = "^7.4"
 pytest-cov = "^4.1"
-pytest-timeout = "^2.1"
+pytest-timeout = "^2.2"
 ruff = ">=0.0.292,<1.0"
 xdoctest = "^1.1"
 

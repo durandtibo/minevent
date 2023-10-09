@@ -5,7 +5,7 @@ on:
   workflow_dispatch:  # to trigger manually
 
 jobs:
-  package:
+  all:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     strategy:
@@ -36,7 +36,7 @@ jobs:
             "event_manager.trigger_event("my_event"); "
 
 
-  package-minimal:
+  min:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     strategy:
@@ -67,7 +67,7 @@ jobs:
             "event_manager.trigger_event("my_event"); "
 
 
-  package-coola:
+  coola:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     strategy:
@@ -76,7 +76,7 @@ jobs:
       matrix:
         os: [ ubuntu-latest ]
         python-version: [ '3.9', '3.10', '3.11' ]
-        coola-version: [ '0.0.22', '0.0.21', '0.0.20' ]
+        coola-version: [ '0.0.24', '0.0.23', '0.0.22', '0.0.21', '0.0.20' ]
 
     steps:
       - name: Checkout
