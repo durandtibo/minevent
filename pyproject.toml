@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "minevent"
-version = "0.0.5"
+version = "0.0.6a0"
 description = "Minimal event system for Machine Learning"
 readme = "README.md"
 authors = ["Thibaut Durand <durand.tibo+gh@gmail.com>"]
@@ -29,7 +29,7 @@ packages = [
 
 [tool.poetry.dependencies]
 # Core dependencies
-coola = ">=0.0.20,<0.0.25"
+coola = ">=0.0.20,<0.0.26"
 python = ">=3.9,<3.12"
 
 # Optional dependencies
@@ -39,18 +39,18 @@ optional = true
 
 [tool.poetry.group.docs.dependencies]
 mkdocs-material = "^9.4"
-mkdocstrings = "^0.23"
+mkdocstrings = "^0.24"
 
 [tool.poetry.group.dev.dependencies]
-black = ">=23.9"
+black = ">=23.11"
 coverage = { extras = ["toml"], version = "^7.3" }
 docformatter = { extras = ["tomli"], version = "^1.7" }
-pre-commit = "^3.4"
-pygments = "^2.16"
+pre-commit = "^3.5"
+pygments = "^2.17"
 pytest = "^7.4"
 pytest-cov = "^4.1"
 pytest-timeout = "^2.2"
-ruff = ">=0.0.292,<1.0"
+ruff = ">=0.1.6,<1.0"
 xdoctest = "^1.1"
 
 [build-system]
