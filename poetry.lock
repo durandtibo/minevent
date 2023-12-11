@@ -204,17 +204,17 @@ files = [
 
 [[package]]
 name = "coola"
-version = "0.0.25"
+version = "0.0.26"
 description = "A library to check if two complex/nested objects are equal or not"
 optional = false
 python-versions = ">=3.9,<3.12"
 files = [
-    {file = "coola-0.0.25-py3-none-any.whl", hash = "sha256:a4b34a0633ad8cf66bb0c6302ce36bf9b5bd790eb35235d2167a165e807fdd50"},
-    {file = "coola-0.0.25.tar.gz", hash = "sha256:c9621645e742ce801cb56f9063a2b65def7418cebb09da98fe3926b3d362556c"},
+    {file = "coola-0.0.26-py3-none-any.whl", hash = "sha256:5bb60e5ee865f00b65d5de017e794f7cd7927de8dcfab35921ca8f61896f93f4"},
+    {file = "coola-0.0.26.tar.gz", hash = "sha256:4dbc042abc7fdf213fa3d564aff041c0e179fecdf5d4b2c5e51c10d839154a9d"},
 ]
 
 [package.extras]
-all = ["jax (>=0.4.1,<0.5)", "jaxlib (>=0.4.1)", "numpy (>=1.21,<1.27)", "pandas (>=1.3,<2.2)", "polars (>=0.18.3,<0.20)", "torch (>=1.10,<2.2)", "xarray (>=2023.4,<2023.11)"]
+all = ["jax (>=0.4.1,<1.0)", "jaxlib (>=0.4.1)", "numpy (>=1.21,<2.0)", "pandas (>=1.3,<3.0)", "polars (>=0.18.3,<1.0)", "torch (>=1.10,<3.0)", "xarray (>=2023.1)"]
 
 [[package]]
 name = "coverage"
@@ -1242,4 +1242,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<3.12"
-content-hash = "7bf47094ba0504f7447d48d8dbdd6113c786c49ee288df1e4437a0b20c897b44"
+content-hash = "891610778c0a032c372135a01d3143f1d7f8319a5b835872bf50d3e0d0578f5e"
