@@ -12,11 +12,25 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest ]
-        python-version: [ "3.11", "3.10", "3.9" ]
+        python-version: [ "3.12", "3.11", "3.10", "3.9" ]
         coola-version: [ "0.1.1", "0.1.0", "0.0.26", "0.0.25", "0.0.24", "0.0.23", "0.0.22", "0.0.21", "0.0.20" ]
-#        include:
-#          - python-version: "3.12"
-#            coola-version: "0.1.1"
+        include:
+          - python-version: "3.12"
+            coola-version: "0.1.0"
+          - python-version: "3.12"
+            coola-version: "0.0.26"
+          - python-version: "3.12"
+            coola-version: "0.0.25"
+          - python-version: "3.12"
+            coola-version: "0.0.24"
+          - python-version: "3.12"
+            coola-version: "0.0.23"
+          - python-version: "3.12"
+            coola-version: "0.0.22"
+          - python-version: "3.12"
+            coola-version: "0.0.21"
+          - python-version: "3.12"
+            coola-version: "0.0.20"
 
     steps:
       - name: Checkout
