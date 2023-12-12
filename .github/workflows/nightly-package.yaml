@@ -5,7 +5,7 @@ on:
   workflow_dispatch:  # to trigger manually
 
 jobs:
-  all:
+  stable-all:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     strategy:
@@ -36,7 +36,7 @@ jobs:
             "event_manager.trigger_event("my_event"); "
 
 
-  min:
+  stable-min:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     strategy:
@@ -58,6 +58,67 @@ jobs:
       - name: Install package
         run: |
           pip install minevent
+
+      - name: Tests
+        run: |
+          python -c "from minevent import EventHandler, EventManager; " \
+            "event_manager = EventManager(); " \
+            "event_manager.add_event_handler("my_event", EventHandler(print, ['Hello!'])); " \
+            "event_manager.trigger_event("my_event"); "
+
+  latest-all:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      max-parallel: 8
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, macos-latest ]
+        python-version: [ '3.12', '3.11', '3.10', '3.9' ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install package
+        run: |
+          pip install --pre "minevent[all]"
+
+      - name: Tests
+        run: |
+          python -c "from minevent import EventHandler, EventManager; " \
+            "event_manager = EventManager(); " \
+            "event_manager.add_event_handler("my_event", EventHandler(print, ['Hello!'])); " \
+            "event_manager.trigger_event("my_event"); "
+
+
+  latest-min:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      max-parallel: 8
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, macos-latest ]
+        python-version: [ '3.12', '3.11', '3.10', '3.9' ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install package
+        run: |
+          pip install --pre minevent
 
       - name: Tests
         run: |
