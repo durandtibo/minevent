@@ -28,12 +28,9 @@ jobs:
         run: |
           pip install "minevent[all]"
 
-      - name: Tests
+      - name: Run some checks
         run: |
-          python -c "from minevent import EventHandler, EventManager; " \
-            "event_manager = EventManager(); " \
-            "event_manager.add_event_handler("my_event", EventHandler(print, ['Hello!'])); " \
-            "event_manager.trigger_event("my_event"); "
+          python tests/package_checks.py
 
 
   stable-min:
@@ -59,12 +56,9 @@ jobs:
         run: |
           pip install minevent
 
-      - name: Tests
+      - name: Run some checks
         run: |
-          python -c "from minevent import EventHandler, EventManager; " \
-            "event_manager = EventManager(); " \
-            "event_manager.add_event_handler("my_event", EventHandler(print, ['Hello!'])); " \
-            "event_manager.trigger_event("my_event"); "
+          python tests/package_checks.py
 
   latest-all:
     runs-on: ${{ matrix.os }}
@@ -89,12 +83,9 @@ jobs:
         run: |
           pip install --pre "minevent[all]"
 
-      - name: Tests
+      - name: Run some checks
         run: |
-          python -c "from minevent import EventHandler, EventManager; " \
-            "event_manager = EventManager(); " \
-            "event_manager.add_event_handler("my_event", EventHandler(print, ['Hello!'])); " \
-            "event_manager.trigger_event("my_event"); "
+          python tests/package_checks.py
 
 
   latest-min:
@@ -120,12 +111,9 @@ jobs:
         run: |
           pip install --pre minevent
 
-      - name: Tests
+      - name: Run some checks
         run: |
-          python -c "from minevent import EventHandler, EventManager; " \
-            "event_manager = EventManager(); " \
-            "event_manager.add_event_handler("my_event", EventHandler(print, ['Hello!'])); " \
-            "event_manager.trigger_event("my_event"); "
+          python tests/package_checks.py
 
 
   coola:
@@ -137,24 +125,24 @@ jobs:
       matrix:
         os: [ ubuntu-latest ]
         python-version: [ "3.12", "3.11", "3.10", "3.9" ]
-        coola-version: [ "0.1.1", "0.1.0", "0.0.26", "0.0.25", "0.0.24", "0.0.23", "0.0.22", "0.0.21", "0.0.20" ]
+        coola-version: [ 0.1.2, 0.1.1, 0.1.0, 0.0.26, 0.0.25, 0.0.24, 0.0.23, 0.0.22, 0.0.21, 0.0.20 ]
         exclude:
           - python-version: "3.12"
-            coola-version: "0.1.0"
+            coola-version: 0.1.0
           - python-version: "3.12"
-            coola-version: "0.0.26"
+            coola-version: 0.0.26
           - python-version: "3.12"
-            coola-version: "0.0.25"
+            coola-version: 0.0.25
           - python-version: "3.12"
-            coola-version: "0.0.24"
+            coola-version: 0.0.24
           - python-version: "3.12"
-            coola-version: "0.0.23"
+            coola-version: 0.0.23
           - python-version: "3.12"
-            coola-version: "0.0.22"
+            coola-version: 0.0.22
           - python-version: "3.12"
-            coola-version: "0.0.21"
+            coola-version: 0.0.21
           - python-version: "3.12"
-            coola-version: "0.0.20"
+            coola-version: 0.0.20
 
     steps:
       - name: Checkout
@@ -169,9 +157,6 @@ jobs:
         run: |
           pip install minevent coola==${{ matrix.coola-version }}
 
-      - name: Tests
+      - name: Run some checks
         run: |
-          python -c "from minevent import EventHandler, EventManager; " \
-            "event_manager = EventManager(); " \
-            "event_manager.add_event_handler("my_event", EventHandler(print, ['Hello!'])); " \
-            "event_manager.trigger_event("my_event"); "
+          python tests/package_checks.py
