@@ -27,21 +27,22 @@ class BaseEventHandler(ABC):
 
     Example usage:
 
-    .. code-block:: pycon
+    ```pycon
+    >>> from minevent import EventHandler
+    >>> def hello_handler() -> None:
+    ...     print("Hello!")
+    ...
+    >>> handler = EventHandler(hello_handler)
+    >>> handler
+    EventHandler(
+      (handler): <function hello_handler at 0x...>
+      (handler_args): ()
+      (handler_kwargs): {}
+    )
+    >>> handler.handle()
+    Hello!
 
-        >>> from minevent import EventHandler
-        >>> def hello_handler() -> None:
-        ...     print("Hello!")
-        ...
-        >>> handler = EventHandler(hello_handler)
-        >>> handler
-        EventHandler(
-          (handler): <function hello_handler at 0x...>
-          (handler_args): ()
-          (handler_kwargs): {}
-        )
-        >>> handler.handle()
-        Hello!
+    ```
     """
 
     def __eq__(self, other: Any) -> bool:
@@ -52,27 +53,26 @@ class BaseEventHandler(ABC):
         r"""Compares two event handlers.
 
         Args:
-        ----
             other: Specifies the other object to compare with.
 
         Returns:
-        -------
-            bool: ``True`` if the two event handlers are equal,
+            ``True`` if the two event handlers are equal,
                 otherwise ``False``.
 
         Example usage:
 
-        .. code-block:: pycon
+        ```pycon
+        >>> from minevent import EventHandler
+        >>> def hello_handler() -> None:
+        ...     print("Hello!")
+        ...
+        >>> handler = EventHandler(hello_handler)
+        >>> handler.equal(EventHandler(hello_handler))
+        True
+        >>> handler.equal(EventHandler(print, handler_args=["Hello!"]))
+        False
 
-            >>> from minevent import EventHandler
-            >>> def hello_handler() -> None:
-            ...     print("Hello!")
-            ...
-            >>> handler = EventHandler(hello_handler)
-            >>> handler.equal(EventHandler(hello_handler))
-            True
-            >>> handler.equal(EventHandler(print, handler_args=["Hello!"]))
-            False
+        ```
         """
 
     @abstractmethod
@@ -81,15 +81,16 @@ class BaseEventHandler(ABC):
 
         Example usage:
 
-        .. code-block:: pycon
+        ```pycon
+        >>> from minevent import EventHandler
+        >>> def hello_handler() -> None:
+        ...     print("Hello!")
+        ...
+        >>> handler = EventHandler(hello_handler)
+        >>> handler.handle()
+        Hello!
 
-            >>> from minevent import EventHandler
-            >>> def hello_handler() -> None:
-            ...     print("Hello!")
-            ...
-            >>> handler = EventHandler(hello_handler)
-            >>> handler.handle()
-            Hello!
+        ```
         """
 
 
@@ -100,35 +101,33 @@ class BaseEventHandlerWithArguments(BaseEventHandler):
     A child class has to implement the ``equal`` method.
 
     Args:
-    ----
-        handler (``Callable``): Specifies the handler.
-        handler_args (``Sequence`` or ``None``, optional): Specifies
-            the positional argument of the handler.
-            Default: ``None``
-        handler_kwargs (dict or ``None``, optional): Specifies the
-            arbitrary keyword arguments of the handler.
-            Default: ``None``
+        handler: Specifies the handler.
+        handler_args: Specifies the positional arguments of the
+            handler.
+        handler_kwargs: Specifies the arbitrary keyword arguments of
+            the handler.
 
     Example usage:
 
-    .. code-block:: pycon
+    ```pycon
+    >>> from minevent import EventHandler
+    >>> def hello_handler() -> None:
+    ...     print("Hello!")
+    ...
+    >>> handler = EventHandler(hello_handler)
+    >>> handler
+    EventHandler(
+      (handler): <function hello_handler at 0x...>
+      (handler_args): ()
+      (handler_kwargs): {}
+    )
+    >>> handler.handle()
+    Hello!
+    >>> handler = EventHandler(print, handler_args=["Hello!"])
+    >>> handler.handle()
+    Hello!
 
-        >>> from minevent import EventHandler
-        >>> def hello_handler() -> None:
-        ...     print("Hello!")
-        ...
-        >>> handler = EventHandler(hello_handler)
-        >>> handler
-        EventHandler(
-          (handler): <function hello_handler at 0x...>
-          (handler_args): ()
-          (handler_kwargs): {}
-        )
-        >>> handler.handle()
-        Hello!
-        >>> handler = EventHandler(print, handler_args=["Hello!"])
-        >>> handler.handle()
-        Hello!
+    ```
     """
 
     def __init__(
@@ -157,17 +156,17 @@ class BaseEventHandlerWithArguments(BaseEventHandler):
 
     @property
     def handler(self) -> Callable:
-        r"""Callable: The handler."""
+        r"""The handler."""
         return self._handler
 
     @property
     def handler_args(self) -> tuple:
-        r"""``tuple``: Variable length argument list of the handler."""
+        r"""Variable length argument list of the handler."""
         return self._handler_args
 
     @property
     def handler_kwargs(self) -> dict:
-        r"""``dict``: Arbitrary keyword arguments of the handler."""
+        r"""Arbitrary keyword arguments of the handler."""
         return self._handler_kwargs
 
     def handle(self) -> None:
@@ -179,21 +178,22 @@ class EventHandler(BaseEventHandlerWithArguments):
 
     Example usage:
 
-    .. code-block:: pycon
+    ```pycon
+    >>> from minevent import EventHandler
+    >>> def hello_handler() -> None:
+    ...     print("Hello!")
+    ...
+    >>> handler = EventHandler(hello_handler)
+    >>> handler
+    EventHandler(
+      (handler): <function hello_handler at 0x...>
+      (handler_args): ()
+      (handler_kwargs): {}
+    )
+    >>> handler.handle()
+    Hello!
 
-        >>> from minevent import EventHandler
-        >>> def hello_handler() -> None:
-        ...     print("Hello!")
-        ...
-        >>> handler = EventHandler(hello_handler)
-        >>> handler
-        EventHandler(
-          (handler): <function hello_handler at 0x...>
-          (handler_args): ()
-          (handler_kwargs): {}
-        )
-        >>> handler.handle()
-        Hello!
+    ```
     """
 
     def equal(self, other: Any) -> bool:
@@ -212,39 +212,37 @@ class ConditionalEventHandler(BaseEventHandlerWithArguments):
     The handler is executed only if the condition is ``True``.
 
     Args:
-    ----
-        handler (``Callable``): Specifies the handler.
-        condition (``Callable``): Specifies the condition for this
-            event handler. The condition should be callable without
-            arguments.
-        handler_args (``Sequence`` or ``None``, optional): Specifies
-            the  positional arguments of the handler.
-            Default: ``None``
-        handler_kwargs (dict, optional): Specifies the arbitrary
-            keyword arguments of the handler. Default: ``None``
+        handler: Specifies the handler.
+        condition: Specifies the condition for this event handler.
+            The condition should be callable without arguments.
+        handler_args: Specifies the positional arguments of the
+            handler.
+        handler_kwargs: Specifies the arbitrary keyword arguments of
+            the handler.
 
     Example usage:
 
-    .. code-block:: pycon
+    ```pycon
+    >>> from minevent import ConditionalEventHandler, PeriodicCondition
+    >>> def hello_handler() -> None:
+    ...     print("Hello!")
+    ...
+    >>> handler = ConditionalEventHandler(hello_handler, PeriodicCondition(freq=3))
+    >>> handler
+    ConditionalEventHandler(
+      (handler): <function hello_handler at 0x...>
+      (handler_args): ()
+      (handler_kwargs): {}
+      (condition): PeriodicCondition(freq=3, step=0)
+    )
+    >>> handler.handle()
+    Hello!
+    >>> handler.handle()
+    >>> handler.handle()
+    >>> handler.handle()
+    Hello!
 
-        >>> from minevent import ConditionalEventHandler, PeriodicCondition
-        >>> def hello_handler() -> None:
-        ...     print("Hello!")
-        ...
-        >>> handler = ConditionalEventHandler(hello_handler, PeriodicCondition(freq=3))
-        >>> handler
-        ConditionalEventHandler(
-          (handler): <function hello_handler at 0x...>
-          (handler_args): ()
-          (handler_kwargs): {}
-          (condition): PeriodicCondition(freq=3, step=0)
-        )
-        >>> handler.handle()
-        Hello!
-        >>> handler.handle()
-        >>> handler.handle()
-        >>> handler.handle()
-        Hello!
+    ```
     """
 
     def __init__(
@@ -272,7 +270,7 @@ class ConditionalEventHandler(BaseEventHandlerWithArguments):
 
     @property
     def condition(self) -> BaseCondition:
-        r"""``BaseCondition``: The condition."""
+        r"""The condition."""
         return self._condition
 
     def equal(self, other: Any) -> bool:
