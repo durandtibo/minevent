@@ -20,24 +20,25 @@ class BaseCondition(ABC):
 
     Example usage:
 
-    .. code-block:: pycon
+    ```pycon
+    >>> from minevent import PeriodicCondition
+    >>> condition = PeriodicCondition(freq=3)
+    >>> condition.evaluate()
+    True
+    >>> condition.evaluate()
+    False
+    >>> condition.evaluate()
+    False
+    >>> condition.evaluate()
+    True
+    >>> condition.evaluate()
+    False
+    >>> condition.evaluate()
+    False
+    >>> condition.evaluate()
+    True
 
-        >>> from minevent import PeriodicCondition
-        >>> condition = PeriodicCondition(freq=3)
-        >>> condition.evaluate()
-        True
-        >>> condition.evaluate()
-        False
-        >>> condition.evaluate()
-        False
-        >>> condition.evaluate()
-        True
-        >>> condition.evaluate()
-        False
-        >>> condition.evaluate()
-        False
-        >>> condition.evaluate()
-        True
+    ```
     """
 
     def __eq__(self, other: Any) -> bool:
@@ -48,46 +49,45 @@ class BaseCondition(ABC):
         r"""Compares two conditions.
 
         Args:
-        ----
             other: Specifies the other object to compare with.
 
         Returns:
-        -------
-            bool: ``True`` if the two conditions are equal,
+            ``True`` if the two conditions are equal,
                 otherwise ``False``.
 
         Example usage:
 
-        .. code-block:: pycon
+        ```pycon
+        >>> from minevent import PeriodicCondition
+        >>> condition = PeriodicCondition(freq=3)
+        >>> condition.equal(PeriodicCondition(freq=3))
+        True
+        >>> condition.equal(PeriodicCondition(freq=2))
+        False
 
-            >>> from minevent import PeriodicCondition
-            >>> condition = PeriodicCondition(freq=3)
-            >>> condition.equal(PeriodicCondition(freq=3))
-            True
-            >>> condition.equal(PeriodicCondition(freq=2))
-            False
+        ```
         """
 
     @abstractmethod
     def evaluate(self) -> bool:
         r"""Evaluates the condition given the current state.
 
-        Returns
-        -------
-            bool: ``True`` if the condition is ``True`` and the event
+        Returns:
+            ``True`` if the condition is ``True`` and the event
                 handler logic should be executed, otherwise ``False``.
 
         Example usage:
 
-        .. code-block:: pycon
+        ```pycon
+        >>> from minevent import EventHandler
+        >>> def hello_handler() -> None:
+        ...     print("Hello!")
+        ...
+        >>> handler = EventHandler(hello_handler)
+        >>> handler.handle()
+        Hello!
 
-            >>> from minevent import EventHandler
-            >>> def hello_handler() -> None:
-            ...     print("Hello!")
-            ...
-            >>> handler = EventHandler(hello_handler)
-            >>> handler.handle()
-            Hello!
+        ```
         """
 
 
@@ -97,29 +97,29 @@ class PeriodicCondition(BaseCondition):
     This condition is true every ``freq`` events.
 
     Args:
-    ----
-        freq (int): Specifies the frequency.
+        freq: Specifies the frequency.
 
     Example usage:
 
-    .. code-block:: pycon
+    ```pycon
+    >>> from minevent import PeriodicCondition
+    >>> condition = PeriodicCondition(freq=3)
+    >>> condition.evaluate()
+    True
+    >>> condition.evaluate()
+    False
+    >>> condition.evaluate()
+    False
+    >>> condition.evaluate()
+    True
+    >>> condition.evaluate()
+    False
+    >>> condition.evaluate()
+    False
+    >>> condition.evaluate()
+    True
 
-        >>> from minevent import PeriodicCondition
-        >>> condition = PeriodicCondition(freq=3)
-        >>> condition.evaluate()
-        True
-        >>> condition.evaluate()
-        False
-        >>> condition.evaluate()
-        False
-        >>> condition.evaluate()
-        True
-        >>> condition.evaluate()
-        False
-        >>> condition.evaluate()
-        False
-        >>> condition.evaluate()
-        True
+    ```
     """
 
     def __init__(self, freq: int) -> None:
@@ -131,7 +131,7 @@ class PeriodicCondition(BaseCondition):
 
     @property
     def freq(self) -> int:
-        r"""``int``: The frequency of the condition."""
+        r"""The frequency of the condition."""
         return self._freq
 
     def equal(self, other: Any) -> bool:

@@ -18,15 +18,17 @@ class ConditionEqualityOperator(BaseEqualityOperator[BaseCondition]):
 
     Example usage:
 
-    .. code-block:: pycon
+    ```pycon
+    >>> from coola import EqualityTester
+    >>> from minevent import PeriodicCondition, ConditionEqualityOperator
+    >>> comparator = ConditionEqualityOperator()
+    >>> tester = EqualityTester()
+    >>> comparator.equal(tester, PeriodicCondition(freq=3), PeriodicCondition(freq=3))
+    True
+    >>> comparator.equal(tester, PeriodicCondition(freq=3), PeriodicCondition(freq=2))
+    False
 
-        >>> from coola import EqualityTester
-        >>> from minevent import PeriodicCondition, ConditionEqualityOperator
-        >>> comparator = ConditionEqualityOperator()
-        >>> comparator.equal(EqualityTester(), PeriodicCondition(freq=3), PeriodicCondition(freq=3))
-        True
-        >>> comparator.equal(EqualityTester(), PeriodicCondition(freq=3), PeriodicCondition(freq=2))
-        False
+    ```
     """
 
     def __eq__(self, other: Any) -> bool:
@@ -62,18 +64,18 @@ class EventHandlerEqualityOperator(BaseEqualityOperator[BaseEventHandler]):
 
     Example usage:
 
-    .. code-block:: pycon
+    ```pycon
+    >>> from coola import EqualityTester
+    >>> from minevent import EventHandler, EventHandlerEqualityOperator
+    >>> def hello_handler() -> None:
+    ...     print("Hello!")
+    ...
+    >>> tester = EqualityTester()
+    >>> comparator = EventHandlerEqualityOperator()
+    >>> comparator.equal(tester, EventHandler(hello_handler), EventHandler(hello_handler))
+    True
 
-        >>> from coola import EqualityTester
-        >>> from minevent import EventHandler, EventHandlerEqualityOperator
-        >>> def hello_handler() -> None:
-        ...     print("Hello!")
-        ...
-        >>> comparator = EventHandlerEqualityOperator()
-        >>> comparator.equal(
-        ...     EqualityTester(), EventHandler(hello_handler), EventHandler(hello_handler)
-        ... )
-        True
+    ```
     """
 
     def __eq__(self, other: Any) -> bool:
