@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pytest import mark
+import pytest
 
 from minevent import PeriodicCondition
 
@@ -13,7 +13,7 @@ def test_periodic_condition_str() -> None:
     assert str(PeriodicCondition(3)).startswith("PeriodicCondition(freq=3,")
 
 
-@mark.parametrize("freq", (1, 2, 3))
+@pytest.mark.parametrize("freq", [1, 2, 3])
 def test_periodic_condition_freq(freq: int) -> None:
     assert PeriodicCondition(freq).freq == freq
 

@@ -1,3 +1,5 @@
+r"""Implement the event handlers."""
+
 from __future__ import annotations
 
 __all__ = [
@@ -8,17 +10,19 @@ __all__ = [
 ]
 
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from coola import objects_are_equal
 from coola.utils import str_indent, str_mapping
 
-from minevent.conditions import BaseCondition
+if TYPE_CHECKING:
+    from collections.abc import Callable, Sequence
+
+    from minevent.conditions import BaseCondition
 
 
 class BaseEventHandler(ABC):
-    r"""Defines the base class to implement an event handler.
+    r"""Define the base class to implement an event handler.
 
     A child class has to implement the following methods:
 
@@ -45,12 +49,12 @@ class BaseEventHandler(ABC):
     ```
     """
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         return self.equal(other)
 
     @abstractmethod
     def equal(self, other: Any) -> bool:
-        r"""Compares two event handlers.
+        r"""Compare two event handlers.
 
         Args:
             other: Specifies the other object to compare with.
@@ -77,7 +81,7 @@ class BaseEventHandler(ABC):
 
     @abstractmethod
     def handle(self) -> None:
-        r"""Handles the event.
+        r"""Handle the event.
 
         Example usage:
 
@@ -95,8 +99,8 @@ class BaseEventHandler(ABC):
 
 
 class BaseEventHandlerWithArguments(BaseEventHandler):
-    r"""Defines a base class to implement an event handler with
-    positional and/or keyword arguments.
+    r"""Define a base class to implement an event handler with positional
+    and/or keyword arguments.
 
     A child class has to implement the ``equal`` method.
 
@@ -137,7 +141,8 @@ class BaseEventHandlerWithArguments(BaseEventHandler):
         handler_kwargs: dict | None = None,
     ) -> None:
         if not callable(handler):
-            raise TypeError(f"handler is not callable: {handler}")
+            msg = f"handler is not callable: {handler}"
+            raise TypeError(msg)
         self._handler = handler
         self._handler_args = tuple(handler_args or ())
         self._handler_kwargs = handler_kwargs or {}
@@ -174,7 +179,7 @@ class BaseEventHandlerWithArguments(BaseEventHandler):
 
 
 class EventHandler(BaseEventHandlerWithArguments):
-    r"""Implements a simple event handler.
+    r"""Implement a simple event handler.
 
     Example usage:
 
@@ -207,7 +212,7 @@ class EventHandler(BaseEventHandlerWithArguments):
 
 
 class ConditionalEventHandler(BaseEventHandlerWithArguments):
-    r"""Implements a conditional event handler.
+    r"""Implement a conditional event handler.
 
     The handler is executed only if the condition is ``True``.
 

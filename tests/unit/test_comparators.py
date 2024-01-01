@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
 from coola import EqualityTester, objects_are_equal
-from pytest import LogCaptureFixture
 
 from minevent import (
     BaseCondition,
@@ -14,6 +14,9 @@ from minevent import (
     PeriodicCondition,
 )
 from tests.unit.test_handlers import hello_handler, hello_name_handler
+
+if TYPE_CHECKING:
+    import pytest
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +70,7 @@ def test_condition_equality_operator_equal_true_same_object() -> None:
 
 
 def test_condition_equality_operator_equal_true_show_difference(
-    caplog: LogCaptureFixture,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     with caplog.at_level(logging.INFO):
         assert ConditionEqualityOperator().equal(
@@ -86,7 +89,7 @@ def test_condition_equality_operator_equal_false_different_value() -> None:
 
 
 def test_condition_equality_operator_equal_false_different_value_show_difference(
-    caplog: LogCaptureFixture,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     with caplog.at_level(logging.INFO):
         assert not ConditionEqualityOperator().equal(
@@ -103,7 +106,7 @@ def test_condition_equality_operator_equal_false_different_type() -> None:
 
 
 def test_condition_equality_operator_equal_false_different_type_show_difference(
-    caplog: LogCaptureFixture,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     with caplog.at_level(logging.INFO):
         assert not ConditionEqualityOperator().equal(
@@ -151,7 +154,7 @@ def test_event_handler_equality_operator_equal_true_same_object() -> None:
 
 
 def test_event_handler_equality_operator_equal_true_show_difference(
-    caplog: LogCaptureFixture,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     with caplog.at_level(logging.INFO):
         assert EventHandlerEqualityOperator().equal(
@@ -170,7 +173,7 @@ def test_event_handler_equality_operator_equal_false_different_value() -> None:
 
 
 def test_event_handler_equality_operator_equal_false_different_value_show_difference(
-    caplog: LogCaptureFixture,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     with caplog.at_level(logging.INFO):
         assert not EventHandlerEqualityOperator().equal(
@@ -189,7 +192,7 @@ def test_event_handler_equality_operator_equal_false_different_type() -> None:
 
 
 def test_event_handler_equality_operator_equal_false_different_type_show_difference(
-    caplog: LogCaptureFixture,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     with caplog.at_level(logging.INFO):
         assert not EventHandlerEqualityOperator().equal(

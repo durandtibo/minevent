@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
-from functools import wraps
-from typing import Any
+from typing import TYPE_CHECKING
 
-from coola import EqualityTester, objects_are_equal
-from pytest import fixture, raises
+import pytest
+from coola import EqualityTester
 
 from minevent import (
     BaseEventHandler,
@@ -15,30 +13,18 @@ from minevent import (
     EventHandlerEqualityOperator,
     PeriodicCondition,
 )
+from tests.unit.utils import trace
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
-
-
-def trace(func: Callable) -> Callable:
-    @wraps(func)
-    def wrapper(*args, **kwargs) -> Any:
-        wrapper.called = True
-        wrapper.call_count += 1
-        wrapper.args = args
-        wrapper.kwargs = kwargs
-        return func(*args, **kwargs)
-
-    wrapper.called = False
-    wrapper.call_count = 0
-    wrapper.args = ()
-    wrapper.kwargs = {}
-    return wrapper
 
 
 @trace
 def hello_handler() -> None:
     r"""Implements a simple handler that prints hello."""
-    print("Hello!")
+    logger.info("Hello!")
 
 
 @trace
@@ -48,8 +34,8 @@ def hello_name_handler(first_name: str, last_name: str) -> None:
     logger.info(f"Hello. I am {first_name} {last_name}")
 
 
-@fixture(scope="function", autouse=True)
-def reset_tracer() -> None:
+@pytest.fixture(autouse=True)
+def _reset_tracer() -> None:
     def reset_func(func: Callable) -> None:
         func.called = False
         func.call_count = 0
@@ -136,7 +122,7 @@ def test_event_handler_with_args_and_kwargs() -> None:
 
 
 def test_event_handler_incorrect_handler() -> None:
-    with raises(TypeError, match="handler is not callable:"):
+    with pytest.raises(TypeError, match="handler is not callable:"):
         EventHandler("abc")
 
 
@@ -195,17 +181,6 @@ def test_conditional_event_handler_str() -> None:
 
 
 def test_conditional_event_handler_equal_true() -> None:
-    h1 = ConditionalEventHandler(hello_handler, PeriodicCondition(3))
-    h2 = ConditionalEventHandler(hello_handler, PeriodicCondition(3))
-    print(h1)
-    print(h2)
-    print(h1.handler == h2.handler, objects_are_equal(h1.handler, h2.handler))
-    print(h1.handler_args == h2.handler_args, objects_are_equal(h1.handler_args, h2.handler_args))
-    print(
-        h1.handler_kwargs == h2.handler_kwargs,
-        objects_are_equal(h1.handler_kwargs, h2.handler_kwargs),
-    )
-    print(h1.condition == h2.condition, objects_are_equal(h1.condition, h2.condition))
     assert ConditionalEventHandler(hello_handler, PeriodicCondition(3)).equal(
         ConditionalEventHandler(hello_handler, PeriodicCondition(3))
     )

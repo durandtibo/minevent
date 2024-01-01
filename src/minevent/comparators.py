@@ -1,3 +1,6 @@
+r"""Implement some ``coola`` equality operators for conditions and event
+handlers."""
+
 from __future__ import annotations
 
 __all__ = ["ConditionEqualityOperator", "EventHandlerEqualityOperator"]
@@ -14,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class ConditionEqualityOperator(BaseEqualityOperator[BaseCondition]):
-    r"""Implements an equality operator for ``BaseCondition`` objects.
+    r"""Implement an equality operator for ``BaseCondition`` objects.
 
     Example usage:
 
@@ -31,7 +34,7 @@ class ConditionEqualityOperator(BaseEqualityOperator[BaseCondition]):
     ```
     """
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         return isinstance(other, self.__class__)
 
     def clone(self) -> ConditionEqualityOperator:
@@ -60,7 +63,7 @@ class ConditionEqualityOperator(BaseEqualityOperator[BaseCondition]):
 
 
 class EventHandlerEqualityOperator(BaseEqualityOperator[BaseEventHandler]):
-    r"""Implements an equality operator for ``BaseEventHandler`` objects.
+    r"""Implement an equality operator for ``BaseEventHandler`` objects.
 
     Example usage:
 
@@ -78,7 +81,7 @@ class EventHandlerEqualityOperator(BaseEqualityOperator[BaseEventHandler]):
     ```
     """
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         return isinstance(other, self.__class__)
 
     def clone(self) -> EventHandlerEqualityOperator:
