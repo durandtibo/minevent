@@ -1,5 +1,4 @@
-r"""This module defines some conditions that can be used in the event
-system."""
+r"""Implement some conditions that can be used in the event system."""
 
 from __future__ import annotations
 
@@ -10,7 +9,7 @@ from typing import Any
 
 
 class BaseCondition(ABC):
-    r"""Defines the base class to implement a condition for
+    r"""Define the base class to implement a condition for
     ``ConditionalEventHandler``.
 
     A child class has to implement the following methods:
@@ -41,12 +40,12 @@ class BaseCondition(ABC):
     ```
     """
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         return self.equal(other)
 
     @abstractmethod
     def equal(self, other: Any) -> bool:
-        r"""Compares two conditions.
+        r"""Compare two conditions.
 
         Args:
             other: Specifies the other object to compare with.
@@ -70,7 +69,7 @@ class BaseCondition(ABC):
 
     @abstractmethod
     def evaluate(self) -> bool:
-        r"""Evaluates the condition given the current state.
+        r"""Evaluate the condition given the current state.
 
         Returns:
             ``True`` if the condition is ``True`` and the event
@@ -92,7 +91,7 @@ class BaseCondition(ABC):
 
 
 class PeriodicCondition(BaseCondition):
-    r"""Implements a periodic condition.
+    r"""Implement a periodic condition.
 
     This condition is true every ``freq`` events.
 

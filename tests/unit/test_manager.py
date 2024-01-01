@@ -1,44 +1,30 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
-from functools import wraps
-from typing import Any
+from typing import TYPE_CHECKING
 
+import pytest
 from coola import objects_are_equal
-from pytest import fixture, mark, raises
 
 from minevent import EventHandler, EventManager
+from tests.unit.utils import trace
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
 EVENTS = ("my_event", "my_other_event")
 
 
-def trace(func: Callable) -> Callable:
-    @wraps(func)
-    def wrapper(*args, **kwargs) -> Any:
-        wrapper.called = True
-        wrapper.call_count += 1
-        wrapper.args = args
-        wrapper.kwargs = kwargs
-        return func(*args, **kwargs)
-
-    wrapper.called = False
-    wrapper.call_count = 0
-    wrapper.args = ()
-    wrapper.kwargs = {}
-    return wrapper
-
-
 @trace
 def hello_handler() -> None:
     r"""Implements a simple handler that prints hello."""
-    print("Hello!")
+    logger.info("Hello!")
 
 
-@fixture(scope="function", autouse=True)
-def reset_tracer() -> None:
+@pytest.fixture(autouse=True)
+def _reset_tracer() -> None:
     def reset_func(func: Callable) -> None:
         func.called = False
         func.call_count = 0
@@ -84,7 +70,7 @@ def test_event_manager_last_triggered_event() -> None:
     assert event_manager.last_triggered_event == "my_other_event"
 
 
-@mark.parametrize("event", EVENTS)
+@pytest.mark.parametrize("event", EVENTS)
 def test_event_manager_add_event_handler_event(event: str) -> None:
     event_manager = EventManager()
     event_manager.add_event_handler(event, EventHandler(hello_handler))
@@ -101,7 +87,7 @@ def test_event_manager_add_event_handler_duplicate_event_handlers() -> None:
     )
 
 
-@mark.parametrize("event", EVENTS)
+@pytest.mark.parametrize("event", EVENTS)
 def test_event_manager_trigger_event(event: str) -> None:
     event_manager = EventManager()
     event_manager.add_event_handler(event, EventHandler(hello_handler))
@@ -149,7 +135,7 @@ def test_event_manager_has_event_handler_false_with_event() -> None:
     assert not event_manager.has_event_handler(EventHandler(hello_handler), event="my_event")
 
 
-@mark.parametrize("event", EVENTS)
+@pytest.mark.parametrize("event", EVENTS)
 def test_event_manager_remove_event_handler(event: str) -> None:
     event_manager = EventManager()
     event_manager.add_event_handler("my_event", EventHandler(hello_handler))
@@ -177,14 +163,14 @@ def test_event_manager_remove_event_handler_multiple_events() -> None:
 
 def test_event_manager_remove_event_handler_missing_event() -> None:
     event_manager = EventManager()
-    with raises(RuntimeError, match="'my_event' event does not exist"):
+    with pytest.raises(RuntimeError, match="'my_event' event does not exist"):
         event_manager.remove_event_handler("my_event", EventHandler(hello_handler))
 
 
 def test_event_manager_remove_event_handler_missing_handler() -> None:
     event_manager = EventManager()
     event_manager.add_event_handler("my_event", EventHandler(lambda *args, **kwargs: True))
-    with raises(
+    with pytest.raises(
         RuntimeError, match="is not found among registered event handlers for 'my_event' event"
     ):
         event_manager.remove_event_handler("my_event", EventHandler(hello_handler))

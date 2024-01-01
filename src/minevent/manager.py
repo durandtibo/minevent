@@ -1,4 +1,4 @@
-r"""This module implements an event manager."""
+r"""Implement the event manager."""
 
 from __future__ import annotations
 
@@ -6,16 +6,18 @@ __all__ = ["EventManager"]
 
 import logging
 from collections import defaultdict
+from typing import TYPE_CHECKING
 
 from coola.utils import str_indent, str_mapping, str_sequence
 
-from minevent.handlers import BaseEventHandler
+if TYPE_CHECKING:
+    from minevent.handlers import BaseEventHandler
 
 logger = logging.getLogger(__name__)
 
 
 class EventManager:
-    r"""Implements an event manager.
+    r"""Implement an event manager.
 
     This event manager allows adding event handlers and firing events.
     An event is represented by a case-sensitive string.
@@ -61,7 +63,7 @@ class EventManager:
 
     @property
     def last_triggered_event(self) -> str | None:
-        r"""Gets the last event name that was triggered.
+        r"""Get the last event name that was triggered.
 
         Returns:
             The last event name that was fired of ``None`` if no event
@@ -85,7 +87,7 @@ class EventManager:
         return self._last_triggered_event
 
     def add_event_handler(self, event: str, event_handler: BaseEventHandler) -> None:
-        r"""Adds an event handler to an event.
+        r"""Add an event handler to an event.
 
         The event handler will be called everytime the event happens.
 
@@ -110,7 +112,7 @@ class EventManager:
         logger.debug(f"Added {event_handler} to event {event}")
 
     def trigger_event(self, event: str) -> None:
-        r"""Triggers the handler(s) for the given event.
+        r"""Trigger the handler(s) for the given event.
 
         Args:
             event: Specifies the event to fire.
@@ -136,7 +138,7 @@ class EventManager:
             event_handler.handle()
 
     def has_event_handler(self, event_handler: BaseEventHandler, event: str | None = None) -> bool:
-        r"""Indicates if a handler is registered in the event manager.
+        r"""Indicate if a handler is registered in the event manager.
 
         Note that this method relies on the ``equal`` method of the
         input event handler to compare event handlers.
@@ -182,7 +184,7 @@ class EventManager:
         return False
 
     def remove_event_handler(self, event: str, event_handler: BaseEventHandler) -> None:
-        r"""Removes an event handler of a given event.
+        r"""Remove an event handler of a given event.
 
         Note that if the same event handler was added multiple times
         the event, all the duplicated handlers are removed. This
@@ -218,15 +220,17 @@ class EventManager:
         ```
         """
         if event not in self._event_handlers:
-            raise RuntimeError(f"'{event}' event does not exist")
+            msg = f"'{event}' event does not exist"
+            raise RuntimeError(msg)
 
         new_event_handlers = [
             handler for handler in self._event_handlers[event] if not event_handler.equal(handler)
         ]
         if len(new_event_handlers) == len(self._event_handlers[event]):
-            raise RuntimeError(
+            msg = (
                 f"{event_handler} is not found among registered event handlers for '{event}' event"
             )
+            raise RuntimeError(msg)
         if len(new_event_handlers) > 0:
             self._event_handlers[event] = new_event_handlers
         else:
@@ -234,7 +238,7 @@ class EventManager:
         logger.debug(f"Removed {event_handler} in '{event}' event")
 
     def reset(self) -> None:
-        r"""Resets the event manager.
+        r"""Reset the event manager.
 
         This method removes all the event handlers from the event manager.
 
