@@ -30,7 +30,7 @@ packages = [
 
 [tool.poetry.dependencies]
 # Core dependencies
-coola = ">=0.1,<0.3"
+coola = ">=0.1,<0.4"
 python = ">=3.9,<3.13"
 
 # Optional dependencies
