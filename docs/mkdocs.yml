@@ -26,7 +26,6 @@ nav:
       - refs/manager.md
       - refs/handlers.md
       - refs/conditions.md
-      - refs/comparators.md
   - GitHub: https://github.com/durandtibo/minevent
 
 repo_url: https://github.com/durandtibo/minevent
