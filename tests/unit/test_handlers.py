@@ -4,15 +4,8 @@ import logging
 from typing import TYPE_CHECKING
 
 import pytest
-from coola import EqualityTester
 
-from minevent import (
-    BaseEventHandler,
-    ConditionalEventHandler,
-    EventHandler,
-    EventHandlerEqualityOperator,
-    PeriodicCondition,
-)
+from minevent import ConditionalEventHandler, EventHandler, PeriodicCondition
 from tests.unit.utils import trace
 
 if TYPE_CHECKING:
@@ -44,10 +37,6 @@ def _reset_tracer() -> None:
 
     reset_func(hello_handler)
     reset_func(hello_name_handler)
-
-
-def test_registered_event_handler_comparators() -> None:
-    assert isinstance(EqualityTester.registry[BaseEventHandler], EventHandlerEqualityOperator)
 
 
 ##################################
