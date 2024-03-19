@@ -130,7 +130,7 @@ def test_event_manager_has_event_handler_false() -> None:
 
 def test_event_manager_has_event_handler_false_with_event() -> None:
     event_manager = EventManager()
-    event_manager.add_event_handler("my_event", EventHandler(lambda *args, **kwargs: True))
+    event_manager.add_event_handler("my_event", EventHandler(lambda: True))
     event_manager.add_event_handler("my_other_event", EventHandler(hello_handler))
     assert not event_manager.has_event_handler(EventHandler(hello_handler), event="my_event")
 
@@ -138,15 +138,15 @@ def test_event_manager_has_event_handler_false_with_event() -> None:
 @pytest.mark.parametrize("event", EVENTS)
 def test_event_manager_remove_event_handler(event: str) -> None:
     event_manager = EventManager()
-    event_manager.add_event_handler("my_event", EventHandler(hello_handler))
-    event_manager.remove_event_handler("my_event", EventHandler(hello_handler))
-    assert len(event_manager._event_handlers["my_event"]) == 0
+    event_manager.add_event_handler(event, EventHandler(hello_handler))
+    event_manager.remove_event_handler(event, EventHandler(hello_handler))
+    assert len(event_manager._event_handlers[event]) == 0
 
 
 def test_event_manager_remove_event_handler_duplicate_handler() -> None:
     event_manager = EventManager()
     event_manager.add_event_handler("my_event", EventHandler(hello_handler))
-    event_manager.add_event_handler("my_event", EventHandler(lambda *args, **kwargs: True))
+    event_manager.add_event_handler("my_event", EventHandler(lambda: True))
     event_manager.add_event_handler("my_event", EventHandler(hello_handler))
     event_manager.remove_event_handler("my_event", EventHandler(hello_handler))
     assert len(event_manager._event_handlers["my_event"]) == 1
@@ -169,7 +169,7 @@ def test_event_manager_remove_event_handler_missing_event() -> None:
 
 def test_event_manager_remove_event_handler_missing_handler() -> None:
     event_manager = EventManager()
-    event_manager.add_event_handler("my_event", EventHandler(lambda *args, **kwargs: True))
+    event_manager.add_event_handler("my_event", EventHandler(lambda: True))
     with pytest.raises(
         RuntimeError, match="is not found among registered event handlers for 'my_event' event"
     ):
