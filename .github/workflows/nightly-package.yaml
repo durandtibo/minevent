@@ -12,7 +12,7 @@ jobs:
       max-parallel: 8
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest, ubuntu-24.04, ubuntu-22.04, ubuntu-20.04, macos-latest, macos-14, macos-13, macos-12 ]
+        os: [ ubuntu-latest, ubuntu-24.04, ubuntu-22.04, ubuntu-20.04, macos-latest, macos-15, macos-14, macos-13 ]
         python-version: [ '3.12', '3.11', '3.10', '3.9' ]
 
     steps:
@@ -40,7 +40,7 @@ jobs:
       max-parallel: 8
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest, ubuntu-24.04, ubuntu-22.04, ubuntu-20.04, macos-latest, macos-14, macos-13, macos-12 ]
+        os: [ ubuntu-latest, ubuntu-24.04, ubuntu-22.04, ubuntu-20.04, macos-latest, macos-15, macos-14, macos-13 ]
         python-version: [ '3.12', '3.11', '3.10', '3.9' ]
 
     steps:
@@ -67,7 +67,7 @@ jobs:
       max-parallel: 8
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest, ubuntu-24.04, ubuntu-22.04, ubuntu-20.04, macos-latest, macos-14, macos-13, macos-12 ]
+        os: [ ubuntu-latest, ubuntu-24.04, ubuntu-22.04, ubuntu-20.04, macos-latest, macos-15, macos-14, macos-13 ]
         python-version: [ '3.12', '3.11', '3.10', '3.9' ]
 
     steps:
@@ -95,7 +95,7 @@ jobs:
       max-parallel: 8
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest, ubuntu-24.04, ubuntu-22.04, ubuntu-20.04, macos-latest, macos-14, macos-13, macos-12 ]
+        os: [ ubuntu-latest, ubuntu-24.04, ubuntu-22.04, ubuntu-20.04, macos-latest, macos-15, macos-14, macos-13 ]
         python-version: [ '3.12', '3.11', '3.10', '3.9' ]
 
     steps:
@@ -125,7 +125,7 @@ jobs:
       matrix:
         os: [ ubuntu-latest ]
         python-version: [ "3.12", "3.11", "3.10", "3.9" ]
-        coola-version: [ 0.7.2, 0.6.2, 0.5.1, 0.4.0, 0.3.0, 0.2.2, 0.1.2 ]
+        coola-version: [ 0.8.3, 0.7.4, 0.6.2, 0.5.1, 0.4.0, 0.3.0, 0.2.2, 0.1.2 ]
 
     steps:
       - name: Checkout
@@ -138,7 +138,14 @@ jobs:
 
       - name: Install package
         run: |
-          pip install minevent coola==${{ matrix.coola-version }}
+          pip install minevent
+
+      - name: Install valid package version
+        uses: durandtibo/pip-install-package-action@v0.3.0
+        with:
+          package-name: 'coola'
+          package-version: ${{ matrix.coola-version }}
+          python-version: ${{ matrix.python-version }}
 
       - name: Run some checks
         run: |
