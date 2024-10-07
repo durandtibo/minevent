@@ -79,7 +79,7 @@ It is also possible to give the arguments as keyword arguments using `handler_kw
 >>> def hello_handler(name: str, day: str) -> None:
 ...     print(f"Hello {name}! Happy {day}!")
 ...
->>> handler = EventHandler(hello_handler, handler_kwargs={'name': "Bob", 'day': "Monday"})
+>>> handler = EventHandler(hello_handler, handler_kwargs={"name": "Bob", "day": "Monday"})
 >>> handler.handle()
 Hello Bob! Happy Monday!
 
@@ -92,7 +92,9 @@ It is also possible to use `handler_args` and `handler_kwargs`:
 >>> def hello_handler(name: str, day: str) -> None:
 ...     print(f"Hello {name}! Happy {day}!")
 ...
->>> handler = EventHandler(hello_handler, handler_args=["Bob"], handler_kwargs={'day': "Monday"})
+>>> handler = EventHandler(
+...     hello_handler, handler_args=["Bob"], handler_kwargs={"day": "Monday"}
+... )
 >>> handler.handle()
 Hello Bob! Happy Monday!
 
@@ -255,8 +257,8 @@ The following example shows how to add an event handler with some positional arg
 ...     print(f"Hello. I am {last_name}, {first_name} {last_name}")
 ...
 >>> manager = EventManager()
->>> manager.add_event_handler("my_event", EventHandler(hello_handler, ('John', 'Smith')))
->>> manager.add_event_handler("my_event", EventHandler(hello_handler, ('Jane', 'Doe')))
+>>> manager.add_event_handler("my_event", EventHandler(hello_handler, ("John", "Smith")))
+>>> manager.add_event_handler("my_event", EventHandler(hello_handler, ("Jane", "Doe")))
 >>> manager
 EventManager(
   (event_handlers):
@@ -363,6 +365,7 @@ If you want to add an event handler only once, you can write something like:
 >>> for _ in range(5):
 ...     if not manager.has_event_handler(EventHandler(hello_handler), "my_event"):
 ...         manager.add_event_handler("my_event", EventHandler(hello_handler))
+...
 >>> manager
 EventManager(
   (event_handlers):
@@ -430,8 +433,8 @@ The event manager uses the arguments that were given when the event handler was 
 ...     print(f"Hello. I am {first_name} {last_name}")
 ...
 >>> manager = EventManager()
->>> manager.add_event_handler("my_event", EventHandler(hello_handler, ('John', 'Smith')))
->>> manager.add_event_handler("my_event", EventHandler(hello_handler, ('Jane', 'Doe')))
+>>> manager.add_event_handler("my_event", EventHandler(hello_handler, ("John", "Smith")))
+>>> manager.add_event_handler("my_event", EventHandler(hello_handler, ("Jane", "Doe")))
 >>> manager
 EventManager(
   (event_handlers):
@@ -463,7 +466,9 @@ The following shows how to execute the `hello_handler` every 3 `'my_event'` even
 ...     print("Hello!")
 ...
 >>> manager = EventManager()
->>> manager.add_event_handler("my_event", ConditionalEventHandler(hello_handler, PeriodicCondition(freq=3)))
+>>> manager.add_event_handler(
+...     "my_event", ConditionalEventHandler(hello_handler, PeriodicCondition(freq=3))
+... )
 >>> manager
 EventManager(
   (event_handlers):
@@ -477,7 +482,7 @@ EventManager(
   (last_triggered_event): None
 )
 >>> for i in range(10):
-...     print(f'i={i}')
+...     print(f"i={i}")
 ...     manager.trigger_event("my_event")
 ...
 i=0
@@ -544,14 +549,21 @@ EventManager(
 If there are multiple event handlers that match, they are all removed from the event manager:
 
 ```pycon
->>> from minevent import ConditionalEventHandler, PeriodicCondition, EventHandler, EventManager
+>>> from minevent import (
+...     ConditionalEventHandler,
+...     PeriodicCondition,
+...     EventHandler,
+...     EventManager,
+... )
 >>> def hello_handler() -> None:
 ...     print("Hello!")
 ...
 >>> manager = EventManager()
 >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
->>> manager.add_event_handler("my_event", ConditionalEventHandler(hello_handler, PeriodicCondition(freq=3)))
+>>> manager.add_event_handler(
+...     "my_event", ConditionalEventHandler(hello_handler, PeriodicCondition(freq=3))
+... )
 >>> manager
 EventManager(
   (event_handlers):
