@@ -133,13 +133,13 @@ Please check the [get started page](https://durandtibo.github.io/minevent/get_st
 install only some specific dependencies or other alternatives to install the library.
 The following is the corresponding `minevent` versions and supported dependencies.
 
-| `minevent` | `coola`            | `python`      |
-|------------|--------------------|---------------|
-| `main`     | `>=0.1,<1.0`       | `>=3.9,<3.13` |
-| `0.3.0`    | `>=0.1,<1.0`       | `>=3.9,<3.13` |
-| `0.2.1`    | `>=0.1,<0.3`       | `>=3.9,<3.13` |
-| `0.2.0`    | `>=0.1,<0.3`       | `>=3.9,<3.13` |
-| `0.1.0`    | `>=0.0.20,<0.2`    | `>=3.9,<3.13` |
+| `minevent` | `coola`         | `python`      |
+|------------|-----------------|---------------|
+| `main`     | `>=0.8.4,<1.0`  | `>=3.9,<3.14` |
+| `0.3.0`    | `>=0.1,<1.0`    | `>=3.9,<3.13` |
+| `0.2.1`    | `>=0.1,<0.3`    | `>=3.9,<3.13` |
+| `0.2.0`    | `>=0.1,<0.3`    | `>=3.9,<3.13` |
+| `0.1.0`    | `>=0.0.20,<0.2` | `>=3.9,<3.13` |
 
 <details>
     <summary>older versions</summary>
