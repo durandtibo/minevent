@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from minevent.conditions import BaseCondition
 
 
-class BaseEventHandler(ABC):
+class BaseEventHandler(ABC):  # noqa: PLW1641
     r"""Define the base class to implement an event handler.
 
     A child class has to implement the following methods:
