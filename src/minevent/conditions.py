@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 
-class BaseCondition(ABC):
+class BaseCondition(ABC):  # noqa: PLW1641
     r"""Define the base class to implement a condition for
     ``ConditionalEventHandler``.
 
