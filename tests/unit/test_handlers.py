@@ -111,7 +111,7 @@ def test_event_handler_with_args_and_kwargs() -> None:
 
 
 def test_event_handler_incorrect_handler() -> None:
-    with pytest.raises(TypeError, match="handler is not callable:"):
+    with pytest.raises(TypeError, match=r"handler is not callable:"):
         EventHandler("abc")
 
 

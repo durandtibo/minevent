@@ -163,7 +163,7 @@ def test_event_manager_remove_event_handler_multiple_events() -> None:
 
 def test_event_manager_remove_event_handler_missing_event() -> None:
     event_manager = EventManager()
-    with pytest.raises(RuntimeError, match="'my_event' event does not exist"):
+    with pytest.raises(RuntimeError, match=r"'my_event' event does not exist"):
         event_manager.remove_event_handler("my_event", EventHandler(hello_handler))
 
 
@@ -171,7 +171,7 @@ def test_event_manager_remove_event_handler_missing_handler() -> None:
     event_manager = EventManager()
     event_manager.add_event_handler("my_event", EventHandler(lambda: True))
     with pytest.raises(
-        RuntimeError, match="is not found among registered event handlers for 'my_event' event"
+        RuntimeError, match=r"is not found among registered event handlers for 'my_event' event"
     ):
         event_manager.remove_event_handler("my_event", EventHandler(hello_handler))
 
