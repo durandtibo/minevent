@@ -184,7 +184,7 @@ jobs:
           pip install minevent
 
       - name: Install valid package version
-        uses: durandtibo/pip-install-package-action@v0.3.4
+        uses: durandtibo/pip-install-package-action@v0.4.0
         with:
           package-name: 'coola'
           package-version: ${{ matrix.coola-version }}
