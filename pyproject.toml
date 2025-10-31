@@ -46,10 +46,10 @@ mkdocstrings = { extras = ["python"], version = "^0.30" }
 
 [tool.poetry.group.dev.dependencies]
 black = ">=25.9"
-coverage = { extras = ["toml"], version = "^7.10" }
+coverage = { extras = ["toml"], version = "^7.11" }
 docformatter = { extras = ["tomli"], version = "^1.7", python = "<3.14" }
 feu = { extras = ["cli"], version = ">=0.4.1,<1.0" }
-pre-commit = "^4.0"
+pre-commit = "^4.3"
 pygments = "^2.19"
 pytest = "^8.4"
 pytest-cov = "^7.0"
