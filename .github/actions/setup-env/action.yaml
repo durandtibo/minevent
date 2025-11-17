@@ -1,0 +1,84 @@
+name: "Setup Python environment"
+description: "Checkout code and install dependencies"
+
+inputs:
+  python-version:
+    default: "3.13"
+    description: "Python version to use"
+    required: false
+    type: string
+  package-name:
+    default: ""
+    description: "Optional package name to install"
+    required: false
+    type: string
+  package-version:
+    default: ""
+    description: "Optional package version to install"
+    required: false
+    type: string
+  install-optional-deps:
+    default: true
+    description: "Whether to install the optional dependencies"
+    required: false
+    type: boolean
+  install-docs-deps:
+    default: false
+    description: "Whether to install the dependencies to generate docs"
+    required: false
+    type: boolean
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install uv and set the python version
+      uses: astral-sh/setup-uv@v7
+      with:
+        python-version: ${{ inputs.python-version }}
+        activate-environment: true
+
+    - name: Install invoke
+      shell: bash
+      run: |
+        make install-invoke
+
+    - name: Install minimal dependencies
+      if: ${{ !inputs.install-optional-deps }}
+      shell: bash
+      run: |
+        inv install
+
+    - name: Install all dependencies
+      if: ${{ inputs.install-optional-deps }}
+      shell: bash
+      run: |
+        inv install --all-deps --docs
+
+    - name: Install all dependencies
+      if: ${{ inputs.install-docs-deps }}
+      shell: bash
+      run: |
+        inv install --docs
+
+    - name: Install valid package version
+      if: ${{ inputs.package-name != '' }}
+      uses: durandtibo/uv-install-package-action@v0.1.1
+      with:
+        package-name: ${{ inputs.package-name }}
+        package-version: ${{ matrix.package-version }}
+        python-version: ${{ matrix.python-version }}
+
+    - name: Show python config
+      shell: bash
+      run: |
+        inv show-python-config
+
+    - name: Show installed packages
+      shell: bash
+      run: |
+        inv show-installed-packages
+
+    - name: Show dependency tree
+      shell: bash
+      run: |
+        uv pip tree --show-version-specifiers
