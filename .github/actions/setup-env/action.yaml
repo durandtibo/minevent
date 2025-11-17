@@ -17,16 +17,11 @@ inputs:
     description: "Optional package version to install"
     required: false
     type: string
-  install-optional-deps:
-    default: true
-    description: "Whether to install the optional dependencies"
+  install-args:
+    default: ""
+    description: "Optional arguments when installing dependencies"
     required: false
-    type: boolean
-  install-docs-deps:
-    default: false
-    description: "Whether to install the dependencies to generate docs"
-    required: false
-    type: boolean
+    type: string
 
 runs:
   using: "composite"
@@ -42,23 +37,10 @@ runs:
       run: |
         make install-invoke
 
-    - name: Install minimal dependencies
-      if: ${{ !inputs.install-optional-deps }}
+    - name: Install dependencies
       shell: bash
       run: |
-        inv install
-
-    - name: Install all dependencies
-      if: ${{ inputs.install-optional-deps }}
-      shell: bash
-      run: |
-        inv install --all-deps --docs
-
-    - name: Install all dependencies
-      if: ${{ inputs.install-docs-deps }}
-      shell: bash
-      run: |
-        inv install --docs
+        inv install ${{ inputs.install-args }}
 
     - name: Install valid package version
       if: ${{ inputs.package-name != '' }}
