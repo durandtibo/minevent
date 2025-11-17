@@ -14,22 +14,22 @@ jobs:
   stable:
     uses: ./.github/workflows/test-package.yaml
     with:
-      install-cmd: 'uv pip install batcharray'
+      install-cmd: 'uv pip install minevent'
 
   stable-all:
     uses: ./.github/workflows/test-package.yaml
     with:
-      install-cmd: 'uv pip install "batcharray[all]"'
+      install-cmd: 'uv pip install "minevent[all]"'
 
   latest:
     uses: ./.github/workflows/test-package.yaml
     with:
-      install-cmd: 'uv pip install --pre batcharray'
+      install-cmd: 'uv pip install --pre minevent'
 
   latest-all:
     uses: ./.github/workflows/test-package.yaml
     with:
-      install-cmd: 'uv pip install --pre "batcharray[all]"'
+      install-cmd: 'uv pip install --pre "minevent[all]"'
 
 
   ########################
