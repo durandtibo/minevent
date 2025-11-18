@@ -8,6 +8,8 @@ permissions:
   contents: read
 
 jobs:
+  cyclic-imports:
+    uses: ./.github/workflows/cyclic-imports.yaml
   doctest:
     uses: ./.github/workflows/doctest.yaml
     secrets: inherit
