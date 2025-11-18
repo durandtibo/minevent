@@ -61,7 +61,7 @@ def install(
     r"""Install packages."""
     cmd = ["uv sync --frozen"]
     if optional_deps:
-        cmd.append("")
+        cmd.append("--all-extras")
     if dev_deps:
         cmd.append("--group dev")
     if docs_deps:

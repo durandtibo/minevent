@@ -1,0 +1,34 @@
+name: Cyclic Imports
+on:
+  workflow_call:
+  workflow_dispatch:  # to trigger manually
+
+permissions:
+  contents: read
+
+jobs:
+  cyclic-import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup python environment
+        uses: ./.github/actions/setup-env
+
+      - name: check minevent
+        run: |
+          python -c "import minevent"
+
+      - name: check event handlers
+        run: |
+          python -c "from minevent import BaseEventHandler"
+          python -c "from minevent import BaseEventHandlerWithArguments"
+          python -c "from minevent import ConditionalEventHandler"
+          python -c "from minevent import EventHandler"
+
+      - name: check event conditions
+        run: |
+          python -c "from minevent import BaseCondition"
+          python -c "from minevent import PeriodicCondition"
