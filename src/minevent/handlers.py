@@ -161,17 +161,32 @@ class BaseEventHandlerWithArguments(BaseEventHandler):
 
     @property
     def handler(self) -> Callable:
-        r"""The handler."""
+        r"""Get the handler function.
+
+        Returns:
+            The handler function that will be called when the event
+                is triggered.
+        """
         return self._handler
 
     @property
     def handler_args(self) -> tuple:
-        r"""Variable length argument list of the handler."""
+        r"""Get the positional arguments for the handler.
+
+        Returns:
+            A tuple containing the positional arguments that will be
+                passed to the handler when it is called.
+        """
         return self._handler_args
 
     @property
     def handler_kwargs(self) -> dict:
-        r"""Arbitrary keyword arguments of the handler."""
+        r"""Get the keyword arguments for the handler.
+
+        Returns:
+            A dictionary containing the keyword arguments that will be
+                passed to the handler when it is called.
+        """
         return self._handler_kwargs
 
     def handle(self) -> None:
@@ -275,7 +290,12 @@ class ConditionalEventHandler(BaseEventHandlerWithArguments):
 
     @property
     def condition(self) -> BaseCondition:
-        r"""The condition."""
+        r"""Get the condition that controls handler execution.
+
+        Returns:
+            The condition that must evaluate to ``True`` for the
+                handler to be executed.
+        """
         return self._condition
 
     def equal(self, other: Any) -> bool:

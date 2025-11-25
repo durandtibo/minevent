@@ -130,7 +130,13 @@ class PeriodicCondition(BaseCondition):
 
     @property
     def freq(self) -> int:
-        r"""The frequency of the condition."""
+        r"""Get the frequency of the periodic condition.
+
+        Returns:
+            The number of evaluations between each ``True`` result.
+                The condition evaluates to ``True`` every ``freq``
+                calls.
+        """
         return self._freq
 
     def equal(self, other: Any) -> bool:
