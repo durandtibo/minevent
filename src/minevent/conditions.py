@@ -45,13 +45,18 @@ class BaseCondition(ABC):  # noqa: PLW1641
 
     @abstractmethod
     def equal(self, other: Any) -> bool:
-        r"""Compare two conditions.
+        r"""Compare two conditions for equality.
+
+        This method should be implemented by child classes to define
+        how conditions are compared. This is used when comparing
+        conditional event handlers.
 
         Args:
-            other: Specifies the other object to compare with.
+            other: Specifies the other object to compare with. Can be
+                any type, though typically a condition.
 
         Returns:
-            ``True`` if the two conditions are equal,
+            ``True`` if the two conditions are considered equal,
                 otherwise ``False``.
 
         Example usage:
@@ -71,8 +76,13 @@ class BaseCondition(ABC):  # noqa: PLW1641
     def evaluate(self) -> bool:
         r"""Evaluate the condition given the current state.
 
+        This method should be implemented by child classes to define
+        the logic for determining whether a conditional event handler
+        should be executed. The method is called without arguments and
+        may maintain internal state between calls.
+
         Returns:
-            ``True`` if the condition is ``True`` and the event
+            ``True`` if the condition is satisfied and the event
                 handler logic should be executed, otherwise ``False``.
 
         Example usage:
@@ -93,10 +103,15 @@ class BaseCondition(ABC):  # noqa: PLW1641
 class PeriodicCondition(BaseCondition):
     r"""Implement a periodic condition.
 
-    This condition is true every ``freq`` events.
+    This condition evaluates to ``True`` every ``freq`` calls to the
+    ``evaluate`` method. It maintains an internal counter that
+    increments with each evaluation. The condition is ``True`` when
+    the counter modulo ``freq`` equals zero.
 
     Args:
-        freq: Specifies the frequency.
+        freq: Specifies the frequency (interval) at which the
+            condition evaluates to ``True``. Must be a positive
+            integer.
 
     Example usage:
 
@@ -130,7 +145,13 @@ class PeriodicCondition(BaseCondition):
 
     @property
     def freq(self) -> int:
-        r"""The frequency of the condition."""
+        r"""Get the frequency of the periodic condition.
+
+        Returns:
+            The number of evaluations between each ``True`` result.
+                The condition evaluates to ``True`` every ``freq``
+                calls.
+        """
         return self._freq
 
     def equal(self, other: Any) -> bool:
