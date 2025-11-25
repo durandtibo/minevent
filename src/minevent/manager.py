@@ -19,8 +19,11 @@ logger = logging.getLogger(__name__)
 class EventManager:
     r"""Implement an event manager.
 
-    This event manager allows adding event handlers and firing events.
-    An event is represented by a case-sensitive string.
+    This event manager allows registering event handlers and triggering
+    events. An event is represented by a case-sensitive string. Each
+    event can have multiple handlers attached, and all handlers are
+    executed in the order they were added when the event is triggered.
+    The manager also tracks the last triggered event.
 
     Example usage:
 
@@ -89,12 +92,15 @@ class EventManager:
     def add_event_handler(self, event: str, event_handler: BaseEventHandler) -> None:
         r"""Add an event handler to an event.
 
-        The event handler will be called everytime the event happens.
+        The event handler will be called every time the specified event
+        is triggered. Multiple handlers can be registered to the same
+        event, and they will be executed in the order they were added.
 
         Args:
-            event: Specifies the event to attach the event handler.
-            event_handler: Specifies the event handler to attach to
-                the event.
+            event: Specifies the event name (case-sensitive string) to
+                which the event handler should be attached.
+            event_handler: Specifies the event handler instance to
+                attach to the event.
 
         Example usage:
 
@@ -114,8 +120,14 @@ class EventManager:
     def trigger_event(self, event: str) -> None:
         r"""Trigger the handler(s) for the given event.
 
+        This method executes all event handlers registered for the
+        specified event in the order they were added. The last
+        triggered event name is updated regardless of whether any
+        handlers are registered.
+
         Args:
-            event: Specifies the event to fire.
+            event: Specifies the event name (case-sensitive string) to
+                trigger.
 
         Example usage:
 
@@ -140,13 +152,17 @@ class EventManager:
     def has_event_handler(self, event_handler: BaseEventHandler, event: str | None = None) -> bool:
         r"""Indicate if a handler is registered in the event manager.
 
+        This method checks whether a specific event handler is
+        registered, either for a specific event or across all events.
         Note that this method relies on the ``equal`` method of the
         input event handler to compare event handlers.
 
         Args:
-            event_handler: Specifies the event handler to check.
-            event: Specifies an event to check. If the value is
-                ``None``, it will check all the events.
+            event_handler: Specifies the event handler instance to
+                search for in the registered handlers.
+            event: Specifies an event name (case-sensitive string) to
+                check. If ``None``, the method will search across all
+                registered events. Default is ``None``.
 
         Example usage:
 
@@ -186,18 +202,21 @@ class EventManager:
     def remove_event_handler(self, event: str, event_handler: BaseEventHandler) -> None:
         r"""Remove an event handler of a given event.
 
-        Note that if the same event handler was added multiple times
-        the event, all the duplicated handlers are removed. This
-        method relies on the ``equal`` method of the input event
+        This method removes all occurrences of the specified event
+        handler from the given event. If the same event handler was
+        added multiple times to the event, all duplicates are removed.
+        This method relies on the ``equal`` method of the input event
         handler to compare event handlers.
 
         Args:
-            event: Specifies the event handler is attached to.
-            event_handler: Specifies the event handler to remove.
+            event: Specifies the event name (case-sensitive string)
+                from which the handler should be removed.
+            event_handler: Specifies the event handler instance to
+                remove from the event.
 
         Raises:
-            ValueError: if the event does not exist or if the handler
-                is not attached to the event.
+            RuntimeError: if the event does not exist or if the
+                handler is not attached to the event.
 
         Example usage:
 
@@ -240,7 +259,10 @@ class EventManager:
     def reset(self) -> None:
         r"""Reset the event manager.
 
-        This method removes all the event handlers from the event manager.
+        This method removes all registered event handlers from the
+        event manager and resets the last triggered event to ``None``.
+        After calling this method, the event manager returns to its
+        initial state.
 
         Example usage:
 

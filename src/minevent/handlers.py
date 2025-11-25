@@ -54,13 +54,18 @@ class BaseEventHandler(ABC):  # noqa: PLW1641
 
     @abstractmethod
     def equal(self, other: Any) -> bool:
-        r"""Compare two event handlers.
+        r"""Compare two event handlers for equality.
+
+        This method should be implemented by child classes to define
+        how event handlers are compared. This is used by the event
+        manager to check for duplicate handlers.
 
         Args:
-            other: Specifies the other object to compare with.
+            other: Specifies the other object to compare with. Can be
+                any type, though typically an event handler.
 
         Returns:
-            ``True`` if the two event handlers are equal,
+            ``True`` if the two event handlers are considered equal,
                 otherwise ``False``.
 
         Example usage:
@@ -82,6 +87,10 @@ class BaseEventHandler(ABC):  # noqa: PLW1641
     @abstractmethod
     def handle(self) -> None:
         r"""Handle the event.
+
+        This method executes the logic associated with the event
+        handler. It should be implemented by child classes to define
+        the specific behavior when an event is triggered.
 
         Example usage:
 
@@ -105,11 +114,12 @@ class BaseEventHandlerWithArguments(BaseEventHandler):
     A child class has to implement the ``equal`` method.
 
     Args:
-        handler: Specifies the handler.
-        handler_args: Specifies the positional arguments of the
-            handler.
-        handler_kwargs: Specifies the arbitrary keyword arguments of
-            the handler.
+        handler: Specifies the callable function or method to be
+            invoked when the event is triggered.
+        handler_args: Specifies the positional arguments to pass to
+            the handler when it is called. Default is ``None``.
+        handler_kwargs: Specifies the keyword arguments to pass to
+            the handler when it is called. Default is ``None``.
 
     Example usage:
 
@@ -196,6 +206,11 @@ class BaseEventHandlerWithArguments(BaseEventHandler):
 class EventHandler(BaseEventHandlerWithArguments):
     r"""Implement a simple event handler.
 
+    This class wraps a callable function or method and allows it to be
+    executed as an event handler. The handler can be configured with
+    positional and keyword arguments that will be passed when the
+    handler is executed.
+
     Example usage:
 
     ```pycon
@@ -229,16 +244,25 @@ class EventHandler(BaseEventHandlerWithArguments):
 class ConditionalEventHandler(BaseEventHandlerWithArguments):
     r"""Implement a conditional event handler.
 
-    The handler is executed only if the condition is ``True``.
+    This class extends ``BaseEventHandlerWithArguments`` to add
+    conditional execution. The handler is executed only if the
+    associated condition evaluates to ``True``. This is useful for
+    scenarios where event handlers should only run under specific
+    circumstances, such as periodic execution or state-based
+    triggering.
 
     Args:
-        handler: Specifies the handler.
-        condition: Specifies the condition for this event handler.
-            The condition should be callable without arguments.
-        handler_args: Specifies the positional arguments of the
-            handler.
-        handler_kwargs: Specifies the arbitrary keyword arguments of
-            the handler.
+        handler: Specifies the callable function or method to be
+            invoked when the event is triggered and the condition is
+            ``True``.
+        condition: Specifies the condition object that controls
+            whether the handler is executed. The condition's
+            ``evaluate`` method is called without arguments and must
+            return a boolean value.
+        handler_args: Specifies the positional arguments to pass to
+            the handler when it is called. Default is ``None``.
+        handler_kwargs: Specifies the keyword arguments to pass to
+            the handler when it is called. Default is ``None``.
 
     Example usage:
 
