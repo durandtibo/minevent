@@ -97,10 +97,10 @@ class EventManager:
         event, and they will be executed in the order they were added.
 
         Args:
-            event: Specifies the event name (case-sensitive string) to
-                which the event handler should be attached.
-            event_handler: Specifies the event handler instance to
-                attach to the event.
+            event: The event name (case-sensitive string) to which the
+                event handler should be attached.
+            event_handler: The event handler instance to attach to the
+                event.
 
         Example usage:
 
@@ -126,8 +126,7 @@ class EventManager:
         handlers are registered.
 
         Args:
-            event: Specifies the event name (case-sensitive string) to
-                trigger.
+            event: The event name (case-sensitive string) to trigger.
 
         Example usage:
 
@@ -158,11 +157,11 @@ class EventManager:
         input event handler to compare event handlers.
 
         Args:
-            event_handler: Specifies the event handler instance to
-                search for in the registered handlers.
-            event: Specifies an event name (case-sensitive string) to
-                check. If ``None``, the method will search across all
-                registered events. Default is ``None``.
+            event_handler: The event handler instance to search for in
+                the registered handlers.
+            event: An event name (case-sensitive string) to check. If
+                ``None``, the method will search across all registered
+                events. Default is ``None``.
 
         Example usage:
 
@@ -209,10 +208,10 @@ class EventManager:
         handler to compare event handlers.
 
         Args:
-            event: Specifies the event name (case-sensitive string)
-                from which the handler should be removed.
-            event_handler: Specifies the event handler instance to
-                remove from the event.
+            event: The event name (case-sensitive string) from which
+                the handler should be removed.
+            event_handler: The event handler instance to remove from
+                the event.
 
         Raises:
             RuntimeError: if the event does not exist or if the
