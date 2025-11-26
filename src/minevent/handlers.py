@@ -61,8 +61,8 @@ class BaseEventHandler(ABC):  # noqa: PLW1641
         manager to check for duplicate handlers.
 
         Args:
-            other: Specifies the other object to compare with. Can be
-                any type, though typically an event handler.
+            other: The other object to compare with. Can be any type,
+                though typically an event handler.
 
         Returns:
             ``True`` if the two event handlers are considered equal,
@@ -114,12 +114,12 @@ class BaseEventHandlerWithArguments(BaseEventHandler):
     A child class has to implement the ``equal`` method.
 
     Args:
-        handler: Specifies the callable function or method to be
-            invoked when the event is triggered.
-        handler_args: Specifies the positional arguments to pass to
-            the handler when it is called. Default is ``None``.
-        handler_kwargs: Specifies the keyword arguments to pass to
-            the handler when it is called. Default is ``None``.
+        handler: The callable function or method to be invoked when
+            the event is triggered.
+        handler_args: The positional arguments to pass to the handler
+            when it is called. Default is ``None``.
+        handler_kwargs: The keyword arguments to pass to the handler
+            when it is called. Default is ``None``.
 
     Example usage:
 
@@ -252,17 +252,16 @@ class ConditionalEventHandler(BaseEventHandlerWithArguments):
     triggering.
 
     Args:
-        handler: Specifies the callable function or method to be
-            invoked when the event is triggered and the condition is
-            ``True``.
-        condition: Specifies the condition object that controls
-            whether the handler is executed. The condition's
-            ``evaluate`` method is called without arguments and must
-            return a boolean value.
-        handler_args: Specifies the positional arguments to pass to
-            the handler when it is called. Default is ``None``.
-        handler_kwargs: Specifies the keyword arguments to pass to
-            the handler when it is called. Default is ``None``.
+        handler: The callable function or method to be invoked when
+            the event is triggered and the condition is ``True``.
+        condition: The condition object that controls whether the
+            handler is executed. The condition's ``evaluate`` method
+            is called without arguments and must return a boolean
+            value.
+        handler_args: The positional arguments to pass to the handler
+            when it is called. Default is ``None``.
+        handler_kwargs: The keyword arguments to pass to the handler
+            when it is called. Default is ``None``.
 
     Example usage:
 

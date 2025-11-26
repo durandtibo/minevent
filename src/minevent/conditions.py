@@ -52,8 +52,8 @@ class BaseCondition(ABC):  # noqa: PLW1641
         conditional event handlers.
 
         Args:
-            other: Specifies the other object to compare with. Can be
-                any type, though typically a condition.
+            other: The other object to compare with. Can be any type,
+                though typically a condition.
 
         Returns:
             ``True`` if the two conditions are considered equal,
@@ -109,9 +109,8 @@ class PeriodicCondition(BaseCondition):
     the counter modulo ``freq`` equals zero.
 
     Args:
-        freq: Specifies the frequency (interval) at which the
-            condition evaluates to ``True``. Must be a positive
-            integer.
+        freq: The frequency (interval) at which the condition
+            evaluates to ``True``. Must be a positive integer.
 
     Example usage:
 
