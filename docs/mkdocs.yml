@@ -21,6 +21,8 @@ nav:
   - get_started.md
   - User Guide:
       - quickstart.md
+      - best_practices.md
+      - faq.md
   - Reference:
       - refs/index.md
       - refs/manager.md
