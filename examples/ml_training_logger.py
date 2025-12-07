@@ -5,7 +5,6 @@ to a machine learning training loop without modifying the core training logic.
 """
 
 import random
-from typing import Dict
 
 from minevent import ConditionalEventHandler, EventHandler, EventManager, PeriodicCondition
 
