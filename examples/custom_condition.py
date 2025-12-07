@@ -155,8 +155,11 @@ def main() -> None:
     manager = EventManager()
     threshold_condition = ThresholdCondition(threshold=0.8)
 
-    def alert_high_value(value: float) -> None:
-        print(f"   🚨 Alert! High value detected: {value:.2f}")
+    # Store current value in shared state
+    current_value = {"value": 0.0}
+
+    def alert_high_value() -> None:
+        print(f"   🚨 Alert! High value detected: {current_value['value']:.2f}")
 
     manager.add_event_handler(
         "value_update",
@@ -168,12 +171,10 @@ def main() -> None:
 
     test_values = [0.5, 0.7, 0.85, 0.9, 0.6, 0.95]
     for value in test_values:
+        current_value["value"] = value
         threshold_condition.update_value(value)
         print(f"   Value: {value:.2f}")
         manager.trigger_event("value_update")
-        # Pass value to handler
-        if threshold_condition.evaluate():
-            alert_high_value(value)
 
     # Example 2: AccuracyImprovementCondition
     print("\n2. AccuracyImprovementCondition Example")
@@ -182,8 +183,11 @@ def main() -> None:
     manager2 = EventManager()
     accuracy_condition = AccuracyImprovementCondition()
 
-    def save_best_model(accuracy: float) -> None:
-        print(f"   💾 Saving new best model! Accuracy: {accuracy:.3f}")
+    # Store current accuracy in shared state
+    current_accuracy = {"value": 0.0}
+
+    def save_best_model() -> None:
+        print(f"   💾 Saving new best model! Accuracy: {current_accuracy['value']:.3f}")
 
     manager2.add_event_handler(
         "validation_complete",
@@ -195,11 +199,10 @@ def main() -> None:
 
     test_accuracies = [0.750, 0.820, 0.810, 0.855, 0.840, 0.890, 0.875]
     for acc in test_accuracies:
+        current_accuracy["value"] = acc
         accuracy_condition.update_accuracy(acc)
         print(f"   Validation accuracy: {acc:.3f}")
         manager2.trigger_event("validation_complete")
-        if accuracy_condition.evaluate():
-            save_best_model(acc)
 
     # Example 3: CountBasedCondition
     print("\n3. CountBasedCondition Example")

@@ -28,54 +28,60 @@ def main() -> None:
 
     manager = EventManager()
 
+    # Shared state to track current step
+    state = {"step": 0}
+
     # Handler that executes every time
     print("1. Setting up handlers:")
+
+    def step_logger() -> None:
+        print(f"Step {state['step']} complete")
+
     manager.add_event_handler(
         "step_complete",
-        EventHandler(lambda step: print(f"Step {step} complete"), handler_args=(0,)),
+        EventHandler(step_logger),
     )
 
     # Handler that executes every 5 steps
     print("   - Checkpoint: every 5 steps")
+
+    def checkpoint_wrapper() -> None:
+        checkpoint_handler(state["step"])
+
     manager.add_event_handler(
         "step_complete",
-        ConditionalEventHandler(checkpoint_handler, PeriodicCondition(freq=5)),
+        ConditionalEventHandler(checkpoint_wrapper, PeriodicCondition(freq=5)),
     )
 
     # Handler that executes every 10 steps
     print("   - Validation: every 10 steps")
+
+    def validation_wrapper() -> None:
+        validation_handler(state["step"])
+
     manager.add_event_handler(
         "step_complete",
-        ConditionalEventHandler(validation_handler, PeriodicCondition(freq=10)),
+        ConditionalEventHandler(validation_wrapper, PeriodicCondition(freq=10)),
     )
 
     # Handler that executes every 2 steps
     print("   - Logging: every 2 steps")
+
+    def log_wrapper() -> None:
+        log_handler(state["step"])
+
     manager.add_event_handler(
         "step_complete",
-        ConditionalEventHandler(log_handler, PeriodicCondition(freq=2)),
+        ConditionalEventHandler(log_wrapper, PeriodicCondition(freq=2)),
     )
 
     print("\n2. Simulating 15 training steps:\n")
 
     # Simulate training loop
     for step in range(1, 16):
-        # Update handlers with current step
-        # Note: In a real scenario, you'd pass state differently
+        state["step"] = step
         print(f"Step {step}:")
-
-        # We need to update the handlers' arguments for each step
-        # This is a simplified example - in practice, use closures or shared state
         manager.trigger_event("step_complete")
-
-        # Manually trigger handlers with correct step for this example
-        if step % 5 == 0:
-            checkpoint_handler(step)
-        if step % 10 == 0:
-            validation_handler(step)
-        if step % 2 == 0:
-            log_handler(step)
-
         print()
 
     print("\n3. Demonstrating condition state:")
