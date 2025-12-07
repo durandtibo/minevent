@@ -101,8 +101,24 @@ Hello!
 ```
 
 It allows to customize the function `say_something` without changing its implementation.
-Please read the [quickstart page](https://durandtibo.github.io/minevent/quickstart/) to learn more
-about the library.
+
+## Features
+
+- **Minimal and Lightweight**: Only depends on `coola`, keeping your project dependencies clean
+- **Simple API**: Easy to learn and use with intuitive event registration and triggering
+- **Conditional Handlers**: Built-in support for conditional event execution (e.g., periodic execution)
+- **Extensible**: Create custom event handlers and conditions for your specific needs
+- **Type Hints**: Full type hint support for better IDE integration and code quality
+- **Well Tested**: Comprehensive test suite ensuring reliability
+- **Well Documented**: Extensive documentation with examples and best practices
+
+## Quick Links
+
+- **Documentation**: [https://durandtibo.github.io/minevent/](https://durandtibo.github.io/minevent/)
+- **Quickstart Guide**: [https://durandtibo.github.io/minevent/quickstart/](https://durandtibo.github.io/minevent/quickstart/)
+- **Examples**: See the [`examples/`](examples/) directory for practical use cases
+- **FAQ**: [https://durandtibo.github.io/minevent/faq/](https://durandtibo.github.io/minevent/faq/)
+- **Best Practices**: [https://durandtibo.github.io/minevent/best_practices/](https://durandtibo.github.io/minevent/best_practices/)
 
 ## Installation
 
@@ -151,7 +167,24 @@ The following is the corresponding `minevent` versions and supported dependencie
 
 ## Contributing
 
-Please check the instructions in [CONTRIBUTING.md](.github/CONTRIBUTING.md).
+We welcome contributions from the community! Whether you're fixing bugs, adding features, improving
+documentation, or creating examples, your help is appreciated.
+
+### How to Contribute
+
+1. **Report Issues**: Found a bug? Have a feature request? Open an issue on GitHub
+2. **Submit Pull Requests**: Fix bugs or add features by submitting a PR
+3. **Improve Documentation**: Help make our docs better
+4. **Share Examples**: Create examples showing how you use `minevent`
+
+Please check the instructions in [CONTRIBUTING.md](.github/CONTRIBUTING.md) for detailed
+information.
+
+## Community and Support
+
+- **Issues**: [GitHub Issue Tracker](https://github.com/durandtibo/minevent/issues)
+- **Discussions**: Use GitHub Discussions for questions and community interaction
+- **Security**: See [SECURITY.md](SECURITY.md) for security policy and reporting vulnerabilities
 
 ## API stability
 

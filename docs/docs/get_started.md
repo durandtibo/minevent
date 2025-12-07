@@ -24,49 +24,75 @@ pip install minevent[all]
 
 ## Installing from source
 
-To install `minevent` from source, you can follow the steps below. First, you will need to
-install [`poetry`](https://python-poetry.org/docs/master/). `poetry` is used to manage and install
-the dependencies.
-If `poetry` is already installed on your machine, you can skip this step. There are several ways to
-install `poetry` so you can use the one that you prefer. You can check the `poetry` installation by
-running the following command:
+To install `minevent` from source, you can follow the steps below.
 
-```shell
-poetry --version
-```
+### Prerequisites
 
-Then, you can clone the git repository:
+This project uses [`uv`](https://docs.astral.sh/uv/) for dependency management. If you don't have
+`uv` installed, you can install it by following
+the [official installation guide](https://docs.astral.sh/uv/getting-started/installation/).
+
+### Clone the repository
+
+First, clone the git repository:
 
 ```shell
 git clone git@github.com:durandtibo/minevent.git
+cd minevent
 ```
 
-It is recommended to create a Python 3.8+ virtual environment. This step is optional so you
-can skip it. To create a virtual environment, you can use the following command:
+### Create a virtual environment (optional but recommended)
+
+It is recommended to create a Python 3.10+ virtual environment. You can use the following command to
+create a conda virtual environment:
 
 ```shell
 make conda
 ```
 
-It automatically creates a conda virtual environment. When the virtual environment is created, you
+This automatically creates a conda virtual environment. When the virtual environment is created, you
 can activate it with the following command:
 
 ```shell
 conda activate minevent
 ```
 
-This example uses `conda` to create a virtual environment, but you can use other tools or
-configurations. Then, you should install the required package to use `minevent` with the following
-command:
+Alternatively, you can use `uv` to create a virtual environment:
+
+```shell
+uv venv
+source .venv/bin/activate  # On Unix/macOS
+# or
+.venv\Scripts\activate  # On Windows
+```
+
+### Install dependencies
+
+Once you have activated your virtual environment, install the required packages with:
 
 ```shell
 make install
 ```
 
-This command will install all the required packages. You can also use this command to update the
-required packages. This command will check if there is a more recent package available and will
-install it. Finally, you can test the installation with the following command:
+Or if you're developing and need documentation dependencies:
+
+```shell
+make install-all
+```
+
+These commands will install all the required packages. You can also use these commands to update the
+required packages.
+
+### Verify the installation
+
+Finally, you can test the installation by running the test suite:
 
 ```shell
 make unit-test-cov
 ```
+
+## Development workflow
+
+If you're planning to contribute to `minevent`, please refer to
+the [Contributing Guide](https://github.com/durandtibo/minevent/blob/main/.github/CONTRIBUTING.md)
+for more information on setting up your development environment and running tests.
