@@ -1,4 +1,8 @@
-name: Format
+# Type checking workflow.
+# Validates type annotations using pyright to ensure type safety.
+# Helps catch type-related bugs before runtime.
+
+name: Type Checking
 on:
   workflow_call:
   workflow_dispatch:  # to trigger manually
@@ -7,7 +11,7 @@ permissions:
   contents: read
 
 jobs:
-  format:
+  type-checking:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -17,10 +21,6 @@ jobs:
       - name: Setup python environment
         uses: durandtibo/setup-venv-uv-action@v0.0.1
 
-      - name: Check format
+      - name: Check types
         run: |
-          inv check-format
-
-      - name: Check lint
-        run: |
-          inv check-lint
+          inv check-types

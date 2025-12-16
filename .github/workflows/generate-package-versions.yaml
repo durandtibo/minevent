@@ -19,13 +19,13 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Setup python environment
-        uses: ./.github/actions/setup-env
+        uses: durandtibo/setup-venv-uv-action@v0.0.1
 
       - name: Generate package versions
         run: |
           python dev/generate_versions.py
 
-      - uses: peter-evans/create-pull-request@v7
+      - uses: peter-evans/create-pull-request@v8
         if: always()
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
