@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "minevent: Minimal Event System for Machine Learning"
+authors:
+  - family-names: "Durand"
+    given-names: "Thibaut"
+    email: "durand.tibo+gh@gmail.com"
+repository-code: "https://github.com/durandtibo/minevent"
+url: "https://durandtibo.github.io/minevent/"
+license: BSD-3-Clause
+keywords:
+  - event
+  - event system
+  - event handler
+  - machine learning
+  - python
+abstract: >
+  minevent is a Python library that provides a minimal event system
+  for Machine Learning. It allows to customize a code by adding some
+  piece of code that are executed when an event is fired. minevent
+  is organized around three main concepts: event (which defines the
+  thing that should happen), event handler (which is the piece of
+  code to execute when the event happens), and event manager (which
+  is responsible to manage the events and event handlers).
