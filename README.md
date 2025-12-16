@@ -177,7 +177,7 @@ documentation, or creating examples, your help is appreciated.
 3. **Improve Documentation**: Help make our docs better
 4. **Share Examples**: Create examples showing how you use `minevent`
 
-Please check the instructions in [CONTRIBUTING.md](.github/CONTRIBUTING.md) for detailed
+Please check the instructions in [CONTRIBUTING.md](CONTRIBUTING.md) for detailed
 information.
 
 ## Community and Support
