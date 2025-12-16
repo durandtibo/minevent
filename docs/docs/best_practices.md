@@ -82,30 +82,6 @@ def do_everything(model, metrics, epoch, current, total):
     progress_bar.update(current / total)
 ```
 
-### Avoid Heavy Computation in Handlers
-
-Event handlers should be lightweight. Move heavy computation to separate functions or threads:
-
-```python
-# Good: Lightweight handler that triggers background work
-def schedule_checkpoint_save(model, epoch):
-    checkpoint_queue.put((model, epoch))
-
-
-# Less ideal: Heavy computation in handler
-def save_large_checkpoint(model, epoch):
-    # This could take seconds and block the main loop
-    torch.save(
-        {
-            "model": model.state_dict(),
-            "optimizer": optimizer.state_dict(),
-            "full_history": training_history,
-            # ... more data
-        },
-        f"checkpoint_{epoch}.pt",
-    )
-```
-
 ### Handle Exceptions Gracefully
 
 Protect your main logic from handler failures:
