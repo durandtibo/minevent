@@ -192,42 +192,6 @@ log_handler = ConditionalEventHandler(log_batch_metrics, PeriodicCondition(freq=
 manager.add_event_handler("batch_end", log_handler)
 ```
 
-### Create Custom Conditions for Complex Logic
-
-Implement custom conditions for sophisticated control:
-
-```python
-from minevent.conditions import BaseCondition
-
-
-class ThresholdCondition(BaseCondition):
-    """Execute handler only when metric exceeds threshold."""
-
-    def __init__(self, metric_name: str, threshold: float):
-        self.metric_name = metric_name
-        self.threshold = threshold
-        self.current_value = 0.0
-
-    def update_metric(self, value: float):
-        self.current_value = value
-
-    def evaluate(self) -> bool:
-        return self.current_value > self.threshold
-
-    def equal(self, other) -> bool:
-        return (
-            isinstance(other, ThresholdCondition)
-            and self.metric_name == other.metric_name
-            and self.threshold == other.threshold
-        )
-
-
-# Usage
-condition = ThresholdCondition("accuracy", 0.95)
-handler = ConditionalEventHandler(celebrate_success, condition)
-manager.add_event_handler("validation_end", handler)
-```
-
 ## Integration Patterns
 
 ### ML Training Pipeline Pattern
