@@ -66,11 +66,14 @@ Each handler should do one thing well:
 def log_metrics(metrics):
     logger.info(f"Metrics: {metrics}")
 
+
 def save_checkpoint(model, epoch):
     torch.save(model.state_dict(), f"checkpoint_epoch_{epoch}.pt")
 
+
 def update_progress_bar(current, total):
     progress_bar.update(current / total)
+
 
 # Less ideal: One handler doing multiple things
 def do_everything(model, metrics, epoch, current, total):
@@ -88,15 +91,19 @@ Event handlers should be lightweight. Move heavy computation to separate functio
 def schedule_checkpoint_save(model, epoch):
     checkpoint_queue.put((model, epoch))
 
+
 # Less ideal: Heavy computation in handler
 def save_large_checkpoint(model, epoch):
     # This could take seconds and block the main loop
-    torch.save({
-        'model': model.state_dict(),
-        'optimizer': optimizer.state_dict(),
-        'full_history': training_history,
-        # ... more data
-    }, f"checkpoint_{epoch}.pt")
+    torch.save(
+        {
+            "model": model.state_dict(),
+            "optimizer": optimizer.state_dict(),
+            "full_history": training_history,
+            # ... more data
+        },
+        f"checkpoint_{epoch}.pt",
+    )
 ```
 
 ### Handle Exceptions Gracefully
@@ -106,6 +113,7 @@ Protect your main logic from handler failures:
 ```python
 from minevent import EventHandler
 
+
 def safe_handler(*args, **kwargs):
     try:
         # Your handler logic
@@ -114,6 +122,7 @@ def safe_handler(*args, **kwargs):
         logger.error(f"Handler failed: {e}")
         # Optionally re-raise if critical
         # raise
+
 
 handler = EventHandler(safe_handler)
 ```
@@ -125,6 +134,7 @@ Make your handlers more maintainable with type hints:
 ```python
 from typing import Dict, Any
 
+
 def log_metrics(metrics: Dict[str, float], epoch: int) -> None:
     """Log training metrics for the current epoch.
 
@@ -134,9 +144,9 @@ def log_metrics(metrics: Dict[str, float], epoch: int) -> None:
     """
     logger.info(f"Epoch {epoch}: {metrics}")
 
+
 handler = EventHandler(
-    log_metrics,
-    handler_kwargs={"metrics": {"loss": 0.5}, "epoch": 1}
+    log_metrics, handler_kwargs={"metrics": {"loss": 0.5}, "epoch": 1}
 )
 ```
 
@@ -154,9 +164,11 @@ def main():
     trainer = Trainer(manager)
     trainer.train()
 
+
 def setup_handlers(manager: EventManager):
     manager.add_event_handler("epoch_end", EventHandler(save_checkpoint))
     manager.add_event_handler("training_end", EventHandler(log_summary))
+
 
 # Avoid: Global event manager
 # MANAGER = EventManager()  # Global state can be problematic
@@ -196,17 +208,11 @@ For operations that shouldn't happen every time:
 from minevent import ConditionalEventHandler, PeriodicCondition
 
 # Save checkpoint every 10 epochs
-save_handler = ConditionalEventHandler(
-    save_checkpoint,
-    PeriodicCondition(freq=10)
-)
+save_handler = ConditionalEventHandler(save_checkpoint, PeriodicCondition(freq=10))
 manager.add_event_handler("epoch_end", save_handler)
 
 # Log metrics every 100 batches
-log_handler = ConditionalEventHandler(
-    log_batch_metrics,
-    PeriodicCondition(freq=100)
-)
+log_handler = ConditionalEventHandler(log_batch_metrics, PeriodicCondition(freq=100))
 manager.add_event_handler("batch_end", log_handler)
 ```
 
@@ -216,6 +222,7 @@ Implement custom conditions for sophisticated control:
 
 ```python
 from minevent.conditions import BaseCondition
+
 
 class ThresholdCondition(BaseCondition):
     """Execute handler only when metric exceeds threshold."""
@@ -237,6 +244,7 @@ class ThresholdCondition(BaseCondition):
             and self.metric_name == other.metric_name
             and self.threshold == other.threshold
         )
+
 
 # Usage
 condition = ThresholdCondition("accuracy", 0.95)
@@ -300,12 +308,12 @@ class PluginManager:
         # Store kwargs somewhere accessible to handlers
         self.event_manager.trigger_event(event)
 
+
 # Plugin implementation
 class LoggingPlugin:
     def setup(self, manager: EventManager):
         manager.add_event_handler(
-            "model_trained",
-            EventHandler(self.log_training_complete)
+            "model_trained", EventHandler(self.log_training_complete)
         )
 
     def log_training_complete(self):
@@ -332,6 +340,7 @@ class CallbackSystem:
     def emit(self, event: str):
         """Emit an event."""
         self._manager.trigger_event(event)
+
 
 # Usage
 callbacks = CallbackSystem()
@@ -360,6 +369,7 @@ def test_handler():
 
 ```python
 from unittest.mock import Mock
+
 
 def test_event_system():
     """Test event system with mock handlers."""
@@ -406,6 +416,7 @@ def batch_operations(batch):
     update_metrics(batch)
     check_conditions(batch)
 
+
 manager.add_event_handler("batch_end", EventHandler(batch_operations))
 
 # Less efficient: Multiple handlers for small operations
@@ -421,8 +432,7 @@ Don't execute expensive operations every time:
 ```python
 # Good: Only save checkpoint periodically
 manager.add_event_handler(
-    "epoch_end",
-    ConditionalEventHandler(save_checkpoint, PeriodicCondition(freq=10))
+    "epoch_end", ConditionalEventHandler(save_checkpoint, PeriodicCondition(freq=10))
 )
 
 # Less efficient: Save every epoch when not needed
@@ -435,6 +445,7 @@ Identify slow handlers:
 
 ```python
 import time
+
 
 def profiled_handler(*args, **kwargs):
     start = time.time()
@@ -454,11 +465,14 @@ def problematic_handler(manager, event, handler):
     # This can cause issues if called during event triggering
     manager.remove_event_handler(event, handler)
 
+
 # Better: Flag for removal, clean up later
 handlers_to_remove = []
 
+
 def safe_handler(event, handler):
     handlers_to_remove.append((event, handler))
+
 
 # Clean up after event triggering is complete
 for event, handler in handlers_to_remove:
@@ -485,6 +499,7 @@ manager.add_event_handler("event", EventHandler(step2))  # Runs after step1
 # Problematic: Handler triggers the same event
 def recursive_handler(manager):
     manager.trigger_event("my_event")  # This creates infinite recursion!
+
 
 # Better: Use different events or add guards
 def safe_handler(manager, depth=0):

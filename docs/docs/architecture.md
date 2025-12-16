@@ -74,10 +74,8 @@ Extend functionality by composing handlers and conditions:
 
 ```python
 # Compose handlers with conditions
-handler = ConditionalEventHandler(
-    my_function,
-    PeriodicCondition(freq=5)
-)
+handler = ConditionalEventHandler(my_function, PeriodicCondition(freq=5))
+
 
 # Custom conditions by implementing BaseCondition
 class MyCondition(BaseCondition):
@@ -363,6 +361,7 @@ class MyEventManager:
 
 ```python
 import threading
+
 
 class ThreadSafeEventManager:
     def __init__(self):

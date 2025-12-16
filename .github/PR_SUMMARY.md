@@ -148,7 +148,7 @@ This PR provides a comprehensive review and enhancement of the repository's docu
 ### 3. Security and Maintenance
 
 - **Before**: No security policy or changelog
-- **After**: 
+- **After**:
   - Clear security policy and reporting process
   - Comprehensive changelog for tracking changes
   - Citation information for academic use

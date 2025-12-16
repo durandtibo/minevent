@@ -56,7 +56,9 @@ This guide helps you diagnose and resolve common issues when using `minevent`.
        except Exception as e:
            print(f"Handler error: {e}")
            import traceback
+
            traceback.print_exc()
+
 
    manager.add_event_handler("my_event", EventHandler(safe_handler))
    ```
@@ -135,8 +137,10 @@ manager.has_event_handler(original_handler, "event")  # True
 def cleanup():
     manager.reset()  # Removes all handlers
 
+
 # Use weak references for large objects
 import weakref
+
 
 class MyHandler:
     def __init__(self, large_object):
@@ -159,9 +163,10 @@ class MyHandler:
 
 ```python
 # Handlers execute in registration order
-manager.add_event_handler("event", EventHandler(first_handler))   # Executes 1st
+manager.add_event_handler("event", EventHandler(first_handler))  # Executes 1st
 manager.add_event_handler("event", EventHandler(second_handler))  # Executes 2nd
-manager.add_event_handler("event", EventHandler(third_handler))   # Executes 3rd
+manager.add_event_handler("event", EventHandler(third_handler))  # Executes 3rd
+
 
 # If order matters, register in correct order
 # Or use a single handler that calls functions in desired order
@@ -169,6 +174,7 @@ def orchestrator():
     first_handler()
     second_handler()
     third_handler()
+
 
 manager.add_event_handler("event", EventHandler(orchestrator))
 ```
@@ -186,8 +192,10 @@ manager.add_event_handler("event", EventHandler(orchestrator))
 def recursive_handler():
     manager.trigger_event("my_event")  # Triggers itself!
 
+
 manager.add_event_handler("my_event", EventHandler(recursive_handler))
 manager.trigger_event("my_event")  # RecursionError!
+
 
 # GOOD: Add guard or use different events
 def safe_handler(depth=0):
@@ -196,8 +204,10 @@ def safe_handler(depth=0):
     # Do work
     manager.trigger_event("next_event")  # Different event
 
+
 # Or use a flag
 _processing = False
+
 
 def guarded_handler():
     global _processing
@@ -225,11 +235,13 @@ def guarded_handler():
    # Check number of handlers
    print(f"Manager state: {manager}")
 
+
    # Reduce handlers by combining related operations
    def combined_handler():
        operation1()
        operation2()
        operation3()
+
 
    manager.add_event_handler("event", EventHandler(combined_handler))
    ```
@@ -240,6 +252,7 @@ def guarded_handler():
    # Profile handler execution time
    import time
 
+
    def timed_handler():
        start = time.time()
        actual_handler()
@@ -247,13 +260,16 @@ def guarded_handler():
        if elapsed > 0.1:
            print(f"Handler took {elapsed:.2f}s")
 
+
    # Move heavy work to background thread
    import concurrent.futures
 
    executor = concurrent.futures.ThreadPoolExecutor()
 
+
    def async_handler():
        executor.submit(heavy_computation)
+
 
    manager.add_event_handler("event", EventHandler(async_handler))
    ```
@@ -270,7 +286,7 @@ def guarded_handler():
    # Execute less frequently
    manager.add_event_handler(
        "frequent_event",
-       ConditionalEventHandler(expensive_handler, PeriodicCondition(freq=10))
+       ConditionalEventHandler(expensive_handler, PeriodicCondition(freq=10)),
    )
    ```
 
@@ -314,20 +330,21 @@ print(f"Handler registered for 'event': {manager.has_event_handler(handler, 'eve
 def debug_handler(event_name):
     print(f"DEBUG: Event '{event_name}' triggered")
 
+
 # Register for multiple events
 for event in ["event1", "event2", "event3"]:
-    manager.add_event_handler(
-        event,
-        EventHandler(debug_handler, handler_args=(event,))
-    )
+    manager.add_event_handler(event, EventHandler(debug_handler, handler_args=(event,)))
 ```
 
 ### Use Breakpoints
 
 ```python
 def debug_handler():
-    import pdb; pdb.set_trace()  # Debugger will stop here
+    import pdb
+
+    pdb.set_trace()  # Debugger will stop here
     my_function()
+
 
 manager.add_event_handler("event", EventHandler(debug_handler))
 ```
@@ -344,12 +361,14 @@ manager.add_event_handler("event", EventHandler(debug_handler))
 import pytest
 from minevent import EventManager, EventHandler
 
+
 @pytest.fixture
 def manager():
     """Create a fresh event manager for each test."""
     mgr = EventManager()
     yield mgr
     mgr.reset()  # Clean up after test
+
 
 def test_handler_execution(manager):
     """Test that handler is called."""
@@ -368,6 +387,7 @@ def test_handler_execution(manager):
 
 ```python
 from unittest.mock import Mock
+
 
 def test_with_mock():
     """Test using mock handlers."""
@@ -405,6 +425,7 @@ When reporting bugs, please include:
    ```python
    import minevent
    import sys
+
    print(f"minevent version: {minevent.__version__}")
    print(f"Python version: {sys.version}")
    ```

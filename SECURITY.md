@@ -36,12 +36,14 @@ Always validate inputs to event handlers to prevent injection attacks or unexpec
 ```python
 from minevent import EventHandler, EventManager
 
+
 def safe_handler(user_input: str) -> None:
     # Validate input before processing
     if not isinstance(user_input, str):
         raise TypeError("Expected string input")
     # Additional validation...
     print(f"Processing: {user_input}")
+
 
 manager = EventManager()
 manager.add_event_handler("user_action", EventHandler(safe_handler))
@@ -58,8 +60,8 @@ handler = EventHandler(eval(user_function_name))  # DANGEROUS!
 
 # DO THIS INSTEAD
 allowed_handlers = {
-    'handler1': safe_handler1,
-    'handler2': safe_handler2,
+    "handler1": safe_handler1,
+    "handler2": safe_handler2,
 }
 user_choice = input("Choose handler (handler1/handler2): ")
 if user_choice in allowed_handlers:
@@ -76,8 +78,7 @@ from minevent import ConditionalEventHandler, PeriodicCondition
 
 # Limit handler execution frequency
 handler = ConditionalEventHandler(
-    expensive_operation,
-    PeriodicCondition(freq=10)  # Only execute every 10 events
+    expensive_operation, PeriodicCondition(freq=10)  # Only execute every 10 events
 )
 ```
 

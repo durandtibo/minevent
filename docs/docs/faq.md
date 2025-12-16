@@ -56,8 +56,10 @@ or any other Python-based ML framework.
 ```python
 from minevent import EventHandler, EventManager
 
+
 def my_handler():
     print("Event triggered!")
+
 
 manager = EventManager()
 manager.add_event_handler("my_event", EventHandler(my_handler))
@@ -71,13 +73,13 @@ Yes, use `handler_args` and `handler_kwargs`:
 ```python
 from minevent import EventHandler
 
+
 def greet(name, greeting="Hello"):
     print(f"{greeting}, {name}!")
 
+
 handler = EventHandler(
-    greet,
-    handler_args=("Alice",),
-    handler_kwargs={"greeting": "Hi"}
+    greet, handler_args=("Alice",), handler_kwargs={"greeting": "Hi"}
 )
 handler.handle()  # Prints: Hi, Alice!
 ```
@@ -90,10 +92,7 @@ Use `ConditionalEventHandler` with a condition:
 from minevent import ConditionalEventHandler, PeriodicCondition
 
 # Execute only every 5 times
-handler = ConditionalEventHandler(
-    my_function,
-    PeriodicCondition(freq=5)
-)
+handler = ConditionalEventHandler(my_function, PeriodicCondition(freq=5))
 ```
 
 ### Can I add the same handler to multiple events?
@@ -147,6 +146,7 @@ Yes! Implement the `BaseCondition` class:
 ```python
 from minevent.conditions import BaseCondition
 
+
 class MyCondition(BaseCondition):
     def evaluate(self) -> bool:
         # Your custom logic here
@@ -162,6 +162,7 @@ Yes! Implement the `BaseEventHandler` class:
 
 ```python
 from minevent.handlers import BaseEventHandler
+
 
 class MyEventHandler(BaseEventHandler):
     def handle(self) -> None:
@@ -179,6 +180,7 @@ Here's a common pattern for ML training:
 ```python
 from minevent import EventManager, EventHandler
 
+
 def train(epochs, manager):
     manager.trigger_event("training_start")
 
@@ -194,6 +196,7 @@ def train(epochs, manager):
         manager.trigger_event("epoch_end")
 
     manager.trigger_event("training_end")
+
 
 # Setup handlers
 manager = EventManager()
@@ -239,6 +242,7 @@ Add logging to your handlers:
 
 ```python
 import logging
+
 
 def my_handler():
     logging.info("Handler called")
