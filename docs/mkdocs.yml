@@ -21,10 +21,10 @@ nav:
   - get_started.md
   - User Guide:
       - quickstart.md
+      - architecture.md
       - best_practices.md
       - troubleshooting.md
       - faq.md
-  - Architecture: architecture.md
   - Reference:
       - refs/index.md
       - refs/manager.md
