@@ -5,11 +5,9 @@
 We release patches for security vulnerabilities in the following versions:
 
 | Version | Supported          |
-| ------- | ------------------ |
+|---------|--------------------|
 | 0.3.x   | :white_check_mark: |
-| 0.2.x   | :x:                |
-| 0.1.x   | :x:                |
-| < 0.1   | :x:                |
+| < 0.3   | :x:                |
 
 ## Reporting a Vulnerability
 
@@ -68,31 +66,18 @@ if user_choice in allowed_handlers:
     handler = EventHandler(allowed_handlers[user_choice])
 ```
 
-### 3. Limit Event Handler Execution
-
-Use `ConditionalEventHandler` with appropriate conditions to prevent excessive execution or
-resource consumption:
-
-```python
-from minevent import ConditionalEventHandler, PeriodicCondition
-
-# Limit handler execution frequency
-handler = ConditionalEventHandler(
-    expensive_operation, PeriodicCondition(freq=10)  # Only execute every 10 events
-)
-```
-
-### 4. Keep Dependencies Updated
+### 3. Keep Dependencies Updated
 
 Regularly update `minevent` and its dependencies to get the latest security patches:
 
 ```shell
-pip install --upgrade minevent
+uv pip install --upgrade minevent
 ```
 
-### 5. Review Event Handler Code
+### 4. Review Event Handler Code
 
 Regularly review event handler code for potential security issues, especially handlers that:
+
 - Access file systems
 - Make network requests
 - Execute system commands
