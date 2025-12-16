@@ -179,48 +179,6 @@ def orchestrator():
 manager.add_event_handler("event", EventHandler(orchestrator))
 ```
 
-### Infinite Recursion
-
-**Symptoms**: `RecursionError: maximum recursion depth exceeded`
-
-**Cause**: Handler triggers the same event, causing infinite recursion.
-
-**Solution**:
-
-```python
-# BAD: Causes infinite recursion
-def recursive_handler():
-    manager.trigger_event("my_event")  # Triggers itself!
-
-
-manager.add_event_handler("my_event", EventHandler(recursive_handler))
-manager.trigger_event("my_event")  # RecursionError!
-
-
-# GOOD: Add guard or use different events
-def safe_handler(depth=0):
-    if depth > 5:
-        return
-    # Do work
-    manager.trigger_event("next_event")  # Different event
-
-
-# Or use a flag
-_processing = False
-
-
-def guarded_handler():
-    global _processing
-    if _processing:
-        return
-    _processing = True
-    try:
-        # Do work
-        pass
-    finally:
-        _processing = False
-```
-
 ## Performance Issues
 
 ### Slow Event Triggering
@@ -336,19 +294,6 @@ for event in ["event1", "event2", "event3"]:
     manager.add_event_handler(event, EventHandler(debug_handler, handler_args=(event,)))
 ```
 
-### Use Breakpoints
-
-```python
-def debug_handler():
-    import pdb
-
-    pdb.set_trace()  # Debugger will stop here
-    my_function()
-
-
-manager.add_event_handler("event", EventHandler(debug_handler))
-```
-
 ## Testing Issues
 
 ### Handlers Not Called in Tests
@@ -405,11 +350,9 @@ def test_with_mock():
 If you're still experiencing issues:
 
 1. **Check the FAQ**: See [FAQ](faq.md) for common questions
-2. **Review Examples**: Look at the [`examples/`](https://github.com/durandtibo/minevent/tree/main/examples)
-   directory
-3. **Search Issues**: Check
+2**Search Issues**: Check
    [existing issues](https://github.com/durandtibo/minevent/issues) on GitHub
-4. **Ask for Help**: Open a
+3**Ask for Help**: Open a
    [new issue](https://github.com/durandtibo/minevent/issues/new) with:
     - Your `minevent` version
     - Python version
