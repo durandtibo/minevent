@@ -1,24 +1,24 @@
 # minevent
 
 <p align="center">
-    <a href="https://github.com/durandtibo/minevent/actions">
-        <img alt="CI" src="https://github.com/durandtibo/minevent/workflows/CI/badge.svg">
+    <a href="https://github.com/durandtibo/minevent/actions/workflows/ci.yaml">
+        <img alt="CI" src="https://github.com/durandtibo/minevent/actions/workflows/ci.yaml/badge.svg">
     </a>
-    <a href="https://github.com/durandtibo/minevent/actions">
-        <img alt="Nightly Tests" src="https://github.com/durandtibo/minevent/workflows/Nightly%20Tests/badge.svg">
+    <a href="https://github.com/durandtibo/minevent/actions/workflows/nightly-tests.yaml">
+        <img alt="Nightly Tests" src="https://github.com/durandtibo/minevent/actions/workflows/nightly-tests.yaml/badge.svg">
     </a>
-    <a href="https://github.com/durandtibo/minevent/actions">
-        <img alt="Nightly Package Tests" src="https://github.com/durandtibo/minevent/workflows/Nightly%20Package%20Tests/badge.svg">
+    <a href="https://github.com/durandtibo/minevent/actions/workflows/nightly-package.yaml">
+        <img alt="Nightly Package Tests" src="https://github.com/durandtibo/minevent/actions/workflows/nightly-package.yaml/badge.svg">
     </a>
     <a href="https://codecov.io/gh/durandtibo/minevent">
         <img alt="Codecov" src="https://codecov.io/gh/durandtibo/minevent/branch/main/graph/badge.svg">
     </a>
     <br/>
     <a href="https://durandtibo.github.io/minevent/">
-        <img alt="Documentation" src="https://github.com/durandtibo/minevent/workflows/Documentation%20(stable)/badge.svg">
+        <img alt="Documentation" src="https://github.com/durandtibo/minevent/actions/workflows/docs.yaml/badge.svg">
     </a>
-    <a href="https://durandtibo.github.io/minevent/">
-        <img alt="Documentation" src="https://github.com/durandtibo/minevent/workflows/Documentation%20(unstable)/badge.svg">
+    <a href="https://durandtibo.github.io/minevent/dev/">
+        <img alt="Documentation" src="https://github.com/durandtibo/minevent/actions/workflows/docs-dev.yaml/badge.svg">
     </a>
     <br/>
     <a href="https://github.com/psf/black">
@@ -128,7 +128,7 @@ The following is the corresponding `minevent` versions and supported dependencie
 
 | `minevent` | `coola`         | `python`       |
 |------------|-----------------|----------------|
-| `main`     | `>=0.9.1,<1.0`  | `>=3.10,<3.15` |
+| `main`     | `>=0.9.1,<1.0`  | `>=3.10`       |
 | `0.3.2`    | `>=0.9.1,<1.0`  | `>=3.10,<3.15` |
 | `0.3.1`    | `>=0.8.4,<1.0`  | `>=3.9,<3.14`  |
 | `0.3.0`    | `>=0.1,<1.0`    | `>=3.9,<3.13`  |
