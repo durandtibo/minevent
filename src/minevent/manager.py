@@ -13,7 +13,7 @@ from coola.utils import str_indent, str_mapping, str_sequence
 if TYPE_CHECKING:
     from minevent.handlers import BaseEventHandler
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class EventManager:

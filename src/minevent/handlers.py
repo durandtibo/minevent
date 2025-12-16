@@ -147,8 +147,8 @@ class BaseEventHandlerWithArguments(BaseEventHandler):
     def __init__(
         self,
         handler: Callable,
-        handler_args: Sequence | None = None,
-        handler_kwargs: dict | None = None,
+        handler_args: Sequence[Any] | None = None,
+        handler_kwargs: dict[str, Any] | None = None,
     ) -> None:
         if not callable(handler):
             msg = f"handler is not callable: {handler}"
@@ -180,7 +180,7 @@ class BaseEventHandlerWithArguments(BaseEventHandler):
         return self._handler
 
     @property
-    def handler_args(self) -> tuple:
+    def handler_args(self) -> tuple[Any]:
         r"""Get the positional arguments for the handler.
 
         Returns:
@@ -190,7 +190,7 @@ class BaseEventHandlerWithArguments(BaseEventHandler):
         return self._handler_args
 
     @property
-    def handler_kwargs(self) -> dict:
+    def handler_kwargs(self) -> dict[str, Any]:
         r"""Get the keyword arguments for the handler.
 
         Returns:
@@ -292,8 +292,8 @@ class ConditionalEventHandler(BaseEventHandlerWithArguments):
         self,
         handler: Callable,
         condition: BaseCondition,
-        handler_args: Sequence | None = None,
-        handler_kwargs: dict | None = None,
+        handler_args: Sequence[Any] | None = None,
+        handler_kwargs: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(handler=handler, handler_args=handler_args, handler_kwargs=handler_kwargs)
         self._condition = condition
