@@ -1,3 +1,7 @@
+# Nightly test workflow.
+# Runs the full CI test suite every night to catch issues early.
+# Helps detect problems with dependencies or external changes.
+
 name: Nightly Tests
 on:
   schedule:
@@ -17,6 +21,8 @@ jobs:
     secrets: inherit
   format:
     uses: ./.github/workflows/format.yaml
+  type-checking:
+    uses: ./.github/workflows/type-checking.yaml
   pre-commit:
     uses: ./.github/workflows/pre-commit.yaml
   test:
