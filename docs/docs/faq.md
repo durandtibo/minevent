@@ -74,7 +74,7 @@ Yes, use `handler_args` and `handler_kwargs`:
 from minevent import EventHandler
 
 
-def greet(name: str, greeting: str="Hello"):
+def greet(name: str, greeting: str = "Hello"):
     print(f"{greeting}, {name}!")
 
 
