@@ -43,27 +43,12 @@ cd minevent
 
 ### Create a virtual environment (optional but recommended)
 
-It is recommended to create a Python 3.10+ virtual environment. You can use the following command to
-create a conda virtual environment:
+It is recommended to create a Python 3.10+ virtual environment. You can use `uv` to create a virtual
+environment:
 
 ```shell
-make conda
-```
-
-This automatically creates a conda virtual environment. When the virtual environment is created, you
-can activate it with the following command:
-
-```shell
-conda activate minevent
-```
-
-Alternatively, you can use `uv` to create a virtual environment:
-
-```shell
-uv venv
-source .venv/bin/activate  # On Unix/macOS
-# or
-.venv\Scripts\activate  # On Windows
+uv venv --python 3.13
+source .venv/bin/activate
 ```
 
 ### Install dependencies
@@ -71,13 +56,13 @@ source .venv/bin/activate  # On Unix/macOS
 Once you have activated your virtual environment, install the required packages with:
 
 ```shell
-make install
+inv install
 ```
 
 Or if you're developing and need documentation dependencies:
 
 ```shell
-make install-all
+inv install --docs-deps
 ```
 
 These commands will install all the required packages. You can also use these commands to update the
@@ -88,7 +73,7 @@ required packages.
 Finally, you can test the installation by running the test suite:
 
 ```shell
-make unit-test-cov
+inv unit-test --cov
 ```
 
 ## Development workflow
