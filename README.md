@@ -106,7 +106,8 @@ It allows to customize the function `say_something` without changing its impleme
 
 - **Minimal and Lightweight**: Only depends on `coola`, keeping your project dependencies clean
 - **Simple API**: Easy to learn and use with intuitive event registration and triggering
-- **Conditional Handlers**: Built-in support for conditional event execution (e.g., periodic execution)
+- **Conditional Handlers**: Built-in support for conditional event execution (e.g., periodic
+  execution)
 - **Extensible**: Create custom event handlers and conditions for your specific needs
 - **Type Hints**: Full type hint support for better IDE integration and code quality
 - **Well Tested**: Comprehensive test suite ensuring reliability
@@ -114,11 +115,14 @@ It allows to customize the function `say_something` without changing its impleme
 
 ## Quick Links
 
-- **Documentation**: [https://durandtibo.github.io/minevent/](https://durandtibo.github.io/minevent/)
-- **Quickstart Guide**: [https://durandtibo.github.io/minevent/quickstart/](https://durandtibo.github.io/minevent/quickstart/)
+- **Documentation
+  **: [https://durandtibo.github.io/minevent/](https://durandtibo.github.io/minevent/)
+- **Quickstart Guide
+  **: [https://durandtibo.github.io/minevent/quickstart/](https://durandtibo.github.io/minevent/quickstart/)
 - **Examples**: See the [`examples/`](examples/) directory for practical use cases
 - **FAQ**: [https://durandtibo.github.io/minevent/faq/](https://durandtibo.github.io/minevent/faq/)
-- **Best Practices**: [https://durandtibo.github.io/minevent/best_practices/](https://durandtibo.github.io/minevent/best_practices/)
+- **Best Practices
+  **: [https://durandtibo.github.io/minevent/best_practices/](https://durandtibo.github.io/minevent/best_practices/)
 
 ## Installation
 
@@ -144,7 +148,7 @@ The following is the corresponding `minevent` versions and supported dependencie
 
 | `minevent` | `coola`         | `python`       |
 |------------|-----------------|----------------|
-| `main`     | `>=0.9.1,<1.0`  | `>=3.10`       |
+| `main`     | `>=0.10,<1.0`   | `>=3.10`       |
 | `0.3.2`    | `>=0.9.1,<1.0`  | `>=3.10,<3.15` |
 | `0.3.1`    | `>=0.8.4,<1.0`  | `>=3.9,<3.14`  |
 | `0.3.0`    | `>=0.1,<1.0`    | `>=3.9,<3.13`  |
