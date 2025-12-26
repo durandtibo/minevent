@@ -17,27 +17,26 @@ class BaseCondition(ABC):  # noqa: PLW1641
         - ``evaluate``
         - ``equal``
 
-    Example usage:
+    Example:
+        ```pycon
+        >>> from minevent import PeriodicCondition
+        >>> condition = PeriodicCondition(freq=3)
+        >>> condition.evaluate()
+        True
+        >>> condition.evaluate()
+        False
+        >>> condition.evaluate()
+        False
+        >>> condition.evaluate()
+        True
+        >>> condition.evaluate()
+        False
+        >>> condition.evaluate()
+        False
+        >>> condition.evaluate()
+        True
 
-    ```pycon
-    >>> from minevent import PeriodicCondition
-    >>> condition = PeriodicCondition(freq=3)
-    >>> condition.evaluate()
-    True
-    >>> condition.evaluate()
-    False
-    >>> condition.evaluate()
-    False
-    >>> condition.evaluate()
-    True
-    >>> condition.evaluate()
-    False
-    >>> condition.evaluate()
-    False
-    >>> condition.evaluate()
-    True
-
-    ```
+        ```
     """
 
     def __eq__(self, other: object) -> bool:
@@ -59,17 +58,16 @@ class BaseCondition(ABC):  # noqa: PLW1641
             ``True`` if the two conditions are considered equal,
                 otherwise ``False``.
 
-        Example usage:
+        Example:
+            ```pycon
+            >>> from minevent import PeriodicCondition
+            >>> condition = PeriodicCondition(freq=3)
+            >>> condition.equal(PeriodicCondition(freq=3))
+            True
+            >>> condition.equal(PeriodicCondition(freq=2))
+            False
 
-        ```pycon
-        >>> from minevent import PeriodicCondition
-        >>> condition = PeriodicCondition(freq=3)
-        >>> condition.equal(PeriodicCondition(freq=3))
-        True
-        >>> condition.equal(PeriodicCondition(freq=2))
-        False
-
-        ```
+            ```
         """
 
     @abstractmethod
@@ -85,18 +83,17 @@ class BaseCondition(ABC):  # noqa: PLW1641
             ``True`` if the condition is satisfied and the event
                 handler logic should be executed, otherwise ``False``.
 
-        Example usage:
+        Example:
+            ```pycon
+            >>> from minevent import EventHandler
+            >>> def hello_handler() -> None:
+            ...     print("Hello!")
+            ...
+            >>> handler = EventHandler(hello_handler)
+            >>> handler.handle()
+            Hello!
 
-        ```pycon
-        >>> from minevent import EventHandler
-        >>> def hello_handler() -> None:
-        ...     print("Hello!")
-        ...
-        >>> handler = EventHandler(hello_handler)
-        >>> handler.handle()
-        Hello!
-
-        ```
+            ```
         """
 
 
@@ -112,27 +109,26 @@ class PeriodicCondition(BaseCondition):
         freq: The frequency (interval) at which the condition
             evaluates to ``True``. Must be a positive integer.
 
-    Example usage:
+    Example:
+        ```pycon
+        >>> from minevent import PeriodicCondition
+        >>> condition = PeriodicCondition(freq=3)
+        >>> condition.evaluate()
+        True
+        >>> condition.evaluate()
+        False
+        >>> condition.evaluate()
+        False
+        >>> condition.evaluate()
+        True
+        >>> condition.evaluate()
+        False
+        >>> condition.evaluate()
+        False
+        >>> condition.evaluate()
+        True
 
-    ```pycon
-    >>> from minevent import PeriodicCondition
-    >>> condition = PeriodicCondition(freq=3)
-    >>> condition.evaluate()
-    True
-    >>> condition.evaluate()
-    False
-    >>> condition.evaluate()
-    False
-    >>> condition.evaluate()
-    True
-    >>> condition.evaluate()
-    False
-    >>> condition.evaluate()
-    False
-    >>> condition.evaluate()
-    True
-
-    ```
+        ```
     """
 
     def __init__(self, freq: int) -> None:
