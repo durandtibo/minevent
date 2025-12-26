@@ -115,14 +115,14 @@ It allows to customize the function `say_something` without changing its impleme
 
 ## Quick Links
 
-- **Documentation
-  **: [https://durandtibo.github.io/minevent/](https://durandtibo.github.io/minevent/)
-- **Quickstart Guide
-  **: [https://durandtibo.github.io/minevent/quickstart/](https://durandtibo.github.io/minevent/quickstart/)
+- **Documentation**:
+[https://durandtibo.github.io/minevent/](https://durandtibo.github.io/minevent/)
+- **Quickstart Guide**:
+[https://durandtibo.github.io/minevent/quickstart/](https://durandtibo.github.io/minevent/quickstart/)
 - **Examples**: See the [`examples/`](examples/) directory for practical use cases
 - **FAQ**: [https://durandtibo.github.io/minevent/faq/](https://durandtibo.github.io/minevent/faq/)
-- **Best Practices
-  **: [https://durandtibo.github.io/minevent/best_practices/](https://durandtibo.github.io/minevent/best_practices/)
+- **Best Practices**:
+[https://durandtibo.github.io/minevent/best_practices/](https://durandtibo.github.io/minevent/best_practices/)
 
 ## Installation
 
@@ -149,6 +149,7 @@ The following is the corresponding `minevent` versions and supported dependencie
 | `minevent` | `coola`         | `python`       |
 |------------|-----------------|----------------|
 | `main`     | `>=0.10,<1.0`   | `>=3.10`       |
+| `0.4.0`    | `>=0.10,<1.0`   | `>=3.10`       |
 | `0.3.2`    | `>=0.9.1,<1.0`  | `>=3.10,<3.15` |
 | `0.3.1`    | `>=0.8.4,<1.0`  | `>=3.9,<3.14`  |
 | `0.3.0`    | `>=0.1,<1.0`    | `>=3.9,<3.13`  |
