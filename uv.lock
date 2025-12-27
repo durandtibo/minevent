@@ -208,11 +208,11 @@ wheels = [
 
 [[package]]
 name = "coola"
-version = "0.10.0"
+version = "0.11.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/51/41/82f52f415211c72f61c9686be4de9c579dff65005ea6d29a6bfc60f97ec4/coola-0.10.0.tar.gz", hash = "sha256:845798d34a84cc1855a12115408f2cb2c5a73b04cf6d24bc53fbed4c3fc9db30", size = 45621, upload-time = "2025-12-22T01:06:53.97Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9c/c7/6f351774cdc5b888cf66ebc7d9ae117f18326c2210b94e076843caeba981/coola-0.11.0.tar.gz", hash = "sha256:c1969cc2ec9edd3f077e7e2bb913adacc2c7029eeb19864417de0e106a799574", size = 62347, upload-time = "2025-12-27T02:49:34.387Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0e/e6/46bcaf273da4e33c6d3e84e1fdd36a1587a8cd5b3658a22353270060cc14/coola-0.10.0-py3-none-any.whl", hash = "sha256:7dbbb19c437bcf13552001a6ca127b3d65a1aade52f83c8f7564dfa54967b906", size = 90511, upload-time = "2025-12-22T01:06:52.672Z" },
+    { url = "https://files.pythonhosted.org/packages/31/1a/2ec69317a215f09cdd2bb25daf44dbb0aee569680f46ab4bdbfb2f6c5b6a/coola-0.11.0-py3-none-any.whl", hash = "sha256:adfc0298a427bd470c9c48d09b6b78e4fe50606d416114e29dc4c429f16d1fcb", size = 122725, upload-time = "2025-12-27T02:49:33.037Z" },
 ]
 
 [[package]]
@@ -629,7 +629,7 @@ wheels = [
 
 [[package]]
 name = "minevent"
-version = "0.3.3a0"
+version = "0.4.0"
 source = { editable = "." }
 dependencies = [
     { name = "coola" },
@@ -920,11 +920,11 @@ wheels = [
 
 [[package]]
 name = "pyparsing"
-version = "3.2.5"
+version = "3.3.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/f2/a5/181488fc2b9d093e3972d2a472855aae8a03f000592dbfce716a512b3359/pyparsing-3.2.5.tar.gz", hash = "sha256:2df8d5b7b2802ef88e8d016a2eb9c7aeaa923529cd251ed0fe4608275d4105b6", size = 1099274, upload-time = "2025-09-21T04:11:06.277Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/33/c1/1d9de9aeaa1b89b0186e5fe23294ff6517fce1bc69149185577cd31016b2/pyparsing-3.3.1.tar.gz", hash = "sha256:47fad0f17ac1e2cad3de3b458570fbc9b03560aa029ed5e16ee5554da9a2251c", size = 1550512, upload-time = "2025-12-23T03:14:04.391Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/10/5e/1aa9a93198c6b64513c9d7752de7422c06402de6600a8767da1524f9570b/pyparsing-3.2.5-py3-none-any.whl", hash = "sha256:e38a4f02064cf41fe6593d328d0512495ad1f3d8a91c4f73fc401b3079a59a5e", size = 113890, upload-time = "2025-09-21T04:11:04.117Z" },
+    { url = "https://files.pythonhosted.org/packages/8b/40/2614036cdd416452f5bf98ec037f38a1afb17f327cb8e6b652d4729e0af8/pyparsing-3.3.1-py3-none-any.whl", hash = "sha256:023b5e7e5520ad96642e2c6db4cb683d3970bd640cdf7115049a6e9c3682df82", size = 121793, upload-time = "2025-12-23T03:14:02.103Z" },
 ]
 
 [[package]]
