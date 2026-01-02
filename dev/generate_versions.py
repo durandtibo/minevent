@@ -7,23 +7,23 @@ import logging
 from pathlib import Path
 
 from feu.utils.io import save_json
-from feu.version import fetch_versions
+from feu.version import fetch_latest_minor_versions
 
 logger = logging.getLogger(__name__)
 
 
-def get_package_versions() -> dict[str, list[str]]:
+def fetch_package_versions() -> dict[str, list[str]]:
     r"""Get the versions for each package.
 
     Returns:
         A dictionary with the versions for each package.
     """
-    return {"coola": list(fetch_versions("coola", lower="0.10.0"))}
+    return {"coola": list(fetch_latest_minor_versions("coola", lower="0.10.0"))}
 
 
 def main() -> None:
     r"""Generate the package versions and save them in a JSON file."""
-    versions = get_package_versions()
+    versions = fetch_package_versions()
     logger.info(f"{versions=}")
     path = Path(__file__).parent.parent.joinpath("dev/config").joinpath("package_versions.json")
     logger.info(f"Saving package versions to {path}")
