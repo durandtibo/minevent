@@ -42,7 +42,7 @@ classifiers = [
 
 requires-python = ">=3.10"
 dependencies = [
-    "coola >=0.10.0,<1.0",
+    "coola>=0.10.0,<2.0",
 ]
 
 [project.optional-dependencies]
