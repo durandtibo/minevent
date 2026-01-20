@@ -27,6 +27,7 @@ Choose a naming convention and stick to it throughout your project:
 ```python
 # Option 1: Snake case with verb in past tense
 "training_started"
+
 "epoch_completed"
 "validation_finished"
 
@@ -43,6 +44,7 @@ For complex systems, use hierarchical naming to organize events:
 ```python
 # Training lifecycle
 "training.start"
+
 "training.epoch.start"
 "training.batch.start"
 "training.batch.end"
