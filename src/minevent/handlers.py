@@ -12,8 +12,8 @@ __all__ = [
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
-from coola import objects_are_equal
-from coola.utils import str_indent, str_mapping
+from coola.equality import objects_are_equal
+from coola.utils.format import str_indent, str_mapping
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence

@@ -18,7 +18,7 @@ def fetch_package_versions() -> dict[str, list[str]]:
     Returns:
         A dictionary with the versions for each package.
     """
-    return {"coola": list(fetch_latest_minor_versions("coola", lower="0.10.0"))}
+    return {"coola": list(fetch_latest_minor_versions("coola", lower="1.0"))}
 
 
 def main() -> None:

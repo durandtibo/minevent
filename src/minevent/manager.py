@@ -8,7 +8,7 @@ import logging
 from collections import defaultdict
 from typing import TYPE_CHECKING
 
-from coola.utils import str_indent, str_mapping, str_sequence
+from coola.utils.format import str_indent, str_mapping, str_sequence
 
 if TYPE_CHECKING:
     from minevent.handlers import BaseEventHandler
