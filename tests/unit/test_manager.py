@@ -4,7 +4,7 @@ import logging
 from typing import TYPE_CHECKING
 
 import pytest
-from coola import objects_are_equal
+from coola.equality import objects_are_equal
 
 from minevent import EventHandler, EventManager
 from tests.unit.utils import trace
