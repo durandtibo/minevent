@@ -12,7 +12,7 @@ only-include = ["src"]
 
 [project]
 name = "minevent"
-version = "0.5.0a0"
+version = "0.5.0"
 description = "Minimal event system for Machine Learning"
 readme = "README.md"
 authors = [
