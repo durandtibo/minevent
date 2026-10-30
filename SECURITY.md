@@ -5,7 +5,7 @@
 We release patches for security vulnerabilities in the following versions:
 
 | Version | Supported          |
-|---------|--------------------|
+| ------- | ------------------ |
 | 0.4.x   | :white_check_mark: |
 | < 0.4   | :x:                |
 

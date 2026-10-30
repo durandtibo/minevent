@@ -86,13 +86,11 @@ Below is an example on how to use `minevent` library.
 >>> def say_something(manager: EventManager) -> None:
 ...     print("Hello, I am Bob!")
 ...     manager.trigger_event("after")
-...
 >>> manager = EventManager()
 >>> say_something(manager)
 Hello, I am Bob!
 >>> def hello_handler() -> None:
 ...     print("Hello!")
-...
 >>> manager.add_event_handler("after", EventHandler(hello_handler))
 >>> say_something(manager)
 Hello, I am Bob!
@@ -147,7 +145,7 @@ install only some specific dependencies or other alternatives to install the lib
 The following is the corresponding `minevent` versions and supported dependencies.
 
 | `minevent` | `coola`         | `python`       |
-|------------|-----------------|----------------|
+| ---------- | --------------- | -------------- |
 | `main`     | `>=1.0,<2.0`    | `>=3.10`       |
 | `0.5.0`    | `>=1.0,<2.0`    | `>=3.10`       |
 | `0.4.0`    | `>=0.10,<1.0`   | `>=3.10`       |
@@ -162,7 +160,7 @@ The following is the corresponding `minevent` versions and supported dependencie
     <summary>older versions</summary>
 
 | `minevent` | `coola`            | `python`      |
-|------------|--------------------|---------------|
+| ---------- | ------------------ | ------------- |
 | `0.0.5`    | `>=0.0.20,<0.0.24` | `>=3.9,<3.12` |
 | `0.0.4`    | `>=0.0.20,<0.0.24` | `>=3.9,<3.12` |
 | `0.0.3`    | `>=0.0.20,<0.0.24` | `>=3.9,<3.12` |
