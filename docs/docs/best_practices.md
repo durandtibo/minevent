@@ -123,9 +123,7 @@ def log_metrics(metrics: Dict[str, float], epoch: int) -> None:
     logger.info(f"Epoch {epoch}: {metrics}")
 
 
-handler = EventHandler(
-    log_metrics, handler_kwargs={"metrics": {"loss": 0.5}, "epoch": 1}
-)
+handler = EventHandler(log_metrics, handler_kwargs={"metrics": {"loss": 0.5}, "epoch": 1})
 ```
 
 ## Event Manager Usage
@@ -254,9 +252,7 @@ class PluginManager:
 # Plugin implementation
 class LoggingPlugin:
     def setup(self, manager: EventManager):
-        manager.add_event_handler(
-            "model_trained", EventHandler(self.log_training_complete)
-        )
+        manager.add_event_handler("model_trained", EventHandler(self.log_training_complete))
 
     def log_training_complete(self):
         print("Training completed!")
