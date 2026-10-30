@@ -112,7 +112,7 @@ class EventManager:
             ```
         """
         self._event_handlers[str(event)].append(event_handler)
-        logger.debug(f"Added {event_handler} to event {event}")
+        logger.debug("Added %s to event %s", event_handler, event)
 
     def trigger_event(self, event: str) -> None:
         r"""Trigger the handler(s) for the given event.
@@ -139,7 +139,7 @@ class EventManager:
 
             ```
         """
-        logger.debug(f"Firing {event} event")
+        logger.debug("Firing %s event", event)
         self._last_triggered_event = event
         for event_handler in self._event_handlers[event]:
             event_handler.handle()
@@ -247,7 +247,7 @@ class EventManager:
             self._event_handlers[event] = new_event_handlers
         else:
             del self._event_handlers[event]
-        logger.debug(f"Removed {event_handler} in '{event}' event")
+        logger.debug("Removed %s in '%s' event", event_handler, event)
 
     def reset(self) -> None:
         r"""Reset the event manager.

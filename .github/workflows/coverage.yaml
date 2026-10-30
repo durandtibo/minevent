@@ -19,7 +19,7 @@ jobs:
 
       - name: Run unit tests
         run: |
-          inv unit-test --cov
+          inv test.unit --cov
 
       - name: Upload coverage to Codecov
         if: github.repository == 'durandtibo/minevent' && (github.event_name == 'push' || github.event_name == 'pull_request')
