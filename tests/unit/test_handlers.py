@@ -24,7 +24,7 @@ def hello_handler() -> None:
 def hello_name_handler(first_name: str, last_name: str) -> None:
     r"""Implements a simple handler that prints hello and the name of
     the person."""
-    logger.info(f"Hello. I am {first_name} {last_name}")
+    logger.info("Hello. I am %s %s", first_name, last_name)
 
 
 @pytest.fixture(autouse=True)

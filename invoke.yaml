@@ -1,0 +1,6 @@
+tasklib:
+  package:
+    name: minevent
+  groups:
+    install: dev,docs
+    update: dev,docs

@@ -56,13 +56,13 @@ source .venv/bin/activate
 Once you have activated your virtual environment, install the required packages with:
 
 ```shell
-inv install
+inv env.install
 ```
 
 Or if you're developing and need documentation dependencies:
 
 ```shell
-inv install --docs-deps
+inv env.install --docs-deps
 ```
 
 These commands will install all the required packages. You can also use these commands to update the
@@ -73,7 +73,7 @@ required packages.
 Finally, you can test the installation by running the test suite:
 
 ```shell
-inv unit-test --cov
+inv test.unit --cov
 ```
 
 ## Development workflow
