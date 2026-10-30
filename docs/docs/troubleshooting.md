@@ -350,21 +350,22 @@ def test_with_mock():
 If you're still experiencing issues:
 
 1. **Check the FAQ**: See [FAQ](faq.md) for common questions
-2**Search Issues**: Check
+   2**Search Issues**: Check
    [existing issues](https://github.com/durandtibo/minevent/issues) on GitHub
-3**Ask for Help**: Open a
+   3**Ask for Help**: Open a
    [new issue](https://github.com/durandtibo/minevent/issues/new) with:
-    - Your `minevent` version
-    - Python version
-    - Minimal code to reproduce the problem
-    - Full error message and stack trace
-    - What you've tried so far
+   - Your `minevent` version
+   - Python version
+   - Minimal code to reproduce the problem
+   - Full error message and stack trace
+   - What you've tried so far
 
 ## Reporting Bugs
 
 When reporting bugs, please include:
 
 1. **Environment Information**:
+
    ```python
    import minevent
    import sys

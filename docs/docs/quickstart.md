@@ -48,7 +48,6 @@ It is possible to implement this scenario as follow by using `minvent.EventHandl
 >>> from minevent import EventHandler
 >>> def hello_handler() -> None:
 ...     print("Hello!")
-...
 >>> handler = EventHandler(hello_handler)
 >>> handler.handle()
 Hello!
@@ -65,7 +64,6 @@ The arguments can be given as positional arguments using `handler_args`:
 >>> from minevent import EventHandler
 >>> def hello_handler(name: str, day: str) -> None:
 ...     print(f"Hello {name}! Happy {day}!")
-...
 >>> handler = EventHandler(hello_handler, handler_args=("Bob", "Monday"))
 >>> handler.handle()
 Hello Bob! Happy Monday!
@@ -78,7 +76,6 @@ It is also possible to give the arguments as keyword arguments using `handler_kw
 >>> from minevent import EventHandler
 >>> def hello_handler(name: str, day: str) -> None:
 ...     print(f"Hello {name}! Happy {day}!")
-...
 >>> handler = EventHandler(hello_handler, handler_kwargs={"name": "Bob", "day": "Monday"})
 >>> handler.handle()
 Hello Bob! Happy Monday!
@@ -91,10 +88,7 @@ It is also possible to use `handler_args` and `handler_kwargs`:
 >>> from minevent import EventHandler
 >>> def hello_handler(name: str, day: str) -> None:
 ...     print(f"Hello {name}! Happy {day}!")
-...
->>> handler = EventHandler(
-...     hello_handler, handler_args=["Bob"], handler_kwargs={"day": "Monday"}
-... )
+>>> handler = EventHandler(hello_handler, handler_args=["Bob"], handler_kwargs={"day": "Monday"})
 >>> handler.handle()
 Hello Bob! Happy Monday!
 
@@ -121,7 +115,6 @@ calls.
 >>> from minevent import ConditionalEventHandler, PeriodicCondition
 >>> def hello_handler() -> None:
 ...     print("Hello!")
-...
 >>> handler = ConditionalEventHandler(hello_handler, PeriodicCondition(freq=3))
 >>> handler.handle()
 Hello!
@@ -135,7 +128,7 @@ Hello!
 `PeriodicCondition` is a condition implemented in `minevent` to execute an event handler with a
 periodic pattern.
 It is also possible to implement custom conditions.
-If the condition returns ``True``, the logic associated to the event handler is executed, otherwise
+If the condition returns `True`, the logic associated to the event handler is executed, otherwise
 the logic associated to the event handler is not executed.
 
 ### Event handler comparison
@@ -147,7 +140,6 @@ Two `EventHandler`s are equal if they have the same handler and the same argumen
 >>> from minevent import EventHandler
 >>> def hello_handler() -> None:
 ...     print("Hello!")
-...
 >>> handler = EventHandler(hello_handler)
 >>> handler.equal(EventHandler(hello_handler))
 True
@@ -163,7 +155,6 @@ condition:
 >>> from minevent import ConditionalEventHandler, PeriodicCondition
 >>> def hello_handler() -> None:
 ...     print("Hello!")
-...
 >>> handler = ConditionalEventHandler(hello_handler, PeriodicCondition(freq=3))
 >>> handler.equal(ConditionalEventHandler(hello_handler, PeriodicCondition(freq=3)))
 True
@@ -229,7 +220,6 @@ The following example shows how to add a `hello_handler` handler to the `'my_eve
 >>> from minevent import EventHandler, EventManager
 >>> def hello_handler() -> None:
 ...     print("Hello!")
-...
 >>> manager = EventManager()
 >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> manager
@@ -255,7 +245,6 @@ The following example shows how to add an event handler with some positional arg
 >>> from minevent import EventHandler, EventManager
 >>> def hello_handler(first_name: str, last_name: str) -> None:
 ...     print(f"Hello. I am {last_name}, {first_name} {last_name}")
-...
 >>> manager = EventManager()
 >>> manager.add_event_handler("my_event", EventHandler(hello_handler, ("John", "Smith")))
 >>> manager.add_event_handler("my_event", EventHandler(hello_handler, ("Jane", "Doe")))
@@ -287,7 +276,6 @@ It is possible to add the same event handler multiple times:
 >>> from minevent import EventHandler, EventManager
 >>> def hello_handler() -> None:
 ...     print("Hello!")
-...
 >>> manager = EventManager()
 >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
@@ -322,7 +310,6 @@ in the event manager:
 >>> from minevent import EventHandler, EventManager
 >>> def hello_handler() -> None:
 ...     print("Hello!")
-...
 >>> manager = EventManager()
 >>> manager.has_event_handler(EventHandler(hello_handler))
 False
@@ -342,7 +329,6 @@ the `'my_event'` event:
 >>> from minevent import EventHandler, EventManager
 >>> def hello_handler() -> None:
 ...     print("Hello!")
-...
 >>> manager = EventManager()
 >>> manager.has_event_handler(EventHandler(hello_handler), "my_event")
 False
@@ -360,12 +346,10 @@ If you want to add an event handler only once, you can write something like:
 >>> from minevent import EventHandler, EventManager
 >>> def hello_handler() -> None:
 ...     print("Hello!")
-...
 >>> manager = EventManager()
 >>> for _ in range(5):
 ...     if not manager.has_event_handler(EventHandler(hello_handler), "my_event"):
 ...         manager.add_event_handler("my_event", EventHandler(hello_handler))
-...
 >>> manager
 EventManager(
   (event_handlers):
@@ -393,7 +377,6 @@ The following example shows how to fire the `hello_handler` for the event `'my_e
 >>> from minevent import EventHandler, EventManager
 >>> def hello_handler() -> None:
 ...     print("Hello!")
-...
 >>> manager = EventManager()
 >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> manager
@@ -431,7 +414,6 @@ The event manager uses the arguments that were given when the event handler was 
 >>> from minevent import EventHandler, EventManager
 >>> def hello_handler(first_name: str, last_name: str) -> None:
 ...     print(f"Hello. I am {first_name} {last_name}")
-...
 >>> manager = EventManager()
 >>> manager.add_event_handler("my_event", EventHandler(hello_handler, ("John", "Smith")))
 >>> manager.add_event_handler("my_event", EventHandler(hello_handler, ("Jane", "Doe")))
@@ -464,7 +446,6 @@ The following shows how to execute the `hello_handler` every 3 `'my_event'` even
 >>> from minevent import ConditionalEventHandler, PeriodicCondition, EventManager
 >>> def hello_handler() -> None:
 ...     print("Hello!")
-...
 >>> manager = EventManager()
 >>> manager.add_event_handler(
 ...     "my_event", ConditionalEventHandler(hello_handler, PeriodicCondition(freq=3))
@@ -484,7 +465,6 @@ EventManager(
 >>> for i in range(10):
 ...     print(f"i={i}")
 ...     manager.trigger_event("my_event")
-...
 i=0
 Hello!
 i=1
@@ -523,7 +503,6 @@ The following example shows how to add and remove an event handler:
 >>> from minevent import EventHandler, EventManager
 >>> def hello_handler() -> None:
 ...     print("Hello!")
-...
 >>> manager = EventManager()
 >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> manager
@@ -557,7 +536,6 @@ If there are multiple event handlers that match, they are all removed from the e
 ... )
 >>> def hello_handler() -> None:
 ...     print("Hello!")
-...
 >>> manager = EventManager()
 >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
@@ -608,7 +586,6 @@ If a handler is used for multiple events, only the handler associated to the eve
 >>> from minevent import EventHandler, EventManager
 >>> def hello_handler() -> None:
 ...     print("Hello!")
-...
 >>> manager = EventManager()
 >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> manager.add_event_handler("my_other_event", EventHandler(hello_handler))
@@ -656,7 +633,6 @@ fired event name to `None`. It is equivalent to create a new experiment manager.
 >>> from minevent import EventHandler, EventManager
 >>> def hello_handler() -> None:
 ...     print("Hello!")
-...
 >>> manager = EventManager()
 >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> manager.add_event_handler("my_other_event", EventHandler(hello_handler))

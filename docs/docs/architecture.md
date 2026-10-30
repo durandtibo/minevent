@@ -99,12 +99,14 @@ No hidden behavior or surprising actions:
 **Design**: Events are represented as case-sensitive strings.
 
 **Rationale**:
+
 - Simple and universal
 - Easy to type and understand
 - No serialization issues
 - Language-agnostic concept
 
 **Best Practices**:
+
 - Use descriptive names
 - Follow consistent naming convention
 - Consider hierarchical naming for complex systems
@@ -124,10 +126,12 @@ BaseEventHandler (abstract)
 ```
 
 **Key Methods**:
+
 - `handle()`: Execute the handler logic
 - `equal()`: Compare handlers for equality
 
 **Rationale**:
+
 - Separation between handler logic and handler metadata
 - Enables handler comparison for deduplication
 - Supports both simple and complex use cases
@@ -147,11 +151,13 @@ BaseEventHandler (abstract)
 ```
 
 **Rationale**:
+
 - Simple dictionary lookup for handlers
 - Preserves registration order
 - Easy to implement and understand
 
 **Key Operations**:
+
 - `O(1)` handler registration
 - `O(n)` event triggering (n = number of handlers)
 - `O(n)` handler lookup (n = total handlers)
@@ -181,6 +187,7 @@ trigger_event()
 ```
 
 **Rationale**:
+
 - Separates "what" (handler) from "when" (condition)
 - Conditions are reusable across handlers
 - Conditions can maintain state between evaluations
@@ -232,34 +239,34 @@ For ConditionalEventHandler:
 
 ### vs Python's `signal` module
 
-| Feature | minevent | signal |
-|---------|----------|--------|
-| Use case | Application events | Unix signals |
-| Event types | Arbitrary strings | Predefined signals |
-| Handler arguments | Flexible | Fixed signature |
-| Conditional execution | Built-in | Manual |
-| Event manager | Explicit | Global |
+| Feature               | minevent           | signal             |
+| --------------------- | ------------------ | ------------------ |
+| Use case              | Application events | Unix signals       |
+| Event types           | Arbitrary strings  | Predefined signals |
+| Handler arguments     | Flexible           | Fixed signature    |
+| Conditional execution | Built-in           | Manual             |
+| Event manager         | Explicit           | Global             |
 
 ### vs PyDispatcher / blinker
 
-| Feature | minevent | PyDispatcher/blinker |
-|---------|----------|---------------------|
-| Dependencies | Minimal (coola) | None |
-| Event metadata | None | Supported |
-| Weak references | No | Yes |
-| Sender/receiver | No | Yes |
-| Async support | No | Limited |
+| Feature         | minevent        | PyDispatcher/blinker |
+| --------------- | --------------- | -------------------- |
+| Dependencies    | Minimal (coola) | None                 |
+| Event metadata  | None            | Supported            |
+| Weak references | No              | Yes                  |
+| Sender/receiver | No              | Yes                  |
+| Async support   | No              | Limited              |
 
 **Why minevent?**: Simpler, more focused on ML workflows, easier to understand.
 
 ### vs Observer Pattern (Manual)
 
-| Feature | minevent | Manual Observer |
-|---------|----------|----------------|
-| Boilerplate | Minimal | High |
-| Conditional execution | Built-in | Manual |
-| Event naming | String-based | Type-based |
-| Learning curve | Low | Moderate |
+| Feature               | minevent     | Manual Observer |
+| --------------------- | ------------ | --------------- |
+| Boilerplate           | Minimal      | High            |
+| Conditional execution | Built-in     | Manual          |
+| Event naming          | String-based | Type-based      |
+| Learning curve        | Low          | Moderate        |
 
 ## Extension Points
 
@@ -279,6 +286,7 @@ class MyEventHandler(BaseEventHandler):
 ```
 
 **Use Cases**:
+
 - Handlers with complex state
 - Handlers that modify themselves
 - Handlers with special lifecycle
@@ -299,6 +307,7 @@ class MyCondition(BaseCondition):
 ```
 
 **Use Cases**:
+
 - Time-based conditions
 - State-based conditions
 - Metric-threshold conditions
@@ -319,6 +328,7 @@ class MyEventManager:
 ```
 
 **Use Cases**:
+
 - Thread-safe event managers
 - Event managers with persistence
 - Event managers with priorities
@@ -328,12 +338,12 @@ class MyEventManager:
 
 ### Time Complexity
 
-| Operation | Complexity | Notes |
-|-----------|-----------|-------|
-| Add handler | O(1) | Append to list |
-| Trigger event | O(n) | n = handlers for event |
-| Has handler | O(m) | m = total handlers |
-| Remove handler | O(n) | n = handlers for event |
+| Operation      | Complexity | Notes                  |
+| -------------- | ---------- | ---------------------- |
+| Add handler    | O(1)       | Append to list         |
+| Trigger event  | O(n)       | n = handlers for event |
+| Has handler    | O(m)       | m = total handlers     |
+| Remove handler | O(n)       | n = handlers for event |
 
 ### Space Complexity
 
@@ -352,6 +362,7 @@ class MyEventManager:
 **Status**: `minevent` is **not thread-safe** by design.
 
 **Rationale**:
+
 - Simpler implementation
 - Better performance for single-threaded use
 - Most ML workflows are single-threaded
@@ -408,6 +419,7 @@ Potential future enhancements (without breaking simplicity):
 5. **Async Support**: Optional async handler execution
 
 All enhancements must maintain:
+
 - Simplicity
 - Backward compatibility
 - Clear documentation
@@ -418,6 +430,7 @@ All enhancements must maintain:
 ### Why Strings for Events?
 
 **Alternatives Considered**:
+
 - Enum types
 - Custom Event classes
 - Integer IDs
@@ -425,6 +438,7 @@ All enhancements must maintain:
 **Chosen**: Strings
 
 **Reasons**:
+
 - Universal and simple
 - Easy to understand
 - No import dependencies
@@ -434,6 +448,7 @@ All enhancements must maintain:
 ### Why Synchronous Only?
 
 **Alternatives Considered**:
+
 - Async/await support
 - Threading
 - Multiprocessing
@@ -441,6 +456,7 @@ All enhancements must maintain:
 **Chosen**: Synchronous
 
 **Reasons**:
+
 - Simpler to understand
 - Easier to debug
 - Deterministic execution
@@ -450,6 +466,7 @@ All enhancements must maintain:
 ### Why Explicit Event Manager?
 
 **Alternatives Considered**:
+
 - Global event bus
 - Singleton manager
 - Module-level functions
@@ -457,6 +474,7 @@ All enhancements must maintain:
 **Chosen**: Explicit manager instance
 
 **Reasons**:
+
 - No hidden global state
 - Easier to test
 - Multiple managers possible
@@ -466,6 +484,7 @@ All enhancements must maintain:
 ## Conclusion
 
 `minevent` is designed to be:
+
 - **Simple**: Easy to learn and use
 - **Explicit**: No surprises or magic
 - **Extensible**: Customize through composition

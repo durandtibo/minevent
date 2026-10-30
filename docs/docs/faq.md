@@ -78,9 +78,7 @@ def greet(name: str, greeting: str = "Hello"):
     print(f"{greeting}, {name}!")
 
 
-handler = EventHandler(
-    greet, handler_args=("Alice",), handler_kwargs={"greeting": "Hi"}
-)
+handler = EventHandler(greet, handler_args=("Alice",), handler_kwargs={"greeting": "Hi"})
 handler.handle()  # Prints: Hi, Alice!
 ```
 
