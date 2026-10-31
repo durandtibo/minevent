@@ -117,7 +117,7 @@ It allows to customize the function `say_something` without changing its impleme
   [https://durandtibo.github.io/minevent/](https://durandtibo.github.io/minevent/)
 - **Quickstart Guide**:
   [https://durandtibo.github.io/minevent/quickstart/](https://durandtibo.github.io/minevent/quickstart/)
-- **Examples**: See the [`examples/`](examples/) directory for practical use cases
+- **Examples**: See the [quickstart guide](https://durandtibo.github.io/minevent/quickstart/) for practical use cases
 - **FAQ**: [https://durandtibo.github.io/minevent/faq/](https://durandtibo.github.io/minevent/faq/)
 - **Best Practices**:
   [https://durandtibo.github.io/minevent/best_practices/](https://durandtibo.github.io/minevent/best_practices/)
@@ -132,13 +132,8 @@ a [virtual environment](https://packaging.python.org/guides/installing-using-pip
 pip install minevent
 ```
 
-To make the package as slim as possible, only the minimal packages required to use `minevent` are
-installed.
-To include all the dependencies, you can use the following command:
-
-```shell
-pip install minevent[all]
-```
+`minevent` only depends on [`coola`](https://github.com/durandtibo/coola), so no optional
+dependencies or extras are required.
 
 Please check the [get started page](https://durandtibo.github.io/minevent/get_started) to see how to
 install only some specific dependencies or other alternatives to install the library.

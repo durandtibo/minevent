@@ -10,6 +10,18 @@ if TYPE_CHECKING:
 
 
 def trace(func: Callable) -> Callable:
+    r"""Wrap a function to record how it is called.
+
+    The returned wrapper exposes the ``called``, ``call_count``,
+    ``args`` and ``kwargs`` attributes, which describe the calls made.
+
+    Args:
+        func: The function to wrap.
+
+    Returns:
+        The wrapped function.
+    """
+
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         wrapper.called = True

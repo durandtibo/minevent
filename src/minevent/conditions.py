@@ -85,13 +85,12 @@ class BaseCondition(ABC):  # noqa: PLW1641
 
         Example:
             ```pycon
-            >>> from minevent import EventHandler
-            >>> def hello_handler() -> None:
-            ...     print("Hello!")
-            ...
-            >>> handler = EventHandler(hello_handler)
-            >>> handler.handle()
-            Hello!
+            >>> from minevent import PeriodicCondition
+            >>> condition = PeriodicCondition(freq=2)
+            >>> condition.evaluate()
+            True
+            >>> condition.evaluate()
+            False
 
             ```
         """
@@ -100,14 +99,15 @@ class BaseCondition(ABC):  # noqa: PLW1641
 class PeriodicCondition(BaseCondition):
     r"""Implement a periodic condition.
 
-    This condition evaluates to ``True`` every ``freq`` calls to the
+    This condition evaluates to ``True`` on the first call and then every ``freq`` calls to the
     ``evaluate`` method. It maintains an internal counter that
     increments with each evaluation. The condition is ``True`` when
     the counter modulo ``freq`` equals zero.
 
     Args:
         freq: The frequency (interval) at which the condition
-            evaluates to ``True``. Must be a positive integer.
+            evaluates to ``True``. Must be a positive integer; a value of zero
+            raises a ``ZeroDivisionError`` when evaluating.
 
     Example:
         ```pycon
