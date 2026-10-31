@@ -108,7 +108,8 @@ class BaseEventHandlerWithArguments(BaseEventHandler):
     r"""Define a base class to implement an event handler with positional
     and/or keyword arguments.
 
-    A child class has to implement the ``equal`` method.
+    A child class has to implement the ``equal`` method. The handler
+    is called as ``handler(*handler_args, **handler_kwargs)``.
 
     Args:
         handler: The callable function or method to be invoked when
@@ -117,6 +118,9 @@ class BaseEventHandlerWithArguments(BaseEventHandler):
             when it is called. Default is ``None``.
         handler_kwargs: The keyword arguments to pass to the handler
             when it is called. Default is ``None``.
+
+    Raises:
+        TypeError: if ``handler`` is not callable.
 
     Example:
         ```pycon
@@ -176,7 +180,7 @@ class BaseEventHandlerWithArguments(BaseEventHandler):
         return self._handler
 
     @property
-    def handler_args(self) -> tuple[Any]:
+    def handler_args(self) -> tuple[Any, ...]:
         r"""Get the positional arguments for the handler.
 
         Returns:
@@ -206,6 +210,17 @@ class EventHandler(BaseEventHandlerWithArguments):
     executed as an event handler. The handler can be configured with
     positional and keyword arguments that will be passed when the
     handler is executed.
+
+    Args:
+        handler: The callable function or method to be invoked when
+            the event is triggered.
+        handler_args: The positional arguments to pass to the handler
+            when it is called. Default is ``None``.
+        handler_kwargs: The keyword arguments to pass to the handler
+            when it is called. Default is ``None``.
+
+    Raises:
+        TypeError: if ``handler`` is not callable.
 
     Example:
         ```pycon
@@ -257,6 +272,9 @@ class ConditionalEventHandler(BaseEventHandlerWithArguments):
             when it is called. Default is ``None``.
         handler_kwargs: The keyword arguments to pass to the handler
             when it is called. Default is ``None``.
+
+    Raises:
+        TypeError: if ``handler`` is not callable.
 
     Example:
         ```pycon

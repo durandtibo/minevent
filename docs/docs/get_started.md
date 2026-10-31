@@ -14,13 +14,8 @@ a [virtual environment](https://packaging.python.org/guides/installing-using-pip
 pip install minevent
 ```
 
-To make the package as slim as possible, only the minimal packages required to use `minevent` are
-installed.
-To include all the dependencies, you can use the following command:
-
-```shell
-pip install minevent[all]
-```
+`minevent` only depends on [`coola`](https://github.com/durandtibo/coola), so no optional
+dependencies or extras are required.
 
 ## Installing from source
 
@@ -79,5 +74,5 @@ inv test.unit --cov
 ## Development workflow
 
 If you're planning to contribute to `minevent`, please refer to
-the [Contributing Guide](https://github.com/durandtibo/minevent/blob/main/.github/CONTRIBUTING.md)
+the [Contributing Guide](https://github.com/durandtibo/minevent/blob/main/CONTRIBUTING.md)
 for more information on setting up your development environment and running tests.

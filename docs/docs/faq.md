@@ -263,10 +263,9 @@ or request features.
 
 ### How can I contribute?
 
-See the [Contributing Guide](https://github.com/durandtibo/minevent/blob/main/.github/CONTRIBUTING.md)
+See the [Contributing Guide](https://github.com/durandtibo/minevent/blob/main/CONTRIBUTING.md)
 for information on how to contribute to `minevent`.
 
 ### Where can I find more examples?
 
-Check the [quickstart guide](quickstart.md) and the examples in the `examples/` directory of the
-repository.
+Check the [quickstart guide](quickstart.md) and the [best practices](best_practices.md).

@@ -68,7 +68,7 @@ class EventManager:
         r"""Get the last event name that was triggered.
 
         Returns:
-            The last event name that was fired of ``None`` if no event
+            The last event name that was triggered, or ``None`` if no event
                 was fired.
 
         Example:
@@ -82,6 +82,7 @@ class EventManager:
             >>> manager.trigger_event("my_event")
             Hello!
             >>> manager.last_triggered_event
+            'my_event'
 
             ```
         """
@@ -95,7 +96,8 @@ class EventManager:
         event, and they will be executed in the order they were added.
 
         Args:
-            event: The event name (case-sensitive string) to which the
+            event: The event name (case-sensitive string; it is
+                converted with ``str``) to which the
                 event handler should be attached.
             event_handler: The event handler instance to attach to the
                 event.
@@ -158,6 +160,10 @@ class EventManager:
             event: An event name (case-sensitive string) to check. If
                 ``None``, the method will search across all registered
                 events. Default is ``None``.
+
+        Returns:
+            ``True`` if a matching event handler is registered,
+                otherwise ``False``.
 
         Example:
             ```pycon
@@ -223,7 +229,7 @@ class EventManager:
             >>> # Check if `hello_handler` is registered in the event manager for 'my_event' event
             >>> manager.has_event_handler(EventHandler(hello_handler), "my_event")
             True
-            >>> # Remove the event handler of the engine
+            >>> # Remove the event handler
             >>> manager.remove_event_handler("my_event", EventHandler(hello_handler))
             >>> # Check if `hello_handler` is registered in the event manager for 'my_event' event
             >>> manager.has_event_handler(EventHandler(hello_handler), "my_event")
@@ -262,7 +268,7 @@ class EventManager:
             >>> # Create an event manager
             >>> from minevent import EventManager
             >>> manager = EventManager()
-            >>> # Add an event handler to the engine
+            >>> # Add an event handler
             >>> def hello_handler():
             ...     print("Hello!")
             ...
@@ -272,15 +278,16 @@ class EventManager:
             >>> manager.has_event_handler(EventHandler(hello_handler), "my_event")
             True
             >>> manager.trigger_event("my_event")
+            Hello!
             >>> manager.last_triggered_event
-            my_event
+            'my_event'
             >>> # Reset the event manager
             >>> manager.reset()
             >>> # Check if `hello_handler` is registered in the event manager for 'my_event' event
             >>> manager.has_event_handler(EventHandler(hello_handler), "my_event")
             False
-            >>> manager.last_triggered_event
-            None
+            >>> manager.last_triggered_event is None
+            True
 
             ```
         """
