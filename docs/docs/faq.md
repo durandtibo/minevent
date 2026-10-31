@@ -31,7 +31,7 @@ you to register event handlers that execute when specific events are triggered.
 
 ### What Python versions are supported?
 
-`minevent` currently supports Python 3.10 and above. See the compatibility table in the README for
+`minevent` currently supports Python 3.11 and above. See the compatibility table in the README for
 specific version requirements.
 
 ### How do I install minevent?

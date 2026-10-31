@@ -43,7 +43,7 @@ cd minevent
 
 ### Create a virtual environment (optional but recommended)
 
-It is recommended to create a Python 3.10+ virtual environment. You can use `uv` to create a virtual
+It is recommended to create a Python 3.11+ virtual environment. You can use `uv` to create a virtual
 environment:
 
 ```shell
