@@ -305,6 +305,34 @@ def test_event_handler_handle_payload_conflicts_with_handler_kwargs() -> None:
         event_handler.handle(first_name="Jane", last_name="Doe")
 
 
+@trace
+def kwargs_handler(**kwargs: Any) -> None:
+    r"""Implements a handler that accepts any keyword arguments."""
+    logger.info("Kwargs: %s", kwargs)
+
+
+def test_event_handler_handle_payload_with_self_key() -> None:
+    EventHandler(kwargs_handler).handle(self=1)
+    assert kwargs_handler.kwargs == {"self": 1}
+
+
+def test_event_handler_ahandle_payload_with_self_key() -> None:
+    asyncio.run(EventHandler(kwargs_handler).ahandle(self=1))
+    assert kwargs_handler.kwargs == {"self": 1}
+
+
+def test_base_event_handler_ahandle_payload_with_self_key() -> None:
+    class MyHandler(BaseEventHandler):
+        def equal(self, other: Any) -> bool:
+            return self is other
+
+        def handle(self, /, **payload: Any) -> None:
+            kwargs_handler(**payload)
+
+    asyncio.run(MyHandler().ahandle(self=1))
+    assert kwargs_handler.kwargs == {"self": 1}
+
+
 def test_event_handler_handle_payload_not_accepted_by_handler() -> None:
     with pytest.raises(TypeError, match=r"unexpected keyword argument 'epoch'"):
         EventHandler(hello_handler).handle(epoch=1)
@@ -546,7 +574,7 @@ def test_base_event_handler_ahandle_calls_handle() -> None:
         def equal(self, other: Any) -> bool:
             return self is other
 
-        def handle(self, **payload: Any) -> None:
+        def handle(self, /, **payload: Any) -> None:
             hello_handler(**payload)
 
     asyncio.run(MyHandler().ahandle())

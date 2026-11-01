@@ -90,7 +90,7 @@ class BaseEventHandler(ABC):  # noqa: PLW1641
         """
 
     @abstractmethod
-    def handle(self, **payload: Any) -> None:
+    def handle(self, /, **payload: Any) -> None:
         r"""Handle the event.
 
         This method executes the logic associated with the event
@@ -115,7 +115,7 @@ class BaseEventHandler(ABC):  # noqa: PLW1641
             ```
         """
 
-    async def ahandle(self, **payload: Any) -> None:
+    async def ahandle(self, /, **payload: Any) -> None:
         r"""Handle the event asynchronously.
 
         This method is called by ``EventManager.atrigger_event``. The
@@ -316,11 +316,11 @@ class EventHandler(BaseEventHandler):
             return False
         return objects_are_equal(self._key(), other._key())
 
-    def handle(self, **payload: Any) -> None:
+    def handle(self, /, **payload: Any) -> None:
         if self._condition is None or self._condition.evaluate():
             self._handler(*self._handler_args, **self._handler_kwargs, **payload)
 
-    async def ahandle(self, **payload: Any) -> None:
+    async def ahandle(self, /, **payload: Any) -> None:
         r"""Handle the event asynchronously.
 
         Like ``handle``, but if the handler returns an awaitable (for
