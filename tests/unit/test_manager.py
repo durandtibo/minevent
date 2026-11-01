@@ -324,10 +324,16 @@ def test_event_manager_repr_with_event_handlers() -> None:
     event_manager = EventManager()
     event_manager.add_event_handler("my_event", EventHandler(hello_handler))
     event_manager.trigger_event("my_event")
-    lines = repr(event_manager).splitlines()
-    assert lines[0] == "EventManager("
-    assert lines[1] == "  (event_handlers): "
-    assert lines[2] == "    (my_event): "
-    assert lines[3].strip().startswith("(0): EventHandler(")
-    assert lines[-2] == "  (last_triggered_event): my_event"
-    assert lines[-1] == ")"
+    out = repr(event_manager)
+    assert out == (
+        "EventManager(\n"
+        "  (event_handlers): \n"
+        "    (my_event): \n"
+        "      (0): EventHandler(\n"
+        f"          (handler): {hello_handler!r}\n"
+        "          (handler_args): ()\n"
+        "          (handler_kwargs): {}\n"
+        "        )\n"
+        "  (last_triggered_event): my_event\n"
+        ")"
+    )
