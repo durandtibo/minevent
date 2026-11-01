@@ -39,7 +39,8 @@ def add_if_missing_n_times(manager: EventManager, n: int) -> None:
 
 
 def add_hello_handler_when_triggered(manager: EventManager) -> None:
-    r"""Register a handler that adds ``hello_handler`` to ``my_event``."""
+    r"""Register a handler that adds ``hello_handler`` to
+    ``my_event``."""
     manager.add_event_handler(
         "my_event",
         EventHandler(lambda: manager.add_event_handler("my_event", EventHandler(hello_handler))),
