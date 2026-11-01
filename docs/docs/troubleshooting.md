@@ -289,11 +289,11 @@ manager.trigger_event("event")
 ### Inspect Event Manager State
 
 ```python
-# Print manager state to see all registered handlers
+# Print the number of handlers of each event
 print(manager)
 
-# Check last triggered event
-print(f"Last event: {manager.last_triggered_event}")
+# List the registrations of an event
+print(manager.get_subscriptions("my_event"))
 
 # Check if specific handler is registered
 handler = EventHandler(my_function)

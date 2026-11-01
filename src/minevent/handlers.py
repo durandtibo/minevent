@@ -9,7 +9,6 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
 from coola.equality import objects_are_equal
-from coola.utils.format import str_indent, str_mapping
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Mapping, Sequence
@@ -41,11 +40,7 @@ class BaseEventHandler(ABC):  # noqa: PLW1641
         ...
         >>> handler = EventHandler(hello_handler)
         >>> handler
-        EventHandler(
-          (handler): <function hello_handler at 0x...>
-          (handler_args): ()
-          (handler_kwargs): {}
-        )
+        EventHandler(handler=<function hello_handler at 0x...>, handler_args=(), handler_kwargs={}, condition=None, filter_payload=False)
         >>> handler.handle()
         Hello!
 
@@ -243,11 +238,7 @@ class EventHandler(BaseEventHandler):
         ...
         >>> handler = EventHandler(hello_handler)
         >>> handler
-        EventHandler(
-          (handler): <function hello_handler at 0x...>
-          (handler_args): ()
-          (handler_kwargs): {}
-        )
+        EventHandler(handler=<function hello_handler at 0x...>, handler_args=(), handler_kwargs={}, condition=None, filter_payload=False)
         >>> handler.handle()
         Hello!
         >>> handler = EventHandler(print, handler_args=["Hello!"])
@@ -255,12 +246,7 @@ class EventHandler(BaseEventHandler):
         Hello!
         >>> handler = EventHandler(hello_handler, condition=PeriodicCondition(freq=3))
         >>> handler
-        EventHandler(
-          (handler): <function hello_handler at 0x...>
-          (handler_args): ()
-          (handler_kwargs): {}
-          (condition): PeriodicCondition(freq=3, skip_first=False, step=0)
-        )
+        EventHandler(handler=<function hello_handler at 0x...>, handler_args=(), handler_kwargs={}, condition=PeriodicCondition(freq=3, skip_first=False, step=0), filter_payload=False)
         >>> handler.handle()
         Hello!
         >>> handler.handle()
@@ -303,17 +289,11 @@ class EventHandler(BaseEventHandler):
         self._payload_keys = _accepted_keywords(handler) if filter_payload else None
 
     def __repr__(self) -> str:
-        config = {
-            "handler": self._handler,
-            "handler_args": self._handler_args,
-            "handler_kwargs": self._handler_kwargs,
-        }
-        if self._condition is not None:
-            config["condition"] = self._condition
-        if self._filter_payload:
-            config["filter_payload"] = True
-        args = str_indent(str_mapping(config))
-        return f"{self.__class__.__qualname__}(\n  {args}\n)"
+        return (
+            f"{self.__class__.__qualname__}(handler={self._handler!r}, "
+            f"handler_args={self._handler_args!r}, handler_kwargs={self._handler_kwargs!r}, "
+            f"condition={self._condition!r}, filter_payload={self._filter_payload})"
+        )
 
     @property
     def handler(self) -> Callable[..., object]:

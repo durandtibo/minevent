@@ -130,7 +130,7 @@ def test_once_handler_runs_once_when_snapshots_taken_before_dispatch() -> None:
     manager.add_event_handler("my_event", EventHandler(handler), once=True)
 
     def work(_index: int) -> None:
-        subscriptions = manager._start_trigger("my_event")
+        subscriptions = manager._snapshot("my_event")
         barrier.wait()
         for subscription in subscriptions:
             if not subscription.once or subscription.remove():

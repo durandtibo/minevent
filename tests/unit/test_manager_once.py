@@ -262,7 +262,7 @@ def test_event_manager_remove_event_handler_once() -> None:
 def test_event_manager_repr_once() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", EventHandler(hello_handler), once=True)
-    assert "EventHandler(" in repr(manager)
+    assert repr(manager) == "EventManager(events={'my_event': 1})"
 
 
 def test_event_manager_once_removed_by_earlier_handler_of_same_trigger_does_not_run() -> None:
