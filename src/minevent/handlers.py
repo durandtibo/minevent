@@ -11,6 +11,8 @@ from typing import TYPE_CHECKING, Any
 from coola.equality import objects_are_equal
 from coola.utils.format import str_indent, str_mapping
 
+from minevent.conditions import as_condition
+
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
@@ -135,11 +137,15 @@ class EventHandler(BaseEventHandler):
         condition: The condition object that controls whether the
             handler is executed. The condition's ``evaluate`` method
             is called without arguments, each time the event is
-            triggered, and must return a boolean value. If ``None``,
+            triggered, and must return a boolean value. A function
+            without argument that returns a boolean is also accepted;
+            it is wrapped in a ``CallableCondition``. If ``None``,
             the handler is always executed. Default is ``None``.
 
     Raises:
-        TypeError: if ``handler`` is not callable.
+        TypeError: if ``handler`` is not callable, or if
+            ``condition`` is neither ``None``, a ``BaseCondition``
+            nor callable.
 
     Example:
         ```pycon
@@ -183,7 +189,7 @@ class EventHandler(BaseEventHandler):
         handler_args: Sequence[Any] | None = None,
         handler_kwargs: dict[str, Any] | None = None,
         *,
-        condition: BaseCondition | None = None,
+        condition: BaseCondition | Callable[[], bool] | None = None,
     ) -> None:
         if not callable(handler):
             msg = f"handler is not callable: {handler}"
@@ -191,7 +197,7 @@ class EventHandler(BaseEventHandler):
         self._handler = handler
         self._handler_args = tuple(handler_args or ())
         self._handler_kwargs = dict(handler_kwargs or {})
-        self._condition = condition
+        self._condition = None if condition is None else as_condition(condition)
 
     def __repr__(self) -> str:
         config = {

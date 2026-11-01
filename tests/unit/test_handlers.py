@@ -1,11 +1,18 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from minevent import ConditionalEventHandler, EventHandler, PeriodicCondition
+from minevent import (
+    AfterNCondition,
+    AndCondition,
+    CallableCondition,
+    ConditionalEventHandler,
+    EventHandler,
+    PeriodicCondition,
+)
 from tests.unit.utils import trace
 
 if TYPE_CHECKING:
@@ -25,6 +32,14 @@ def hello_name_handler(first_name: str, last_name: str) -> None:
     r"""Implements a simple handler that prints hello and the name of
     the person."""
     logger.info("Hello. I am %s %s", first_name, last_name)
+
+
+def always_true() -> bool:
+    return True
+
+
+def always_false() -> bool:
+    return False
 
 
 @pytest.fixture(autouse=True)
@@ -384,3 +399,51 @@ def test_event_handler_key() -> None:
 
 def test_event_handler_key_without_condition() -> None:
     assert EventHandler(hello_handler)._key() == (hello_handler, (), {}, None)
+
+
+##########################################################
+#     Tests for EventHandler with callable condition     #
+##########################################################
+
+
+def test_event_handler_callable_condition_wrapped() -> None:
+    assert EventHandler(hello_handler, condition=always_true).condition == CallableCondition(
+        always_true
+    )
+
+
+def test_event_handler_callable_condition_true() -> None:
+    EventHandler(hello_handler, condition=always_true).handle()
+    assert hello_handler.call_count == 1
+
+
+def test_event_handler_callable_condition_false() -> None:
+    EventHandler(hello_handler, condition=always_false).handle()
+    assert hello_handler.call_count == 0
+
+
+def test_event_handler_callable_condition_equal_true() -> None:
+    assert EventHandler(hello_handler, condition=always_true).equal(
+        EventHandler(hello_handler, condition=always_true)
+    )
+
+
+def test_event_handler_callable_condition_equal_false() -> None:
+    assert not EventHandler(hello_handler, condition=always_true).equal(
+        EventHandler(hello_handler, condition=always_false)
+    )
+
+
+def test_event_handler_condition_incorrect_type() -> None:
+    bad: Any = "meow"
+    with pytest.raises(TypeError, match=r"condition must be a BaseCondition or a callable"):
+        EventHandler(hello_handler, condition=bad)
+
+
+def test_event_handler_condition_combinator() -> None:
+    event_handler = EventHandler(
+        hello_handler, condition=AndCondition(AfterNCondition(1), PeriodicCondition(2))
+    )
+    for _ in range(5):
+        event_handler.handle()
+    assert hello_handler.call_count == 2
