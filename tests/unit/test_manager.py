@@ -1217,3 +1217,121 @@ def test_event_manager_remove_event_handler_subscription_of_other_manager() -> N
     other = EventManager().add_event_handler("my_event", EventHandler(hello_handler))
     manager.remove_event_handler("my_event", other, missing_ok=True)
     assert len(manager) == 1
+
+
+###############################################
+#     Tests for subscription conveniences     #
+###############################################
+
+
+def test_event_manager_subscription_active_after_add() -> None:
+    manager = EventManager()
+    assert manager.add_event_handler("my_event", EventHandler(hello_handler)).active
+
+
+def test_event_manager_subscription_active_after_remove() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", EventHandler(hello_handler))
+    subscription.remove()
+    assert not subscription.active
+
+
+def test_event_manager_subscription_active_after_remove_event_handler() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", EventHandler(hello_handler))
+    manager.remove_event_handler("my_event", EventHandler(hello_handler))
+    assert not subscription.active
+
+
+def test_event_manager_subscription_active_after_reset() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", EventHandler(hello_handler))
+    manager.reset()
+    assert not subscription.active
+
+
+def test_event_manager_subscription_active_after_once_ran() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", EventHandler(hello_handler), once=True)
+    manager.trigger_event("my_event")
+    assert not subscription.active
+
+
+def test_event_manager_subscription_active_other_equal_handler_removed() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", EventHandler(hello_handler))
+    other = manager.add_event_handler("my_event", EventHandler(hello_handler))
+    other.remove()
+    assert subscription.active
+
+
+def test_event_manager_subscription_context_manager_removes_on_exit() -> None:
+    manager = EventManager()
+    with manager.add_event_handler("my_event", EventHandler(hello_handler)):
+        manager.trigger_event("my_event")
+    manager.trigger_event("my_event")
+    assert hello_handler.call_count == 1
+
+
+def test_event_manager_on_registers_function() -> None:
+    manager = EventManager()
+
+    @manager.on("my_event")
+    def handler() -> None:
+        hello_handler()
+
+    manager.trigger_event("my_event")
+    assert hello_handler.call_count == 1
+
+
+def test_event_manager_on_returns_function_unchanged() -> None:
+    manager = EventManager()
+
+    def handler() -> None:
+        pass
+
+    assert manager.on("my_event")(handler) is handler
+
+
+def test_event_manager_on_passes_payload() -> None:
+    manager = EventManager()
+    manager.on("my_event")(payload_handler)
+    manager.trigger_event("my_event", epoch=3)
+    assert payload_handler.kwargs == {"epoch": 3}
+
+
+def test_event_manager_on_once() -> None:
+    manager = EventManager()
+    manager.on("my_event", once=True)(hello_handler)
+    manager.trigger_event("my_event")
+    manager.trigger_event("my_event")
+    assert hello_handler.call_count == 1
+
+
+def test_event_manager_on_event_registered() -> None:
+    manager = EventManager()
+    manager.on("my_event")(hello_handler)
+    assert manager.events == ["my_event"]
+
+
+@pytest.mark.parametrize("event", INVALID_EVENTS)
+def test_event_manager_on_event_must_be_str(event: Any) -> None:
+    with pytest.raises(TypeError, match=r"event must be a str"):
+        EventManager().on(event)
+
+
+def test_event_manager_is_registered_true() -> None:
+    manager = EventManager()
+    handler = EventHandler(hello_handler)
+    manager.add_event_handler("my_event", handler)
+    assert manager._is_registered("my_event", handler)
+
+
+def test_event_manager_is_registered_false_for_equal_instance() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", EventHandler(hello_handler))
+    assert not manager._is_registered("my_event", EventHandler(hello_handler))
+
+
+def test_event_manager_is_registered_false_unknown_event() -> None:
+    assert not EventManager()._is_registered("my_event", EventHandler(hello_handler))

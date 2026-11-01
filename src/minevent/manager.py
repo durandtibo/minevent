@@ -6,15 +6,17 @@ __all__ = ["EventManager"]
 
 import logging
 import threading
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from coola.utils.format import str_indent, str_mapping, str_sequence
 
-from minevent.handlers import BaseEventHandler
+from minevent.handlers import BaseEventHandler, EventHandler
 from minevent.subscription import Subscription
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
+    from collections.abc import Callable, Mapping, Sequence
+
+_F = TypeVar("_F", bound="Callable[..., object]")
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -308,13 +310,71 @@ class EventManager:
         registered = event_handler
         if once:
             registered = _OnceEventHandler(event_handler)
-        subscription = Subscription(event, registered, self._remove_registration)
+        subscription = Subscription(
+            event, registered, self._remove_registration, is_active_func=self._is_registered
+        )
         if isinstance(registered, _OnceEventHandler):
             registered.subscription = subscription
         with self._lock:
             self._event_handlers.setdefault(event, []).append(registered)
         logger.debug("Added %s to event %s", event_handler, event)
         return subscription
+
+    def _is_registered(self, event: str, event_handler: BaseEventHandler) -> bool:
+        r"""Indicate if an event handler instance is registered.
+
+        Args:
+            event: The event name.
+            event_handler: The registered event handler instance.
+
+        Returns:
+            ``True`` if the instance is registered to the event
+                (compared by identity), otherwise ``False``.
+        """
+        with self._lock:
+            return any(handler is event_handler for handler in self._event_handlers.get(event, ()))
+
+    def on(self, event: str, *, once: bool = False) -> Callable[[_F], _F]:
+        r"""Create a decorator that registers a function as a handler.
+
+        The decorated function is registered as
+        ``EventHandler(func)`` and returned unchanged. Use
+        ``add_event_handler`` if the handler needs arguments or a
+        condition, or if you need the ``Subscription``.
+
+        Args:
+            event: The event name (case-sensitive string).
+            once: If ``True``, the handler runs at most once. See
+                ``add_event_handler``. Default is ``False``.
+
+        Returns:
+            The decorator.
+
+        Raises:
+            TypeError: if ``event`` is not a string.
+
+        Example:
+            ```pycon
+            >>> from minevent import EventManager
+            >>> manager = EventManager()
+            >>> @manager.on("my_event")
+            ... def hello_handler(name):
+            ...     print(f"Hello {name}!")
+            ...
+            >>> manager.trigger_event("my_event", name="Bob")
+            Hello Bob!
+            >>> hello_handler("Alice")
+            Hello Alice!
+
+            ```
+        """
+        _check_event(event)
+
+        def decorator(func: _F) -> _F:
+            self.add_event_handler(event, EventHandler(func), once=once)
+            return func
+
+        return decorator
 
     def _remove_registration(self, event: str, event_handler: BaseEventHandler) -> bool:
         r"""Remove one registered event handler, compared by identity.
