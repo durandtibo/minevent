@@ -449,7 +449,8 @@ class _CombinedCondition(BaseCondition):
     conditions.
 
     All the conditions are evaluated at each call, with no
-    short-circuit, so stateful conditions advance consistently.
+    short-circuit, so stateful conditions advance consistently. The
+    trade-off is that a costly operand is always evaluated.
 
     Args:
         *conditions: The conditions to combine. Functions without
