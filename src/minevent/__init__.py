@@ -10,6 +10,7 @@ __all__ = [
     "EventHandler",
     "EventManager",
     "PeriodicCondition",
+    "Subscription",
     "__version__",
 ]
 
@@ -23,6 +24,7 @@ from minevent.handlers import (
     EventHandler,
 )
 from minevent.manager import EventManager
+from minevent.subscription import Subscription
 
 try:
     __version__ = version(__name__)

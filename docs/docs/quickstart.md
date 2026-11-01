@@ -221,7 +221,7 @@ The following example shows how to add a `hello_handler` handler to the `'my_eve
 >>> def hello_handler() -> None:
 ...     print("Hello!")
 >>> manager = EventManager()
->>> manager.add_event_handler("my_event", EventHandler(hello_handler))
+>>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> manager
 EventManager(
   (event_handlers):
@@ -246,8 +246,8 @@ The following example shows how to add an event handler with some positional arg
 >>> def hello_handler(first_name: str, last_name: str) -> None:
 ...     print(f"Hello. I am {last_name}, {first_name} {last_name}")
 >>> manager = EventManager()
->>> manager.add_event_handler("my_event", EventHandler(hello_handler, ("John", "Smith")))
->>> manager.add_event_handler("my_event", EventHandler(hello_handler, ("Jane", "Doe")))
+>>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler, ("John", "Smith")))
+>>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler, ("Jane", "Doe")))
 >>> manager
 EventManager(
   (event_handlers):
@@ -277,8 +277,8 @@ It is possible to add the same event handler multiple times:
 >>> def hello_handler() -> None:
 ...     print("Hello!")
 >>> manager = EventManager()
->>> manager.add_event_handler("my_event", EventHandler(hello_handler))
->>> manager.add_event_handler("my_event", EventHandler(hello_handler))
+>>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
+>>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> manager
 EventManager(
   (event_handlers):
@@ -313,7 +313,7 @@ in the event manager:
 >>> manager = EventManager()
 >>> manager.has_event_handler(EventHandler(hello_handler))
 False
->>> manager.add_event_handler("my_event", EventHandler(hello_handler))
+>>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> manager.has_event_handler(EventHandler(hello_handler))
 True
 
@@ -332,7 +332,7 @@ the `'my_event'` event:
 >>> manager = EventManager()
 >>> manager.has_event_handler(EventHandler(hello_handler), "my_event")
 False
->>> manager.add_event_handler("my_event", EventHandler(hello_handler))
+>>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> manager.has_event_handler(EventHandler(hello_handler), "my_event")
 True
 >>> manager.has_event_handler(EventHandler(hello_handler), "my_other_event")
@@ -349,7 +349,7 @@ If you want to add an event handler only once, you can write something like:
 >>> manager = EventManager()
 >>> for _ in range(5):
 ...     if not manager.has_event_handler(EventHandler(hello_handler), "my_event"):
-...         manager.add_event_handler("my_event", EventHandler(hello_handler))
+...         _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> manager
 EventManager(
   (event_handlers):
@@ -363,6 +363,37 @@ EventManager(
 )
 
 ```
+
+To run a handler only on the next trigger, use `once=True`:
+
+```pycon
+>>> from minevent import EventHandler, EventManager
+>>> def hello_handler() -> None:
+...     print("Hello!")
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler), once=True)
+>>> manager.trigger_event("my_event")
+Hello!
+>>> manager.trigger_event("my_event")
+
+```
+
+`add_event_handler` returns a `Subscription`. Its `remove()` method removes exactly that
+registration, so you do not need to re-create an equal handler, and equal handlers registered
+elsewhere are kept:
+
+```pycon
+>>> from minevent import EventHandler, EventManager
+>>> def hello_handler() -> None:
+...     print("Hello!")
+>>> manager = EventManager()
+>>> subscription = manager.add_event_handler("my_event", EventHandler(hello_handler))
+>>> subscription.remove()
+True
+>>> manager.trigger_event("my_event")
+
+```
+
 
 The `hello_handler` handler has been added only one time to the `'my_event'` event.
 
@@ -378,7 +409,7 @@ The following example shows how to fire the `hello_handler` for the event `'my_e
 >>> def hello_handler() -> None:
 ...     print("Hello!")
 >>> manager = EventManager()
->>> manager.add_event_handler("my_event", EventHandler(hello_handler))
+>>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> manager
 EventManager(
   (event_handlers):
@@ -415,8 +446,8 @@ The event manager uses the arguments that were given when the event handler was 
 >>> def hello_handler(first_name: str, last_name: str) -> None:
 ...     print(f"Hello. I am {first_name} {last_name}")
 >>> manager = EventManager()
->>> manager.add_event_handler("my_event", EventHandler(hello_handler, ("John", "Smith")))
->>> manager.add_event_handler("my_event", EventHandler(hello_handler, ("Jane", "Doe")))
+>>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler, ("John", "Smith")))
+>>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler, ("Jane", "Doe")))
 >>> manager
 EventManager(
   (event_handlers):
@@ -447,7 +478,7 @@ The following shows how to execute the `hello_handler` every 3 `'my_event'` even
 >>> def hello_handler() -> None:
 ...     print("Hello!")
 >>> manager = EventManager()
->>> manager.add_event_handler(
+>>> _ = manager.add_event_handler(
 ...     "my_event", ConditionalEventHandler(hello_handler, PeriodicCondition(freq=3))
 ... )
 >>> manager
@@ -504,7 +535,7 @@ The following example shows how to add and remove an event handler:
 >>> def hello_handler() -> None:
 ...     print("Hello!")
 >>> manager = EventManager()
->>> manager.add_event_handler("my_event", EventHandler(hello_handler))
+>>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> manager
 EventManager(
   (event_handlers):
@@ -537,9 +568,9 @@ If there are multiple event handlers that match, they are all removed from the e
 >>> def hello_handler() -> None:
 ...     print("Hello!")
 >>> manager = EventManager()
->>> manager.add_event_handler("my_event", EventHandler(hello_handler))
->>> manager.add_event_handler("my_event", EventHandler(hello_handler))
->>> manager.add_event_handler(
+>>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
+>>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
+>>> _ = manager.add_event_handler(
 ...     "my_event", ConditionalEventHandler(hello_handler, PeriodicCondition(freq=3))
 ... )
 >>> manager
@@ -587,8 +618,8 @@ If a handler is used for multiple events, only the handler associated to the eve
 >>> def hello_handler() -> None:
 ...     print("Hello!")
 >>> manager = EventManager()
->>> manager.add_event_handler("my_event", EventHandler(hello_handler))
->>> manager.add_event_handler("my_other_event", EventHandler(hello_handler))
+>>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
+>>> _ = manager.add_event_handler("my_other_event", EventHandler(hello_handler))
 >>> manager
 EventManager(
   (event_handlers):
@@ -635,8 +666,8 @@ fired event name to `None`. It is equivalent to create a new experiment manager.
 >>> def hello_handler() -> None:
 ...     print("Hello!")
 >>> manager = EventManager()
->>> manager.add_event_handler("my_event", EventHandler(hello_handler))
->>> manager.add_event_handler("my_other_event", EventHandler(hello_handler))
+>>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
+>>> _ = manager.add_event_handler("my_other_event", EventHandler(hello_handler))
 >>> manager
 EventManager(
   (event_handlers):
