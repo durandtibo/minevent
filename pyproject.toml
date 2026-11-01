@@ -169,7 +169,6 @@ lint.select = [
 ]
 lint.ignore = [
   "A003",    # Class attribute `{name}` is shadowing a python builtin
-  "ANN401",  # Dynamically typed expressions (typing.Any) are disallowed.
   "E501",    # Line lengths are recommended to be no greater than 79 characters.
   "W505",    # Doc line too long
   "PLR2004", # Magic value used in comparison, consider replacing 0.0 with a constant variable
@@ -192,8 +191,9 @@ src = ["src"]
 [tool.ruff.lint.per-file-ignores]
 # Ignore all directories named `tests`.
 "tests/**" = [
-  "D",    # pydocstyle
-  "S101", # flake8-bandit
+  "ANN401", # Tests pass invalid values and wrap arbitrary callables on purpose
+  "D",      # pydocstyle
+  "S101",   # flake8-bandit
 ]
 
 [tool.ruff.lint.mccabe]
