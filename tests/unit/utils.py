@@ -21,6 +21,7 @@ class Tracer:
 
     def __init__(self, func: Callable[..., Any]) -> None:
         self._func = func
+        self.__wrapped__ = func
         update_wrapper(self, func)
         self.reset()
 

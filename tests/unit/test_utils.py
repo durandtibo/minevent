@@ -49,8 +49,8 @@ def test_tracer_kwargs() -> None:
     assert tracer.kwargs == {"b": 2}
 
 
-def test_tracer_keeps_name() -> None:
-    assert Tracer(add).__name__ == "add"
+def test_tracer_wrapped() -> None:
+    assert Tracer(add).__wrapped__ is add
 
 
 def test_tracer_reset() -> None:
