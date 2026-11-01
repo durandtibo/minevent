@@ -429,6 +429,26 @@ True
 
 ```
 
+A `Subscription` is a context manager that removes the registration when the block exits, and its
+`active` property tells if the handler is still registered. `EventManager.on` is a decorator that
+registers a function and returns it unchanged:
+
+```pycon
+>>> from minevent import EventHandler, EventManager
+>>> manager = EventManager()
+>>> with manager.add_event_handler("my_event", EventHandler(print, handler_args=("Hello!",))) as sub:
+...     manager.trigger_event("my_event")
+Hello!
+>>> sub.active
+False
+>>> @manager.on("epoch_end")
+... def log_epoch(epoch):
+...     print(f"epoch {epoch}")
+>>> manager.trigger_event("epoch_end", epoch=1)
+epoch 1
+
+```
+
 `has_event_handler` and `remove_event_handler` also accept a `Subscription`. This is the most
 reliable way to find or remove a handler built from a lambda, a closure or a bound method, which
 are not equal to an identical handler created elsewhere:
