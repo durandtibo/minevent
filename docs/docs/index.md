@@ -1,54 +1,12 @@
 # Home
 
-<p align="center">
-    <a href="https://github.com/durandtibo/minevent/actions/workflows/ci.yaml">
-        <img alt="CI" src="https://github.com/durandtibo/minevent/actions/workflows/ci.yaml/badge.svg">
-    </a>
-    <a href="https://github.com/durandtibo/minevent/actions/workflows/nightly-test-package.yaml">
-        <img alt="Nightly Tests" src="https://github.com/durandtibo/minevent/actions/workflows/nightly-test-package.yaml/badge.svg">
-    </a>
-    <a href="https://github.com/durandtibo/minevent/actions/workflows/nightly-package.yaml">
-        <img alt="Nightly Package Tests" src="https://github.com/durandtibo/minevent/actions/workflows/nightly-package.yaml/badge.svg">
-    </a>
-    <a href="https://codecov.io/gh/durandtibo/minevent">
-        <img alt="Codecov" src="https://codecov.io/gh/durandtibo/minevent/branch/main/graph/badge.svg">
-    </a>
-    <br/>
-    <a href="https://durandtibo.github.io/minevent/">
-        <img alt="Documentation" src="https://github.com/durandtibo/minevent/actions/workflows/release-docs.yaml/badge.svg">
-    </a>
-    <a href="https://durandtibo.github.io/minevent/dev/">
-        <img alt="Documentation (dev)" src="https://github.com/durandtibo/minevent/actions/workflows/release-docs-dev.yaml/badge.svg">
-    </a>
-    <br/>
-    <a href="https://google.github.io/styleguide/pyguide.html#s3.8-comments-and-docstrings">
-        <img  alt="Doc style: google" src="https://img.shields.io/badge/%20style-google-3666d6.svg">
-    </a>
-    <a href="https://github.com/astral-sh/ruff">
-        <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Ruff" style="max-width:100%;">
-    </a>
-    <a href="https://github.com/guilatrova/tryceratops">
-        <img  alt="Doc style: google" src="https://img.shields.io/badge/try%2Fexcept%20style-tryceratops%20%F0%9F%A6%96%E2%9C%A8-black">
-    </a>
-    <br/>
-    <a href="https://pypi.org/project/minevent/">
-        <img alt="PYPI version" src="https://img.shields.io/pypi/v/minevent">
-    </a>
-    <a href="https://pypi.org/project/minevent/">
-        <img alt="Python" src="https://img.shields.io/pypi/pyversions/minevent.svg">
-    </a>
-    <a href="https://opensource.org/licenses/BSD-3-Clause">
-        <img alt="BSD-3-Clause" src="https://img.shields.io/pypi/l/minevent">
-    </a>
-    <br/>
-    <a href="https://pepy.tech/project/minevent">
-        <img  alt="Downloads" src="https://static.pepy.tech/badge/minevent">
-    </a>
-    <a href="https://pepy.tech/project/minevent">
-        <img  alt="Monthly downloads" src="https://static.pepy.tech/badge/minevent/month">
-    </a>
-    <br/>
-</p>
+[![CI](https://github.com/durandtibo/minevent/actions/workflows/ci.yaml/badge.svg)](https://github.com/durandtibo/minevent/actions/workflows/ci.yaml)
+[![PyPI version](https://img.shields.io/pypi/v/minevent)](https://pypi.org/project/minevent/)
+[![Python](https://img.shields.io/pypi/pyversions/minevent.svg)](https://pypi.org/project/minevent/)
+[![BSD-3-Clause](https://img.shields.io/pypi/l/minevent)](https://opensource.org/licenses/BSD-3-Clause)
+
+The full list of badges, the installation instructions and the version table are in the
+[README](https://github.com/durandtibo/minevent#readme).
 
 ## Overview
 
