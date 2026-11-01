@@ -312,3 +312,22 @@ def test_event_manager_remove_event_handler_missing_ok() -> None:
     event_manager.remove_event_handler("my_event", EventHandler(hello_handler), missing_ok=True)
     assert event_manager.has_event_handler(EventHandler(lambda: True), "my_event") is False
     event_manager.trigger_event("my_event")
+
+
+def test_event_manager_repr_empty() -> None:
+    assert repr(EventManager()) == (
+        "EventManager(\n  (event_handlers): \n  (last_triggered_event): None\n)"
+    )
+
+
+def test_event_manager_repr_with_event_handlers() -> None:
+    event_manager = EventManager()
+    event_manager.add_event_handler("my_event", EventHandler(hello_handler))
+    event_manager.trigger_event("my_event")
+    lines = repr(event_manager).splitlines()
+    assert lines[0] == "EventManager("
+    assert lines[1] == "  (event_handlers): "
+    assert lines[2] == "    (my_event): "
+    assert lines[3].strip().startswith("(0): EventHandler(")
+    assert lines[-2] == "  (last_triggered_event): my_event"
+    assert lines[-1] == ")"
