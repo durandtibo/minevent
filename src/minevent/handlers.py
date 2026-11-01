@@ -4,6 +4,7 @@ from __future__ import annotations
 
 __all__ = ["BaseEventHandler", "ConditionalEventHandler", "EventHandler"]
 
+import inspect
 import warnings
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
@@ -113,6 +114,32 @@ class BaseEventHandler(ABC):  # noqa: PLW1641
 
             ```
         """
+
+    async def ahandle(self, **payload: Any) -> None:
+        r"""Handle the event asynchronously.
+
+        This method is called by ``EventManager.atrigger_event``. The
+        default implementation calls ``handle``, so it works for
+        synchronous event handlers. Child classes that support
+        coroutines should override it.
+
+        Args:
+            **payload: The keyword arguments given to
+                ``EventManager.atrigger_event``.
+
+        Example:
+            ```pycon
+            >>> import asyncio
+            >>> from minevent import EventHandler
+            >>> def hello_handler() -> None:
+            ...     print("Hello!")
+            ...
+            >>> asyncio.run(EventHandler(hello_handler).ahandle())
+            Hello!
+
+            ```
+        """
+        self.handle(**payload)
 
 
 class EventHandler(BaseEventHandler):
@@ -288,6 +315,35 @@ class EventHandler(BaseEventHandler):
     def handle(self, **payload: Any) -> None:
         if self._condition is None or self._condition.evaluate():
             self._handler(*self._handler_args, **self._handler_kwargs, **payload)
+
+    async def ahandle(self, **payload: Any) -> None:
+        r"""Handle the event asynchronously.
+
+        Like ``handle``, but if the handler returns an awaitable (for
+        example because it is a coroutine function), the awaitable is
+        awaited. ``handle`` does not await it, so use ``ahandle``
+        (or ``EventManager.atrigger_event``) with coroutine functions.
+
+        Args:
+            **payload: The keyword arguments given to
+                ``EventManager.atrigger_event``.
+
+        Example:
+            ```pycon
+            >>> import asyncio
+            >>> from minevent import EventHandler
+            >>> async def hello_handler() -> None:
+            ...     print("Hello!")
+            ...
+            >>> asyncio.run(EventHandler(hello_handler).ahandle())
+            Hello!
+
+            ```
+        """
+        if self._condition is None or self._condition.evaluate():
+            result = self._handler(*self._handler_args, **self._handler_kwargs, **payload)
+            if inspect.isawaitable(result):
+                await result
 
 
 def ConditionalEventHandler(  # noqa: N802

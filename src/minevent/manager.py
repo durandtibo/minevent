@@ -55,6 +55,11 @@ class _OnceEventHandler(BaseEventHandler):
             self.subscription.remove()
         self.event_handler.handle(**payload)
 
+    async def ahandle(self, **payload: Any) -> None:
+        if self.subscription is not None:
+            self.subscription.remove()
+        await self.event_handler.ahandle(**payload)
+
 
 def _unwrap(event_handler: BaseEventHandler) -> BaseEventHandler:
     r"""Return the user event handler of a registered event handler.
@@ -328,13 +333,62 @@ class EventManager:
 
             ```
         """
+        for event_handler in self._start_trigger(event):
+            event_handler.handle(**payload)
+
+    async def atrigger_event(self, event: str, **payload: Any) -> None:
+        r"""Trigger the handler(s) for the given event, awaiting the
+        coroutine handlers.
+
+        This method behaves like ``trigger_event``, but it calls
+        ``ahandle`` on the event handlers, so handlers that are
+        coroutine functions (or return an awaitable) are awaited.
+        Synchronous handlers can be mixed with coroutine handlers.
+        The handlers run one after the other, in the order they were
+        added, and they are fail-fast like in ``trigger_event``.
+
+        Args:
+            event: The event name (case-sensitive string) to trigger.
+            **payload: The data passed to the handlers as keyword
+                arguments.
+
+        Raises:
+            TypeError: if ``event`` is not a string.
+
+        Example:
+            ```pycon
+            >>> import asyncio
+            >>> from minevent import EventHandler, EventManager
+            >>> manager = EventManager()
+            >>> async def hello_handler(name):
+            ...     print(f"Hello {name}!")
+            ...
+            >>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
+            >>> asyncio.run(manager.atrigger_event("my_event", name="John"))
+            Hello John!
+
+            ```
+        """
+        for event_handler in self._start_trigger(event):
+            await event_handler.ahandle(**payload)
+
+    def _start_trigger(self, event: str) -> tuple[BaseEventHandler, ...]:
+        r"""Record a trigger and return the handlers to run.
+
+        Args:
+            event: The event name.
+
+        Returns:
+            A snapshot of the event handlers registered for the event.
+
+        Raises:
+            TypeError: if ``event`` is not a string.
+        """
         _check_event(event)
         logger.debug("Firing %s event", event)
         with self._lock:
             self._last_triggered_event = event
-            event_handlers = tuple(self._event_handlers.get(event, ()))
-        for event_handler in event_handlers:
-            event_handler.handle(**payload)
+            return tuple(self._event_handlers.get(event, ()))
 
     def has_event_handler(self, event_handler: BaseEventHandler, event: str | None = None) -> bool:
         r"""Indicate if a handler is registered in the event manager.

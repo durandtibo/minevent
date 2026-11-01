@@ -552,6 +552,24 @@ The `trigger_event` method does nothing if there is no event handler registered 
 
 ```
 
+### Fire an event with coroutine handlers
+
+`trigger_event` calls the handlers synchronously and does not await coroutine functions.
+To use coroutine handlers, fire the event with `atrigger_event`, which awaits the coroutines (and
+also runs synchronous handlers) one after the other, in the order they were added:
+
+```pycon
+>>> import asyncio
+>>> from minevent import EventHandler, EventManager
+>>> async def hello_handler(name: str) -> None:
+...     print(f"Hello {name}!")
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
+>>> asyncio.run(manager.atrigger_event("my_event", name="John"))
+Hello John!
+
+```
+
 ### Remove an event handler
 
 A previous section describes how to add an event handler, but sometimes it is useful to remove an
