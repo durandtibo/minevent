@@ -217,3 +217,11 @@ def test_event_manager_remove_event_handler_after_trigger() -> None:
     event_manager.trigger_event("my_event")
     with pytest.raises(RuntimeError, match=r"'my_event' event does not exist"):
         event_manager.remove_event_handler("my_event", EventHandler(hello_handler))
+
+
+def test_event_manager_has_event_handler_empty_event_name() -> None:
+    event_manager = EventManager()
+    event_manager.add_event_handler("my_event", EventHandler(hello_handler))
+    assert not event_manager.has_event_handler(EventHandler(hello_handler), event="")
+    event_manager.add_event_handler("", EventHandler(hello_handler))
+    assert event_manager.has_event_handler(EventHandler(hello_handler), event="")
