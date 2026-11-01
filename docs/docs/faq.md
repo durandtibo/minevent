@@ -84,13 +84,13 @@ handler.handle()  # Prints: Hi, Alice!
 
 ### How do I execute a handler only sometimes?
 
-Use `ConditionalEventHandler` with a condition:
+Use `EventHandler` with a `condition`:
 
 ```python
-from minevent import ConditionalEventHandler, PeriodicCondition
+from minevent import EventHandler, PeriodicCondition
 
 # Execute only every 5 times
-handler = ConditionalEventHandler(my_function, PeriodicCondition(freq=5))
+handler = EventHandler(my_function, condition=PeriodicCondition(freq=5))
 ```
 
 ### Can I add the same handler to multiple events?
@@ -231,7 +231,7 @@ Check that:
 
 1. You've registered the handler with `add_event_handler`
 2. You're triggering the correct event name (case-sensitive)
-3. If using `ConditionalEventHandler`, the condition evaluates to `True`
+3. If using a `condition`, the condition evaluates to `True`
 4. The handler function is callable and doesn't raise exceptions
 
 ### How do I debug event handlers?

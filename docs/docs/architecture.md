@@ -74,7 +74,7 @@ Extend functionality by composing handlers and conditions:
 
 ```python
 # Compose handlers with conditions
-handler = ConditionalEventHandler(my_function, PeriodicCondition(freq=5))
+handler = EventHandler(my_function, condition=PeriodicCondition(freq=5))
 
 
 # Custom conditions by implementing BaseCondition
@@ -119,9 +119,7 @@ No hidden behavior or surprising actions:
 
 ```
 BaseEventHandler (abstract)
-    ├── BaseEventHandlerWithArguments (abstract)
-    │   ├── EventHandler
-    │   └── ConditionalEventHandler
+    ├── EventHandler (handler + arguments + optional condition)
     └── [Your custom handlers]
 ```
 
@@ -164,13 +162,13 @@ BaseEventHandler (abstract)
 
 ## Conditional Execution
 
-**Design**: `ConditionalEventHandler` wraps a handler with a condition.
+**Design**: `EventHandler` can wrap a handler with a condition.
 
 **Architecture**:
 
 ```
-ConditionalEventHandler
-    ├── Handler (BaseEventHandler)
+EventHandler(condition=...)
+    ├── Handler (callable)
     └── Condition (BaseCondition)
 ```
 
@@ -180,7 +178,7 @@ ConditionalEventHandler
 trigger_event()
     ├── Get handlers for event
     └── For each handler:
-        ├── If ConditionalEventHandler:
+        ├── If the handler has a condition:
         │   ├── Evaluate condition
         │   └── If True: execute handler
         └── Else: execute handler
@@ -227,12 +225,12 @@ trigger_event()
 ### Handler Execution
 
 ```
-For EventHandler:
-    handler(*handler_args, **handler_kwargs)
+Without condition:
+    handler(*handler_args, **handler_kwargs, **payload)
 
-For ConditionalEventHandler:
+With a condition:
     if condition.evaluate():
-        handler(*handler_args, **handler_kwargs)
+        handler(*handler_args, **handler_kwargs, **payload)
 ```
 
 ## Comparison with Other Systems

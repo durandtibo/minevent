@@ -5,7 +5,6 @@ from __future__ import annotations
 __all__ = [
     "BaseCondition",
     "BaseEventHandler",
-    "BaseEventHandlerWithArguments",
     "ConditionalEventHandler",
     "EventHandler",
     "EventManager",
@@ -19,7 +18,6 @@ from importlib.metadata import PackageNotFoundError, version
 from minevent.conditions import BaseCondition, PeriodicCondition
 from minevent.handlers import (
     BaseEventHandler,
-    BaseEventHandlerWithArguments,
     ConditionalEventHandler,
     EventHandler,
 )

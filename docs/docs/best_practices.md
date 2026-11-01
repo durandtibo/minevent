@@ -181,14 +181,14 @@ finally:
 For operations that shouldn't happen every time:
 
 ```python
-from minevent import ConditionalEventHandler, PeriodicCondition
+from minevent import EventHandler, PeriodicCondition
 
 # Save checkpoint every 10 epochs
-save_handler = ConditionalEventHandler(save_checkpoint, PeriodicCondition(freq=10))
+save_handler = EventHandler(save_checkpoint, condition=PeriodicCondition(freq=10))
 manager.add_event_handler("epoch_end", save_handler)
 
 # Log metrics every 100 batches
-log_handler = ConditionalEventHandler(log_batch_metrics, PeriodicCondition(freq=100))
+log_handler = EventHandler(log_batch_metrics, condition=PeriodicCondition(freq=100))
 manager.add_event_handler("batch_end", log_handler)
 ```
 
@@ -270,7 +270,7 @@ class CallbackSystem:
     def on(self, event: str, callback, condition=None):
         """Register a callback for an event."""
         if condition:
-            handler = ConditionalEventHandler(callback, condition)
+            handler = EventHandler(callback, condition=condition)
         else:
             handler = EventHandler(callback)
         self._manager.add_event_handler(event, handler)
@@ -370,7 +370,7 @@ Don't execute expensive operations every time:
 ```python
 # Good: Only save checkpoint periodically
 manager.add_event_handler(
-    "epoch_end", ConditionalEventHandler(save_checkpoint, PeriodicCondition(freq=10))
+    "epoch_end", EventHandler(save_checkpoint, condition=PeriodicCondition(freq=10))
 )
 
 # Less efficient: Save every epoch when not needed

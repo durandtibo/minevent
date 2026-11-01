@@ -33,11 +33,9 @@ An event handler must have two methods:
 - `handle` which executes a piece of code when the event happens.
 - `equal` which is used to compare two event handlers.
 
-`minevent` provides two event handlers:
-
-- `EventHandler` which is a simple event handler
-- `ConditionalEventHandler` which is an extension of `EventHandler` to execute the logic only when a
-  condition is true.
+`minevent` provides `EventHandler`, which wraps a callable. It can take an optional `condition`
+to execute the logic only when the condition is true. `ConditionalEventHandler` is a deprecated
+function that creates an `EventHandler` with a condition.
 
 ### Basic event handler
 
@@ -112,10 +110,10 @@ The following example shows how to define an event handler where the logic is ex
 calls.
 
 ```pycon
->>> from minevent import ConditionalEventHandler, PeriodicCondition
+>>> from minevent import EventHandler, PeriodicCondition
 >>> def hello_handler() -> None:
 ...     print("Hello!")
->>> handler = ConditionalEventHandler(hello_handler, PeriodicCondition(freq=3))
+>>> handler = EventHandler(hello_handler, condition=PeriodicCondition(freq=3))
 >>> handler.handle()
 Hello!
 >>> handler.handle()
@@ -152,13 +150,13 @@ Two `EventHandler`s are equal if they have the same handler, the same arguments 
 condition:
 
 ```pycon
->>> from minevent import ConditionalEventHandler, PeriodicCondition
+>>> from minevent import EventHandler, PeriodicCondition
 >>> def hello_handler() -> None:
 ...     print("Hello!")
->>> handler = ConditionalEventHandler(hello_handler, PeriodicCondition(freq=3))
->>> handler.equal(ConditionalEventHandler(hello_handler, PeriodicCondition(freq=3)))
+>>> handler = EventHandler(hello_handler, condition=PeriodicCondition(freq=3))
+>>> handler.equal(EventHandler(hello_handler, condition=PeriodicCondition(freq=3)))
 True
->>> handler.equal(ConditionalEventHandler(hello_handler, PeriodicCondition(freq=2)))
+>>> handler.equal(EventHandler(hello_handler, condition=PeriodicCondition(freq=2)))
 False
 
 ```
@@ -474,18 +472,18 @@ As explained above, it is possible to add a condition to control when to execute
 The following shows how to execute the `hello_handler` every 3 `'my_event'` events.
 
 ```pycon
->>> from minevent import ConditionalEventHandler, PeriodicCondition, EventManager
+>>> from minevent import EventHandler, PeriodicCondition, EventManager
 >>> def hello_handler() -> None:
 ...     print("Hello!")
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler(
-...     "my_event", ConditionalEventHandler(hello_handler, PeriodicCondition(freq=3))
+...     "my_event", EventHandler(hello_handler, condition=PeriodicCondition(freq=3))
 ... )
 >>> manager
 EventManager(
   (event_handlers):
     (my_event):
-      (0): ConditionalEventHandler(
+      (0): EventHandler(
           (handler): <function hello_handler at  0x...>
           (handler_args): ()
           (handler_kwargs): {}
@@ -560,9 +558,8 @@ If there are multiple event handlers that match, they are all removed from the e
 
 ```pycon
 >>> from minevent import (
-...     ConditionalEventHandler,
-...     PeriodicCondition,
 ...     EventHandler,
+...     PeriodicCondition,
 ...     EventManager,
 ... )
 >>> def hello_handler() -> None:
@@ -571,7 +568,7 @@ If there are multiple event handlers that match, they are all removed from the e
 >>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> _ = manager.add_event_handler(
-...     "my_event", ConditionalEventHandler(hello_handler, PeriodicCondition(freq=3))
+...     "my_event", EventHandler(hello_handler, condition=PeriodicCondition(freq=3))
 ... )
 >>> manager
 EventManager(
@@ -587,7 +584,7 @@ EventManager(
           (handler_args): ()
           (handler_kwargs): {}
         )
-      (2): ConditionalEventHandler(
+      (2): EventHandler(
           (handler): <function hello_handler at  0x...>
           (handler_args): ()
           (handler_kwargs): {}
@@ -600,7 +597,7 @@ EventManager(
 EventManager(
   (event_handlers):
     (my_event):
-      (0): ConditionalEventHandler(
+      (0): EventHandler(
           (handler): <function hello_handler at  0x...>
           (handler_args): ()
           (handler_kwargs): {}

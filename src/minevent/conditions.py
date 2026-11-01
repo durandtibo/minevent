@@ -10,7 +10,7 @@ from typing import Any
 
 class BaseCondition(ABC):  # noqa: PLW1641
     r"""Define the base class to implement a condition for
-    ``ConditionalEventHandler``.
+    ``EventHandler``.
 
     A child class has to implement the following methods:
 
