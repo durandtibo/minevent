@@ -447,3 +447,33 @@ def test_event_handler_condition_combinator() -> None:
     for _ in range(5):
         event_handler.handle()
     assert hello_handler.call_count == 2
+
+
+##########################################
+#     Tests for equality semantics       #
+##########################################
+
+
+def test_event_handler_unhashable() -> None:
+    with pytest.raises(TypeError, match=r"unhashable type: 'EventHandler'"):
+        hash(EventHandler(hello_handler))
+
+
+def test_event_handler_equal_false_different_lambdas() -> None:
+    assert not EventHandler(lambda: None).equal(EventHandler(lambda: None))
+
+
+def test_event_handler_equal_true_same_lambda() -> None:
+    func = lambda: None  # noqa: E731
+    assert EventHandler(func).equal(EventHandler(func))
+
+
+def test_event_handler_equal_true_same_bound_method() -> None:
+    obj = EventHandler(hello_handler)
+    assert EventHandler(obj.handle).equal(EventHandler(obj.handle))
+
+
+def test_event_handler_equal_false_bound_methods_of_different_instances() -> None:
+    assert not EventHandler(EventHandler(hello_handler).handle).equal(
+        EventHandler(EventHandler(hello_handler).handle)
+    )

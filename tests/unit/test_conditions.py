@@ -487,3 +487,8 @@ def test_not_condition_equal_false_different_condition() -> None:
 
 def test_not_condition_equal_false_different_class() -> None:
     assert not NotCondition(AlwaysCondition()).equal(AlwaysCondition())
+
+
+def test_periodic_condition_unhashable() -> None:
+    with pytest.raises(TypeError, match=r"unhashable type: 'PeriodicCondition'"):
+        hash(PeriodicCondition(3))
