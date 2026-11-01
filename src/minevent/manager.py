@@ -5,7 +5,7 @@ from __future__ import annotations
 __all__ = ["EventManager"]
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from coola.utils.format import str_indent, str_mapping, str_sequence
 
@@ -172,7 +172,7 @@ class EventManager:
         self._event_handlers.setdefault(event, []).append(event_handler)
         logger.debug("Added %s to event %s", event_handler, event)
 
-    def trigger_event(self, event: str) -> None:
+    def trigger_event(self, event: str, **payload: Any) -> None:
         r"""Trigger the handler(s) for the given event.
 
         This method executes all event handlers registered for the
@@ -187,8 +187,16 @@ class EventManager:
         triggered. Handlers added or removed by a running handler
         take effect on the next trigger, not the current one.
 
+        The keyword arguments ``payload`` are passed to every
+        handler as keyword arguments, after the arguments given at
+        registration. Without payload, handlers are called exactly as
+        before. A handler that does not accept the payload raises a
+        ``TypeError``.
+
         Args:
             event: The event name (case-sensitive string) to trigger.
+            **payload: The data passed to the handlers as keyword
+                arguments.
 
         Raises:
             TypeError: if ``event`` is not a string.
@@ -204,6 +212,12 @@ class EventManager:
             >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
             >>> manager.trigger_event("my_event")
             Hello!
+            >>> def epoch_handler(epoch):
+            ...     print(f"epoch {epoch}")
+            ...
+            >>> manager.add_event_handler("epoch_end", EventHandler(epoch_handler))
+            >>> manager.trigger_event("epoch_end", epoch=3)
+            epoch 3
 
             ```
         """
@@ -211,7 +225,7 @@ class EventManager:
         logger.debug("Firing %s event", event)
         self._last_triggered_event = event
         for event_handler in tuple(self._event_handlers.get(event, ())):
-            event_handler.handle()
+            event_handler.handle(**payload)
 
     def has_event_handler(self, event_handler: BaseEventHandler, event: str | None = None) -> bool:
         r"""Indicate if a handler is registered in the event manager.
