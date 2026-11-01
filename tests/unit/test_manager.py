@@ -252,5 +252,4 @@ def test_event_manager_trigger_event_handler_removed_during_dispatch_still_runs(
     event_manager.add_event_handler("my_event", EventHandler(hello_handler))
     event_manager.trigger_event("my_event")
     assert hello_handler.call_count == 1
-    event_manager.trigger_event("my_event")
-    assert hello_handler.call_count == 1
+    assert not event_manager.has_event_handler(EventHandler(hello_handler))
