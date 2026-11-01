@@ -141,6 +141,43 @@ class BaseEventHandler(ABC):  # noqa: PLW1641
         self.handle(**payload)
 
 
+def _accepted_keywords(func: Callable[..., object]) -> frozenset[str] | None:
+    r"""Get the keyword arguments that a callable accepts.
+
+    Args:
+        func: The callable to inspect.
+
+    Returns:
+        The names of the parameters that can be passed by keyword,
+            or ``None`` if the callable accepts any keyword (it has a
+            ``**kwargs`` parameter) or if its signature cannot be
+            inspected.
+
+    Example:
+        ```pycon
+        >>> from minevent.handlers import _accepted_keywords
+        >>> def func(a, /, b, *, c, **kwargs): ...
+        >>> _accepted_keywords(func) is None
+        True
+        >>> def func(a, /, b, *, c): ...
+        >>> sorted(_accepted_keywords(func))
+        ['b', 'c']
+
+        ```
+    """
+    try:
+        parameters = inspect.signature(func).parameters.values()
+    except (TypeError, ValueError):
+        return None
+    if any(param.kind is inspect.Parameter.VAR_KEYWORD for param in parameters):
+        return None
+    return frozenset(
+        param.name
+        for param in parameters
+        if param.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY)
+    )
+
+
 class EventHandler(BaseEventHandler):
     r"""Implement an event handler.
 
@@ -186,6 +223,14 @@ class EventHandler(BaseEventHandler):
             without argument that returns a boolean is also accepted;
             it is wrapped in a ``CallableCondition``. If ``None``,
             the handler is always executed. Default is ``None``.
+        filter_payload: If ``True``, only the payload keys that the
+            signature of the handler accepts are passed to it, so
+            handlers with different needs can share an event without
+            ``**kwargs``. The accepted keys are computed once, at
+            construction. A handler with a ``**kwargs`` parameter, or
+            whose signature cannot be inspected, receives the whole
+            payload. Keys of ``handler_kwargs`` are not filtered.
+            Default is ``False``.
 
     Raises:
         TypeError: if ``handler`` is not callable, if
@@ -225,6 +270,12 @@ class EventHandler(BaseEventHandler):
         >>> handler.handle()
         >>> handler.handle()
         Hello!
+        >>> def epoch_handler(epoch: int) -> None:
+        ...     print(f"epoch {epoch}")
+        ...
+        >>> handler = EventHandler(epoch_handler, filter_payload=True)
+        >>> handler.handle(epoch=3, loss=0.5)
+        epoch 3
 
         ```
     """
@@ -236,6 +287,7 @@ class EventHandler(BaseEventHandler):
         handler_kwargs: Mapping[str, Any] | None = None,
         *,
         condition: BaseCondition | Callable[[], bool] | None = None,
+        filter_payload: bool = False,
     ) -> None:
         if not callable(handler):
             msg = f"handler is not callable: {handler}"
@@ -247,6 +299,8 @@ class EventHandler(BaseEventHandler):
         self._handler_args = () if handler_args is None else tuple(handler_args)
         self._handler_kwargs = {} if handler_kwargs is None else dict(handler_kwargs)
         self._condition = None if condition is None else as_condition(condition)
+        self._filter_payload = filter_payload
+        self._payload_keys = _accepted_keywords(handler) if filter_payload else None
 
     def __repr__(self) -> str:
         config = {
@@ -256,6 +310,8 @@ class EventHandler(BaseEventHandler):
         }
         if self._condition is not None:
             config["condition"] = self._condition
+        if self._filter_payload:
+            config["filter_payload"] = True
         args = str_indent(str_mapping(config))
         return f"{self.__class__.__qualname__}(\n  {args}\n)"
 
@@ -302,13 +358,46 @@ class EventHandler(BaseEventHandler):
         """
         return self._condition
 
+    @property
+    def filter_payload(self) -> bool:
+        r"""Indicate if the payload is filtered by the signature of the
+        handler.
+
+        Returns:
+            ``True`` if only the payload keys accepted by the handler
+                are passed to it, otherwise ``False``.
+        """
+        return self._filter_payload
+
+    def _select_payload(self, payload: dict[str, Any]) -> dict[str, Any]:
+        r"""Select the payload keys to pass to the handler.
+
+        Args:
+            payload: The payload given to ``handle``.
+
+        Returns:
+            The payload if it is not filtered or if the handler
+                accepts any keyword, otherwise the items of the
+                payload whose key is accepted by the handler.
+        """
+        if self._payload_keys is None:
+            return payload
+        return {key: value for key, value in payload.items() if key in self._payload_keys}
+
     def _key(self) -> tuple[Any, ...]:
         r"""Return the values compared by ``equal``.
 
         Returns:
-            The handler, the arguments and the condition.
+            The handler, the arguments, the condition and the payload
+                filter flag.
         """
-        return (self._handler, self._handler_args, self._handler_kwargs, self._condition)
+        return (
+            self._handler,
+            self._handler_args,
+            self._handler_kwargs,
+            self._condition,
+            self._filter_payload,
+        )
 
     def equal(self, other: object) -> bool:
         if type(self) is not type(other):
@@ -346,7 +435,9 @@ class EventHandler(BaseEventHandler):
             ```
         """
         if self._condition is None or self._condition.evaluate():
-            result = self._handler(*self._handler_args, **self._handler_kwargs, **payload)
+            result = self._handler(
+                *self._handler_args, **self._handler_kwargs, **self._select_payload(payload)
+            )
             if inspect.isawaitable(result):
                 if inspect.iscoroutine(result):
                     result.close()
@@ -379,6 +470,8 @@ class EventHandler(BaseEventHandler):
             ```
         """
         if self._condition is None or self._condition.evaluate():
-            result = self._handler(*self._handler_args, **self._handler_kwargs, **payload)
+            result = self._handler(
+                *self._handler_args, **self._handler_kwargs, **self._select_payload(payload)
+            )
             if inspect.isawaitable(result):
                 await result

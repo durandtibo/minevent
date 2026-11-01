@@ -1335,3 +1335,18 @@ def test_event_manager_is_registered_false_for_equal_instance() -> None:
 
 def test_event_manager_is_registered_false_unknown_event() -> None:
     assert not EventManager()._is_registered("my_event", EventHandler(hello_handler))
+
+
+def test_event_manager_trigger_event_filter_payload_shares_event() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", EventHandler(hello_handler, filter_payload=True))
+    manager.add_event_handler("my_event", EventHandler(payload_handler))
+    manager.trigger_event("my_event", epoch=3, loss=0.5)
+    assert payload_handler.kwargs == {"epoch": 3, "loss": 0.5}
+
+
+def test_event_manager_trigger_event_filter_payload_does_not_fail_other_handler() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", EventHandler(hello_handler, filter_payload=True))
+    manager.trigger_event("my_event", epoch=3)
+    assert hello_handler.call_count == 1

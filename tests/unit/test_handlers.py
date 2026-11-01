@@ -17,6 +17,7 @@ from minevent import (
     EventHandler,
     PeriodicCondition,
 )
+from minevent.handlers import _accepted_keywords
 from tests.unit.utils import trace
 
 logger = logging.getLogger(__name__)
@@ -48,6 +49,8 @@ def _reset_tracer() -> None:
     hello_handler.reset()
     hello_name_handler.reset()
     async_hello_handler.reset()
+    epoch_handler.reset()
+    keyword_only_handler.reset()
     async_name_handler.reset()
     kwargs_handler.reset()
 
@@ -443,11 +446,17 @@ def test_event_handler_key() -> None:
         handler_kwargs={"last_name": "Doe"},
         condition=condition,
     )
-    assert event_handler._key() == (hello_name_handler, ("John",), {"last_name": "Doe"}, condition)
+    assert event_handler._key() == (
+        hello_name_handler,
+        ("John",),
+        {"last_name": "Doe"},
+        condition,
+        False,
+    )
 
 
 def test_event_handler_key_without_condition() -> None:
-    assert EventHandler(hello_handler)._key() == (hello_handler, (), {}, None)
+    assert EventHandler(hello_handler)._key() == (hello_handler, (), {}, None, False)
 
 
 ##########################################################
@@ -626,3 +635,145 @@ def test_base_event_handler_ahandle_calls_handle() -> None:
 
     asyncio.run(MyHandler().ahandle())
     assert hello_handler.call_count == 1
+
+
+#####################################
+#     Tests for filter_payload     #
+#####################################
+
+
+@trace
+def epoch_handler(epoch: int) -> None:
+    logger.info("epoch %s", epoch)
+
+
+@trace
+def keyword_only_handler(*, loss: float) -> None:
+    logger.info("loss %s", loss)
+
+
+class UninspectableCallable:
+    r"""Implements a callable whose signature cannot be inspected."""
+
+    __signature__ = 1
+
+    def __call__(self, **kwargs: Any) -> None:
+        logger.info("Kwargs: %s", kwargs)
+
+
+def positional_only_handler(epoch: int, /) -> None:
+    logger.info("epoch %s", epoch)
+
+
+def test_event_handler_filter_payload_default() -> None:
+    assert not EventHandler(hello_handler).filter_payload
+
+
+def test_event_handler_filter_payload_true() -> None:
+    assert EventHandler(hello_handler, filter_payload=True).filter_payload
+
+
+def test_event_handler_filter_payload_keeps_accepted_keys() -> None:
+    handler = EventHandler(epoch_handler, filter_payload=True)
+    handler.handle(epoch=3, loss=0.5)
+    assert epoch_handler.kwargs == {"epoch": 3}
+
+
+def test_event_handler_filter_payload_false_raises_for_unknown_key() -> None:
+    with pytest.raises(TypeError, match=r"unexpected keyword argument 'loss'"):
+        EventHandler(epoch_handler).handle(epoch=3, loss=0.5)
+
+
+def test_event_handler_filter_payload_no_parameter() -> None:
+    EventHandler(hello_handler, filter_payload=True).handle(epoch=3)
+    assert hello_handler.call_count == 1
+
+
+def test_event_handler_filter_payload_keyword_only_parameter() -> None:
+    EventHandler(keyword_only_handler, filter_payload=True).handle(epoch=3, loss=0.5)
+    assert keyword_only_handler.kwargs == {"loss": 0.5}
+
+
+def test_event_handler_filter_payload_var_keyword_receives_everything() -> None:
+    EventHandler(kwargs_handler, filter_payload=True).handle(epoch=3, loss=0.5)
+    assert kwargs_handler.kwargs == {"epoch": 3, "loss": 0.5}
+
+
+def test_event_handler_filter_payload_missing_key_still_raises() -> None:
+    with pytest.raises(TypeError, match=r"missing 1 required positional argument: 'epoch'"):
+        EventHandler(epoch_handler, filter_payload=True).handle(loss=0.5)
+
+
+def test_event_handler_filter_payload_positional_only_not_passed() -> None:
+    with pytest.raises(TypeError, match=r"missing 1 required positional argument"):
+        EventHandler(positional_only_handler, filter_payload=True).handle(epoch=3)
+
+
+def test_event_handler_filter_payload_handler_kwargs_not_filtered() -> None:
+    handler = EventHandler(epoch_handler, handler_kwargs={"epoch": 1}, filter_payload=True)
+    handler.handle(loss=0.5)
+    assert epoch_handler.kwargs == {"epoch": 1}
+
+
+def test_event_handler_filter_payload_ahandle() -> None:
+    asyncio.run(EventHandler(epoch_handler, filter_payload=True).ahandle(epoch=3, loss=1))
+    assert epoch_handler.kwargs == {"epoch": 3}
+
+
+def test_event_handler_filter_payload_ahandle_coroutine() -> None:
+    asyncio.run(
+        EventHandler(async_name_handler, filter_payload=True).ahandle(
+            first_name="A", last_name="B", x=1
+        )
+    )
+    assert async_name_handler.kwargs == {"first_name": "A", "last_name": "B"}
+
+
+def test_event_handler_filter_payload_uninspectable_receives_everything() -> None:
+    EventHandler(UninspectableCallable(), filter_payload=True).handle(epoch=3)
+
+
+def test_accepted_keywords_uninspectable() -> None:
+    assert _accepted_keywords(UninspectableCallable()) is None
+
+
+def test_event_handler_filter_payload_repr() -> None:
+    assert "(filter_payload): True" in repr(EventHandler(hello_handler, filter_payload=True))
+
+
+def test_event_handler_repr_without_filter_payload() -> None:
+    assert "filter_payload" not in repr(EventHandler(hello_handler))
+
+
+def test_event_handler_equal_false_different_filter_payload() -> None:
+    assert not EventHandler(hello_handler).equal(EventHandler(hello_handler, filter_payload=True))
+
+
+def test_event_handler_equal_true_same_filter_payload() -> None:
+    assert EventHandler(hello_handler, filter_payload=True).equal(
+        EventHandler(hello_handler, filter_payload=True)
+    )
+
+
+def test_accepted_keywords_var_keyword() -> None:
+    assert _accepted_keywords(kwargs_handler) is None
+
+
+def test_accepted_keywords_positional_or_keyword() -> None:
+    assert _accepted_keywords(epoch_handler) == frozenset({"epoch"})
+
+
+def test_accepted_keywords_keyword_only() -> None:
+    assert _accepted_keywords(keyword_only_handler) == frozenset({"loss"})
+
+
+def test_accepted_keywords_positional_only() -> None:
+    assert _accepted_keywords(positional_only_handler) == frozenset()
+
+
+def test_accepted_keywords_no_parameter() -> None:
+    assert _accepted_keywords(hello_handler) == frozenset()
+
+
+def test_accepted_keywords_mixed() -> None:
+    assert _accepted_keywords(hello_name_handler) == frozenset({"first_name", "last_name"})
