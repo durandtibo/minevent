@@ -51,17 +51,6 @@ def always_false() -> bool:
     return False
 
 
-@pytest.fixture(autouse=True)
-def _reset_tracer() -> None:
-    hello_handler.reset()
-    hello_name_handler.reset()
-    async_hello_handler.reset()
-    epoch_handler.reset()
-    keyword_only_handler.reset()
-    async_name_handler.reset()
-    kwargs_handler.reset()
-
-
 ##################################
 #     Tests for EventHandler     #
 ##################################

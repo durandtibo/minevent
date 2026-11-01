@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__all__ = ["Tracer", "trace"]
+__all__ = ["Tracer", "reset_traced", "trace"]
 
 from functools import update_wrapper
 from typing import TYPE_CHECKING, Any
@@ -40,8 +40,15 @@ class Tracer:
         self.kwargs: dict[str, Any] = {}
 
 
+_TRACED: list[Tracer] = []
+
+
 def trace(func: Callable[..., Any]) -> Tracer:
     r"""Wrap a function to record how it is called.
+
+    The tracer is registered, so ``reset_traced`` resets it. This is
+    meant for the module-level handlers shared by the tests of a
+    module.
 
     Args:
         func: The function to wrap.
@@ -49,4 +56,12 @@ def trace(func: Callable[..., Any]) -> Tracer:
     Returns:
         The ``Tracer`` that wraps the function.
     """
-    return Tracer(func)
+    tracer = Tracer(func)
+    _TRACED.append(tracer)
+    return tracer
+
+
+def reset_traced() -> None:
+    r"""Reset all the tracers created with ``trace``."""
+    for tracer in _TRACED:
+        tracer.reset()
