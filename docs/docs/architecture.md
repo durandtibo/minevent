@@ -325,6 +325,10 @@ inspecting handlers, and triggering events, can be done from several threads.
   keyword arguments to `trigger_event`.
 - **Handler ordering** other than the registration order.
 - **Weak references** or sender/receiver filtering.
+- **Collecting handler errors**: handlers run fail-fast, and an exception stops the dispatch. To
+  run every handler and report all the failures, wrap the handler in a `try`/`except` (an
+  `ExceptionGroup` option such as `on_error="collect"` was considered and declined to keep
+  `trigger_event` minimal).
 
 ## Design Decisions
 
