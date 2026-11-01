@@ -101,12 +101,17 @@ It allows you to customize the function `say_something` without changing its imp
 
 - **Minimal and Lightweight**: No dependency, keeping your project dependencies clean
 - **Simple API**: Easy to learn and use with intuitive event registration and triggering
-- **Conditional Handlers**: Built-in support for conditional event execution (e.g., periodic
-  execution)
+- **Payload**: `trigger_event("epoch_end", epoch=3)` passes keyword arguments to the handlers
+- **Subscriptions**: `add_event_handler` returns a `Subscription` to remove exactly that
+  registration, and `once=True` runs a handler at most once
+- **Conditional Handlers**: Any function that returns a boolean is a condition, and
+  `PeriodicCondition`, `AfterNCondition` and `OnceCondition` are provided
+- **Async**: `atrigger_event` awaits coroutine handlers
+- **Thread-safe registry**: register handlers and trigger events from different threads
 - **Extensible**: Create custom event handlers and conditions for your specific needs
 - **Type Hints**: Full type hint support for better IDE integration and code quality
 - **Well Tested**: Comprehensive test suite ensuring reliability
-- **Well Documented**: Extensive documentation with examples and best practices
+- **Well Documented**: Extensive documentation with examples and a user guide
 
 ## Quick Links
 
@@ -116,8 +121,8 @@ It allows you to customize the function `say_something` without changing its imp
   [https://durandtibo.github.io/minevent/quickstart/](https://durandtibo.github.io/minevent/quickstart/)
 - **Examples**: See the [quickstart guide](https://durandtibo.github.io/minevent/quickstart/) for practical use cases
 - **FAQ**: [https://durandtibo.github.io/minevent/faq/](https://durandtibo.github.io/minevent/faq/)
-- **Best Practices**:
-  [https://durandtibo.github.io/minevent/best_practices/](https://durandtibo.github.io/minevent/best_practices/)
+- **User guide**:
+  [https://durandtibo.github.io/minevent/guide/](https://durandtibo.github.io/minevent/guide/)
 
 ## Installation
 

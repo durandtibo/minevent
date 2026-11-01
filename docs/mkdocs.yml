@@ -22,8 +22,7 @@ nav:
   - User Guide:
       - quickstart.md
       - architecture.md
-      - best_practices.md
-      - troubleshooting.md
+      - guide.md
       - faq.md
   - Reference:
       - refs/index.md
