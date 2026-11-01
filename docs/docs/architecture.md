@@ -2,6 +2,28 @@
 
 This document describes the architecture and design principles of `minevent`.
 
+## Properties
+
+These properties hold for every release and each one is covered by tests.
+
+- **Events are strings.** An event name is a case-sensitive `str`; any other type raises a
+  `TypeError`. Reading the manager never creates an event.
+- **Registration order.** The handlers of an event run in the order they were registered.
+- **Snapshot dispatch.** `trigger_event` runs the handlers registered when it starts. A handler
+  added or removed by a running handler takes effect at the next trigger.
+- **Fail-fast.** An exception of a handler propagates to the caller and the remaining handlers are
+  skipped.
+- **`once` is at most once.** The registration is removed before the handler is called, atomically,
+  so the handler runs at most once whatever the number of threads. It is consumed even if the
+  condition is false or the handler raises.
+- **Synchronous by default.** `trigger_event` never awaits; a handler that returns an awaitable
+  raises a `TypeError`. `atrigger_event` awaits the handlers one after the other.
+- **Thread-safe registry.** Handlers and conditions run outside the lock, so a handler can use the
+  manager.
+- **Payload is data.** The keyword arguments of `trigger_event` are passed to every handler, and
+  any key is allowed.
+- **No global state.** There is no default manager and no discovery.
+
 ## Overview
 
 `minevent` is designed as a minimal event system with three core components:
@@ -33,12 +55,13 @@ manager.trigger_event("training_complete")
 
 ### 2. Synchronous by Design
 
-All event handling is synchronous:
+`trigger_event` is synchronous:
 
 - Handlers execute in the order they were registered
 - Easy to reason about execution flow
 - Simpler debugging and testing
-- No threading complexity; coroutine handlers are opt-in with `atrigger_event`
+- Coroutine handlers are opt-in with `atrigger_event`
+- The registry is protected by a lock, but the library starts no thread
 
 **Rationale**: ML workflows are often sequential and benefit from deterministic execution order.
 
@@ -67,7 +90,7 @@ manager.trigger_event("event")
 Extend functionality by composing handlers and conditions:
 
 - Base classes for custom implementations
-- Conditional handlers combine handlers and conditions
+- An `EventHandler` combines a handler and an optional condition
 - No inheritance-heavy design
 
 **Example**:
@@ -89,7 +112,8 @@ No hidden behavior or surprising actions:
 
 - No global state
 - No automatic discovery
-- No reflection or metaclasses
+- No metaclasses and no discovery; the only introspection is the optional `filter_payload`
+  (signature of the handler) and the check of an awaitable result
 - What you write is what happens
 
 ## Core Components
@@ -202,7 +226,7 @@ trigger_event()
    manager.add_event_handler("event", handler)
 
 3. Manager stores handler
-   _event_handlers["event"].append(handler)
+   the handler is appended to the list of the event
 ```
 
 ### Triggering Flow
@@ -215,7 +239,7 @@ trigger_event()
    _last_triggered_event = "event"
 
 3. Manager gets handlers
-   handlers = _event_handlers["event"]
+   handlers = a snapshot of the list of the event
 
 4. Manager executes each handler
    for handler in handlers:
@@ -241,8 +265,8 @@ Implement `BaseEventHandler`:
 
 ```python
 class MyEventHandler(BaseEventHandler):
-    def handle(self) -> None:
-        # Custom logic
+    def handle(self, /, **payload: object) -> None:
+        # Custom logic; payload holds the keyword arguments of trigger_event
         pass
 
     def equal(self, other: Any) -> bool:
@@ -277,27 +301,6 @@ class MyCondition(BaseCondition):
 - State-based conditions
 - Metric-threshold conditions
 - Complex multi-condition logic
-
-### Custom Event Manager
-
-While not common, you can create custom event managers:
-
-```python
-class MyEventManager:
-    # Must implement the same interface
-    def add_event_handler(self, event: str, handler: BaseEventHandler): ...
-    def trigger_event(self, event: str): ...
-    def has_event_handler(self, handler: BaseEventHandler, event: str | None): ...
-    def remove_event_handler(self, event: str, handler: BaseEventHandler): ...
-    def reset(self): ...
-```
-
-**Use Cases**:
-
-- Thread-safe event managers
-- Event managers with persistence
-- Event managers with priorities
-- Event managers with event history
 
 ## Thread Safety
 
@@ -350,7 +353,7 @@ inspecting handlers, and triggering events, can be done from several threads.
 - Flexible naming
 - Human-readable
 
-### Why Synchronous Only?
+### Why Synchronous by Default?
 
 **Alternatives Considered**:
 
@@ -358,7 +361,7 @@ inspecting handlers, and triggering events, can be done from several threads.
 - Threading
 - Multiprocessing
 
-**Chosen**: Synchronous
+**Chosen**: Synchronous `trigger_event`, with `atrigger_event` for coroutine handlers
 
 **Reasons**:
 
