@@ -38,7 +38,7 @@ All event handling is synchronous:
 - Handlers execute in the order they were registered
 - Easy to reason about execution flow
 - Simpler debugging and testing
-- No threading or async complexity
+- No threading complexity; coroutine handlers are opt-in with `atrigger_event`
 
 **Rationale**: ML workflows are often sequential and benefit from deterministic execution order.
 
@@ -253,7 +253,7 @@ With a condition:
 | Event metadata  | None            | Supported            |
 | Weak references | No              | Yes                  |
 | Sender/receiver | No              | Yes                  |
-| Async support   | No              | Limited              |
+| Async support   | Opt-in          | Limited              |
 
 **Why minevent?**: Simpler, more focused on ML workflows, easier to understand.
 
@@ -401,7 +401,6 @@ Potential future enhancements (without breaking simplicity):
 2. **Handler Priorities**: Control execution order within an event
 3. **Event Filtering**: Filter events based on criteria
 4. **Event History**: Optional tracking of past events
-5. **Async Support**: Optional async handler execution
 
 All enhancements must maintain:
 
@@ -446,7 +445,7 @@ All enhancements must maintain:
 - Easier to debug
 - Deterministic execution
 - Sufficient for ML workflows
-- Users can add async if needed
+- Coroutine handlers are opt-in with `atrigger_event`; `trigger_event` stays synchronous
 
 ### Why Explicit Event Manager?
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import TYPE_CHECKING, Any
 
@@ -8,6 +9,7 @@ import pytest
 from minevent import (
     AfterNCondition,
     AndCondition,
+    BaseEventHandler,
     CallableCondition,
     ConditionalEventHandler,
     EventHandler,
@@ -52,6 +54,7 @@ def _reset_tracer() -> None:
 
     reset_func(hello_handler)
     reset_func(hello_name_handler)
+    reset_func(async_name_handler)
 
 
 ##################################
@@ -449,9 +452,9 @@ def test_event_handler_condition_combinator() -> None:
     assert hello_handler.call_count == 2
 
 
-##########################################
-#     Tests for equality semantics       #
-##########################################
+########################################
+#     Tests for equality semantics     #
+########################################
 
 
 def test_event_handler_unhashable() -> None:
@@ -477,3 +480,71 @@ def test_event_handler_equal_false_bound_methods_of_different_instances() -> Non
     assert not EventHandler(EventHandler(hello_handler).handle).equal(
         EventHandler(EventHandler(hello_handler).handle)
     )
+
+
+#############################
+#     Tests for ahandle     #
+#############################
+
+
+@trace
+async def async_hello_handler() -> None:
+    r"""Implements a simple coroutine handler."""
+    logger.info("Hello async!")
+
+
+@trace
+async def async_name_handler(first_name: str, last_name: str) -> None:
+    r"""Implements a coroutine handler with arguments."""
+    logger.info("Hello async. I am %s %s", first_name, last_name)
+
+
+def test_event_handler_ahandle_coroutine_awaited() -> None:
+    awaited = []
+
+    async def handler() -> None:
+        awaited.append(1)
+
+    asyncio.run(EventHandler(handler).ahandle())
+    assert awaited == [1]
+
+
+def test_event_handler_ahandle_sync_handler() -> None:
+    asyncio.run(EventHandler(hello_handler).ahandle())
+    assert hello_handler.call_count == 1
+
+
+def test_event_handler_ahandle_payload_and_arguments() -> None:
+    asyncio.run(EventHandler(async_name_handler, handler_args=("John",)).ahandle(last_name="Doe"))
+    assert async_name_handler.kwargs == {"last_name": "Doe"}
+
+
+def test_event_handler_ahandle_condition_false() -> None:
+    asyncio.run(EventHandler(hello_handler, condition=always_false).ahandle())
+    assert hello_handler.call_count == 0
+
+
+def test_event_handler_ahandle_condition_true() -> None:
+    asyncio.run(EventHandler(hello_handler, condition=always_true).ahandle())
+    assert hello_handler.call_count == 1
+
+
+def test_event_handler_ahandle_coroutine_error_propagates() -> None:
+    async def handler() -> None:
+        msg = "async failed"
+        raise RuntimeError(msg)
+
+    with pytest.raises(RuntimeError, match=r"async failed"):
+        asyncio.run(EventHandler(handler).ahandle())
+
+
+def test_base_event_handler_ahandle_calls_handle() -> None:
+    class MyHandler(BaseEventHandler):
+        def equal(self, other: Any) -> bool:
+            return self is other
+
+        def handle(self, **payload: Any) -> None:
+            hello_handler(**payload)
+
+    asyncio.run(MyHandler().ahandle())
+    assert hello_handler.call_count == 1
