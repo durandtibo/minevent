@@ -15,7 +15,7 @@ from coola.utils.format import str_indent, str_mapping
 from minevent.conditions import as_condition
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Sequence
+    from collections.abc import Callable, Mapping, Sequence
 
     from minevent.conditions import BaseCondition
 
@@ -59,7 +59,7 @@ class BaseEventHandler(ABC):  # noqa: PLW1641
         return self.equal(other)
 
     @abstractmethod
-    def equal(self, other: Any) -> bool:
+    def equal(self, other: object) -> bool:
         r"""Compare two event handlers for equality.
 
         This method should be implemented by child classes to define
@@ -189,9 +189,10 @@ class EventHandler(BaseEventHandler):
             the handler is always executed. Default is ``None``.
 
     Raises:
-        TypeError: if ``handler`` is not callable, or if
-            ``condition`` is neither ``None``, a ``BaseCondition``
-            nor callable.
+        TypeError: if ``handler`` is not callable, if
+            ``handler_args`` is a ``str`` or ``bytes`` (which would
+            be split into characters), or if ``condition`` is
+            neither ``None``, a ``BaseCondition`` nor callable.
 
     Example:
         ```pycon
@@ -231,14 +232,17 @@ class EventHandler(BaseEventHandler):
 
     def __init__(
         self,
-        handler: Callable,
+        handler: Callable[..., object],
         handler_args: Sequence[Any] | None = None,
-        handler_kwargs: dict[str, Any] | None = None,
+        handler_kwargs: Mapping[str, Any] | None = None,
         *,
         condition: BaseCondition | Callable[[], bool] | None = None,
     ) -> None:
         if not callable(handler):
             msg = f"handler is not callable: {handler}"
+            raise TypeError(msg)
+        if isinstance(handler_args, (str, bytes)):
+            msg = f"handler_args must be a sequence of arguments, not a string: {handler_args!r}"
             raise TypeError(msg)
         self._handler = handler
         self._handler_args = tuple(handler_args or ())
@@ -257,7 +261,7 @@ class EventHandler(BaseEventHandler):
         return f"{self.__class__.__qualname__}(\n  {args}\n)"
 
     @property
-    def handler(self) -> Callable:
+    def handler(self) -> Callable[..., object]:
         r"""Get the handler function.
 
         Returns:
@@ -307,7 +311,7 @@ class EventHandler(BaseEventHandler):
         """
         return (self._handler, self._handler_args, self._handler_kwargs, self._condition)
 
-    def equal(self, other: Any) -> bool:
+    def equal(self, other: object) -> bool:
         if type(self) is not type(other):
             return False
         return objects_are_equal(self._key(), other._key())
@@ -347,10 +351,10 @@ class EventHandler(BaseEventHandler):
 
 
 def ConditionalEventHandler(  # noqa: N802
-    handler: Callable,
+    handler: Callable[..., object],
     condition: BaseCondition,
     handler_args: Sequence[Any] | None = None,
-    handler_kwargs: dict[str, Any] | None = None,
+    handler_kwargs: Mapping[str, Any] | None = None,
 ) -> EventHandler:
     r"""Create an event handler that is executed only if a condition is
     ``True``.

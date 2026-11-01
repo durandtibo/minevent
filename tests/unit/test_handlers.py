@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
 import pytest
@@ -129,6 +130,16 @@ def test_event_handler_with_args_and_kwargs() -> None:
 def test_event_handler_incorrect_handler() -> None:
     with pytest.raises(TypeError, match=r"handler is not callable:"):
         EventHandler("abc")
+
+
+@pytest.mark.parametrize("handler_args", ["abc", b"abc"])
+def test_event_handler_incorrect_handler_args(handler_args: str | bytes) -> None:
+    with pytest.raises(TypeError, match=r"handler_args must be a sequence of arguments"):
+        EventHandler(print, handler_args=handler_args)
+
+
+def test_event_handler_handler_kwargs_mapping() -> None:
+    assert EventHandler(print, handler_kwargs=MappingProxyType({"a": 1})).handler_kwargs == {"a": 1}
 
 
 def test_event_handler_handle_without_args_and_kwargs() -> None:
