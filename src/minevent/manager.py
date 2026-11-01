@@ -5,7 +5,6 @@ from __future__ import annotations
 __all__ = ["EventManager"]
 
 import logging
-from collections import defaultdict
 from typing import TYPE_CHECKING
 
 from coola.utils.format import str_indent, str_mapping, str_sequence
@@ -41,10 +40,9 @@ class EventManager:
 
     def __init__(self) -> None:
         # This variable is used to store the handlers associated to each event.
-        self._event_handlers = defaultdict(list)
+        self._event_handlers: dict[str, list[BaseEventHandler]] = {}
         # This variable is used to track the last fired event name
-        self._last_triggered_event = None
-        self.reset()
+        self._last_triggered_event: str | None = None
 
     def __repr__(self) -> str:
         event_handlers = str_mapping(
@@ -113,7 +111,7 @@ class EventManager:
 
             ```
         """
-        self._event_handlers[str(event)].append(event_handler)
+        self._event_handlers.setdefault(str(event), []).append(event_handler)
         logger.debug("Added %s to event %s", event_handler, event)
 
     def trigger_event(self, event: str) -> None:
@@ -143,7 +141,7 @@ class EventManager:
         """
         logger.debug("Firing %s event", event)
         self._last_triggered_event = event
-        for event_handler in self._event_handlers[event]:
+        for event_handler in self._event_handlers.get(event, ()):
             event_handler.handle()
 
     def has_event_handler(self, event_handler: BaseEventHandler, event: str | None = None) -> bool:
@@ -192,9 +190,9 @@ class EventManager:
 
             ```
         """
-        events = [event] if event else self._event_handlers
+        events = [event] if event else list(self._event_handlers)
         for evnt in events:
-            for handler in self._event_handlers[evnt]:
+            for handler in self._event_handlers.get(evnt, ()):
                 if event_handler.equal(handler):
                     return True
         return False
