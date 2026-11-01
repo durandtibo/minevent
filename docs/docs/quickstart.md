@@ -424,7 +424,6 @@ True
 
 ```
 
-
 The `hello_handler` handler has been added only one time to the `'my_event'` event.
 
 ### Fire an event
