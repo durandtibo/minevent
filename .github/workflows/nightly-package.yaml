@@ -21,23 +21,9 @@ jobs:
       install-cmd: "uv pip install minevent"
       test-matrix: ${{ needs.get-matrix.outputs.test_matrix }}
 
-  stable-all:
-    needs: get-matrix
-    uses: ./.github/workflows/nightly-test-package.yaml
-    with:
-      install-cmd: 'uv pip install "minevent[all]"' # "all" installs everything
-      test-matrix: ${{ needs.get-matrix.outputs.test_matrix }}
-
   latest:
     needs: get-matrix
     uses: ./.github/workflows/nightly-test-package.yaml
     with:
       install-cmd: "uv pip install --pre minevent"
-      test-matrix: ${{ needs.get-matrix.outputs.test_matrix }}
-
-  latest-all:
-    needs: get-matrix
-    uses: ./.github/workflows/nightly-test-package.yaml
-    with:
-      install-cmd: 'uv pip install --pre "minevent[all]"' # "all" installs everything
       test-matrix: ${{ needs.get-matrix.outputs.test_matrix }}
