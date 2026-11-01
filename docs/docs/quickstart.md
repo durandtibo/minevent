@@ -129,6 +129,38 @@ It is also possible to implement custom conditions.
 If the condition returns `True`, the logic associated to the event handler is executed, otherwise
 the logic associated to the event handler is not executed.
 
+A plain function without argument that returns a boolean is also accepted as a condition:
+
+```pycon
+>>> from minevent import EventHandler
+>>> def hello_handler() -> None:
+...     print("Hello!")
+>>> verbose = True
+>>> handler = EventHandler(hello_handler, condition=lambda: verbose)
+>>> handler.handle()
+Hello!
+
+```
+
+`minevent` also provides `AlwaysCondition`, `OnceCondition` (first call only),
+`AfterNCondition` (skip the first `n` calls), `PeriodicCondition(freq, skip_first=...)` and the
+combinators `AndCondition`, `OrCondition` and `NotCondition`. The combinators evaluate all their
+conditions at each call, so stateful conditions advance consistently.
+
+```pycon
+>>> from minevent import AfterNCondition, AndCondition, EventHandler, PeriodicCondition
+>>> def hello_handler() -> None:
+...     print("Hello!")
+>>> handler = EventHandler(
+...     hello_handler, condition=AndCondition(AfterNCondition(1), PeriodicCondition(2))
+... )
+>>> for _ in range(5):
+...     handler.handle()
+Hello!
+Hello!
+
+```
+
 ### Event handler comparison
 
 It is possible to compare event handlers by using the `equal` method.
