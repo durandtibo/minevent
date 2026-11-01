@@ -136,42 +136,34 @@ def test_event_handler_equal_false_different_classes() -> None:
 
 def test_event_handler_without_args_and_kwargs() -> None:
     event_handler = EventHandler(hello_handler)
-    assert (event_handler.handler, event_handler.handler_args, event_handler.handler_kwargs) == (
-        hello_handler,
-        (),
-        {},
-    )
+    assert event_handler.handler == hello_handler
+    assert event_handler.handler_args == ()
+    assert event_handler.handler_kwargs == {}
 
 
 def test_event_handler_with_only_args() -> None:
     event_handler = EventHandler(hello_name_handler, handler_args=("John", "Doe"))
-    assert (event_handler.handler, event_handler.handler_args, event_handler.handler_kwargs) == (
-        hello_name_handler,
-        ("John", "Doe"),
-        {},
-    )
+    assert event_handler.handler == hello_name_handler
+    assert event_handler.handler_args == ("John", "Doe")
+    assert event_handler.handler_kwargs == {}
 
 
 def test_event_handler_with_only_kwargs() -> None:
     event_handler = EventHandler(
         hello_name_handler, handler_kwargs={"first_name": "John", "last_name": "Doe"}
     )
-    assert (event_handler.handler, event_handler.handler_args, event_handler.handler_kwargs) == (
-        hello_name_handler,
-        (),
-        {"first_name": "John", "last_name": "Doe"},
-    )
+    assert event_handler.handler == hello_name_handler
+    assert event_handler.handler_args == ()
+    assert event_handler.handler_kwargs == {"first_name": "John", "last_name": "Doe"}
 
 
 def test_event_handler_with_args_and_kwargs() -> None:
     event_handler = EventHandler(
         hello_handler, handler_args=("John",), handler_kwargs={"last_name": "Doe"}
     )
-    assert (event_handler.handler, event_handler.handler_args, event_handler.handler_kwargs) == (
-        hello_handler,
-        ("John",),
-        {"last_name": "Doe"},
-    )
+    assert event_handler.handler == hello_handler
+    assert event_handler.handler_args == ("John",)
+    assert event_handler.handler_kwargs == {"last_name": "Doe"}
 
 
 def test_event_handler_incorrect_handler() -> None:
@@ -280,12 +272,10 @@ def test_event_handler_condition_equal_false_different_classes() -> None:
 
 def test_event_handler_condition_callable_condition() -> None:
     event_handler = EventHandler(hello_handler, condition=PeriodicCondition(3))
-    assert (
-        event_handler.handler,
-        event_handler.handler_args,
-        event_handler.handler_kwargs,
-        event_handler.condition,
-    ) == (hello_handler, (), {}, PeriodicCondition(3))
+    assert event_handler.handler == hello_handler
+    assert event_handler.handler_args == ()
+    assert event_handler.handler_kwargs == {}
+    assert event_handler.condition == PeriodicCondition(3)
 
 
 def test_event_handler_condition_handle_1() -> None:
