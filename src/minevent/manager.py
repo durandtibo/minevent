@@ -122,6 +122,10 @@ class EventManager:
         triggered event name is updated regardless of whether any
         handlers are registered.
 
+        The handlers are read from a snapshot taken when the event is
+        triggered. Handlers added or removed by a running handler
+        take effect on the next trigger, not the current one.
+
         Args:
             event: The event name (case-sensitive string) to trigger.
 
@@ -141,7 +145,7 @@ class EventManager:
         """
         logger.debug("Firing %s event", event)
         self._last_triggered_event = event
-        for event_handler in self._event_handlers.get(event, ()):
+        for event_handler in tuple(self._event_handlers.get(event, ())):
             event_handler.handle()
 
     def has_event_handler(self, event_handler: BaseEventHandler, event: str | None = None) -> bool:
