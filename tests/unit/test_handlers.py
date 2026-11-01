@@ -660,9 +660,9 @@ def test_base_event_handler_ahandle_calls_handle() -> None:
     assert hello_handler.call_count == 1
 
 
-#####################################
+####################################
 #     Tests for filter_payload     #
-#####################################
+####################################
 
 
 @trace
