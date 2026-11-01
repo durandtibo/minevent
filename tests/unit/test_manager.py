@@ -883,3 +883,31 @@ def test_event_manager_has_event_handler_custom_handler() -> None:
     event_manager = EventManager()
     event_manager.add_event_handler("my_event", CustomHandler([]))
     assert event_manager.has_event_handler(CustomHandler([]), "my_event")
+
+
+def test_event_manager_trigger_event_payload_with_event_and_self_keys() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", EventHandler(payload_handler))
+    manager.trigger_event("my_event", event="batch_end", self=1)
+    assert payload_handler.kwargs == {"event": "batch_end", "self": 1}
+
+
+def test_event_manager_atrigger_event_payload_with_event_and_self_keys() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", EventHandler(payload_handler))
+    asyncio.run(manager.atrigger_event("my_event", event="batch_end", self=1))
+    assert payload_handler.kwargs == {"event": "batch_end", "self": 1}
+
+
+def test_event_manager_trigger_event_once_payload_with_self_key() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", EventHandler(payload_handler), once=True)
+    manager.trigger_event("my_event", self=1)
+    assert payload_handler.kwargs == {"self": 1}
+
+
+def test_event_manager_atrigger_event_once_payload_with_self_key() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", EventHandler(payload_handler), once=True)
+    asyncio.run(manager.atrigger_event("my_event", self=1))
+    assert payload_handler.kwargs == {"self": 1}

@@ -51,11 +51,11 @@ class _OnceEventHandler(BaseEventHandler):
             other = other.event_handler
         return self.event_handler.equal(other)
 
-    def handle(self, **payload: Any) -> None:
+    def handle(self, /, **payload: Any) -> None:
         if self.subscription is None or self.subscription.remove():
             self.event_handler.handle(**payload)
 
-    async def ahandle(self, **payload: Any) -> None:
+    async def ahandle(self, /, **payload: Any) -> None:
         if self.subscription is None or self.subscription.remove():
             await self.event_handler.ahandle(**payload)
 
@@ -283,7 +283,7 @@ class EventManager:
                     return True
             return False
 
-    def trigger_event(self, event: str, **payload: Any) -> None:
+    def trigger_event(self, event: str, /, **payload: Any) -> None:
         r"""Trigger the handler(s) for the given event.
 
         This method executes all event handlers registered for the
@@ -302,7 +302,8 @@ class EventManager:
         handler as keyword arguments, after the arguments given at
         registration. Without payload, handlers are called exactly as
         before. A handler that does not accept the payload raises a
-        ``TypeError``.
+        ``TypeError``. The payload can use any key, including
+        ``event`` and ``self``, because ``event`` is positional-only.
 
         Args:
             event: The event name (case-sensitive string) to trigger.
@@ -335,7 +336,7 @@ class EventManager:
         for event_handler in self._start_trigger(event):
             event_handler.handle(**payload)
 
-    async def atrigger_event(self, event: str, **payload: Any) -> None:
+    async def atrigger_event(self, event: str, /, **payload: Any) -> None:
         r"""Trigger the handler(s) for the given event, awaiting the
         coroutine handlers.
 

@@ -25,7 +25,7 @@ class Tracer:
         update_wrapper(self, func)
         self.reset()
 
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+    def __call__(self, /, *args: Any, **kwargs: Any) -> Any:
         self.called = True
         self.call_count += 1
         self.args = args
