@@ -25,7 +25,7 @@ Consequences:
 
 - `__repr__` lists phantom events with no handlers.
 - `remove_event_handler("x", h)` after a `trigger_event("x")` raises
-  *"handler is not found among registered..."* instead of *"'x' event does not exist"*. The error
+  _"handler is not found among registered..."_ instead of _"'x' event does not exist"_. The error
   depends on whether the event was previously triggered, and `remove_event_handler` itself relies on
   `event not in self._event_handlers`, which the other two methods corrupt.
 - The dict grows without bound if event names are dynamic (for example `f"epoch_{i}"`).
@@ -53,7 +53,7 @@ removed during dispatch take effect on the next trigger".
 
 ### 1.4 (P1) Exception policy is undefined
 
-If handler *k* raises, handlers *k+1..n* never run and `last_triggered_event` is already set. The
+If handler _k_ raises, handlers _k+1..n_ never run and `last_triggered_event` is already set. The
 docs (`best_practices.md`, `troubleshooting.md`) tell users to wrap each handler in `try/except`,
 which shows the library should offer a policy. Options:
 
@@ -227,7 +227,7 @@ the guarantee that does hold.
   better, `Callable[..., object]`. With a `ParamSpec`-based generic handler the arguments could even
   be type-checked against `handler_args`.
 - (P2) `handler_kwargs: dict[str, Any]` should be `Mapping[str, Any]`, `handler_args:
-  Sequence[Any]` should reject `str` (a `str` is a `Sequence`, so `handler_args="abc"` silently
+Sequence[Any]` should reject `str` (a `str` is a `Sequence`, so `handler_args="abc"` silently
   becomes `("a", "b", "c")`).
 - (P2) `BaseCondition.__eq__` returns `self.equal(other)` and `equal` takes `Any`. Use
   `object` instead of `Any` for `other`.
@@ -318,7 +318,7 @@ the guarantee that does hold.
   `nightly-tests.yaml`, `docs.yaml`, `docs-dev.yaml`. The existing files are
   `nightly-test-package.yaml`, `nightly-test-package-dep.yaml`, `release-docs.yaml`, and
   `release-docs-dev.yaml`. `docs/docs/index.md` uses yet another form (`workflows/Nightly%20Tests/
-  badge.svg` by workflow *name*). Badges render as "no status" or broken.
+badge.svg` by workflow _name_). Badges render as "no status" or broken.
 - (P1) `README.md` and `docs/docs/index.md` are two diverging copies of the same content (badges,
   overview, install). Use `mkdocs-include-markdown-plugin` (already a dependency in the `docs`
   group) to include the README, or trim `index.md` to the essentials. Note the README version table
@@ -332,7 +332,7 @@ the guarantee that does hold.
   - `best_practices.md`, `troubleshooting.md`, and `faq.md` repeat the same advice (exception
     handling, duplicates, testing with mocks). Merge them and de-duplicate.
 - (P1) All Markdown code snippets should be executed in CI. `ci-doctest.yaml` covers docstrings
-  via `xdoctest`, but the many ```` ```python ```` blocks in `docs/` are not tested. Use
+  via `xdoctest`, but the many ` ```python ` blocks in `docs/` are not tested. Use
   `pytest --doctest-glob`, `mktestdocs`, or `pytest-markdown-docs` to prevent drift.
 - (P2) `mkdocs.yml` has the `pymdownx.emoji` configuration with `!!python/name:` tags, which makes the
   YAML unsafe to load (which is why `check-yaml --unsafe` is needed). Consider `material.extensions`
@@ -354,8 +354,8 @@ This is the most elaborate part of the repository (35 workflow files for a libra
 
 - (P1) Maintenance cost vs benefit: there are seven `bot-*`, three `lib-*`, three `nightly-*`, and
   three `release-docs*` workflows. Consider whether `bot-pin-action` + `bot-pre-commit-autoupdate`
-  + `bot-update-deps` + `bot-generate-package-versions` + `dependabot.yml` overlap (Dependabot is
-  also configured). Pick one mechanism per concern.
+  - `bot-update-deps` + `bot-generate-package-versions` + `dependabot.yml` overlap (Dependabot is
+    also configured). Pick one mechanism per concern.
 - (P1) `ci-test-code-dep.yaml`, `ci-test-deps.yaml`, `nightly-test-package-dep.yaml`, and
   `lib-get-package-versions.yaml` test version matrices of `coola`. If `coola` is removed
   (5), roughly a quarter of the CI disappears, along with `dev/generate_versions.py` and
