@@ -43,7 +43,7 @@ This guide helps you diagnose and resolve common issues when using `minevent`.
    # The handler only executes every 5 calls
    for i in range(10):
        manager.trigger_event("my_event")
-       print(f"Call {i}: Condition evaluated to {condition.evaluate()}")
+       print(f"Call {i}: Condition evaluated to {condition()}")
    ```
 
 4. **Handler raises an exception**

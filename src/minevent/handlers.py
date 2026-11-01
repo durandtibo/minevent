@@ -11,12 +11,10 @@ from typing import TYPE_CHECKING, Any
 from coola.equality import objects_are_equal
 from coola.utils.format import str_indent, str_mapping
 
-from minevent.conditions import as_condition
-
 if TYPE_CHECKING:
     from collections.abc import Callable, Mapping, Sequence
 
-    from minevent.conditions import BaseCondition
+    from minevent.conditions import Condition
 
 
 class BaseEventHandler(ABC):  # noqa: PLW1641
@@ -216,13 +214,12 @@ class EventHandler(BaseEventHandler):
             when it is called. The dictionary is copied, so changing
             it afterwards does not change the handler.
             Default is ``None``.
-        condition: The condition object that controls whether the
-            handler is executed. The condition's ``evaluate`` method
-            is called without arguments, each time the event is
-            triggered, and must return a boolean value. A function
-            without argument that returns a boolean is also accepted;
-            it is wrapped in a ``CallableCondition``. If ``None``,
-            the handler is always executed. Default is ``None``.
+        condition: The condition that controls whether the handler
+            is executed: a function without argument that returns a
+            boolean, such as a lambda or a ``PeriodicCondition``. It
+            is called each time the event is triggered, before the
+            handler. If ``None``, the handler is always executed.
+            Default is ``None``.
         filter_payload: If ``True``, only the payload keys that the
             signature of the handler accepts are passed to it, so
             handlers with different needs can share an event without
@@ -236,7 +233,7 @@ class EventHandler(BaseEventHandler):
         TypeError: if ``handler`` is not callable, if
             ``handler_args`` is a ``str`` or ``bytes`` (which would
             be split into characters), or if ``condition`` is
-            neither ``None``, a ``BaseCondition`` nor callable.
+            neither ``None`` nor callable.
 
     Example:
         ```pycon
@@ -286,7 +283,7 @@ class EventHandler(BaseEventHandler):
         handler_args: Sequence[Any] | None = None,
         handler_kwargs: Mapping[str, Any] | None = None,
         *,
-        condition: BaseCondition | Callable[[], bool] | None = None,
+        condition: Condition | None = None,
         filter_payload: bool = False,
     ) -> None:
         if not callable(handler):
@@ -295,10 +292,13 @@ class EventHandler(BaseEventHandler):
         if isinstance(handler_args, (str, bytes)):
             msg = f"handler_args must be a sequence of arguments, not a string: {handler_args!r}"
             raise TypeError(msg)
+        if condition is not None and not callable(condition):
+            msg = f"condition is not callable: {condition}"
+            raise TypeError(msg)
         self._handler = handler
         self._handler_args = () if handler_args is None else tuple(handler_args)
         self._handler_kwargs = {} if handler_kwargs is None else dict(handler_kwargs)
-        self._condition = None if condition is None else as_condition(condition)
+        self._condition = condition
         self._filter_payload = filter_payload
         self._payload_keys = _accepted_keywords(handler) if filter_payload else None
 
@@ -348,7 +348,7 @@ class EventHandler(BaseEventHandler):
         return dict(self._handler_kwargs)
 
     @property
-    def condition(self) -> BaseCondition | None:
+    def condition(self) -> Condition | None:
         r"""Get the condition that controls handler execution.
 
         Returns:
@@ -394,7 +394,7 @@ class EventHandler(BaseEventHandler):
             The value returned by the handler, or ``None`` if the
                 condition is ``False``.
         """
-        if self._condition is not None and not self._condition.evaluate():
+        if self._condition is not None and not self._condition():
             return None
         return self._handler(
             *self._handler_args, **self._handler_kwargs, **self._select_payload(payload)
