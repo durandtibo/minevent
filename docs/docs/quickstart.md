@@ -160,6 +160,31 @@ Hello!
 
 ```
 
+The combinators do not short-circuit on purpose: `AndCondition(cheap, expensive)` always calls
+`expensive`, because a stateful operand (such as `PeriodicCondition`) must see every call to count
+correctly. If an operand is costly and stateless, put the check in a plain function and combine it
+yourself, for example `lambda: cheap.evaluate() and expensive()`.
+
+Stateful conditions (`PeriodicCondition`, `OnceCondition`, `AfterNCondition`) keep their counter in
+the instance. A condition instance given to two handlers is shared, so the two handlers advance the
+same counter. Create one instance per handler (a small factory function is enough):
+
+```pycon
+>>> from minevent import EventHandler, PeriodicCondition
+>>> def make_handler(name):
+...     return EventHandler(print, handler_args=(name,), condition=PeriodicCondition(freq=2))
+>>> first, second = make_handler("first"), make_handler("second")
+>>> first.handle()
+first
+>>> second.handle()
+second
+
+```
+
+`add_event_handler(..., once=True)` and `OnceCondition` are two ways to run a handler once. Prefer
+`once=True` to run a handler on the next trigger of an event (the registration is removed). Use
+`OnceCondition` when the handler stays registered, for example inside an `AndCondition`.
+
 ### Event handler comparison
 
 It is possible to compare event handlers by using the `equal` method.
