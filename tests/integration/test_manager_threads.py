@@ -115,6 +115,30 @@ def test_once_handler_runs_once_from_threads() -> None:
     assert len(calls) == 1
 
 
+def test_once_handler_runs_once_when_snapshots_taken_before_dispatch() -> None:
+    """Test that a ``once`` handler runs once even if every thread took
+    its snapshot before any thread dispatched."""
+    manager = EventManager()
+    calls: list[int] = []
+    lock = threading.Lock()
+    barrier = threading.Barrier(NUM_THREADS)
+
+    def handler() -> None:
+        with lock:
+            calls.append(1)
+
+    manager.add_event_handler("my_event", EventHandler(handler), once=True)
+
+    def work(_index: int) -> None:
+        handlers = manager._start_trigger("my_event")
+        barrier.wait()
+        for event_handler in handlers:
+            event_handler.handle()
+
+    run_threads(work, NUM_THREADS)
+    assert len(calls) == 1
+
+
 def test_run_threads_propagates_exception() -> None:
     """Test that the helper reports the exception of a thread."""
 
