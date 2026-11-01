@@ -549,6 +549,14 @@ def test_event_manager_add_event_handler_once_subscription_remove_before_trigger
     assert not hello_handler.called
 
 
+def test_event_manager_add_event_handler_once_has_subscription_when_visible() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", EventHandler(hello_handler), once=True)
+    registered = manager._event_handlers["my_event"][0]
+    assert isinstance(registered, _OnceEventHandler)
+    assert registered.subscription is not None
+
+
 def test_event_manager_has_event_handler_once_true() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", EventHandler(hello_handler), once=True)
@@ -589,6 +597,34 @@ def test_once_event_handler_equal_false() -> None:
 
 def test_once_event_handler_handle_without_subscription() -> None:
     _OnceEventHandler(EventHandler(hello_handler)).handle()
+    assert hello_handler.call_count == 1
+
+
+def test_once_event_handler_handle_skips_when_already_removed() -> None:
+    handler = _OnceEventHandler(EventHandler(hello_handler))
+    handler.subscription = Subscription("my_event", handler, lambda _event, _handler: False)
+    handler.handle()
+    assert hello_handler.call_count == 0
+
+
+def test_once_event_handler_handle_runs_when_removal_succeeds() -> None:
+    handler = _OnceEventHandler(EventHandler(hello_handler))
+    handler.subscription = Subscription("my_event", handler, lambda _event, _handler: True)
+    handler.handle()
+    assert hello_handler.call_count == 1
+
+
+def test_once_event_handler_ahandle_skips_when_already_removed() -> None:
+    handler = _OnceEventHandler(EventHandler(hello_handler))
+    handler.subscription = Subscription("my_event", handler, lambda _event, _handler: False)
+    asyncio.run(handler.ahandle())
+    assert hello_handler.call_count == 0
+
+
+def test_once_event_handler_ahandle_runs_when_removal_succeeds() -> None:
+    handler = _OnceEventHandler(EventHandler(hello_handler))
+    handler.subscription = Subscription("my_event", handler, lambda _event, _handler: True)
+    asyncio.run(handler.ahandle())
     assert hello_handler.call_count == 1
 
 

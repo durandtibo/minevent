@@ -32,7 +32,8 @@ class _OnceEventHandler(BaseEventHandler):
 
     The wrapper removes its own registration before calling the
     wrapped handler, so the handler runs once even if it triggers the
-    same event again or raises.
+    same event again, raises, or is triggered from several threads.
+    Only the caller whose removal succeeds runs the handler.
 
     Args:
         event_handler: The wrapped event handler.
@@ -51,14 +52,12 @@ class _OnceEventHandler(BaseEventHandler):
         return self.event_handler.equal(other)
 
     def handle(self, **payload: Any) -> None:
-        if self.subscription is not None:
-            self.subscription.remove()
-        self.event_handler.handle(**payload)
+        if self.subscription is None or self.subscription.remove():
+            self.event_handler.handle(**payload)
 
     async def ahandle(self, **payload: Any) -> None:
-        if self.subscription is not None:
-            self.subscription.remove()
-        await self.event_handler.ahandle(**payload)
+        if self.subscription is None or self.subscription.remove():
+            await self.event_handler.ahandle(**payload)
 
 
 def _unwrap(event_handler: BaseEventHandler) -> BaseEventHandler:
@@ -254,11 +253,11 @@ class EventManager:
         registered = event_handler
         if once:
             registered = _OnceEventHandler(event_handler)
-        with self._lock:
-            self._event_handlers.setdefault(event, []).append(registered)
         subscription = Subscription(event, registered, self._remove_registration)
         if isinstance(registered, _OnceEventHandler):
             registered.subscription = subscription
+        with self._lock:
+            self._event_handlers.setdefault(event, []).append(registered)
         logger.debug("Added %s to event %s", event_handler, event)
         return subscription
 
