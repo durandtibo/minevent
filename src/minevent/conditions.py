@@ -104,10 +104,24 @@ class PeriodicCondition(BaseCondition):
     increments with each evaluation. The condition is ``True`` when
     the counter modulo ``freq`` equals zero.
 
+    Note that ``evaluate`` is not idempotent: each call advances the
+    counter, so the condition is stateful. Do not share one instance
+    between several handlers, because they would advance the same
+    counter. Use ``reset`` to restart the counter. Two conditions are
+    equal if they have the same ``freq`` and ``skip_first``; the
+    current progress is ignored, so duplicate handlers are detected
+    whatever their progress.
+
     Args:
         freq: The frequency (interval) at which the condition
-            evaluates to ``True``. Must be a positive integer; a value of zero
-            raises a ``ZeroDivisionError`` when evaluating.
+            evaluates to ``True``. Must be a positive integer.
+        skip_first: If ``True``, the first call evaluates to
+            ``False``, and then the condition evaluates to ``True``
+            every ``freq`` calls. Default is ``False``.
+
+    Raises:
+        TypeError: if ``freq`` is not an integer.
+        ValueError: if ``freq`` is lower than 1.
 
     Example:
         ```pycon
@@ -127,16 +141,33 @@ class PeriodicCondition(BaseCondition):
         False
         >>> condition.evaluate()
         True
+        >>> condition = PeriodicCondition(freq=2, skip_first=True)
+        >>> condition.evaluate()
+        False
+        >>> condition.evaluate()
+        False
+        >>> condition.evaluate()
+        True
 
         ```
     """
 
-    def __init__(self, freq: int) -> None:
-        self._freq = int(freq)
+    def __init__(self, freq: int, *, skip_first: bool = False) -> None:
+        if isinstance(freq, bool) or not isinstance(freq, int):
+            msg = f"freq must be an integer, got {type(freq).__qualname__}"
+            raise TypeError(msg)
+        if freq < 1:
+            msg = f"freq must be greater than or equal to 1, got {freq}"
+            raise ValueError(msg)
+        self._freq = freq
+        self._skip_first = bool(skip_first)
         self._step = 0
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__qualname__}(freq={self._freq:,}, step={self._step:,})"
+        return (
+            f"{self.__class__.__qualname__}(freq={self._freq:,}, "
+            f"skip_first={self._skip_first}, step={self._step:,})"
+        )
 
     @property
     def freq(self) -> int:
@@ -149,12 +180,42 @@ class PeriodicCondition(BaseCondition):
         """
         return self._freq
 
+    @property
+    def skip_first(self) -> bool:
+        r"""Indicate if the first evaluation is skipped.
+
+        Returns:
+            ``True`` if the first call to ``evaluate`` returns
+                ``False``, otherwise ``False``.
+        """
+        return self._skip_first
+
     def equal(self, other: Any) -> bool:
         if isinstance(other, PeriodicCondition):
-            return self.freq == other.freq
+            return self.freq == other.freq and self.skip_first == other.skip_first
         return False
 
     def evaluate(self) -> bool:
-        condition = self._step % self._freq == 0
+        condition = self._step % self._freq == 0 and not (self._skip_first and self._step == 0)
         self._step += 1
         return condition
+
+    def reset(self) -> None:
+        r"""Reset the internal counter, as if the condition was just
+        created.
+
+        Example:
+            ```pycon
+            >>> from minevent import PeriodicCondition
+            >>> condition = PeriodicCondition(freq=2)
+            >>> condition.evaluate()
+            True
+            >>> condition.evaluate()
+            False
+            >>> condition.reset()
+            >>> condition.evaluate()
+            True
+
+            ```
+        """
+        self._step = 0
