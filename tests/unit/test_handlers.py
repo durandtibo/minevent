@@ -14,7 +14,6 @@ from minevent import (
     AndCondition,
     BaseEventHandler,
     CallableCondition,
-    ConditionalEventHandler,
     EventHandler,
     PeriodicCondition,
 )
@@ -434,40 +433,6 @@ def test_event_handler_equal_true_same_subclass() -> None:
         pass
 
     assert MyEventHandler(hello_handler).equal(MyEventHandler(hello_handler))
-
-
-#############################################
-#     Tests for ConditionalEventHandler     #
-#############################################
-
-
-def test_conditional_event_handler_warns() -> None:
-    with pytest.warns(DeprecationWarning, match=r"ConditionalEventHandler is deprecated"):
-        ConditionalEventHandler(hello_handler, PeriodicCondition(2))
-
-
-def test_conditional_event_handler_returns_event_handler() -> None:
-    with pytest.warns(DeprecationWarning, match=r"ConditionalEventHandler is deprecated"):
-        event_handler = ConditionalEventHandler(hello_handler, PeriodicCondition(2))
-    assert type(event_handler) is EventHandler
-
-
-def test_conditional_event_handler_equal_event_handler_with_condition() -> None:
-    with pytest.warns(DeprecationWarning, match=r"ConditionalEventHandler is deprecated"):
-        event_handler = ConditionalEventHandler(hello_handler, PeriodicCondition(2))
-    assert event_handler.equal(EventHandler(hello_handler, condition=PeriodicCondition(2)))
-
-
-def test_conditional_event_handler_arguments() -> None:
-    with pytest.warns(DeprecationWarning, match=r"ConditionalEventHandler is deprecated"):
-        event_handler = ConditionalEventHandler(
-            hello_name_handler,
-            PeriodicCondition(2),
-            handler_args=("John",),
-            handler_kwargs={"last_name": "Doe"},
-        )
-    event_handler.handle()
-    assert hello_name_handler.kwargs == {"last_name": "Doe"}
 
 
 def test_event_handler_key() -> None:

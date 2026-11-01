@@ -9,7 +9,6 @@ __all__ = [
     "BaseCondition",
     "BaseEventHandler",
     "CallableCondition",
-    "ConditionalEventHandler",
     "EventHandler",
     "EventManager",
     "NotCondition",
@@ -37,7 +36,6 @@ from minevent.conditions import (
 )
 from minevent.handlers import (
     BaseEventHandler,
-    ConditionalEventHandler,
     EventHandler,
 )
 from minevent.manager import EventManager
