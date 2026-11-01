@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 import logging
 from types import MappingProxyType
 from typing import Any
@@ -46,7 +47,9 @@ def always_false() -> bool:
 def _reset_tracer() -> None:
     hello_handler.reset()
     hello_name_handler.reset()
+    async_hello_handler.reset()
     async_name_handler.reset()
+    kwargs_handler.reset()
 
 
 ##################################
@@ -528,6 +531,38 @@ async def async_hello_handler() -> None:
 async def async_name_handler(first_name: str, last_name: str) -> None:
     r"""Implements a coroutine handler with arguments."""
     logger.info("Hello async. I am %s %s", first_name, last_name)
+
+
+def test_event_handler_handle_coroutine_raises() -> None:
+    with pytest.raises(TypeError, match=r"returned an awaitable; use ahandle or atrigger_event"):
+        EventHandler(async_hello_handler).handle()
+
+
+def test_event_handler_handle_coroutine_is_closed() -> None:
+    coroutines = []
+
+    def make_coroutine() -> object:
+        coroutine = async_hello_handler()
+        coroutines.append(coroutine)
+        return coroutine
+
+    with pytest.raises(TypeError, match=r"returned an awaitable"):
+        EventHandler(make_coroutine).handle()
+    assert inspect.getcoroutinestate(coroutines[0]) == inspect.CORO_CLOSED
+
+
+def test_event_handler_handle_awaitable_raises() -> None:
+    class Awaitable:
+        def __await__(self) -> Any:
+            yield
+
+    with pytest.raises(TypeError, match=r"returned an awaitable"):
+        EventHandler(Awaitable).handle()
+
+
+def test_event_handler_handle_coroutine_condition_false_does_not_call() -> None:
+    EventHandler(async_hello_handler, condition=lambda: False).handle()
+    assert async_hello_handler.call_count == 0
 
 
 def test_event_handler_ahandle_coroutine_awaited() -> None:
