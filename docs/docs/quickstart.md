@@ -208,7 +208,6 @@ False
 - [Fire an event](#fire-an-event)
 - [Remove an event handler](#remove-an-event-handler)
 - [Reset the event manager](#reset-the-event-manager)
-- [Internals](#internals)
 
 ### Overview of the event manager
 
