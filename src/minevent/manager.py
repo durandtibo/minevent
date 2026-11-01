@@ -86,6 +86,32 @@ class EventManager:
             }
         )
 
+    def __contains__(self, event: object) -> bool:
+        return event in self._event_handlers
+
+    @property
+    def events(self) -> list[str]:
+        r"""Get the events that have at least one registered handler.
+
+        Returns:
+            The event names, in the order they were first registered.
+
+        Example:
+            ```pycon
+            >>> from minevent import EventHandler, EventManager
+            >>> manager = EventManager()
+            >>> manager.events
+            []
+            >>> manager.add_event_handler("my_event", EventHandler(print))
+            >>> manager.events
+            ['my_event']
+            >>> "my_event" in manager
+            True
+
+            ```
+        """
+        return list(self._event_handlers)
+
     @property
     def last_triggered_event(self) -> str | None:
         r"""Get the last event name that was triggered.
@@ -312,6 +338,32 @@ class EventManager:
         else:
             del self._event_handlers[event]
         logger.debug("Removed %s in '%s' event", event_handler, event)
+
+    def clear_event(self, event: str) -> None:
+        r"""Remove all the event handlers of a given event.
+
+        Nothing happens if the event has no registered handler.
+
+        Args:
+            event: The event name (case-sensitive string) to clear.
+
+        Raises:
+            TypeError: if ``event`` is not a string.
+
+        Example:
+            ```pycon
+            >>> from minevent import EventHandler, EventManager
+            >>> manager = EventManager()
+            >>> manager.add_event_handler("my_event", EventHandler(print))
+            >>> manager.clear_event("my_event")
+            >>> manager.events
+            []
+
+            ```
+        """
+        _check_event(event)
+        if self._event_handlers.pop(event, None) is not None:
+            logger.debug("Cleared all the event handlers of '%s' event", event)
 
     def reset(self) -> None:
         r"""Reset the event manager.
