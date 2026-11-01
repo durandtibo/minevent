@@ -35,6 +35,10 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
   `OrCondition`, `NotCondition`, `CallableCondition`); a function without argument that returns a
   boolean is accepted as a condition.
 - The `EventManager` registry is thread-safe.
+- `EventManager.get_event_handlers`, `__len__` and the `on` decorator.
+- `has_event_handler` and `remove_event_handler` accept a `Subscription`.
+- `Subscription` is a context manager and has an `active` property.
+- `EventHandler(..., filter_payload=True)` passes only the payload keys the handler accepts.
 
 ### Changed
 
