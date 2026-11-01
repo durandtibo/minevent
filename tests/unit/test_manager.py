@@ -253,3 +253,27 @@ def test_event_manager_trigger_event_handler_removed_during_dispatch_still_runs(
     event_manager.trigger_event("my_event")
     assert hello_handler.call_count == 1
     assert not event_manager.has_event_handler(EventHandler(hello_handler))
+
+
+def test_event_manager_trigger_event_handler_raises_skips_next_handlers() -> None:
+    def fail() -> None:
+        msg = "boom"
+        raise ValueError(msg)
+
+    event_manager = EventManager()
+    event_manager.add_event_handler("my_event", EventHandler(fail))
+    event_manager.add_event_handler("my_event", EventHandler(hello_handler))
+    with pytest.raises(ValueError, match=r"boom"):
+        event_manager.trigger_event("my_event")
+    assert hello_handler.call_count == 0
+    assert event_manager.last_triggered_event == "my_event"
+
+
+def test_event_manager_last_triggered_event_set_before_handlers_run() -> None:
+    event_manager = EventManager()
+    seen = []
+    event_manager.add_event_handler(
+        "my_event", EventHandler(lambda: seen.append(event_manager.last_triggered_event))
+    )
+    event_manager.trigger_event("my_event")
+    assert seen == ["my_event"]
