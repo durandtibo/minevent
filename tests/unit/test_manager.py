@@ -6,7 +6,14 @@ from typing import Any
 
 import pytest
 
-from minevent import EventHandler, EventManager, Subscription
+from minevent import (
+    BaseCondition,
+    BaseEventHandler,
+    EventHandler,
+    EventManager,
+    PeriodicCondition,
+    Subscription,
+)
 from minevent.manager import _OnceEventHandler, _unwrap
 from tests.unit.utils import trace
 
@@ -730,3 +737,113 @@ def test_event_manager_start_trigger_incorrect_event() -> None:
 def test_once_event_handler_ahandle_without_subscription() -> None:
     asyncio.run(_OnceEventHandler(EventHandler(async_handler)).ahandle())
     assert async_handler.call_count == 1
+
+
+##########################################
+#     Tests for real-world scenarios     #
+##########################################
+
+
+class CustomCondition(BaseCondition):
+    r"""Implements a condition that is true for odd calls."""
+
+    def __init__(self) -> None:
+        self._count = 0
+
+    def equal(self, other: object) -> bool:
+        return isinstance(other, CustomCondition)
+
+    def evaluate(self) -> bool:
+        self._count += 1
+        return self._count % 2 == 1
+
+
+class CustomHandler(BaseEventHandler):
+    r"""Implements a handler that records the payload."""
+
+    def __init__(self, calls: list[dict[str, Any]]) -> None:
+        self._calls = calls
+
+    def equal(self, other: object) -> bool:
+        return isinstance(other, CustomHandler)
+
+    def handle(self, **payload: Any) -> None:
+        self._calls.append(payload)
+
+
+def test_event_manager_remove_event_handler_after_trigger_event() -> None:
+    event_manager = EventManager()
+    event_manager.add_event_handler("my_event", EventHandler(hello_handler))
+    event_manager.trigger_event("my_event")
+    event_manager.remove_event_handler("my_event", EventHandler(hello_handler))
+    assert not event_manager.has_event_handler(EventHandler(hello_handler), "my_event")
+
+
+def test_event_manager_trigger_event_unknown_event_does_not_register_it() -> None:
+    event_manager = EventManager()
+    event_manager.trigger_event("my_event")
+    assert event_manager.events == []
+
+
+def test_event_manager_trigger_event_conditional_handler() -> None:
+    event_manager = EventManager()
+    event_manager.add_event_handler(
+        "my_event", EventHandler(hello_handler, condition=PeriodicCondition(2))
+    )
+    event_manager.trigger_event("my_event")
+    event_manager.trigger_event("my_event")
+    event_manager.trigger_event("my_event")
+    assert hello_handler.call_count == 2
+
+
+def test_event_manager_has_event_handler_conditional_handler_true() -> None:
+    event_manager = EventManager()
+    event_manager.add_event_handler(
+        "my_event", EventHandler(hello_handler, condition=PeriodicCondition(2))
+    )
+    assert event_manager.has_event_handler(
+        EventHandler(hello_handler, condition=PeriodicCondition(2)), "my_event"
+    )
+
+
+def test_event_manager_has_event_handler_conditional_handler_different_condition() -> None:
+    event_manager = EventManager()
+    event_manager.add_event_handler(
+        "my_event", EventHandler(hello_handler, condition=PeriodicCondition(2))
+    )
+    assert not event_manager.has_event_handler(
+        EventHandler(hello_handler, condition=PeriodicCondition(3)), "my_event"
+    )
+
+
+def test_event_manager_has_event_handler_conditional_handler_without_condition() -> None:
+    event_manager = EventManager()
+    event_manager.add_event_handler(
+        "my_event", EventHandler(hello_handler, condition=PeriodicCondition(2))
+    )
+    assert not event_manager.has_event_handler(EventHandler(hello_handler), "my_event")
+
+
+def test_event_manager_trigger_event_custom_condition() -> None:
+    event_manager = EventManager()
+    event_manager.add_event_handler(
+        "my_event", EventHandler(hello_handler, condition=CustomCondition())
+    )
+    event_manager.trigger_event("my_event")
+    event_manager.trigger_event("my_event")
+    event_manager.trigger_event("my_event")
+    assert hello_handler.call_count == 2
+
+
+def test_event_manager_trigger_event_custom_handler_receives_payload() -> None:
+    calls: list[dict[str, Any]] = []
+    event_manager = EventManager()
+    event_manager.add_event_handler("my_event", CustomHandler(calls))
+    event_manager.trigger_event("my_event", value=1)
+    assert calls == [{"value": 1}]
+
+
+def test_event_manager_has_event_handler_custom_handler() -> None:
+    event_manager = EventManager()
+    event_manager.add_event_handler("my_event", CustomHandler([]))
+    assert event_manager.has_event_handler(CustomHandler([]), "my_event")
