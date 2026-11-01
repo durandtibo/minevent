@@ -46,6 +46,11 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
 - `Subscription.remove` removes only its own registration: calling it twice no longer removes the
   registration of another subscription of the same handler.
 
+### Fixed
+
+- `Subscription.remove` removes only its own registration: calling it twice no longer removes the
+  registration of another subscription of the same handler.
+
 ### Changed
 
 - Stricter type hints (`Callable[..., object]`, `Mapping`, `equal(other: object)`).
