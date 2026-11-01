@@ -6,12 +6,15 @@ __all__ = ["EventManager"]
 
 import logging
 import threading
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from coola.utils.format import str_indent, str_mapping, str_sequence
 
 from minevent.handlers import BaseEventHandler
 from minevent.subscription import Subscription
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -122,27 +125,33 @@ class EventManager:
 
     def __repr__(self) -> str:
         with self._lock:
-            config = {
-                "event_handlers": self._format_event_handlers(),
-                "last_triggered_event": self._last_triggered_event,
+            event_handlers = {
+                event: tuple(handlers) for event, handlers in self._event_handlers.items()
             }
+            last_triggered_event = self._last_triggered_event
+        # The handlers can have a custom repr, so they are formatted outside of the lock.
+        config = {
+            "event_handlers": self._format_event_handlers(event_handlers),
+            "last_triggered_event": last_triggered_event,
+        }
         args = str_indent(str_mapping(config))
         return f"{self.__class__.__qualname__}(\n  {args}\n)"
 
-    def _format_event_handlers(self) -> str:
+    @staticmethod
+    def _format_event_handlers(event_handlers: Mapping[str, Sequence[BaseEventHandler]]) -> str:
         r"""Format the registered handlers, one block per event.
+
+        Args:
+            event_handlers: The handlers of each event.
 
         Returns:
             The formatted handlers, starting with a newline, or an
                 empty string if no handler is registered.
         """
-        if not self._event_handlers:
+        if not event_handlers:
             return ""
         return "\n" + str_mapping(
-            {
-                event: "\n" + str_sequence(handlers)
-                for event, handlers in self._event_handlers.items()
-            }
+            {event: "\n" + str_sequence(handlers) for event, handlers in event_handlers.items()}
         )
 
     def __contains__(self, event: object) -> bool:
@@ -498,27 +507,24 @@ class EventManager:
         """
         _check_event(event)
         with self._lock:
-            if event not in self._event_handlers:
-                if missing_ok:
-                    return
-                msg = f"'{event}' event does not exist"
-                raise ValueError(msg)
+            registered = tuple(self._event_handlers.get(event, ()))
+        if not registered:
+            if missing_ok:
+                return
+            msg = f"'{event}' event does not exist"
+            raise ValueError(msg)
 
-            new_event_handlers = [
-                handler
-                for handler in self._event_handlers[event]
-                if not event_handler.equal(_unwrap(handler))
-            ]
-            if len(new_event_handlers) == len(self._event_handlers[event]):
-                if missing_ok:
-                    return
-                msg = f"{event_handler} is not found among registered event handlers for '{event}' event"
-                raise ValueError(msg)
-            if len(new_event_handlers) > 0:
-                self._event_handlers[event] = new_event_handlers
-            else:
-                del self._event_handlers[event]
-        logger.debug("Removed %s in '%s' event", event_handler, event)
+        # The comparison can run user code, so it is done outside of the lock.
+        matches = [handler for handler in registered if event_handler.equal(_unwrap(handler))]
+        if not matches:
+            if missing_ok:
+                return
+            msg = (
+                f"{event_handler} is not found among registered event handlers for '{event}' event"
+            )
+            raise ValueError(msg)
+        for handler in matches:
+            self._remove_registration(event, handler)
 
     def clear_event(self, event: str) -> None:
         r"""Remove all the event handlers of a given event.

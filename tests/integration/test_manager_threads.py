@@ -139,6 +139,28 @@ def test_once_handler_runs_once_when_snapshots_taken_before_dispatch() -> None:
     assert len(calls) == 1
 
 
+def test_remove_event_handler_with_equal_that_uses_manager_from_another_thread() -> None:
+    """Test that ``equal`` can wait for another thread that uses the
+    manager, because the lock is not held while it runs."""
+    manager = EventManager()
+    manager.add_event_handler("my_event", EventHandler(len, handler_args=([],)))
+    added: list[bool] = []
+
+    class WaitingHandler(EventHandler):
+        def equal(self, other: object) -> bool:
+            def add() -> None:
+                manager.add_event_handler("my_other_event", EventHandler(len, handler_args=([],)))
+                added.append(True)
+
+            thread = threading.Thread(target=add)
+            thread.start()
+            thread.join(timeout=5)
+            return other is not None
+
+    manager.remove_event_handler("my_event", WaitingHandler(len))
+    assert added == [True]
+
+
 def test_run_threads_propagates_exception() -> None:
     """Test that the helper reports the exception of a thread."""
 

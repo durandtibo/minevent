@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import threading
 from typing import Any
 
 import pytest
@@ -936,3 +937,97 @@ def test_event_manager_trigger_event_coroutine_handler_raises() -> None:
     manager.add_event_handler("my_event", EventHandler(async_handler))
     with pytest.raises(TypeError, match=r"returned an awaitable; use ahandle or atrigger_event"):
         manager.trigger_event("my_event")
+
+
+##########################################
+#     Tests for user code and lock     #
+##########################################
+
+
+def lock_is_held(manager: EventManager) -> bool:
+    r"""Indicate if the lock of the manager is held by the current
+    thread."""
+    acquired: list[bool] = []
+
+    def try_acquire() -> None:
+        acquired.append(manager._lock.acquire(blocking=False))
+        if acquired[0]:
+            manager._lock.release()
+
+    thread = threading.Thread(target=try_acquire)
+    thread.start()
+    thread.join()
+    return not acquired[0]
+
+
+class LockProbeHandler(EventHandler):
+    r"""Implements a handler that records whether the manager lock is
+    held when ``equal`` or ``__repr__`` is called."""
+
+    def __init__(self, manager: EventManager) -> None:
+        super().__init__(hello_handler)
+        self.manager = manager
+        self.lock_held: list[bool] = []
+
+    def __repr__(self) -> str:
+        self.lock_held.append(lock_is_held(self.manager))
+        return "LockProbeHandler()"
+
+    def equal(self, other: object) -> bool:
+        self.lock_held.append(lock_is_held(self.manager))
+        return other is not None
+
+
+def test_event_manager_remove_event_handler_equal_called_without_lock() -> None:
+    manager = EventManager()
+    probe = LockProbeHandler(manager)
+    manager.add_event_handler("my_event", EventHandler(hello_handler))
+    manager.remove_event_handler("my_event", probe)
+    assert probe.lock_held == [False]
+
+
+def test_event_manager_has_event_handler_equal_called_without_lock() -> None:
+    manager = EventManager()
+    probe = LockProbeHandler(manager)
+    manager.add_event_handler("my_event", EventHandler(hello_handler))
+    manager.has_event_handler(probe)
+    assert probe.lock_held == [False]
+
+
+def test_event_manager_repr_called_without_lock() -> None:
+    manager = EventManager()
+    probe = LockProbeHandler(manager)
+    manager.add_event_handler("my_event", probe)
+    repr(manager)
+    assert probe.lock_held == [False]
+
+
+def test_event_manager_remove_event_handler_removes_only_equal_registrations() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", EventHandler(hello_handler))
+    manager.add_event_handler("my_event", EventHandler(payload_handler))
+    manager.add_event_handler("my_event", EventHandler(hello_handler))
+    manager.remove_event_handler("my_event", EventHandler(hello_handler))
+    assert manager.has_event_handler(EventHandler(payload_handler), "my_event")
+    assert not manager.has_event_handler(EventHandler(hello_handler), "my_event")
+
+
+def test_event_manager_remove_event_handler_keeps_order_of_remaining_handlers() -> None:
+    manager = EventManager()
+    first = EventHandler(payload_handler, handler_args=(1,))
+    last = EventHandler(payload_handler, handler_args=(2,))
+    manager.add_event_handler("my_event", first)
+    manager.add_event_handler("my_event", EventHandler(hello_handler))
+    manager.add_event_handler("my_event", last)
+    manager.remove_event_handler("my_event", EventHandler(hello_handler))
+    assert manager._event_handlers["my_event"] == [first, last]
+
+
+def test_event_manager_format_event_handlers_empty() -> None:
+    assert EventManager._format_event_handlers({}) == ""
+
+
+def test_event_manager_format_event_handlers() -> None:
+    assert EventManager._format_event_handlers({"my_event": (EventHandler(print),)}).startswith(
+        "\n(my_event):"
+    )
