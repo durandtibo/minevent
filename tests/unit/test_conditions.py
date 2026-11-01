@@ -50,52 +50,18 @@ def test_periodic_condition_equal_false_different_classes() -> None:
     assert not PeriodicCondition(3).equal("meow")
 
 
-def test_periodic_condition_evaluate_freq_1() -> None:
-    condition = PeriodicCondition(1)
-    assert [condition.evaluate() for _ in range(10)] == [
-        True,
-        True,
-        True,
-        True,
-        True,
-        True,
-        True,
-        True,
-        True,
-        True,
-    ]
-
-
-def test_periodic_condition_evaluate_freq_2() -> None:
-    condition = PeriodicCondition(2)
-    assert [condition.evaluate() for _ in range(10)] == [
-        True,
-        False,
-        True,
-        False,
-        True,
-        False,
-        True,
-        False,
-        True,
-        False,
-    ]
-
-
-def test_periodic_condition_evaluate_freq_3() -> None:
-    condition = PeriodicCondition(3)
-    assert [condition.evaluate() for _ in range(10)] == [
-        True,
-        False,
-        False,
-        True,
-        False,
-        False,
-        True,
-        False,
-        False,
-        True,
-    ]
+@pytest.mark.parametrize(
+    ("freq", "expected"),
+    [
+        (1, "TTTTTTTTTT"),
+        (2, "TFTFTFTFTF"),
+        (3, "TFFTFFTFFT"),
+        (4, "TFFFTFFFTF"),
+    ],
+)
+def test_periodic_condition_evaluate_freq(freq: int, expected: str) -> None:
+    condition = PeriodicCondition(freq)
+    assert "".join("T" if condition.evaluate() else "F" for _ in range(10)) == expected
 
 
 ##############################################################
