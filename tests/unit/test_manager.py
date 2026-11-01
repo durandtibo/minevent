@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
@@ -22,6 +22,12 @@ def hello_handler() -> None:
     logger.info("Hello!")
 
 
+@trace
+def payload_handler(*args: Any, **kwargs: Any) -> None:
+    r"""Implements a handler that accepts any arguments."""
+    logger.info("Payload: %s %s", args, kwargs)
+
+
 @pytest.fixture(autouse=True)
 def _reset_tracer() -> None:
     def reset_func(func: Callable) -> None:
@@ -31,6 +37,7 @@ def _reset_tracer() -> None:
         func.kwargs = {}
 
     reset_func(hello_handler)
+    reset_func(payload_handler)
 
 
 ##################################
@@ -375,3 +382,37 @@ def test_event_manager_clear_event_missing() -> None:
 def test_event_manager_clear_event_must_be_str() -> None:
     with pytest.raises(TypeError, match=r"event must be a str"):
         EventManager().clear_event(1)
+
+
+###########################################
+#     Tests for trigger_event payload     #
+###########################################
+
+
+def test_event_manager_trigger_event_payload() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", EventHandler(payload_handler))
+    manager.trigger_event("my_event", epoch=3, loss=0.5)
+    assert payload_handler.kwargs == {"epoch": 3, "loss": 0.5}
+
+
+def test_event_manager_trigger_event_payload_all_handlers() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", EventHandler(payload_handler))
+    manager.add_event_handler("my_event", EventHandler(payload_handler, handler_args=(1,)))
+    manager.trigger_event("my_event", epoch=3)
+    assert payload_handler.call_count == 2
+
+
+def test_event_manager_trigger_event_without_payload() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", EventHandler(payload_handler))
+    manager.trigger_event("my_event")
+    assert payload_handler.kwargs == {}
+
+
+def test_event_manager_trigger_event_payload_not_accepted_by_handler() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", EventHandler(hello_handler))
+    with pytest.raises(TypeError, match=r"unexpected keyword argument 'epoch'"):
+        manager.trigger_event("my_event", epoch=3)

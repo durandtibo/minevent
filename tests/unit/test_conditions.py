@@ -88,9 +88,9 @@ def test_periodic_condition_evaluate_freq_3() -> None:
     ]
 
 
-#############################################################
-#     Tests for PeriodicCondition validation and options    #
-#############################################################
+##############################################################
+#     Tests for PeriodicCondition validation and options     #
+##############################################################
 
 
 @pytest.mark.parametrize("freq", [0, -1, -3])

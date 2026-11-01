@@ -229,9 +229,9 @@ def test_event_handler_handle_10() -> None:
     assert hello_handler.kwargs == {}
 
 
-#############################################
-#     Tests for handler_kwargs copying      #
-#############################################
+############################################
+#     Tests for handler_kwargs copying     #
+############################################
 
 
 def test_event_handler_handler_kwargs_copied_on_construction() -> None:
@@ -265,3 +265,45 @@ def test_event_handler_equal_unchanged_after_mutating_caller_kwargs() -> None:
     assert event_handler.equal(
         EventHandler(hello_name_handler, handler_kwargs={"first_name": "John", "last_name": "Doe"})
     )
+
+
+####################################
+#     Tests for handle payload     #
+####################################
+
+
+def test_event_handler_handle_payload() -> None:
+    EventHandler(hello_name_handler).handle(first_name="John", last_name="Doe")
+    assert hello_name_handler.args == ()
+    assert hello_name_handler.kwargs == {"first_name": "John", "last_name": "Doe"}
+
+
+def test_event_handler_handle_payload_after_handler_args_and_kwargs() -> None:
+    EventHandler(hello_name_handler, handler_args=("John",)).handle(last_name="Doe")
+    assert hello_name_handler.args == ("John",)
+    assert hello_name_handler.kwargs == {"last_name": "Doe"}
+
+
+def test_event_handler_handle_payload_conflicts_with_handler_kwargs() -> None:
+    event_handler = EventHandler(hello_name_handler, handler_kwargs={"first_name": "John"})
+    with pytest.raises(TypeError, match=r"multiple values for keyword argument 'first_name'"):
+        event_handler.handle(first_name="Jane", last_name="Doe")
+
+
+def test_event_handler_handle_payload_not_accepted_by_handler() -> None:
+    with pytest.raises(TypeError, match=r"unexpected keyword argument 'epoch'"):
+        EventHandler(hello_handler).handle(epoch=1)
+
+
+def test_conditional_event_handler_handle_payload_condition_true() -> None:
+    ConditionalEventHandler(hello_name_handler, PeriodicCondition(2)).handle(
+        first_name="John", last_name="Doe"
+    )
+    assert hello_name_handler.kwargs == {"first_name": "John", "last_name": "Doe"}
+
+
+def test_conditional_event_handler_handle_payload_condition_false() -> None:
+    event_handler = ConditionalEventHandler(hello_name_handler, PeriodicCondition(2))
+    event_handler.handle(first_name="John", last_name="Doe")
+    event_handler.handle(first_name="Jane", last_name="Smith")
+    assert hello_name_handler.kwargs == {"first_name": "John", "last_name": "Doe"}

@@ -83,12 +83,17 @@ class BaseEventHandler(ABC):  # noqa: PLW1641
         """
 
     @abstractmethod
-    def handle(self) -> None:
+    def handle(self, **payload: Any) -> None:
         r"""Handle the event.
 
         This method executes the logic associated with the event
         handler. It should be implemented by child classes to define
         the specific behavior when an event is triggered.
+
+        Args:
+            **payload: The keyword arguments given to
+                ``EventManager.trigger_event``. The payload is empty
+                when the event is triggered without data.
 
         Example:
             ```pycon
@@ -109,7 +114,8 @@ class BaseEventHandlerWithArguments(BaseEventHandler):
     and/or keyword arguments.
 
     A child class has to implement the ``equal`` method. The handler
-    is called as ``handler(*handler_args, **handler_kwargs)``.
+    is called as ``handler(*handler_args, **handler_kwargs, **payload)``,
+    where ``payload`` is the data given when the event is triggered.
 
     Args:
         handler: The callable function or method to be invoked when
@@ -203,8 +209,8 @@ class BaseEventHandlerWithArguments(BaseEventHandler):
         """
         return dict(self._handler_kwargs)
 
-    def handle(self) -> None:
-        self._handler(*self._handler_args, **self._handler_kwargs)
+    def handle(self, **payload: Any) -> None:
+        self._handler(*self._handler_args, **self._handler_kwargs, **payload)
 
 
 class EventHandler(BaseEventHandlerWithArguments):
@@ -351,6 +357,6 @@ class ConditionalEventHandler(BaseEventHandlerWithArguments):
             and objects_are_equal(self.condition, other.condition)
         )
 
-    def handle(self) -> None:
+    def handle(self, **payload: Any) -> None:
         if self._condition.evaluate():
-            super().handle()
+            super().handle(**payload)
