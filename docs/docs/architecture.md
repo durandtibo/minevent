@@ -357,34 +357,21 @@ class MyEventManager:
 
 ## Thread Safety
 
-**Status**: `minevent` is **not thread-safe** by design.
+**Status**: `EventManager` protects its registry with a reentrant lock. Registering, removing and
+inspecting handlers, and triggering events, can be done from several threads.
 
-**Rationale**:
+**Guarantees**:
 
-- Simpler implementation
-- Better performance for single-threaded use
-- Most ML workflows are single-threaded
-- Users can add synchronization if needed
+- `trigger_event` runs the handlers of a snapshot taken under the lock; the handlers run outside the
+  lock, in the calling thread, so a handler can use the manager.
+- Handlers added or removed during a trigger take effect on the next trigger.
 
-**Thread-Safe Usage**:
+**Not guaranteed**:
 
-```python
-import threading
-
-
-class ThreadSafeEventManager:
-    def __init__(self):
-        self._manager = EventManager()
-        self._lock = threading.Lock()
-
-    def add_event_handler(self, event, handler):
-        with self._lock:
-            self._manager.add_event_handler(event, handler)
-
-    def trigger_event(self, event):
-        with self._lock:
-            self._manager.trigger_event(event)
-```
+- Handlers triggered from several threads run concurrently. A handler that shares state must
+  protect it.
+- The state of a condition (for example the counter of `PeriodicCondition`) is not protected, so a
+  stateful condition should be triggered from one thread.
 
 ## Testing Strategy
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 __all__ = ["EventManager"]
 
 import logging
+import threading
 from typing import Any
 
 from coola.utils.format import str_indent, str_mapping, str_sequence
@@ -83,6 +84,16 @@ class EventManager:
     exception propagates to the caller of ``trigger_event`` and the
     remaining handlers of that event are not executed.
 
+    Thread safety: the registration, removal and inspection of
+    handlers are protected by a reentrant lock, and ``trigger_event``
+    runs the handlers on a snapshot taken under the lock, outside of
+    it. So handlers can be registered in one thread and events
+    triggered from worker threads. The handlers themselves run in the
+    thread that triggers the event, concurrently if several threads
+    trigger the same event, so a handler that shares state must be
+    thread-safe. The mutable state of a condition, such as the
+    counter of ``PeriodicCondition``, is not protected.
+
     Example:
         ```pycon
         >>> from minevent import EventHandler, EventManager
@@ -102,16 +113,16 @@ class EventManager:
         self._event_handlers: dict[str, list[BaseEventHandler]] = {}
         # This variable is used to track the last fired event name
         self._last_triggered_event: str | None = None
+        # This lock protects the state above. It is reentrant, so a handler can use the manager.
+        self._lock = threading.RLock()
 
     def __repr__(self) -> str:
-        args = str_indent(
-            str_mapping(
-                {
-                    "event_handlers": self._format_event_handlers(),
-                    "last_triggered_event": self._last_triggered_event,
-                }
-            )
-        )
+        with self._lock:
+            config = {
+                "event_handlers": self._format_event_handlers(),
+                "last_triggered_event": self._last_triggered_event,
+            }
+        args = str_indent(str_mapping(config))
         return f"{self.__class__.__qualname__}(\n  {args}\n)"
 
     def _format_event_handlers(self) -> str:
@@ -131,7 +142,8 @@ class EventManager:
         )
 
     def __contains__(self, event: object) -> bool:
-        return event in self._event_handlers
+        with self._lock:
+            return event in self._event_handlers
 
     @property
     def events(self) -> list[str]:
@@ -154,7 +166,8 @@ class EventManager:
 
             ```
         """
-        return list(self._event_handlers)
+        with self._lock:
+            return list(self._event_handlers)
 
     @property
     def last_triggered_event(self) -> str | None:
@@ -183,7 +196,8 @@ class EventManager:
 
             ```
         """
-        return self._last_triggered_event
+        with self._lock:
+            return self._last_triggered_event
 
     def add_event_handler(
         self, event: str, event_handler: BaseEventHandler, *, once: bool = False
@@ -235,7 +249,8 @@ class EventManager:
         registered = event_handler
         if once:
             registered = _OnceEventHandler(event_handler)
-        self._event_handlers.setdefault(event, []).append(registered)
+        with self._lock:
+            self._event_handlers.setdefault(event, []).append(registered)
         subscription = Subscription(event, registered, self._remove_registration)
         if isinstance(registered, _OnceEventHandler):
             registered.subscription = subscription
@@ -253,15 +268,16 @@ class EventManager:
             ``True`` if the registration was removed, ``False`` if it
                 is not registered.
         """
-        handlers = self._event_handlers.get(event, [])
-        for i, handler in enumerate(handlers):
-            if handler is event_handler:
-                del handlers[i]
-                if not handlers:
-                    del self._event_handlers[event]
-                logger.debug("Removed %s in '%s' event", event_handler, event)
-                return True
-        return False
+        with self._lock:
+            handlers = self._event_handlers.get(event, [])
+            for i, handler in enumerate(handlers):
+                if handler is event_handler:
+                    del handlers[i]
+                    if not handlers:
+                        del self._event_handlers[event]
+                    logger.debug("Removed %s in '%s' event", event_handler, event)
+                    return True
+            return False
 
     def trigger_event(self, event: str, **payload: Any) -> None:
         r"""Trigger the handler(s) for the given event.
@@ -314,8 +330,10 @@ class EventManager:
         """
         _check_event(event)
         logger.debug("Firing %s event", event)
-        self._last_triggered_event = event
-        for event_handler in tuple(self._event_handlers.get(event, ())):
+        with self._lock:
+            self._last_triggered_event = event
+            event_handlers = tuple(self._event_handlers.get(event, ()))
+        for event_handler in event_handlers:
             event_handler.handle(**payload)
 
     def has_event_handler(self, event_handler: BaseEventHandler, event: str | None = None) -> bool:
@@ -369,12 +387,12 @@ class EventManager:
         """
         if event is not None:
             _check_event(event)
-        events = list(self._event_handlers) if event is None else [event]
-        for evnt in events:
-            for handler in self._event_handlers.get(evnt, ()):
-                if event_handler.equal(_unwrap(handler)):
-                    return True
-        return False
+        with self._lock:
+            events = list(self._event_handlers) if event is None else [event]
+            registered = [tuple(self._event_handlers.get(evnt, ())) for evnt in events]
+        return any(
+            event_handler.equal(_unwrap(handler)) for handlers in registered for handler in handlers
+        )
 
     def remove_event_handler(
         self, event: str, event_handler: BaseEventHandler, *, missing_ok: bool = False
@@ -422,28 +440,27 @@ class EventManager:
             ```
         """
         _check_event(event)
-        if event not in self._event_handlers:
-            if missing_ok:
-                return
-            msg = f"'{event}' event does not exist"
-            raise ValueError(msg)
+        with self._lock:
+            if event not in self._event_handlers:
+                if missing_ok:
+                    return
+                msg = f"'{event}' event does not exist"
+                raise ValueError(msg)
 
-        new_event_handlers = [
-            handler
-            for handler in self._event_handlers[event]
-            if not event_handler.equal(_unwrap(handler))
-        ]
-        if len(new_event_handlers) == len(self._event_handlers[event]):
-            if missing_ok:
-                return
-            msg = (
-                f"{event_handler} is not found among registered event handlers for '{event}' event"
-            )
-            raise ValueError(msg)
-        if len(new_event_handlers) > 0:
-            self._event_handlers[event] = new_event_handlers
-        else:
-            del self._event_handlers[event]
+            new_event_handlers = [
+                handler
+                for handler in self._event_handlers[event]
+                if not event_handler.equal(_unwrap(handler))
+            ]
+            if len(new_event_handlers) == len(self._event_handlers[event]):
+                if missing_ok:
+                    return
+                msg = f"{event_handler} is not found among registered event handlers for '{event}' event"
+                raise ValueError(msg)
+            if len(new_event_handlers) > 0:
+                self._event_handlers[event] = new_event_handlers
+            else:
+                del self._event_handlers[event]
         logger.debug("Removed %s in '%s' event", event_handler, event)
 
     def clear_event(self, event: str) -> None:
@@ -469,7 +486,9 @@ class EventManager:
             ```
         """
         _check_event(event)
-        if self._event_handlers.pop(event, None) is not None:
+        with self._lock:
+            removed = self._event_handlers.pop(event, None)
+        if removed is not None:
             logger.debug("Cleared all the event handlers of '%s' event", event)
 
     def reset(self) -> None:
@@ -508,5 +527,6 @@ class EventManager:
 
             ```
         """
-        self._event_handlers.clear()
-        self._last_triggered_event = None
+        with self._lock:
+            self._event_handlers.clear()
+            self._last_triggered_event = None
