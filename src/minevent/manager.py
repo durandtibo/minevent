@@ -85,7 +85,9 @@ class EventManager:
     events. An event is represented by a case-sensitive string. Each
     event can have multiple handlers attached, and all handlers are
     executed in the order they were added when the event is triggered.
-    The manager also tracks the last triggered event.
+    The manager also tracks the last triggered event. This is
+    informational: it is meaningful in single-threaded code, and with
+    several threads it is the event of whichever trigger started last.
 
     Error policy: handlers run fail-fast. If a handler raises, the
     exception propagates to the caller of ``trigger_event`` and the
@@ -158,6 +160,10 @@ class EventManager:
         with self._lock:
             return event in self._event_handlers
 
+    def __len__(self) -> int:
+        with self._lock:
+            return sum(len(handlers) for handlers in self._event_handlers.values())
+
     @property
     def events(self) -> list[str]:
         r"""Get the events that have at least one registered handler.
@@ -188,7 +194,9 @@ class EventManager:
 
         The name is recorded when the dispatch starts, before any
         handler runs. It is therefore already updated when a handler
-        reads it, and it is kept even if a handler raises.
+        reads it, and it is kept even if a handler raises. It is
+        informational: if several threads trigger events, it is the
+        event of the trigger that started last.
 
         Returns:
             The last event name that was triggered, or ``None`` if no event
@@ -211,6 +219,41 @@ class EventManager:
         """
         with self._lock:
             return self._last_triggered_event
+
+    def get_event_handlers(self, event: str) -> tuple[BaseEventHandler, ...]:
+        r"""Get the event handlers registered for an event.
+
+        Args:
+            event: The event name (case-sensitive string).
+
+        Returns:
+            A snapshot of the event handlers, in the order they were
+                added. It is empty if no handler is registered. The
+                handlers added with ``once=True`` are returned
+                unwrapped. Changing the manager does not change the
+                returned tuple.
+
+        Raises:
+            TypeError: if ``event`` is not a string.
+
+        Example:
+            ```pycon
+            >>> from minevent import EventHandler, EventManager
+            >>> manager = EventManager()
+            >>> manager.get_event_handlers("my_event")
+            ()
+            >>> handler = EventHandler(print)
+            >>> _ = manager.add_event_handler("my_event", handler)
+            >>> manager.get_event_handlers("my_event") == (handler,)
+            True
+            >>> len(manager)
+            1
+
+            ```
+        """
+        _check_event(event)
+        with self._lock:
+            return tuple(_unwrap(handler) for handler in self._event_handlers.get(event, ()))
 
     def add_event_handler(
         self, event: str, event_handler: BaseEventHandler, *, once: bool = False
