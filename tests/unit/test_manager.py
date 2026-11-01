@@ -4,7 +4,6 @@ import logging
 from typing import TYPE_CHECKING
 
 import pytest
-from coola.equality import objects_are_equal
 
 from minevent import EventHandler, EventManager
 from tests.unit.utils import trace
@@ -74,17 +73,16 @@ def test_event_manager_last_triggered_event() -> None:
 def test_event_manager_add_event_handler_event(event: str) -> None:
     event_manager = EventManager()
     event_manager.add_event_handler(event, EventHandler(hello_handler))
-    assert len(event_manager._event_handlers[event]) == 1
+    event_manager.trigger_event(event)
+    assert hello_handler.call_count == 1
 
 
 def test_event_manager_add_event_handler_duplicate_event_handlers() -> None:
     event_manager = EventManager()
     event_manager.add_event_handler("my_event", EventHandler(hello_handler))
     event_manager.add_event_handler("my_event", EventHandler(hello_handler))
-    assert objects_are_equal(
-        event_manager._event_handlers["my_event"],
-        [EventHandler(hello_handler), EventHandler(hello_handler)],
-    )
+    event_manager.trigger_event("my_event")
+    assert hello_handler.call_count == 2
 
 
 @pytest.mark.parametrize("event", EVENTS)
@@ -140,7 +138,7 @@ def test_event_manager_remove_event_handler(event: str) -> None:
     event_manager = EventManager()
     event_manager.add_event_handler(event, EventHandler(hello_handler))
     event_manager.remove_event_handler(event, EventHandler(hello_handler))
-    assert len(event_manager._event_handlers[event]) == 0
+    assert not event_manager.has_event_handler(EventHandler(hello_handler), event)
 
 
 def test_event_manager_remove_event_handler_duplicate_handler() -> None:
@@ -149,7 +147,7 @@ def test_event_manager_remove_event_handler_duplicate_handler() -> None:
     event_manager.add_event_handler("my_event", EventHandler(lambda: True))
     event_manager.add_event_handler("my_event", EventHandler(hello_handler))
     event_manager.remove_event_handler("my_event", EventHandler(hello_handler))
-    assert len(event_manager._event_handlers["my_event"]) == 1
+    assert not event_manager.has_event_handler(EventHandler(hello_handler))
 
 
 def test_event_manager_remove_event_handler_multiple_events() -> None:
@@ -157,8 +155,8 @@ def test_event_manager_remove_event_handler_multiple_events() -> None:
     event_manager.add_event_handler("my_event", EventHandler(hello_handler))
     event_manager.add_event_handler("my_other_event", EventHandler(hello_handler))
     event_manager.remove_event_handler("my_event", EventHandler(hello_handler))
-    assert len(event_manager._event_handlers["my_event"]) == 0
-    assert len(event_manager._event_handlers["my_other_event"]) == 1
+    assert not event_manager.has_event_handler(EventHandler(hello_handler), "my_event")
+    assert event_manager.has_event_handler(EventHandler(hello_handler), "my_other_event")
 
 
 def test_event_manager_remove_event_handler_missing_event() -> None:
@@ -182,13 +180,13 @@ def test_event_manager_reset() -> None:
     event_manager.add_event_handler("my_other_event", EventHandler(hello_handler))
     event_manager.trigger_event("my_event")
     event_manager.reset()
-    assert len(event_manager._event_handlers) == 0
+    assert not event_manager.has_event_handler(EventHandler(hello_handler))
     assert event_manager.last_triggered_event is None
 
 
 def test_event_manager_reset_empty() -> None:
     event_manager = EventManager()
-    assert len(event_manager._event_handlers) == 0
+    assert not event_manager.has_event_handler(EventHandler(hello_handler))
     assert event_manager.last_triggered_event is None
 
 
@@ -198,4 +196,24 @@ def test_event_manager_no_duplicate() -> None:
         event_handler = EventHandler(hello_handler)
         if not event_manager.has_event_handler(event_handler, "my_event"):
             event_manager.add_event_handler("my_event", event_handler)
-    assert len(event_manager._event_handlers["my_event"]) == 1
+    event_manager.trigger_event("my_event")
+    assert hello_handler.call_count == 1
+
+
+def test_event_manager_trigger_event_does_not_register_event() -> None:
+    event_manager = EventManager()
+    event_manager.trigger_event("my_event")
+    assert "my_event:" not in str(event_manager)
+
+
+def test_event_manager_has_event_handler_does_not_register_event() -> None:
+    event_manager = EventManager()
+    assert not event_manager.has_event_handler(EventHandler(hello_handler), "my_event")
+    assert "my_event:" not in str(event_manager)
+
+
+def test_event_manager_remove_event_handler_after_trigger() -> None:
+    event_manager = EventManager()
+    event_manager.trigger_event("my_event")
+    with pytest.raises(RuntimeError, match=r"'my_event' event does not exist"):
+        event_manager.remove_event_handler("my_event", EventHandler(hello_handler))
