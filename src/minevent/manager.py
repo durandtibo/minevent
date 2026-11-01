@@ -340,19 +340,6 @@ class EventManager:
         logger.debug("Removed %s in '%s' event", subscription.event_handler, subscription.event)
         return True
 
-    def _claim(self, subscription: Subscription) -> bool:
-        r"""Claim the right to run a registration.
-
-        Args:
-            subscription: A registration of the snapshot of a trigger.
-
-        Returns:
-            ``True`` if the event handler can run: the registration
-                is not ``once``, or this call removed it. ``False`` if
-                another call already removed a ``once`` registration.
-        """
-        return not subscription.once or self._remove(subscription)
-
     def trigger_event(self, event: str, /, **payload: object) -> None:
         r"""Trigger the handler(s) for the given event.
 
@@ -411,12 +398,13 @@ class EventManager:
             ```
         """
         for subscription in self._start_trigger(event):
-            if self._claim(subscription):
-                try:
-                    subscription.event_handler.handle(**payload)
-                except Exception as exc:
-                    _add_error_note(exc, event, subscription.event_handler)
-                    raise
+            if subscription._once and not self._remove(subscription):
+                continue
+            try:
+                subscription._event_handler.handle(**payload)
+            except Exception as exc:
+                _add_error_note(exc, event, subscription._event_handler)
+                raise
 
     async def atrigger_event(self, event: str, /, **payload: object) -> None:
         r"""Trigger the handler(s) for the given event, awaiting the
@@ -452,12 +440,13 @@ class EventManager:
             ```
         """
         for subscription in self._start_trigger(event):
-            if self._claim(subscription):
-                try:
-                    await subscription.event_handler.ahandle(**payload)
-                except Exception as exc:
-                    _add_error_note(exc, event, subscription.event_handler)
-                    raise
+            if subscription._once and not self._remove(subscription):
+                continue
+            try:
+                await subscription._event_handler.ahandle(**payload)
+            except Exception as exc:
+                _add_error_note(exc, event, subscription._event_handler)
+                raise
 
     def _start_trigger(self, event: str) -> tuple[Subscription, ...]:
         r"""Record a trigger and return the handlers to run.
