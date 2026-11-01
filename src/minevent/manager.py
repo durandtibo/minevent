@@ -32,6 +32,17 @@ def _check_event(event: object) -> None:
         raise TypeError(msg)
 
 
+def _add_error_note(exc: Exception, event: str, event_handler: BaseEventHandler) -> None:
+    r"""Add a note to the exception raised by an event handler.
+
+    Args:
+        exc: The exception raised by the event handler.
+        event: The event that was triggered.
+        event_handler: The event handler that raised the exception.
+    """
+    exc.add_note(f"raised by {event_handler!r} while handling the event {event!r}")
+
+
 class EventManager:
     r"""Implement an event manager.
 
@@ -352,6 +363,8 @@ class EventManager:
 
         Handlers are executed fail-fast: if a handler raises, the
         exception propagates and the remaining handlers are skipped.
+        The exception is not wrapped: it has a note (``__notes__``)
+        with the event and the handler that raised it.
 
         The handlers are read from a snapshot taken when the event is
         triggered. Handlers added or removed by a running handler
@@ -399,7 +412,11 @@ class EventManager:
         """
         for subscription in self._start_trigger(event):
             if self._claim(subscription):
-                subscription.event_handler.handle(**payload)
+                try:
+                    subscription.event_handler.handle(**payload)
+                except Exception as exc:
+                    _add_error_note(exc, event, subscription.event_handler)
+                    raise
 
     async def atrigger_event(self, event: str, /, **payload: object) -> None:
         r"""Trigger the handler(s) for the given event, awaiting the
@@ -436,7 +453,11 @@ class EventManager:
         """
         for subscription in self._start_trigger(event):
             if self._claim(subscription):
-                await subscription.event_handler.ahandle(**payload)
+                try:
+                    await subscription.event_handler.ahandle(**payload)
+                except Exception as exc:
+                    _add_error_note(exc, event, subscription.event_handler)
+                    raise
 
     def _start_trigger(self, event: str) -> tuple[Subscription, ...]:
         r"""Record a trigger and return the handlers to run.

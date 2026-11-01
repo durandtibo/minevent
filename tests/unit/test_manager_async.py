@@ -30,6 +30,11 @@ async def append_async(values: list[str], value: str) -> None:
     values.append(value)
 
 
+async def failing_async_handler() -> None:
+    msg = "boom"
+    raise ValueError(msg)
+
+
 @trace
 def hello_handler() -> None:
     r"""Implements a simple handler that prints hello."""
@@ -151,3 +156,14 @@ def test_event_manager_trigger_event_coroutine_handler_raises() -> None:
     manager.add_event_handler("my_event", EventHandler(async_handler))
     with pytest.raises(TypeError, match=r"returned an awaitable; use ahandle or atrigger_event"):
         manager.trigger_event("my_event")
+
+
+def test_event_manager_atrigger_event_handler_raises_adds_note() -> None:
+    manager = EventManager()
+    handler = EventHandler(failing_async_handler)
+    manager.add_event_handler("my_event", handler)
+    with pytest.raises(ValueError, match=r"boom") as exc_info:
+        asyncio.run(manager.atrigger_event("my_event"))
+    assert exc_info.value.__notes__ == [
+        f"raised by {handler!r} while handling the event 'my_event'"
+    ]
