@@ -38,7 +38,7 @@ This guide helps you diagnose and resolve common issues when using `minevent`.
    ```python
    # Check condition state
    condition = PeriodicCondition(freq=5)
-   handler = ConditionalEventHandler(my_function, condition)
+   handler = EventHandler(my_function, condition=condition)
 
    # The handler only executes every 5 calls
    for i in range(10):
@@ -236,7 +236,7 @@ manager.add_event_handler("event", EventHandler(orchestrator))
 
    ```python
    # Use PeriodicCondition to reduce execution frequency
-   from minevent import ConditionalEventHandler, PeriodicCondition
+   from minevent import EventHandler, PeriodicCondition
 
    # Instead of executing every time
    manager.add_event_handler("frequent_event", EventHandler(expensive_handler))
@@ -244,7 +244,7 @@ manager.add_event_handler("event", EventHandler(orchestrator))
    # Execute less frequently
    manager.add_event_handler(
        "frequent_event",
-       ConditionalEventHandler(expensive_handler, PeriodicCondition(freq=10)),
+       EventHandler(expensive_handler, condition=PeriodicCondition(freq=10)),
    )
    ```
 
