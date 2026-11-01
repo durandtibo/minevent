@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from tests.unit.utils import Tracer, trace
+from tests.unit.utils import Tracer, reset_traced, trace
 
 
 def add(a: int, b: int = 0) -> int:
@@ -67,3 +67,17 @@ def test_tracer_reset() -> None:
 
 def test_trace_returns_tracer() -> None:
     assert isinstance(trace(add), Tracer)
+
+
+def test_trace_registers_tracer_for_reset() -> None:
+    tracer = trace(add)
+    tracer(1)
+    reset_traced()
+    assert tracer.call_count == 0
+
+
+def test_reset_traced_does_not_reset_unregistered_tracer() -> None:
+    tracer = Tracer(add)
+    tracer(1)
+    reset_traced()
+    assert tracer.call_count == 1
