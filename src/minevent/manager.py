@@ -24,6 +24,10 @@ class EventManager:
     executed in the order they were added when the event is triggered.
     The manager also tracks the last triggered event.
 
+    Error policy: handlers run fail-fast. If a handler raises, the
+    exception propagates to the caller of ``trigger_event`` and the
+    remaining handlers of that event are not executed.
+
     Example:
         ```pycon
         >>> from minevent import EventHandler, EventManager
@@ -64,6 +68,10 @@ class EventManager:
     @property
     def last_triggered_event(self) -> str | None:
         r"""Get the last event name that was triggered.
+
+        The name is recorded when the dispatch starts, before any
+        handler runs. It is therefore already updated when a handler
+        reads it, and it is kept even if a handler raises.
 
         Returns:
             The last event name that was triggered, or ``None`` if no event
@@ -121,6 +129,9 @@ class EventManager:
         specified event in the order they were added. The last
         triggered event name is updated regardless of whether any
         handlers are registered.
+
+        Handlers are executed fail-fast: if a handler raises, the
+        exception propagates and the remaining handlers are skipped.
 
         The handlers are read from a snapshot taken when the event is
         triggered. Handlers added or removed by a running handler
