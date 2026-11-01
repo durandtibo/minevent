@@ -153,12 +153,12 @@ BaseEventHandler (abstract)
 **Key Methods**:
 
 - `handle()`: Execute the handler logic
-- `equal()`: Compare handlers for equality
+- `ahandle()`: Execute the handler logic in a coroutine (calls `handle()` by default)
 
 **Rationale**:
 
 - Separation between handler logic and handler metadata
-- Enables handler comparison for deduplication
+- Handlers are compared by identity; a `Subscription` identifies a registration
 - Supports both simple and complex use cases
 
 ### Event Manager
@@ -268,10 +268,6 @@ class MyEventHandler(BaseEventHandler):
     def handle(self, /, **payload: object) -> None:
         # Custom logic; payload holds the keyword arguments of trigger_event
         pass
-
-    def equal(self, other: Any) -> bool:
-        # Custom comparison
-        return isinstance(other, MyEventHandler)
 ```
 
 **Use Cases**:

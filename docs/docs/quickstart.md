@@ -28,10 +28,8 @@ my_event = "training completed"
 
 In `minevent`, an event handler is a piece a code that is executed when an even happened.
 
-An event handler must have two methods:
-
-- `handle` which executes a piece of code when the event happens.
-- `equal` which is used to compare two event handlers.
+An event handler must have a `handle` method, which executes a piece of code when the event
+happens. Event handlers are compared by identity.
 
 `minevent` provides `EventHandler`, which wraps a callable. It can take an optional `condition`
 to execute the logic only when the condition is true.
@@ -185,36 +183,18 @@ second
 `once=True` to run a handler on the next trigger of an event (the registration is removed). Use
 `OnceCondition` when the handler stays registered, for example inside a function that combines several conditions.
 
-### Event handler comparison
+### Event handler identity
 
-It is possible to compare event handlers by using the `equal` method.
-Two `EventHandler`s are equal if they have the same handler and the same arguments:
+Event handlers are compared by identity: two `EventHandler`s created with the same arguments are
+different objects. To find or remove a registration, keep the `Subscription` returned by
+`EventManager.add_event_handler` (see [Subscriptions](#subscriptions)).
 
 ```pycon
 >>> from minevent import EventHandler
->>> def hello_handler() -> None:
-...     print("Hello!")
->>> handler = EventHandler(hello_handler)
->>> handler.equal(EventHandler(hello_handler))
+>>> handler = EventHandler(print)
+>>> handler == handler
 True
->>> handler.equal(EventHandler(print, handler_args=("Hello Bob! Happy Monday!",)))
-False
-
-```
-
-Two `EventHandler`s are equal if they have the same handler, the same arguments and the same
-condition. Conditions are compared by identity, so two conditions created separately are different,
-even with the same options:
-
-```pycon
->>> from minevent import EventHandler, PeriodicCondition
->>> def hello_handler() -> None:
-...     print("Hello!")
->>> condition = PeriodicCondition(freq=3)
->>> handler = EventHandler(hello_handler, condition=condition)
->>> handler.equal(EventHandler(hello_handler, condition=condition))
-True
->>> handler.equal(EventHandler(hello_handler, condition=PeriodicCondition(freq=3)))
+>>> handler == EventHandler(print)
 False
 
 ```
@@ -224,7 +204,7 @@ False
 - [Overview of the event manager](#overview-of-the-event-manager)
 - [Create an event manager](#create-an-event-manager)
 - [Add an event handler](#add-an-event-handler)
-- [Check the presence of an event handler](#check-the-presence-of-an-event-handler)
+- [Subscriptions](#subscriptions)
 - [Fire an event](#fire-an-event)
 - [Remove an event handler](#remove-an-event-handler)
 - [Reset the event manager](#reset-the-event-manager)
@@ -312,60 +292,46 @@ EventManager(events={'my_event': 2})
 
 ```
 
-### Check the presence of an event handler
+### Subscriptions
 
-It is possible to check if an event handler is in the event manager by using the `has_event_handler`
-method.
-Sometimes, it may be important to check if an event handler is not already added before to add it.
-The following code shows how to check if the `hello_handler` handler is registered at least one time
-in the event manager:
+`add_event_handler` returns a `Subscription`, the registration of the handler. Its `remove()` method
+removes exactly that registration, even if the same handler is registered several times, and
+returns `False` if it was already removed:
 
 ```pycon
 >>> from minevent import EventHandler, EventManager
 >>> def hello_handler() -> None:
 ...     print("Hello!")
 >>> manager = EventManager()
->>> manager.has_event_handler(EventHandler(hello_handler))
-False
->>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
->>> manager.has_event_handler(EventHandler(hello_handler))
+>>> handler = EventHandler(hello_handler)
+>>> first = manager.add_event_handler("my_event", handler)
+>>> second = manager.add_event_handler("my_event", handler)
+>>> first.remove()
 True
+>>> first.remove()
+False
+>>> second.active
+True
+>>> manager.trigger_event("my_event")
+Hello!
 
 ```
 
-Note that it is not necessary to specify an event.
-If no event is specified, this method checks if the handler is present in any of the events.
-It is possible to specify an event to check if a handler is registered for a given event.
-The following code shows how to check if the `hello_handler` handler is registered for
-the `'my_event'` event:
+`get_subscriptions` returns the registrations of an event, in the order the handlers run, and
+`len(manager)` is the total number of registrations. If you want to add an event handler only once,
+check the registrations:
 
 ```pycon
 >>> from minevent import EventHandler, EventManager
 >>> def hello_handler() -> None:
 ...     print("Hello!")
 >>> manager = EventManager()
->>> manager.has_event_handler(EventHandler(hello_handler), "my_event")
-False
->>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
->>> manager.has_event_handler(EventHandler(hello_handler), "my_event")
-True
->>> manager.has_event_handler(EventHandler(hello_handler), "my_other_event")
-False
-
-```
-
-If you want to add an event handler only once, you can write something like:
-
-```pycon
->>> from minevent import EventHandler, EventManager
->>> def hello_handler() -> None:
-...     print("Hello!")
->>> manager = EventManager()
+>>> handler = EventHandler(hello_handler)
 >>> for _ in range(5):
-...     if not manager.has_event_handler(EventHandler(hello_handler), "my_event"):
-...         _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
->>> manager
-EventManager(events={'my_event': 1})
+...     if not any(s.event_handler is handler for s in manager.get_subscriptions("my_event")):
+...         _ = manager.add_event_handler("my_event", handler)
+>>> len(manager)
+1
 
 ```
 
@@ -388,22 +354,6 @@ removed on the next trigger even if the condition of the `EventHandler` is `Fals
 function is not called. If you need the handler to run the first time its condition is `True`,
 register it without `once` and use `OnceCondition` as the condition.
 
-`add_event_handler` returns a `Subscription`. Its `remove()` method removes exactly that
-registration, so you do not need to re-create an equal handler, and equal handlers registered
-elsewhere are kept:
-
-```pycon
->>> from minevent import EventHandler, EventManager
->>> def hello_handler() -> None:
-...     print("Hello!")
->>> manager = EventManager()
->>> subscription = manager.add_event_handler("my_event", EventHandler(hello_handler))
->>> subscription.remove()
-True
->>> manager.trigger_event("my_event")
-
-```
-
 A `Subscription` is a context manager that removes the registration when the block exits, and its
 `active` property tells if the handler is still registered. `EventManager.on` is a decorator that
 registers a function and returns it unchanged:
@@ -423,24 +373,6 @@ False
 epoch 1
 
 ```
-
-`has_event_handler` and `remove_event_handler` also accept a `Subscription`. This is the most
-reliable way to find or remove a handler built from a lambda, a closure or a bound method, which
-are not equal to an identical handler created elsewhere:
-
-```pycon
->>> from minevent import EventHandler, EventManager
->>> manager = EventManager()
->>> subscription = manager.add_event_handler("my_event", EventHandler(lambda: print("Hello!")))
->>> manager.has_event_handler(subscription)
-True
->>> manager.remove_event_handler("my_event", subscription)
->>> manager.has_event_handler(subscription)
-False
-
-```
-
-The `hello_handler` handler has been added only one time to the `'my_event'` event.
 
 ### Fire an event
 
@@ -568,50 +500,25 @@ Hello John!
 ### Remove an event handler
 
 A previous section describes how to add an event handler, but sometimes it is useful to remove an
-event handler.
-The method `remove_event_handler` allows to remove an event handler from the event manager.
-As explained above, the event handler is identified by an event name and a handler.
-The following example shows how to add and remove an event handler:
+event handler. Call `remove()` on the `Subscription` returned by `add_event_handler`:
 
 ```pycon
 >>> from minevent import EventHandler, EventManager
 >>> def hello_handler() -> None:
 ...     print("Hello!")
 >>> manager = EventManager()
->>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
+>>> subscription = manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> manager
 EventManager(events={'my_event': 1})
->>> manager.remove_event_handler("my_event", EventHandler(hello_handler))
+>>> subscription.remove()
+True
 >>> manager
 EventManager(events={})
 
 ```
 
-If there are multiple event handlers that match, they are all removed from the event manager:
-
-```pycon
->>> from minevent import (
-...     EventHandler,
-...     PeriodicCondition,
-...     EventManager,
-... )
->>> def hello_handler() -> None:
-...     print("Hello!")
->>> manager = EventManager()
->>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
->>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
->>> _ = manager.add_event_handler(
-...     "my_event", EventHandler(hello_handler, condition=PeriodicCondition(freq=3))
-... )
->>> manager
-EventManager(events={'my_event': 3})
->>> manager.remove_event_handler("my_event", EventHandler(hello_handler))
->>> manager
-EventManager(events={'my_event': 1})
-
-```
-
-If a handler is used for multiple events, only the handler associated to the event are removed:
+If you did not keep the subscription, `get_subscriptions` returns the registrations of an event, and
+`clear_event` removes all the event handlers of an event:
 
 ```pycon
 >>> from minevent import EventHandler, EventManager
@@ -619,23 +526,22 @@ If a handler is used for multiple events, only the handler associated to the eve
 ...     print("Hello!")
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
+>>> _ = manager.add_event_handler("my_event", EventHandler(print))
 >>> _ = manager.add_event_handler("my_other_event", EventHandler(hello_handler))
+>>> manager.get_subscriptions("my_event")[0].remove()
+True
 >>> manager
 EventManager(events={'my_event': 1, 'my_other_event': 1})
->>> manager.remove_event_handler("my_event", EventHandler(hello_handler))
+>>> manager.clear_event("my_event")
 >>> manager
 EventManager(events={'my_other_event': 1})
 
 ```
 
-A `ValueError` exception is raised if you try to remove an event handler that does not exist.
-Pass `missing_ok=True` to `remove_event_handler` to ignore this case.
-
 ### Reset the event manager
 
 It is possible to reset the event manager with the `reset` method. It removes all the event handlers
-and set the last
-fired event name to `None`. It is equivalent to create a new experiment manager.
+and makes their subscriptions inactive. It is equivalent to create a new event manager.
 
 ```pycon
 >>> from minevent import EventHandler, EventManager

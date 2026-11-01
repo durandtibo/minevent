@@ -105,23 +105,28 @@ manager.add_event_handler("event2", handler)
 
 ### How do I remove an event handler?
 
-Use the `remove_event_handler` method:
+Keep the `Subscription` returned by `add_event_handler` and call `remove()`:
 
 ```python
-manager.remove_event_handler("my_event", handler)
+subscription = manager.add_event_handler("my_event", handler)
+subscription.remove()  # True; False if it was already removed
 ```
+
+A `Subscription` is a context manager, so `with manager.add_event_handler(...):` removes the
+registration when the block exits. `manager.clear_event("my_event")` removes all the handlers of an
+event.
 
 ### What happens if I trigger an event with no handlers?
 
 Nothing! The `trigger_event` method safely handles events with no registered handlers - it simply
-does nothing and updates the last triggered event name.
+does nothing.
 
 ### Can I check if a handler is already registered?
 
-Yes, use `has_event_handler`:
+Yes, look at the registrations of the event with `get_subscriptions`:
 
 ```python
-if not manager.has_event_handler(handler, "my_event"):
+if not any(sub.event_handler is handler for sub in manager.get_subscriptions("my_event")):
     manager.add_event_handler("my_event", handler)
 ```
 
@@ -165,9 +170,6 @@ class MyEventHandler(BaseEventHandler):
     def handle(self, /, **payload: object) -> None:
         # Your custom logic here; payload holds the keyword arguments of trigger_event
         pass
-
-    def equal(self, other) -> bool:
-        return isinstance(other, MyEventHandler)
 ```
 
 ### How do I integrate minevent into my training loop?

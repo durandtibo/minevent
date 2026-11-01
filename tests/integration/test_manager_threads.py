@@ -70,7 +70,7 @@ def test_add_and_trigger_from_threads() -> None:
 
     run_threads(work, NUM_THREADS)
     manager.trigger_event("my_event")
-    assert manager.has_event_handler(EventHandler(len, handler_args=([],)), "my_event")
+    assert len(manager) == NUM_ITERATIONS * (NUM_THREADS // 2)
 
 
 def test_subscription_remove_from_threads() -> None:
@@ -138,28 +138,6 @@ def test_once_handler_runs_once_when_snapshots_taken_before_dispatch() -> None:
 
     run_threads(work, NUM_THREADS)
     assert len(calls) == 1
-
-
-def test_remove_event_handler_with_equal_that_uses_manager_from_another_thread() -> None:
-    """Test that ``equal`` can wait for another thread that uses the
-    manager, because the lock is not held while it runs."""
-    manager = EventManager()
-    manager.add_event_handler("my_event", EventHandler(len, handler_args=([],)))
-    added: list[bool] = []
-
-    class WaitingHandler(EventHandler):
-        def equal(self, other: object) -> bool:
-            def add() -> None:
-                manager.add_event_handler("my_other_event", EventHandler(len, handler_args=([],)))
-                added.append(True)
-
-            thread = threading.Thread(target=add)
-            thread.start()
-            thread.join(timeout=5)
-            return other is not None
-
-    manager.remove_event_handler("my_event", WaitingHandler(len))
-    assert added == [True]
 
 
 def test_run_threads_propagates_exception() -> None:

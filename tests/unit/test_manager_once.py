@@ -246,19 +246,6 @@ def test_event_manager_add_event_handler_once_condition_false_does_not_call() ->
     assert hello_handler.call_count == 0
 
 
-def test_event_manager_has_event_handler_once_true() -> None:
-    manager = EventManager()
-    manager.add_event_handler("my_event", EventHandler(hello_handler), once=True)
-    assert manager.has_event_handler(EventHandler(hello_handler), "my_event")
-
-
-def test_event_manager_remove_event_handler_once() -> None:
-    manager = EventManager()
-    manager.add_event_handler("my_event", EventHandler(hello_handler), once=True)
-    manager.remove_event_handler("my_event", EventHandler(hello_handler))
-    assert manager.events == []
-
-
 def test_event_manager_repr_once() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", EventHandler(hello_handler), once=True)

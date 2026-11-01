@@ -20,8 +20,8 @@ class Subscription:
     A subscription is returned by ``EventManager.add_event_handler``.
     It is the registration itself: the manager stores it, and it
     removes exactly the registration that created it. The handler does
-    not need to be re-created to be unsubscribed, other equal handlers
-    are not removed, and registering the same handler twice creates two
+    not need to be re-created to be unsubscribed, other registrations
+    of the same handler are not removed, and registering the same handler twice creates two
     independent subscriptions.
 
     A subscription is a context manager: the registration is removed
@@ -128,16 +128,15 @@ class Subscription:
         Returns:
             ``True`` if the event handler is still registered,
                 ``False`` if it was removed (by this subscription, by
-                ``remove_event_handler``, ``clear_event``, ``reset``
-                or because it was a ``once`` handler that ran).
+                ``clear_event``, ``reset`` or because it was a ``once`` handler that ran).
         """
         return self._active
 
     def remove(self) -> bool:
         r"""Remove the registration.
 
-        Only this registration is removed, even if equal handlers are
-        registered to the same event. Calling this method again, or
+        Only this registration is removed, even if the same handler is
+        registered several times to the same event. Calling this method again, or
         after the handler was removed by another way, does nothing.
 
         Returns:

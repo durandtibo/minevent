@@ -59,16 +59,27 @@ def test_event_handler_str() -> None:
     assert str(EventHandler(hello_handler)).startswith("EventHandler(")
 
 
-def test_event_handler__eq__true() -> None:
-    assert EventHandler(hello_handler) == EventHandler(hello_handler)
+def test_event_handler__eq__same_instance() -> None:
+    handler = EventHandler(hello_handler)
+    assert handler == handler  # noqa: PLR0124
 
 
-def test_event_handler__eq__false() -> None:
-    assert EventHandler(hello_handler) != EventHandler(hello_name_handler)
+def test_event_handler__eq__compares_by_identity() -> None:
+    assert EventHandler(hello_handler) != EventHandler(hello_handler)
 
 
-def test_event_handler_equal_true() -> None:
-    assert EventHandler(hello_handler).equal(EventHandler(hello_handler))
+def test_event_handler_hashable() -> None:
+    handler = EventHandler(hello_handler)
+    assert {handler: 1}[handler] == 1
+
+
+def test_base_event_handler_hashable() -> None:
+    class MyHandler(BaseEventHandler):
+        def handle(self, /, **payload: Any) -> None:
+            pass
+
+    handler = MyHandler()
+    assert {handler: 1}[handler] == 1
 
 
 class AmbiguousSequence(Sequence):
@@ -115,22 +126,6 @@ def test_event_handler_handler_kwargs_ambiguous_truth_value() -> None:
 
 def test_event_handler_handler_kwargs_empty_ambiguous_truth_value() -> None:
     assert EventHandler(hello_handler, handler_kwargs=AmbiguousMapping()).handler_kwargs == {}
-
-
-def test_event_handler_equal_false_same_class_different_handler_args() -> None:
-    assert not EventHandler(hello_handler).equal(
-        EventHandler(hello_handler, handler_args=("something",))
-    )
-
-
-def test_event_handler_equal_false_same_class_different_handler_kwargs() -> None:
-    assert not EventHandler(hello_handler).equal(
-        EventHandler(hello_handler, handler_kwargs={"something": "abc"})
-    )
-
-
-def test_event_handler_equal_false_different_classes() -> None:
-    assert not EventHandler(hello_handler).equal("meow")
 
 
 def test_event_handler_without_args_and_kwargs() -> None:
@@ -239,43 +234,6 @@ def test_event_handler_condition_str() -> None:
     )
 
 
-def test_event_handler_condition_equal_true_same_condition() -> None:
-    condition = PeriodicCondition(3)
-    assert EventHandler(hello_handler, condition=condition).equal(
-        EventHandler(hello_handler, condition=condition)
-    )
-
-
-def test_event_handler_condition_equal_false_equivalent_conditions() -> None:
-    assert not EventHandler(hello_handler, condition=PeriodicCondition(3)).equal(
-        EventHandler(hello_handler, condition=PeriodicCondition(3))
-    )
-
-
-def test_event_handler_condition_equal_false_same_class_different_handler_args() -> None:
-    assert not EventHandler(hello_handler, condition=PeriodicCondition(2)).equal(
-        EventHandler(hello_handler, handler_args=("meow",), condition=PeriodicCondition(2))
-    )
-
-
-def test_event_handler_condition_equal_false_same_class_different_handler_kwargs() -> None:
-    assert not EventHandler(hello_handler, condition=PeriodicCondition(2)).equal(
-        EventHandler(hello_handler, handler_kwargs={"key": "meow"}, condition=PeriodicCondition(2))
-    )
-
-
-def test_event_handler_condition_equal_false_same_class_different_conditions() -> None:
-    assert not EventHandler(hello_handler, condition=PeriodicCondition(3)).equal(
-        EventHandler(hello_handler, condition=PeriodicCondition(2))
-    )
-
-
-def test_event_handler_condition_equal_false_different_classes() -> None:
-    assert not EventHandler(hello_handler, condition=PeriodicCondition(3)).equal(
-        EventHandler(hello_name_handler)
-    )
-
-
 def test_event_handler_condition_property() -> None:
     condition = PeriodicCondition(3)
     assert EventHandler(hello_handler, condition=condition).condition is condition
@@ -324,15 +282,6 @@ def test_event_handler_condition_handler_kwargs_copied_on_construction() -> None
     assert event_handler.handler_kwargs == {"first_name": "John", "last_name": "Doe"}
 
 
-def test_event_handler_equal_unchanged_after_mutating_caller_kwargs() -> None:
-    kwargs = {"first_name": "John", "last_name": "Doe"}
-    event_handler = EventHandler(hello_name_handler, handler_kwargs=kwargs)
-    kwargs["first_name"] = "Jane"
-    assert event_handler.equal(
-        EventHandler(hello_name_handler, handler_kwargs={"first_name": "John", "last_name": "Doe"})
-    )
-
-
 ####################################
 #     Tests for handle payload     #
 ####################################
@@ -374,9 +323,6 @@ def test_event_handler_ahandle_payload_with_self_key() -> None:
 
 def test_base_event_handler_ahandle_payload_with_self_key() -> None:
     class MyHandler(BaseEventHandler):
-        def equal(self, other: Any) -> bool:
-            return self is other
-
         def handle(self, /, **payload: Any) -> None:
             kwargs_handler(**payload)
 
@@ -419,47 +365,6 @@ def test_event_handler_repr_with_condition() -> None:
     )
 
 
-def test_event_handler_condition_equal_false_with_and_without_condition() -> None:
-    assert not EventHandler(hello_handler).equal(
-        EventHandler(hello_handler, condition=PeriodicCondition(2))
-    )
-
-
-def test_event_handler_equal_false_subclass() -> None:
-    class MyEventHandler(EventHandler):
-        pass
-
-    assert not EventHandler(hello_handler).equal(MyEventHandler(hello_handler))
-
-
-def test_event_handler_equal_true_same_subclass() -> None:
-    class MyEventHandler(EventHandler):
-        pass
-
-    assert MyEventHandler(hello_handler).equal(MyEventHandler(hello_handler))
-
-
-def test_event_handler_key() -> None:
-    condition = PeriodicCondition(2)
-    event_handler = EventHandler(
-        hello_name_handler,
-        handler_args=("John",),
-        handler_kwargs={"last_name": "Doe"},
-        condition=condition,
-    )
-    assert event_handler._key() == (
-        hello_name_handler,
-        ("John",),
-        {"last_name": "Doe"},
-        condition,
-        False,
-    )
-
-
-def test_event_handler_key_without_condition() -> None:
-    assert EventHandler(hello_handler)._key() == (hello_handler, (), {}, None, False)
-
-
 ##########################################################
 #     Tests for EventHandler with callable condition     #
 ##########################################################
@@ -477,18 +382,6 @@ def test_event_handler_callable_condition_true() -> None:
 def test_event_handler_callable_condition_false() -> None:
     EventHandler(hello_handler, condition=always_false).handle()
     assert hello_handler.call_count == 0
-
-
-def test_event_handler_callable_condition_equal_true() -> None:
-    assert EventHandler(hello_handler, condition=always_true).equal(
-        EventHandler(hello_handler, condition=always_true)
-    )
-
-
-def test_event_handler_callable_condition_equal_false() -> None:
-    assert not EventHandler(hello_handler, condition=always_true).equal(
-        EventHandler(hello_handler, condition=always_false)
-    )
 
 
 def test_event_handler_condition_incorrect_type() -> None:
@@ -523,31 +416,6 @@ def test_event_handler_condition_combinator_evaluates_all() -> None:
 ########################################
 #     Tests for equality semantics     #
 ########################################
-
-
-def test_event_handler_unhashable() -> None:
-    with pytest.raises(TypeError, match=r"unhashable type: 'EventHandler'"):
-        hash(EventHandler(hello_handler))
-
-
-def test_event_handler_equal_false_different_lambdas() -> None:
-    assert not EventHandler(lambda: None).equal(EventHandler(lambda: None))
-
-
-def test_event_handler_equal_true_same_lambda() -> None:
-    func = lambda: None  # noqa: E731
-    assert EventHandler(func).equal(EventHandler(func))
-
-
-def test_event_handler_equal_true_same_bound_method() -> None:
-    obj = EventHandler(hello_handler)
-    assert EventHandler(obj.handle).equal(EventHandler(obj.handle))
-
-
-def test_event_handler_equal_false_bound_methods_of_different_instances() -> None:
-    assert not EventHandler(EventHandler(hello_handler).handle).equal(
-        EventHandler(EventHandler(hello_handler).handle)
-    )
 
 
 #############################
@@ -640,9 +508,6 @@ def test_event_handler_ahandle_coroutine_error_propagates() -> None:
 
 def test_base_event_handler_ahandle_calls_handle() -> None:
     class MyHandler(BaseEventHandler):
-        def equal(self, other: Any) -> bool:
-            return self is other
-
         def handle(self, /, **payload: Any) -> None:
             hello_handler(**payload)
 
@@ -752,16 +617,6 @@ def test_accepted_keywords_uninspectable() -> None:
 
 def test_event_handler_repr_filter_payload_true() -> None:
     assert repr(EventHandler(hello_handler, filter_payload=True)).endswith("filter_payload=True)")
-
-
-def test_event_handler_equal_false_different_filter_payload() -> None:
-    assert not EventHandler(hello_handler).equal(EventHandler(hello_handler, filter_payload=True))
-
-
-def test_event_handler_equal_true_same_filter_payload() -> None:
-    assert EventHandler(hello_handler, filter_payload=True).equal(
-        EventHandler(hello_handler, filter_payload=True)
-    )
 
 
 def test_accepted_keywords_var_keyword() -> None:
