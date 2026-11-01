@@ -337,3 +337,41 @@ def test_event_manager_repr_with_event_handlers() -> None:
         "  (last_triggered_event): my_event\n"
         ")"
     )
+
+
+def test_event_manager_events() -> None:
+    event_manager = EventManager()
+    assert event_manager.events == []
+    event_manager.add_event_handler("my_event", EventHandler(hello_handler))
+    event_manager.add_event_handler("my_other_event", EventHandler(hello_handler))
+    event_manager.trigger_event("unknown_event")
+    assert event_manager.events == ["my_event", "my_other_event"]
+
+
+def test_event_manager_contains() -> None:
+    event_manager = EventManager()
+    assert "my_event" not in event_manager
+    event_manager.add_event_handler("my_event", EventHandler(hello_handler))
+    assert "my_event" in event_manager
+    event_manager.remove_event_handler("my_event", EventHandler(hello_handler))
+    assert "my_event" not in event_manager
+
+
+def test_event_manager_clear_event() -> None:
+    event_manager = EventManager()
+    event_manager.add_event_handler("my_event", EventHandler(hello_handler))
+    event_manager.add_event_handler("my_event", EventHandler(hello_handler))
+    event_manager.add_event_handler("my_other_event", EventHandler(hello_handler))
+    event_manager.clear_event("my_event")
+    assert event_manager.events == ["my_other_event"]
+    event_manager.trigger_event("my_event")
+    assert hello_handler.call_count == 0
+
+
+def test_event_manager_clear_event_missing() -> None:
+    EventManager().clear_event("my_event")
+
+
+def test_event_manager_clear_event_must_be_str() -> None:
+    with pytest.raises(TypeError, match=r"event must be a str"):
+        EventManager().clear_event(1)
