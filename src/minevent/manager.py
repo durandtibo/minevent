@@ -15,6 +15,17 @@ if TYPE_CHECKING:
 logger: logging.Logger = logging.getLogger(__name__)
 
 
+def _check_event(event: object) -> None:
+    r"""Check that an event name is a string.
+
+    Raises:
+        TypeError: if ``event`` is not a ``str``.
+    """
+    if not isinstance(event, str):
+        msg = f"event must be a str, but got {type(event).__qualname__}"
+        raise TypeError(msg)
+
+
 class EventManager:
     r"""Implement an event manager.
 
@@ -102,11 +113,13 @@ class EventManager:
         event, and they will be executed in the order they were added.
 
         Args:
-            event: The event name (case-sensitive string; it is
-                converted with ``str``) to which the
-                event handler should be attached.
+            event: The event name (case-sensitive string) to which
+                the event handler should be attached.
             event_handler: The event handler instance to attach to the
                 event.
+
+        Raises:
+            TypeError: if ``event`` is not a string.
 
         Example:
             ```pycon
@@ -119,7 +132,8 @@ class EventManager:
 
             ```
         """
-        self._event_handlers.setdefault(str(event), []).append(event_handler)
+        _check_event(event)
+        self._event_handlers.setdefault(event, []).append(event_handler)
         logger.debug("Added %s to event %s", event_handler, event)
 
     def trigger_event(self, event: str) -> None:
@@ -140,6 +154,9 @@ class EventManager:
         Args:
             event: The event name (case-sensitive string) to trigger.
 
+        Raises:
+            TypeError: if ``event`` is not a string.
+
         Example:
             ```pycon
             >>> from minevent import EventHandler, EventManager
@@ -154,6 +171,7 @@ class EventManager:
 
             ```
         """
+        _check_event(event)
         logger.debug("Firing %s event", event)
         self._last_triggered_event = event
         for event_handler in tuple(self._event_handlers.get(event, ())):
@@ -173,6 +191,9 @@ class EventManager:
             event: An event name (case-sensitive string) to check. If
                 ``None``, the method will search across all registered
                 events. Default is ``None``.
+
+        Raises:
+            TypeError: if ``event`` is neither ``None`` nor a string.
 
         Returns:
             ``True`` if a matching event handler is registered,
@@ -205,6 +226,8 @@ class EventManager:
 
             ```
         """
+        if event is not None:
+            _check_event(event)
         events = list(self._event_handlers) if event is None else [event]
         for evnt in events:
             for handler in self._event_handlers.get(evnt, ()):
@@ -228,6 +251,7 @@ class EventManager:
                 the event.
 
         Raises:
+            TypeError: if ``event`` is not a string.
             RuntimeError: if the event does not exist or if the
                 handler is not attached to the event.
 
@@ -250,6 +274,7 @@ class EventManager:
 
             ```
         """
+        _check_event(event)
         if event not in self._event_handlers:
             msg = f"'{event}' event does not exist"
             raise RuntimeError(msg)

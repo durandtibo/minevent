@@ -277,3 +277,29 @@ def test_event_manager_last_triggered_event_set_before_handlers_run() -> None:
     )
     event_manager.trigger_event("my_event")
     assert seen == ["my_event"]
+
+
+INVALID_EVENTS = [1, None, b"my_event"]
+
+
+@pytest.mark.parametrize("event", INVALID_EVENTS)
+def test_event_manager_add_event_handler_event_must_be_str(event: object) -> None:
+    with pytest.raises(TypeError, match=r"event must be a str"):
+        EventManager().add_event_handler(event, EventHandler(hello_handler))
+
+
+@pytest.mark.parametrize("event", INVALID_EVENTS)
+def test_event_manager_trigger_event_event_must_be_str(event: object) -> None:
+    with pytest.raises(TypeError, match=r"event must be a str"):
+        EventManager().trigger_event(event)
+
+
+@pytest.mark.parametrize("event", INVALID_EVENTS)
+def test_event_manager_remove_event_handler_event_must_be_str(event: object) -> None:
+    with pytest.raises(TypeError, match=r"event must be a str"):
+        EventManager().remove_event_handler(event, EventHandler(hello_handler))
+
+
+def test_event_manager_has_event_handler_event_must_be_str() -> None:
+    with pytest.raises(TypeError, match=r"event must be a str"):
+        EventManager().has_event_handler(EventHandler(hello_handler), event=1)
