@@ -13,11 +13,9 @@ This guide helps you diagnose and resolve common issues when using `minevent`.
 1. **Handler not registered**
 
    ```python
-   # Check if handler is registered
-   handler = EventHandler(my_function)
-   if not manager.has_event_handler(handler, "my_event"):
-       print("Handler not registered!")
-       manager.add_event_handler("my_event", handler)
+   # Check the registrations of the event
+   print(manager.get_subscriptions("my_event"))  # () if no handler is registered
+   print("my_event" in manager)
    ```
 
 2. **Wrong event name** (event names are case-sensitive)
@@ -63,65 +61,29 @@ This guide helps you diagnose and resolve common issues when using `minevent`.
    manager.add_event_handler("my_event", EventHandler(safe_handler))
    ```
 
-### ValueError: Event Does Not Exist
+### Removing a Handler That Is Already Removed
 
-**Symptoms**: `ValueError: 'event_name' event does not exist` when trying to remove a handler.
+**Symptoms**: `subscription.remove()` returns `False`.
 
-**Cause**: You're trying to remove a handler from an event that has no registered handlers.
+**Cause**: The registration was already removed: by `remove()`, by `clear_event` or `reset`, or
+because it was registered with `once=True` and the event was triggered.
 
-**Solution**:
+**Solution**: This is not an error. Use `subscription.active` to check if the handler is still
+registered.
 
-```python
-# Check if event has handlers before removing
-if manager.has_event_handler(handler):
-    try:
-        manager.remove_event_handler("my_event", handler)
-    except ValueError as e:
-        print(f"Could not remove handler: {e}")
-```
+### Cannot Find a Handler to Remove
 
-### ValueError: Handler Not Found
+**Symptoms**: You did not keep the `Subscription` returned by `add_event_handler`.
 
-**Symptoms**: Error when trying to remove a handler that doesn't exist for that event.
+**Cause**: Event handlers are compared by identity, so a new `EventHandler` built with the same
+arguments is a different object.
 
-**Cause**: The handler was never added, or it was already removed.
-
-**Solution**: pass `missing_ok=True` to ignore missing handlers, or check first:
+**Solution**: Look at the registrations of the event and remove the one you want:
 
 ```python
-# Verify handler exists before removal
-handler = EventHandler(my_function)
-if manager.has_event_handler(handler, "my_event"):
-    manager.remove_event_handler("my_event", handler)
-else:
-    print("Handler not registered for this event")
-```
-
-### Handler Comparison Issues
-
-**Symptoms**: `has_event_handler` returns `False` even though you added the handler.
-
-**Cause**: Handler comparison uses the `equal` method, which compares handler functions and
-arguments.
-
-**Solution**:
-
-```python
-# These are considered DIFFERENT handlers
-handler1 = EventHandler(my_function, handler_args=(1,))
-handler2 = EventHandler(my_function, handler_args=(2,))  # Different args
-print(handler1.equal(handler2))  # False
-
-# These are considered EQUAL
-handler3 = EventHandler(my_function, handler_args=(1,))
-handler4 = EventHandler(my_function, handler_args=(1,))  # Same args
-print(handler3.equal(handler4))  # True
-
-# Solution: Keep reference to original handler
-original_handler = EventHandler(my_function, handler_args=(1,))
-manager.add_event_handler("event", original_handler)
-# Later...
-manager.has_event_handler(original_handler, "event")  # True
+for subscription in manager.get_subscriptions("my_event"):
+    if subscription.event_handler.handler is my_function:
+        subscription.remove()
 ```
 
 ### Memory Leaks
@@ -295,10 +257,8 @@ print(manager)
 # List the registrations of an event
 print(manager.get_subscriptions("my_event"))
 
-# Check if specific handler is registered
-handler = EventHandler(my_function)
-print(f"Handler registered: {manager.has_event_handler(handler)}")
-print(f"Handler registered for 'event': {manager.has_event_handler(handler, 'event')}")
+# Check if an event has handlers
+print("my_event" in manager)
 ```
 
 ### Add Debugging Handlers
