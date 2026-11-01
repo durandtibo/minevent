@@ -2,10 +2,9 @@ r"""Implement the event handlers."""
 
 from __future__ import annotations
 
-__all__ = ["BaseEventHandler", "ConditionalEventHandler", "EventHandler"]
+__all__ = ["BaseEventHandler", "EventHandler"]
 
 import inspect
-import warnings
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
@@ -383,56 +382,3 @@ class EventHandler(BaseEventHandler):
             result = self._handler(*self._handler_args, **self._handler_kwargs, **payload)
             if inspect.isawaitable(result):
                 await result
-
-
-def ConditionalEventHandler(  # noqa: N802
-    handler: Callable[..., object],
-    condition: BaseCondition,
-    handler_args: Sequence[Any] | None = None,
-    handler_kwargs: Mapping[str, Any] | None = None,
-) -> EventHandler:
-    r"""Create an event handler that is executed only if a condition is
-    ``True``.
-
-    This function is deprecated and will be removed in a future
-    release. Use ``EventHandler(handler, condition=condition)``
-    instead.
-
-    Args:
-        handler: The callable function or method to be invoked when
-            the event is triggered and the condition is ``True``.
-        condition: The condition object that controls whether the
-            handler is executed.
-        handler_args: The positional arguments to pass to the handler
-            when it is called. Default is ``None``.
-        handler_kwargs: The keyword arguments to pass to the handler
-            when it is called. Default is ``None``.
-
-    Returns:
-        An ``EventHandler`` with the given condition.
-
-    Raises:
-        TypeError: if ``handler`` is not callable.
-
-    Example:
-        ```pycon
-        >>> import warnings
-        >>> from minevent import ConditionalEventHandler, PeriodicCondition
-        >>> with warnings.catch_warnings():
-        ...     warnings.simplefilter("ignore", DeprecationWarning)
-        ...     handler = ConditionalEventHandler(print, PeriodicCondition(freq=3))
-        ...
-        >>> type(handler).__name__
-        'EventHandler'
-
-        ```
-    """
-    warnings.warn(
-        "ConditionalEventHandler is deprecated and will be removed in a future release. "
-        "Use EventHandler(handler, condition=condition) instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return EventHandler(
-        handler, handler_args=handler_args, handler_kwargs=handler_kwargs, condition=condition
-    )

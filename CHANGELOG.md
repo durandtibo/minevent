@@ -20,7 +20,7 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
   by a handler take effect at the next trigger.
 - Reading the manager (`trigger_event`, `has_event_handler`, ...) no longer creates events.
 - `EventHandler` copies `handler_kwargs`, rejects a `str` or `bytes` `handler_args`, and accepts a
-  `condition` argument. `ConditionalEventHandler` is deprecated: use
+  `condition` argument. `ConditionalEventHandler` is removed: use
   `EventHandler(handler, condition=condition)`.
 - `PeriodicCondition` validates `freq` and has a `skip_first` option and a `reset` method.
 - `__repr__` of `EventManager` is simpler.

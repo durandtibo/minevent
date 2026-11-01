@@ -34,8 +34,7 @@ An event handler must have two methods:
 - `equal` which is used to compare two event handlers.
 
 `minevent` provides `EventHandler`, which wraps a callable. It can take an optional `condition`
-to execute the logic only when the condition is true. `ConditionalEventHandler` is a deprecated
-function that creates an `EventHandler` with a condition.
+to execute the logic only when the condition is true.
 
 ### Basic event handler
 
