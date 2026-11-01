@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import inspect
 import logging
+from collections.abc import Sequence
 from types import MappingProxyType
 from typing import Any
 
@@ -71,6 +72,52 @@ def test_event_handler__eq__false() -> None:
 
 def test_event_handler_equal_true() -> None:
     assert EventHandler(hello_handler).equal(EventHandler(hello_handler))
+
+
+class AmbiguousSequence(Sequence):
+    r"""Implements a sequence whose truth value is ambiguous, like an
+    array."""
+
+    def __init__(self, values: tuple[Any, ...]) -> None:
+        self._values = values
+
+    def __bool__(self) -> bool:
+        msg = "The truth value is ambiguous"
+        raise ValueError(msg)
+
+    def __len__(self) -> int:
+        return len(self._values)
+
+    def __getitem__(self, index: int | slice) -> Any:
+        return self._values[index]
+
+
+class AmbiguousMapping(dict):
+    r"""Implements a mapping whose truth value is ambiguous."""
+
+    def __bool__(self) -> bool:
+        msg = "The truth value is ambiguous"
+        raise ValueError(msg)
+
+
+def test_event_handler_handler_args_ambiguous_truth_value() -> None:
+    event_handler = EventHandler(hello_name_handler, handler_args=AmbiguousSequence(("John",)))
+    assert event_handler.handler_args == ("John",)
+
+
+def test_event_handler_handler_args_empty_ambiguous_truth_value() -> None:
+    assert EventHandler(hello_handler, handler_args=AmbiguousSequence(())).handler_args == ()
+
+
+def test_event_handler_handler_kwargs_ambiguous_truth_value() -> None:
+    event_handler = EventHandler(
+        hello_name_handler, handler_kwargs=AmbiguousMapping(first_name="John")
+    )
+    assert event_handler.handler_kwargs == {"first_name": "John"}
+
+
+def test_event_handler_handler_kwargs_empty_ambiguous_truth_value() -> None:
+    assert EventHandler(hello_handler, handler_kwargs=AmbiguousMapping()).handler_kwargs == {}
 
 
 def test_event_handler_equal_false_same_class_different_handler_args() -> None:
