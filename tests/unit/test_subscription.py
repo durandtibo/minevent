@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-from unittest.mock import Mock
-
 import pytest
 
-from minevent import EventHandler, Subscription
+from minevent import EventHandler, EventManager, Subscription
 
 
 def failing_handler() -> None:
@@ -18,71 +16,121 @@ def failing_handler() -> None:
 
 
 def test_subscription_repr() -> None:
-    assert repr(Subscription("my_event", EventHandler(print), Mock())) == (
+    assert repr(Subscription(EventManager(), "my_event", EventHandler(print))) == (
         "Subscription(event='my_event')"
     )
 
 
 def test_subscription_event() -> None:
-    assert Subscription("my_event", EventHandler(print), Mock()).event == "my_event"
+    assert Subscription(EventManager(), "my_event", EventHandler(print)).event == "my_event"
 
 
 def test_subscription_event_handler() -> None:
     handler = EventHandler(print)
-    assert Subscription("my_event", handler, Mock()).event_handler is handler
+    assert Subscription(EventManager(), "my_event", handler).event_handler is handler
 
 
-def test_subscription_remove_calls_remove_func() -> None:
-    handler = EventHandler(print)
-    remove_func = Mock(return_value=True)
-    Subscription("my_event", handler, remove_func).remove()
-    remove_func.assert_called_once_with("my_event", handler)
+def test_subscription_once_default() -> None:
+    assert not Subscription(EventManager(), "my_event", EventHandler(print)).once
+
+
+def test_subscription_once_true() -> None:
+    assert Subscription(EventManager(), "my_event", EventHandler(print), once=True).once
+
+
+def test_subscription_active_after_add() -> None:
+    assert EventManager().add_event_handler("my_event", EventHandler(print)).active
 
 
 def test_subscription_remove_returns_true() -> None:
-    assert Subscription("my_event", EventHandler(print), Mock(return_value=True)).remove()
+    assert EventManager().add_event_handler("my_event", EventHandler(print)).remove()
 
 
-def test_subscription_remove_returns_false() -> None:
-    assert not Subscription("my_event", EventHandler(print), Mock(return_value=False)).remove()
+def test_subscription_remove_twice_returns_false() -> None:
+    subscription = EventManager().add_event_handler("my_event", EventHandler(print))
+    subscription.remove()
+    assert not subscription.remove()
 
 
-def test_subscription_active_without_func_before_remove() -> None:
-    assert Subscription("my_event", EventHandler(print), Mock()).active
-
-
-def test_subscription_active_without_func_after_remove() -> None:
-    subscription = Subscription("my_event", EventHandler(print), Mock())
+def test_subscription_remove_inactive_after_remove() -> None:
+    subscription = EventManager().add_event_handler("my_event", EventHandler(print))
     subscription.remove()
     assert not subscription.active
 
 
-def test_subscription_active_calls_is_active_func() -> None:
+def test_subscription_remove_removes_from_manager() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", EventHandler(print)).remove()
+    assert len(manager) == 0
+
+
+def test_subscription_remove_same_handler_registered_twice_keeps_other_registration() -> None:
+    manager = EventManager()
     handler = EventHandler(print)
-    is_active_func = Mock(return_value=False)
-    assert not Subscription("my_event", handler, Mock(), is_active_func=is_active_func).active
-    is_active_func.assert_called_once_with("my_event", handler)
+    first = manager.add_event_handler("my_event", handler)
+    manager.add_event_handler("my_event", handler)
+    first.remove()
+    first.remove()
+    assert len(manager) == 1
+
+
+def test_subscription_remove_same_handler_registered_twice_second_stays_active() -> None:
+    manager = EventManager()
+    handler = EventHandler(print)
+    first = manager.add_event_handler("my_event", handler)
+    second = manager.add_event_handler("my_event", handler)
+    first.remove()
+    first.remove()
+    assert second.active
+
+
+def test_subscription_inactive_after_clear_event() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", EventHandler(print))
+    manager.clear_event("my_event")
+    assert not subscription.active
+
+
+def test_subscription_remove_after_clear_event_returns_false() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", EventHandler(print))
+    manager.clear_event("my_event")
+    assert not subscription.remove()
+
+
+def test_subscription_inactive_after_reset() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", EventHandler(print))
+    manager.reset()
+    assert not subscription.active
+
+
+def test_subscription_inactive_after_remove_event_handler() -> None:
+    manager = EventManager()
+    handler = EventHandler(print)
+    subscription = manager.add_event_handler("my_event", handler)
+    manager.remove_event_handler("my_event", handler)
+    assert not subscription.active
 
 
 def test_subscription_enter_returns_subscription() -> None:
-    subscription = Subscription("my_event", EventHandler(print), Mock())
+    subscription = EventManager().add_event_handler("my_event", EventHandler(print))
     with subscription as entered:
         assert entered is subscription
 
 
 def test_subscription_exit_removes() -> None:
-    handler = EventHandler(print)
-    remove_func = Mock(return_value=True)
-    with Subscription("my_event", handler, remove_func):
+    manager = EventManager()
+    with manager.add_event_handler("my_event", EventHandler(print)):
         pass
-    remove_func.assert_called_once_with("my_event", handler)
+    assert len(manager) == 0
 
 
 def test_subscription_exit_removes_when_block_raises() -> None:
-    remove_func = Mock(return_value=True)
+    manager = EventManager()
     with (
         pytest.raises(RuntimeError, match=r"handler failed"),
-        Subscription("my_event", EventHandler(print), remove_func),
+        manager.add_event_handler("my_event", EventHandler(print)),
     ):
         failing_handler()
-    remove_func.assert_called_once()
+    assert len(manager) == 0

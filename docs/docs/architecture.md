@@ -8,6 +8,9 @@ These properties hold for every release and each one is covered by tests.
 
 - **Events are strings.** An event name is a case-sensitive `str`; any other type raises a
   `TypeError`. Reading the manager never creates an event.
+- **A registration is a `Subscription`.** `add_event_handler` returns a new one every time, even
+  for a handler that is already registered. `remove()` removes that registration only, and returns
+  `False` when it was already removed.
 - **Registration order.** The handlers of an event run in the order they were registered.
 - **Snapshot dispatch.** `trigger_event` runs the handlers registered when it starts. A handler
   added or removed by a running handler takes effect at the next trigger.

@@ -130,10 +130,11 @@ def test_once_handler_runs_once_when_snapshots_taken_before_dispatch() -> None:
     manager.add_event_handler("my_event", EventHandler(handler), once=True)
 
     def work(_index: int) -> None:
-        handlers = manager._start_trigger("my_event")
+        subscriptions = manager._start_trigger("my_event")
         barrier.wait()
-        for event_handler in handlers:
-            event_handler.handle()
+        for subscription in subscriptions:
+            if manager._claim(subscription):
+                subscription.event_handler.handle()
 
     run_threads(work, NUM_THREADS)
     assert len(calls) == 1

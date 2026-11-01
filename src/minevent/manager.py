@@ -32,54 +32,6 @@ def _check_event(event: object) -> None:
         raise TypeError(msg)
 
 
-class _OnceEventHandler(BaseEventHandler):
-    r"""Wrap an event handler to run it only on the next trigger.
-
-    The wrapper removes its own registration before calling the
-    wrapped handler, so the handler runs once even if it triggers the
-    same event again, raises, or is triggered from several threads.
-    Only the caller whose removal succeeds runs the handler.
-
-    Args:
-        event_handler: The wrapped event handler.
-    """
-
-    def __init__(self, event_handler: BaseEventHandler) -> None:
-        self.event_handler = event_handler
-        self.subscription: Subscription | None = None
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__qualname__}({self.event_handler!r})"
-
-    def equal(self, other: object) -> bool:
-        if isinstance(other, _OnceEventHandler):
-            other = other.event_handler
-        return self.event_handler.equal(other)
-
-    def handle(self, /, **payload: object) -> None:
-        if self.subscription is None or self.subscription.remove():
-            self.event_handler.handle(**payload)
-
-    async def ahandle(self, /, **payload: object) -> None:
-        if self.subscription is None or self.subscription.remove():
-            await self.event_handler.ahandle(**payload)
-
-
-def _unwrap(event_handler: BaseEventHandler) -> BaseEventHandler:
-    r"""Return the user event handler of a registered event handler.
-
-    Args:
-        event_handler: A registered event handler.
-
-    Returns:
-        The wrapped event handler if ``event_handler`` is a one-time
-            wrapper, otherwise ``event_handler``.
-    """
-    if isinstance(event_handler, _OnceEventHandler):
-        return event_handler.event_handler
-    return event_handler
-
-
 class EventManager:
     r"""Implement an event manager.
 
@@ -120,8 +72,8 @@ class EventManager:
     """
 
     def __init__(self) -> None:
-        # This variable is used to store the handlers associated to each event.
-        self._event_handlers: dict[str, list[BaseEventHandler]] = {}
+        # This variable is used to store the registrations of each event, in the order they run.
+        self._subscriptions: dict[str, list[Subscription]] = {}
         # This variable is used to track the last fired event name
         self._last_triggered_event: str | None = None
         # This lock protects the state above. It is reentrant, so a handler can use the manager.
@@ -130,7 +82,8 @@ class EventManager:
     def __repr__(self) -> str:
         with self._lock:
             event_handlers = {
-                event: tuple(handlers) for event, handlers in self._event_handlers.items()
+                event: tuple(sub.event_handler for sub in subs)
+                for event, subs in self._subscriptions.items()
             }
             last_triggered_event = self._last_triggered_event
         # The handlers can have a custom repr, so they are formatted outside of the lock.
@@ -160,11 +113,11 @@ class EventManager:
 
     def __contains__(self, event: object) -> bool:
         with self._lock:
-            return event in self._event_handlers
+            return event in self._subscriptions
 
     def __len__(self) -> int:
         with self._lock:
-            return sum(len(handlers) for handlers in self._event_handlers.values())
+            return sum(len(subs) for subs in self._subscriptions.values())
 
     @property
     def events(self) -> list[str]:
@@ -188,7 +141,7 @@ class EventManager:
             ```
         """
         with self._lock:
-            return list(self._event_handlers)
+            return list(self._subscriptions)
 
     @property
     def last_triggered_event(self) -> str | None:
@@ -232,7 +185,7 @@ class EventManager:
             A snapshot of the event handlers, in the order they were
                 added. It is empty if no handler is registered. The
                 handlers added with ``once=True`` are returned
-                unwrapped. Changing the manager does not change the
+                as registered. Changing the manager does not change the
                 returned tuple.
 
         Raises:
@@ -255,7 +208,7 @@ class EventManager:
         """
         _check_event(event)
         with self._lock:
-            return tuple(_unwrap(handler) for handler in self._event_handlers.get(event, ()))
+            return tuple(sub.event_handler for sub in self._subscriptions.get(event, ()))
 
     def add_event_handler(
         self, event: str, event_handler: BaseEventHandler, *, once: bool = False
@@ -307,32 +260,11 @@ class EventManager:
             ```
         """
         _check_event(event)
-        registered = event_handler
-        if once:
-            registered = _OnceEventHandler(event_handler)
-        subscription = Subscription(
-            event, registered, self._remove_registration, is_active_func=self._is_registered
-        )
-        if isinstance(registered, _OnceEventHandler):
-            registered.subscription = subscription
+        subscription = Subscription(self, event, event_handler, once=once)
         with self._lock:
-            self._event_handlers.setdefault(event, []).append(registered)
+            self._subscriptions.setdefault(event, []).append(subscription)
         logger.debug("Added %s to event %s", event_handler, event)
         return subscription
-
-    def _is_registered(self, event: str, event_handler: BaseEventHandler) -> bool:
-        r"""Indicate if an event handler instance is registered.
-
-        Args:
-            event: The event name.
-            event_handler: The registered event handler instance.
-
-        Returns:
-            ``True`` if the instance is registered to the event
-                (compared by identity), otherwise ``False``.
-        """
-        with self._lock:
-            return any(handler is event_handler for handler in self._event_handlers.get(event, ()))
 
     def on(self, event: str, *, once: bool = False) -> Callable[[_F], _F]:
         r"""Create a decorator that registers a function as a handler.
@@ -376,27 +308,39 @@ class EventManager:
 
         return decorator
 
-    def _remove_registration(self, event: str, event_handler: BaseEventHandler) -> bool:
-        r"""Remove one registered event handler, compared by identity.
+    def _remove(self, subscription: Subscription) -> bool:
+        r"""Remove one registration.
 
         Args:
-            event: The event name.
-            event_handler: The registered event handler instance.
+            subscription: The registration to remove.
 
         Returns:
             ``True`` if the registration was removed, ``False`` if it
-                is not registered.
+                was already removed.
         """
         with self._lock:
-            handlers = self._event_handlers.get(event, [])
-            for i, handler in enumerate(handlers):
-                if handler is event_handler:
-                    del handlers[i]
-                    if not handlers:
-                        del self._event_handlers[event]
-                    logger.debug("Removed %s in '%s' event", event_handler, event)
-                    return True
-            return False
+            if not subscription.active:
+                return False
+            subscription._active = False
+            subs = self._subscriptions[subscription.event]
+            subs.remove(subscription)
+            if not subs:
+                del self._subscriptions[subscription.event]
+        logger.debug("Removed %s in '%s' event", subscription.event_handler, subscription.event)
+        return True
+
+    def _claim(self, subscription: Subscription) -> bool:
+        r"""Claim the right to run a registration.
+
+        Args:
+            subscription: A registration of the snapshot of a trigger.
+
+        Returns:
+            ``True`` if the event handler can run: the registration
+                is not ``once``, or this call removed it. ``False`` if
+                another call already removed a ``once`` registration.
+        """
+        return not subscription.once or self._remove(subscription)
 
     def trigger_event(self, event: str, /, **payload: object) -> None:
         r"""Trigger the handler(s) for the given event.
@@ -453,8 +397,9 @@ class EventManager:
 
             ```
         """
-        for event_handler in self._start_trigger(event):
-            event_handler.handle(**payload)
+        for subscription in self._start_trigger(event):
+            if self._claim(subscription):
+                subscription.event_handler.handle(**payload)
 
     async def atrigger_event(self, event: str, /, **payload: object) -> None:
         r"""Trigger the handler(s) for the given event, awaiting the
@@ -489,17 +434,18 @@ class EventManager:
 
             ```
         """
-        for event_handler in self._start_trigger(event):
-            await event_handler.ahandle(**payload)
+        for subscription in self._start_trigger(event):
+            if self._claim(subscription):
+                await subscription.event_handler.ahandle(**payload)
 
-    def _start_trigger(self, event: str) -> tuple[BaseEventHandler, ...]:
+    def _start_trigger(self, event: str) -> tuple[Subscription, ...]:
         r"""Record a trigger and return the handlers to run.
 
         Args:
             event: The event name.
 
         Returns:
-            A snapshot of the event handlers registered for the event.
+            A snapshot of the registrations of the event.
 
         Raises:
             TypeError: if ``event`` is not a string.
@@ -508,7 +454,7 @@ class EventManager:
         logger.debug("Firing %s event", event)
         with self._lock:
             self._last_triggered_event = event
-            return tuple(self._event_handlers.get(event, ()))
+            return tuple(self._subscriptions.get(event, ()))
 
     def has_event_handler(
         self, event_handler: BaseEventHandler | Subscription, event: str | None = None
@@ -570,17 +516,11 @@ class EventManager:
         if isinstance(event_handler, Subscription):
             if event is not None and event != event_handler.event:
                 return False
-            with self._lock:
-                registered_handlers = self._event_handlers.get(event_handler.event, ())
-                return any(
-                    handler is event_handler.event_handler for handler in registered_handlers
-                )
+            return event_handler.active and event_handler._manager is self
         with self._lock:
-            events = list(self._event_handlers) if event is None else [event]
-            registered = [tuple(self._event_handlers.get(evnt, ())) for evnt in events]
-        return any(
-            event_handler.equal(_unwrap(handler)) for handlers in registered for handler in handlers
-        )
+            events = list(self._subscriptions) if event is None else [event]
+            registered = [tuple(self._subscriptions.get(evnt, ())) for evnt in events]
+        return any(event_handler.equal(sub.event_handler) for subs in registered for sub in subs)
 
     def remove_event_handler(
         self,
@@ -636,8 +576,10 @@ class EventManager:
         """
         _check_event(event)
         if isinstance(event_handler, Subscription):
-            if event_handler.event == event and self._remove_registration(
-                event, event_handler.event_handler
+            if (
+                event_handler.event == event
+                and event_handler._manager is self
+                and event_handler.remove()
             ):
                 return
             if missing_ok:
@@ -647,7 +589,7 @@ class EventManager:
             )
             raise ValueError(msg)
         with self._lock:
-            registered = tuple(self._event_handlers.get(event, ()))
+            registered = tuple(self._subscriptions.get(event, ()))
         if not registered:
             if missing_ok:
                 return
@@ -655,7 +597,7 @@ class EventManager:
             raise ValueError(msg)
 
         # The comparison can run user code, so it is done outside of the lock.
-        matches = [handler for handler in registered if event_handler.equal(_unwrap(handler))]
+        matches = [sub for sub in registered if event_handler.equal(sub.event_handler)]
         if not matches:
             if missing_ok:
                 return
@@ -663,8 +605,8 @@ class EventManager:
                 f"{event_handler} is not found among registered event handlers for '{event}' event"
             )
             raise ValueError(msg)
-        for handler in matches:
-            self._remove_registration(event, handler)
+        for sub in matches:
+            sub.remove()
 
     def clear_event(self, event: str) -> None:
         r"""Remove all the event handlers of a given event.
@@ -690,7 +632,9 @@ class EventManager:
         """
         _check_event(event)
         with self._lock:
-            removed = self._event_handlers.pop(event, None)
+            removed = self._subscriptions.pop(event, None)
+            for sub in removed or ():
+                sub._active = False
         if removed is not None:
             logger.debug("Cleared all the event handlers of '%s' event", event)
 
@@ -731,5 +675,8 @@ class EventManager:
             ```
         """
         with self._lock:
-            self._event_handlers.clear()
+            for subs in self._subscriptions.values():
+                for sub in subs:
+                    sub._active = False
+            self._subscriptions.clear()
             self._last_triggered_event = None

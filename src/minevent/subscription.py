@@ -8,34 +8,34 @@ __all__ = ["Subscription"]
 from typing import TYPE_CHECKING, Self
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
     from types import TracebackType
 
     from minevent.handlers import BaseEventHandler
+    from minevent.manager import EventManager
 
 
 class Subscription:
     r"""Represent the registration of an event handler to an event.
 
     A subscription is returned by ``EventManager.add_event_handler``.
-    It removes exactly the registration that created it, so the
-    handler does not need to be re-created to be unsubscribed, and
-    other equal handlers are not removed.
+    It is the registration itself: the manager stores it, and it
+    removes exactly the registration that created it. The handler does
+    not need to be re-created to be unsubscribed, other equal handlers
+    are not removed, and registering the same handler twice creates two
+    independent subscriptions.
 
     A subscription is a context manager: the registration is removed
     when the ``with`` block exits.
 
+    The constructor is internal: subscriptions are created by the
+    event manager.
+
     Args:
+        manager: The event manager that stores the registration.
         event: The event name of the registration.
         event_handler: The registered event handler.
-        remove_func: The function that removes the registration. It
-            takes the event name and the event handler, and returns
-            ``True`` if the registration was removed, ``False`` if it
-            was already removed.
-        is_active_func: The function that indicates if the
-            registration is still registered. It takes the event name
-            and the event handler. If ``None``, the subscription is
-            active until ``remove`` is called. Default is ``None``.
+        once: If ``True``, the registration is removed before its
+            first execution. Default is ``False``.
 
     Example:
         ```pycon
@@ -66,17 +66,17 @@ class Subscription:
 
     def __init__(
         self,
+        manager: EventManager,
         event: str,
         event_handler: BaseEventHandler,
-        remove_func: Callable[[str, BaseEventHandler], bool],
         *,
-        is_active_func: Callable[[str, BaseEventHandler], bool] | None = None,
+        once: bool = False,
     ) -> None:
+        self._manager = manager
         self._event = event
         self._event_handler = event_handler
-        self._remove_func = remove_func
-        self._is_active_func = is_active_func
-        self._removed = False
+        self._once = once
+        self._active = True
 
     def __enter__(self) -> Self:
         return self
@@ -111,6 +111,17 @@ class Subscription:
         return self._event_handler
 
     @property
+    def once(self) -> bool:
+        r"""Indicate if the registration is removed before its first
+        execution.
+
+        Returns:
+            ``True`` if the event handler runs at most once, otherwise
+                ``False``.
+        """
+        return self._once
+
+    @property
     def active(self) -> bool:
         r"""Indicate if the registration is still registered.
 
@@ -120,9 +131,7 @@ class Subscription:
                 ``remove_event_handler``, ``clear_event``, ``reset``
                 or because it was a ``once`` handler that ran).
         """
-        if self._is_active_func is None:
-            return not self._removed
-        return self._is_active_func(self._event, self._event_handler)
+        return self._active
 
     def remove(self) -> bool:
         r"""Remove the registration.
@@ -135,5 +144,4 @@ class Subscription:
             ``True`` if the registration was removed, ``False`` if it
                 was already removed.
         """
-        self._removed = True
-        return self._remove_func(self._event, self._event_handler)
+        return self._manager._remove(self)
