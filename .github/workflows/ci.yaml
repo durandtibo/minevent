@@ -1,7 +1,7 @@
 # Main CI workflow that orchestrates all quality checks and tests.
 # Runs on pull requests, pushes to main, a nightly schedule, and manual dispatch.
 # Validates code quality, runs tests, and checks dependencies.
-# Coverage is uploaded from the "all" job of ci-test.yaml rather than a
+# Coverage is uploaded from the test job of ci-test.yaml rather than a
 # separate full test run.
 #
 # Deliberately NOT called from here, with its own trigger:
@@ -28,6 +28,13 @@ on:
 
 permissions:
   contents: read
+
+# A new push to a pull request cancels the previous run. The group name does not use
+# github.workflow: for workflow_call (release-pypi.yaml) it is the name of the caller, whose own
+# concurrency group would then be the same and deadlock. Other events are never cancelled.
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   # Load the shared python-version/OS matrix from the default config of
@@ -65,7 +72,7 @@ jobs:
     uses: ./.github/workflows/ci-pre-commit.yaml
 
   # Run unit tests across multiple Python versions and OS.
-  # secrets: inherit is required so the "all" job can upload coverage to Codecov.
+  # secrets: inherit is required so the test job can upload coverage to Codecov.
   test:
     needs: get-matrix
     uses: ./.github/workflows/ci-test.yaml

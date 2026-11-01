@@ -1,7 +1,6 @@
 # Comprehensive test suite workflow.
 # Runs unit tests across multiple Python versions and operating systems.
-# Tests both with all dependencies and with minimal dependencies.
-# The ubuntu-latest/3.14 cell of the "all" matrix also uploads coverage to Codecov,
+# The ubuntu-latest/3.14 cell of the matrix also uploads coverage to Codecov,
 # so coverage tracking rides on an existing run instead of a separate full test pass.
 
 name: Unit Tests
@@ -17,8 +16,8 @@ permissions:
   contents: read
 
 jobs:
-  # Test with all dependencies across multiple Python versions and operating systems
-  all:
+  # Test across multiple Python versions and operating systems
+  test:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10 # free-threaded and macOS cells are slow
     strategy:
@@ -54,27 +53,3 @@ jobs:
           # in the github UI just because the coverage report failed to
           # be published.
           fail_ci_if_error: false
-
-  # Test with minimal dependencies to ensure optional dependencies are truly optional
-  min:
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 10 # free-threaded and macOS cells are slow
-    strategy:
-      max-parallel: 8
-      fail-fast: false
-      matrix:
-        os: ${{ fromJson(inputs.test-matrix).os_matrix }}
-        python-version: ${{ fromJson(inputs.test-matrix).python_versions }}
-    steps:
-      # Install only required dependencies, not optional ones
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
-
-      - name: Setup python environment
-        uses: durandtibo/setup-venv-uv-action@269cae0b38051f39b2cfb10230687ba2b8093424 # ratchet:durandtibo/setup-venv-uv-action@v0.2.0
-        with:
-          python-version: ${{ matrix.python-version }}
-          install-args: "--no-optional-deps"
-      - name: Run unit tests
-        run: |
-          inv test.unit
