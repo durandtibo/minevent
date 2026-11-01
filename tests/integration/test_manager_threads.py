@@ -74,8 +74,8 @@ def test_add_and_trigger_from_threads() -> None:
 
 
 def test_subscription_remove_from_threads() -> None:
-    """Test that each registration is removed exactly once when
-    several threads remove them."""
+    """Test that each registration is removed exactly once when several
+    threads remove them."""
     manager = EventManager()
     subscriptions = [
         manager.add_event_handler("my_event", EventHandler(len, handler_args=([],)))
