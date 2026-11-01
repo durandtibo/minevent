@@ -21,7 +21,7 @@ __all__ = [
     "as_condition",
 ]
 
-from importlib.metadata import version
+from typing import Any
 
 from minevent.conditions import (
     AfterNCondition,
@@ -43,4 +43,23 @@ from minevent.handlers import (
 from minevent.manager import EventManager
 from minevent.subscription import Subscription
 
-__version__ = version("minevent")
+
+def __getattr__(name: str) -> Any:
+    # PEP 562: the version is read from the metadata of the installed package the first time
+    # it is used, because ``importlib.metadata`` is slow to import.
+    if name == "__version__":
+        from importlib.metadata import PackageNotFoundError, version  # noqa: PLC0415
+
+        try:
+            value = version(__name__)
+        except PackageNotFoundError:
+            # Package is not installed, fallback if needed
+            value = "0.0.0"
+        globals()["__version__"] = value
+        return value
+    msg = f"module {__name__!r} has no attribute {name!r}"
+    raise AttributeError(msg)
+
+
+def __dir__() -> list[str]:
+    return sorted([*globals(), "__version__"])
