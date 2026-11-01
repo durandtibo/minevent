@@ -190,7 +190,7 @@ class EventManager:
 
             ```
         """
-        events = [event] if event else list(self._event_handlers)
+        events = list(self._event_handlers) if event is None else [event]
         for evnt in events:
             for handler in self._event_handlers.get(evnt, ()):
                 if event_handler.equal(handler):
