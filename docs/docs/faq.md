@@ -164,8 +164,8 @@ from minevent.handlers import BaseEventHandler
 
 
 class MyEventHandler(BaseEventHandler):
-    def handle(self) -> None:
-        # Your custom logic here
+    def handle(self, /, **payload: object) -> None:
+        # Your custom logic here; payload holds the keyword arguments of trigger_event
         pass
 
     def equal(self, other) -> bool:
