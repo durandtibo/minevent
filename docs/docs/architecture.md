@@ -233,39 +233,6 @@ With a condition:
         handler(*handler_args, **handler_kwargs, **payload)
 ```
 
-## Comparison with Other Systems
-
-### vs Python's `signal` module
-
-| Feature               | minevent           | signal             |
-| --------------------- | ------------------ | ------------------ |
-| Use case              | Application events | Unix signals       |
-| Event types           | Arbitrary strings  | Predefined signals |
-| Handler arguments     | Flexible           | Fixed signature    |
-| Conditional execution | Built-in           | Manual             |
-| Event manager         | Explicit           | Global             |
-
-### vs PyDispatcher / blinker
-
-| Feature         | minevent        | PyDispatcher/blinker |
-| --------------- | --------------- | -------------------- |
-| Dependencies    | Minimal (coola) | None                 |
-| Event metadata  | None            | Supported            |
-| Weak references | No              | Yes                  |
-| Sender/receiver | No              | Yes                  |
-| Async support   | Opt-in          | Limited              |
-
-**Why minevent?**: Simpler, more focused on ML workflows, easier to understand.
-
-### vs Observer Pattern (Manual)
-
-| Feature               | minevent     | Manual Observer |
-| --------------------- | ------------ | --------------- |
-| Boilerplate           | Minimal      | High            |
-| Conditional execution | Built-in     | Manual          |
-| Event naming          | String-based | Type-based      |
-| Learning curve        | Low          | Moderate        |
-
 ## Extension Points
 
 ### Custom Event Handlers
@@ -332,29 +299,6 @@ class MyEventManager:
 - Event managers with priorities
 - Event managers with event history
 
-## Performance Considerations
-
-### Time Complexity
-
-| Operation      | Complexity | Notes                  |
-| -------------- | ---------- | ---------------------- |
-| Add handler    | O(1)       | Append to list         |
-| Trigger event  | O(n)       | n = handlers for event |
-| Has handler    | O(m)       | m = total handlers     |
-| Remove handler | O(n)       | n = handlers for event |
-
-### Space Complexity
-
-- O(e × h) where e = number of events, h = average handlers per event
-- Minimal overhead per handler (~100 bytes)
-
-### Optimization Tips
-
-1. **Minimize handler count**: Combine related operations
-2. **Use conditions**: Avoid unnecessary handler execution
-3. **Keep handlers lightweight**: Move heavy work elsewhere
-4. **Reuse handlers**: Same handler for multiple events
-
 ## Thread Safety
 
 **Status**: `EventManager` protects its registry with a reentrant lock. Registering, removing and
@@ -373,41 +317,14 @@ inspecting handlers, and triggering events, can be done from several threads.
 - The state of a condition (for example the counter of `PeriodicCondition`) is not protected, so a
   stateful condition should be triggered from one thread.
 
-## Testing Strategy
+## Non-goals
 
-### Unit Tests
+`minevent` stays minimal. These features are not provided and are not planned:
 
-- Test each component in isolation
-- Mock dependencies
-- High coverage (>90%)
-
-### Integration Tests
-
-- Test component interactions
-- Test real-world scenarios
-- Test error conditions
-
-### Doctest
-
-- Examples in docstrings are tested
-- Ensures documentation accuracy
-- Provides usage examples
-
-## Future Considerations
-
-Potential future enhancements (without breaking simplicity):
-
-1. **Event Metadata**: Optional data passed with events
-2. **Handler Priorities**: Control execution order within an event
-3. **Event Filtering**: Filter events based on criteria
-4. **Event History**: Optional tracking of past events
-
-All enhancements must maintain:
-
-- Simplicity
-- Backward compatibility
-- Clear documentation
-- Optional (not required for basic usage)
+- **Event objects** with metadata or priorities: events are plain strings, and data is given as
+  keyword arguments to `trigger_event`.
+- **Handler ordering** other than the registration order.
+- **Weak references** or sender/receiver filtering.
 
 ## Design Decisions
 
