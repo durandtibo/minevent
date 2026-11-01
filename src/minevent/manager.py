@@ -6,7 +6,7 @@ __all__ = ["EventManager"]
 
 import logging
 import threading
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 from coola.utils.format import str_indent, str_mapping, str_sequence
 
@@ -56,11 +56,11 @@ class _OnceEventHandler(BaseEventHandler):
             other = other.event_handler
         return self.event_handler.equal(other)
 
-    def handle(self, /, **payload: Any) -> None:
+    def handle(self, /, **payload: object) -> None:
         if self.subscription is None or self.subscription.remove():
             self.event_handler.handle(**payload)
 
-    async def ahandle(self, /, **payload: Any) -> None:
+    async def ahandle(self, /, **payload: object) -> None:
         if self.subscription is None or self.subscription.remove():
             await self.event_handler.ahandle(**payload)
 
@@ -398,7 +398,7 @@ class EventManager:
                     return True
             return False
 
-    def trigger_event(self, event: str, /, **payload: Any) -> None:
+    def trigger_event(self, event: str, /, **payload: object) -> None:
         r"""Trigger the handler(s) for the given event.
 
         This method executes all event handlers registered for the
@@ -456,7 +456,7 @@ class EventManager:
         for event_handler in self._start_trigger(event):
             event_handler.handle(**payload)
 
-    async def atrigger_event(self, event: str, /, **payload: Any) -> None:
+    async def atrigger_event(self, event: str, /, **payload: object) -> None:
         r"""Trigger the handler(s) for the given event, awaiting the
         coroutine handlers.
 

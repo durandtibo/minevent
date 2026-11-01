@@ -20,8 +20,6 @@ __all__ = [
     "as_condition",
 ]
 
-from typing import Any
-
 from minevent.conditions import (
     AfterNCondition,
     AlwaysCondition,
@@ -42,7 +40,7 @@ from minevent.manager import EventManager
 from minevent.subscription import Subscription
 
 
-def __getattr__(name: str) -> Any:
+def __getattr__(name: str) -> object:
     # PEP 562: the version is read from the metadata of the installed package the first time
     # it is used, because ``importlib.metadata`` is slow to import.
     if name == "__version__":
