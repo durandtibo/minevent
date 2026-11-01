@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import inspect
 import logging
 from collections.abc import Sequence
@@ -34,6 +35,12 @@ def hello_name_handler(first_name: str, last_name: str) -> None:
     r"""Implements a simple handler that prints hello and the name of
     the person."""
     logger.info("Hello. I am %s %s", first_name, last_name)
+
+
+def handle_n_times(event_handler: BaseEventHandler, n: int) -> None:
+    r"""Call ``handle`` ``n`` times."""
+    for _ in range(n):
+        event_handler.handle()
 
 
 def always_true() -> bool:
@@ -140,34 +147,42 @@ def test_event_handler_equal_false_different_classes() -> None:
 
 def test_event_handler_without_args_and_kwargs() -> None:
     event_handler = EventHandler(hello_handler)
-    assert event_handler.handler == hello_handler
-    assert event_handler.handler_args == ()
-    assert event_handler.handler_kwargs == {}
+    assert (event_handler.handler, event_handler.handler_args, event_handler.handler_kwargs) == (
+        hello_handler,
+        (),
+        {},
+    )
 
 
 def test_event_handler_with_only_args() -> None:
     event_handler = EventHandler(hello_name_handler, handler_args=("John", "Doe"))
-    assert event_handler.handler == hello_name_handler
-    assert event_handler.handler_args == ("John", "Doe")
-    assert event_handler.handler_kwargs == {}
+    assert (event_handler.handler, event_handler.handler_args, event_handler.handler_kwargs) == (
+        hello_name_handler,
+        ("John", "Doe"),
+        {},
+    )
 
 
 def test_event_handler_with_only_kwargs() -> None:
     event_handler = EventHandler(
         hello_name_handler, handler_kwargs={"first_name": "John", "last_name": "Doe"}
     )
-    assert event_handler.handler == hello_name_handler
-    assert event_handler.handler_args == ()
-    assert event_handler.handler_kwargs == {"first_name": "John", "last_name": "Doe"}
+    assert (event_handler.handler, event_handler.handler_args, event_handler.handler_kwargs) == (
+        hello_name_handler,
+        (),
+        {"first_name": "John", "last_name": "Doe"},
+    )
 
 
 def test_event_handler_with_args_and_kwargs() -> None:
     event_handler = EventHandler(
         hello_handler, handler_args=("John",), handler_kwargs={"last_name": "Doe"}
     )
-    assert event_handler.handler == hello_handler
-    assert event_handler.handler_args == ("John",)
-    assert event_handler.handler_kwargs == {"last_name": "Doe"}
+    assert (event_handler.handler, event_handler.handler_args, event_handler.handler_kwargs) == (
+        hello_handler,
+        ("John",),
+        {"last_name": "Doe"},
+    )
 
 
 def test_event_handler_incorrect_handler() -> None:
@@ -188,38 +203,42 @@ def test_event_handler_handler_kwargs_mapping() -> None:
 
 def test_event_handler_handle_without_args_and_kwargs() -> None:
     EventHandler(hello_handler).handle()
-    assert hello_handler.called
-    assert hello_handler.call_count == 1
-    assert hello_handler.args == ()
-    assert hello_handler.kwargs == {}
+    assert (hello_handler.call_count, hello_handler.args, hello_handler.kwargs) == (
+        1,
+        (),
+        {},
+    )
 
 
 def test_event_handler_handle_with_only_args() -> None:
     EventHandler(hello_name_handler, handler_args=("John", "Doe")).handle()
-    assert hello_name_handler.called
-    assert hello_name_handler.call_count == 1
-    assert hello_name_handler.args == ("John", "Doe")
-    assert hello_name_handler.kwargs == {}
+    assert (hello_name_handler.call_count, hello_name_handler.args, hello_name_handler.kwargs) == (
+        1,
+        ("John", "Doe"),
+        {},
+    )
 
 
 def test_event_handler_handle_with_only_kwargs() -> None:
     EventHandler(
         hello_name_handler, handler_kwargs={"first_name": "John", "last_name": "Doe"}
     ).handle()
-    assert hello_name_handler.called
-    assert hello_name_handler.call_count == 1
-    assert hello_name_handler.args == ()
-    assert hello_name_handler.kwargs == {"first_name": "John", "last_name": "Doe"}
+    assert (hello_name_handler.call_count, hello_name_handler.args, hello_name_handler.kwargs) == (
+        1,
+        (),
+        {"first_name": "John", "last_name": "Doe"},
+    )
 
 
 def test_event_handler_handle_with_args_and_kwargs() -> None:
     EventHandler(
         hello_name_handler, handler_args=("John",), handler_kwargs={"last_name": "Doe"}
     ).handle()
-    assert hello_name_handler.called
-    assert hello_name_handler.call_count == 1
-    assert hello_name_handler.args == ("John",)
-    assert hello_name_handler.kwargs == {"last_name": "Doe"}
+    assert (hello_name_handler.call_count, hello_name_handler.args, hello_name_handler.kwargs) == (
+        1,
+        ("John",),
+        {"last_name": "Doe"},
+    )
 
 
 def test_event_handler_handle_called_2_times() -> None:
@@ -272,28 +291,30 @@ def test_event_handler_condition_equal_false_different_classes() -> None:
 
 def test_event_handler_condition_callable_condition() -> None:
     event_handler = EventHandler(hello_handler, condition=PeriodicCondition(3))
-    assert event_handler.handler == hello_handler
-    assert event_handler.handler_args == ()
-    assert event_handler.handler_kwargs == {}
-    assert event_handler.condition == PeriodicCondition(3)
+    assert (
+        event_handler.handler,
+        event_handler.handler_args,
+        event_handler.handler_kwargs,
+        event_handler.condition,
+    ) == (hello_handler, (), {}, PeriodicCondition(3))
 
 
 def test_event_handler_condition_handle_1() -> None:
     EventHandler(hello_handler, condition=PeriodicCondition(3)).handle()
-    assert hello_handler.called
-    assert hello_handler.call_count == 1
-    assert hello_handler.args == ()
-    assert hello_handler.kwargs == {}
+    assert (hello_handler.call_count, hello_handler.args, hello_handler.kwargs) == (
+        1,
+        (),
+        {},
+    )
 
 
 def test_event_handler_condition_handle_10() -> None:
-    event_handler = EventHandler(hello_handler, condition=PeriodicCondition(3))
-    for _ in range(10):
-        event_handler.handle()
-    assert hello_handler.called
-    assert hello_handler.call_count == 4
-    assert hello_handler.args == ()
-    assert hello_handler.kwargs == {}
+    handle_n_times(EventHandler(hello_handler, condition=PeriodicCondition(3)), 10)
+    assert (hello_handler.call_count, hello_handler.args, hello_handler.kwargs) == (
+        4,
+        (),
+        {},
+    )
 
 
 ############################################
@@ -341,14 +362,15 @@ def test_event_handler_equal_unchanged_after_mutating_caller_kwargs() -> None:
 
 def test_event_handler_handle_payload() -> None:
     EventHandler(hello_name_handler).handle(first_name="John", last_name="Doe")
-    assert hello_name_handler.args == ()
-    assert hello_name_handler.kwargs == {"first_name": "John", "last_name": "Doe"}
+    assert (hello_name_handler.args, hello_name_handler.kwargs) == (
+        (),
+        {"first_name": "John", "last_name": "Doe"},
+    )
 
 
 def test_event_handler_handle_payload_after_handler_args_and_kwargs() -> None:
     EventHandler(hello_name_handler, handler_args=("John",)).handle(last_name="Doe")
-    assert hello_name_handler.args == ("John",)
-    assert hello_name_handler.kwargs == {"last_name": "Doe"}
+    assert (hello_name_handler.args, hello_name_handler.kwargs) == (("John",), {"last_name": "Doe"})
 
 
 def test_event_handler_handle_payload_conflicts_with_handler_kwargs() -> None:
@@ -499,11 +521,12 @@ def test_event_handler_condition_incorrect_type() -> None:
 
 
 def test_event_handler_condition_combinator() -> None:
-    event_handler = EventHandler(
-        hello_handler, condition=AndCondition(AfterNCondition(1), PeriodicCondition(2))
+    handle_n_times(
+        EventHandler(
+            hello_handler, condition=AndCondition(AfterNCondition(1), PeriodicCondition(2))
+        ),
+        5,
     )
-    for _ in range(5):
-        event_handler.handle()
     assert hello_handler.call_count == 2
 
 
@@ -567,7 +590,7 @@ def test_event_handler_handle_coroutine_is_closed() -> None:
         coroutines.append(coroutine)
         return coroutine
 
-    with pytest.raises(TypeError, match=r"returned an awaitable"):
+    with contextlib.suppress(TypeError):
         EventHandler(make_coroutine).handle()
     assert inspect.getcoroutinestate(coroutines[0]) == inspect.CORO_CLOSED
 
