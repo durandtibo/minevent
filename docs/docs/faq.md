@@ -131,9 +131,10 @@ Yes! Event handlers are executed in the order they were registered using `add_ev
 
 ### Is minevent thread-safe?
 
-No, `minevent` is not thread-safe by design. It is intended for synchronous, single-threaded use
-cases. If you need thread-safe event handling, consider using locks or other synchronization
-mechanisms.
+Partly. `EventManager` protects its registry with a lock, so you can register handlers in the main
+thread and trigger events from worker threads. The handlers run in the triggering thread,
+concurrently if several threads trigger the same event, and the counter of a stateful condition such
+as `PeriodicCondition` is not protected. See [Thread Safety](architecture.md#thread-safety).
 
 ## Advanced Questions
 
