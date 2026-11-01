@@ -18,5 +18,5 @@ format: format-yaml format-makefile format-shell format-toml format-markdown ## 
 lint: lint-yaml lint-makefile lint-shell lint-markdown ## Lint all files
 
 .PHONY: clean
-clean: ## Remove the generated coverage reports and caches
-	rm -rf coverage.xml .coverage htmlcov .pytest_cache .ruff_cache .hypothesis
+clean: ## Remove the generated coverage reports, caches and build artifacts
+	rm -rf coverage.xml .coverage htmlcov dist .pytest_cache .ruff_cache .hypothesis

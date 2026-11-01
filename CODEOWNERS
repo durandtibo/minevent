@@ -1,2 +1,5 @@
 # Global owners:
 *    @durandtibo
+
+# CI and release workflows
+/.github/ @durandtibo
