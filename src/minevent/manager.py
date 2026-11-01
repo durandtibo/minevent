@@ -145,11 +145,11 @@ class EventManager:
             event_handlers: The handlers of each event.
 
         Returns:
-            The formatted handlers, starting with a newline, or an
-                empty string if no handler is registered.
+            The formatted handlers, starting with a newline, or
+                ``"{}"`` if no handler is registered.
         """
         if not event_handlers:
-            return ""
+            return "{}"
         return "\n" + str_mapping(
             {event: "\n" + str_sequence(handlers) for event, handlers in event_handlers.items()}
         )
