@@ -20,7 +20,8 @@ EVENTS = ("my_event", "my_other_event")
 
 
 async def async_fail() -> None:
-    r"""Implements a coroutine handler that raises a ``RuntimeError``."""
+    r"""Implements a coroutine handler that raises a
+    ``RuntimeError``."""
     msg = "async failed"
     raise RuntimeError(msg)
 
