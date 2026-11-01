@@ -429,6 +429,22 @@ True
 
 ```
 
+`has_event_handler` and `remove_event_handler` also accept a `Subscription`. This is the most
+reliable way to find or remove a handler built from a lambda, a closure or a bound method, which
+are not equal to an identical handler created elsewhere:
+
+```pycon
+>>> from minevent import EventHandler, EventManager
+>>> manager = EventManager()
+>>> subscription = manager.add_event_handler("my_event", EventHandler(lambda: print("Hello!")))
+>>> manager.has_event_handler(subscription)
+True
+>>> manager.remove_event_handler("my_event", subscription)
+>>> manager.has_event_handler(subscription)
+False
+
+```
+
 The `hello_handler` handler has been added only one time to the `'my_event'` event.
 
 ### Fire an event
