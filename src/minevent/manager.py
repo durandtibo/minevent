@@ -220,7 +220,10 @@ class EventManager:
             once: If ``True``, the handler is removed before its first
                 execution, so it runs at most once. It is still found
                 by ``has_event_handler`` and ``remove_event_handler``
-                until then. Default is ``False``.
+                until then. The registration is removed by the next
+                trigger even if the condition of the handler is
+                ``False`` and the handler function is not called.
+                Default is ``False``.
 
         Returns:
             A subscription whose ``remove`` method removes this
