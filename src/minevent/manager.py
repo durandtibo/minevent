@@ -5,12 +5,12 @@ from __future__ import annotations
 __all__ = ["EventManager"]
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from coola.utils.format import str_indent, str_mapping, str_sequence
 
-if TYPE_CHECKING:
-    from minevent.handlers import BaseEventHandler
+from minevent.handlers import BaseEventHandler
+from minevent.subscription import Subscription
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -24,6 +24,50 @@ def _check_event(event: object) -> None:
     if not isinstance(event, str):
         msg = f"event must be a str, but got {type(event).__qualname__}"
         raise TypeError(msg)
+
+
+class _OnceEventHandler(BaseEventHandler):
+    r"""Wrap an event handler to run it only on the next trigger.
+
+    The wrapper removes its own registration before calling the
+    wrapped handler, so the handler runs once even if it triggers the
+    same event again or raises.
+
+    Args:
+        event_handler: The wrapped event handler.
+    """
+
+    def __init__(self, event_handler: BaseEventHandler) -> None:
+        self.event_handler = event_handler
+        self.subscription: Subscription | None = None
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__qualname__}({self.event_handler!r})"
+
+    def equal(self, other: Any) -> bool:
+        if isinstance(other, _OnceEventHandler):
+            other = other.event_handler
+        return self.event_handler.equal(other)
+
+    def handle(self, **payload: Any) -> None:
+        if self.subscription is not None:
+            self.subscription.remove()
+        self.event_handler.handle(**payload)
+
+
+def _unwrap(event_handler: BaseEventHandler) -> BaseEventHandler:
+    r"""Return the user event handler of a registered event handler.
+
+    Args:
+        event_handler: A registered event handler.
+
+    Returns:
+        The wrapped event handler if ``event_handler`` is a one-time
+            wrapper, otherwise ``event_handler``.
+    """
+    if isinstance(event_handler, _OnceEventHandler):
+        return event_handler.event_handler
+    return event_handler
 
 
 class EventManager:
@@ -46,7 +90,7 @@ class EventManager:
         ...     print("Hello!")
         ...
         >>> manager = EventManager()
-        >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
+        >>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
         >>> manager.trigger_event("my_event")
         Hello!
 
@@ -102,7 +146,7 @@ class EventManager:
             >>> manager = EventManager()
             >>> manager.events
             []
-            >>> manager.add_event_handler("my_event", EventHandler(print))
+            >>> _ = manager.add_event_handler("my_event", EventHandler(print))
             >>> manager.events
             ['my_event']
             >>> "my_event" in manager
@@ -131,7 +175,7 @@ class EventManager:
             >>> def hello_handler():
             ...     print("Hello!")
             ...
-            >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
+            >>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
             >>> manager.trigger_event("my_event")
             Hello!
             >>> manager.last_triggered_event
@@ -141,7 +185,9 @@ class EventManager:
         """
         return self._last_triggered_event
 
-    def add_event_handler(self, event: str, event_handler: BaseEventHandler) -> None:
+    def add_event_handler(
+        self, event: str, event_handler: BaseEventHandler, *, once: bool = False
+    ) -> Subscription:
         r"""Add an event handler to an event.
 
         The event handler will be called every time the specified event
@@ -153,6 +199,14 @@ class EventManager:
                 the event handler should be attached.
             event_handler: The event handler instance to attach to the
                 event.
+            once: If ``True``, the handler is removed before its first
+                execution, so it runs at most once. It is still found
+                by ``has_event_handler`` and ``remove_event_handler``
+                until then. Default is ``False``.
+
+        Returns:
+            A subscription whose ``remove`` method removes this
+                registration only.
 
         Raises:
             TypeError: if ``event`` is not a string.
@@ -164,13 +218,50 @@ class EventManager:
             ...     print("Hello!")
             ...
             >>> manager = EventManager()
-            >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
+            >>> subscription = manager.add_event_handler("my_event", EventHandler(hello_handler))
+            >>> manager.trigger_event("my_event")
+            Hello!
+            >>> subscription.remove()
+            True
+            >>> manager.trigger_event("my_event")
+            >>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler), once=True)
+            >>> manager.trigger_event("my_event")
+            Hello!
+            >>> manager.trigger_event("my_event")
 
             ```
         """
         _check_event(event)
-        self._event_handlers.setdefault(event, []).append(event_handler)
+        registered = event_handler
+        if once:
+            registered = _OnceEventHandler(event_handler)
+        self._event_handlers.setdefault(event, []).append(registered)
+        subscription = Subscription(event, registered, self._remove_registration)
+        if isinstance(registered, _OnceEventHandler):
+            registered.subscription = subscription
         logger.debug("Added %s to event %s", event_handler, event)
+        return subscription
+
+    def _remove_registration(self, event: str, event_handler: BaseEventHandler) -> bool:
+        r"""Remove one registered event handler, compared by identity.
+
+        Args:
+            event: The event name.
+            event_handler: The registered event handler instance.
+
+        Returns:
+            ``True`` if the registration was removed, ``False`` if it
+                is not registered.
+        """
+        handlers = self._event_handlers.get(event, [])
+        for i, handler in enumerate(handlers):
+            if handler is event_handler:
+                del handlers[i]
+                if not handlers:
+                    del self._event_handlers[event]
+                logger.debug("Removed %s in '%s' event", event_handler, event)
+                return True
+        return False
 
     def trigger_event(self, event: str, **payload: Any) -> None:
         r"""Trigger the handler(s) for the given event.
@@ -209,13 +300,13 @@ class EventManager:
             >>> def hello_handler():
             ...     print("Hello!")
             ...
-            >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
+            >>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
             >>> manager.trigger_event("my_event")
             Hello!
             >>> def epoch_handler(epoch):
             ...     print(f"epoch {epoch}")
             ...
-            >>> manager.add_event_handler("epoch_end", EventHandler(epoch_handler))
+            >>> _ = manager.add_event_handler("epoch_end", EventHandler(epoch_handler))
             >>> manager.trigger_event("epoch_end", epoch=3)
             epoch 3
 
@@ -263,7 +354,7 @@ class EventManager:
             >>> manager.has_event_handler(EventHandler(hello_handler), "my_event")
             False
             >>> # Add an event handler
-            >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
+            >>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
             >>> # Check if `hello_handler` is registered in the event manager
             >>> manager.has_event_handler(EventHandler(hello_handler))
             True
@@ -281,7 +372,7 @@ class EventManager:
         events = list(self._event_handlers) if event is None else [event]
         for evnt in events:
             for handler in self._event_handlers.get(evnt, ()):
-                if event_handler.equal(handler):
+                if event_handler.equal(_unwrap(handler)):
                     return True
         return False
 
@@ -318,7 +409,7 @@ class EventManager:
             >>> def hello_handler():
             ...     print("Hello!")
             ...
-            >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
+            >>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
             >>> # Check if `hello_handler` is registered in the event manager for 'my_event' event
             >>> manager.has_event_handler(EventHandler(hello_handler), "my_event")
             True
@@ -338,7 +429,9 @@ class EventManager:
             raise ValueError(msg)
 
         new_event_handlers = [
-            handler for handler in self._event_handlers[event] if not event_handler.equal(handler)
+            handler
+            for handler in self._event_handlers[event]
+            if not event_handler.equal(_unwrap(handler))
         ]
         if len(new_event_handlers) == len(self._event_handlers[event]):
             if missing_ok:
@@ -368,7 +461,7 @@ class EventManager:
             ```pycon
             >>> from minevent import EventHandler, EventManager
             >>> manager = EventManager()
-            >>> manager.add_event_handler("my_event", EventHandler(print))
+            >>> _ = manager.add_event_handler("my_event", EventHandler(print))
             >>> manager.clear_event("my_event")
             >>> manager.events
             []
@@ -397,7 +490,7 @@ class EventManager:
             ...     print("Hello!")
             ...
             >>> from minevent import EventHandler
-            >>> manager.add_event_handler("my_event", EventHandler(hello_handler))
+            >>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
             >>> # Check if `hello_handler` is registered in the event manager for 'my_event' event
             >>> manager.has_event_handler(EventHandler(hello_handler), "my_event")
             True

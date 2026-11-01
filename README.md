@@ -91,7 +91,7 @@ Below is an example on how to use `minevent` library.
 Hello, I am Bob!
 >>> def hello_handler() -> None:
 ...     print("Hello!")
->>> manager.add_event_handler("after", EventHandler(hello_handler))
+>>> _ = manager.add_event_handler("after", EventHandler(hello_handler))
 >>> say_something(manager)
 Hello, I am Bob!
 Hello!
