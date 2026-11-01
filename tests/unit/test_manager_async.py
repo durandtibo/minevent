@@ -36,12 +36,6 @@ def hello_handler() -> None:
     logger.info("Hello!")
 
 
-@pytest.fixture(autouse=True)
-def _reset_tracer() -> None:
-    hello_handler.reset()
-    async_handler.reset()
-
-
 ####################################
 #     Tests for atrigger_event     #
 ####################################

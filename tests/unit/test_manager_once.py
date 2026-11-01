@@ -39,13 +39,6 @@ def payload_handler(*args: Any, **kwargs: Any) -> None:
     logger.info("Payload: %s %s", args, kwargs)
 
 
-@pytest.fixture(autouse=True)
-def _reset_tracer() -> None:
-    hello_handler.reset()
-    payload_handler.reset()
-    failing_handler.reset()
-
-
 ############################################
 #     Tests for subscriptions and once     #
 ############################################
