@@ -69,7 +69,9 @@
   at the top of the module; use the `*_available` fixtures from `coola.testing.marks` for
   optional libraries.
 - One behaviour per test: a test has one `assert` or one `pytest.raises`. Split a test that checks
-  several things (equal, different, negative, ...) into several tests. Thread-safety tests may
+  several things (equal, different, negative, ...) into several tests. Exception: a test of the properties of a constructed object (for example `handler`,
+  `handler_args` and `handler_kwargs` of an `EventHandler`) may have one `assert` per property, which
+  reads better than one assert on a tuple. Thread-safety tests may
   assert the count and the uniqueness together, as the existing ones do.
 - Keep the unit tests simple and fast: no sleeps, no large data, no real network or heavy I/O,
   and no logic (loops, branches) in the test body. Anything slow or concurrent belongs in
