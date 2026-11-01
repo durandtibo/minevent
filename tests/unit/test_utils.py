@@ -7,9 +7,9 @@ def add(a: int, b: int = 0) -> int:
     return a + b
 
 
-###########################
-#     Tests for Tracer    #
-###########################
+############################
+#     Tests for Tracer     #
+############################
 
 
 def test_tracer_not_called() -> None:
@@ -60,9 +60,9 @@ def test_tracer_reset() -> None:
     assert (tracer.called, tracer.call_count, tracer.args, tracer.kwargs) == (False, 0, (), {})
 
 
-##########################
-#     Tests for trace    #
-##########################
+###########################
+#     Tests for trace     #
+###########################
 
 
 def test_trace_returns_tracer() -> None:
