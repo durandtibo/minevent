@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import sys
 
 import minevent
 from minevent import EventHandler, EventManager
@@ -75,6 +76,16 @@ def check_async_trigger() -> None:
     assert calls == [7]
 
 
+def check_no_third_party_import() -> None:
+    logger.info("Checking that minevent imports no third-party package...")
+    third_party = {
+        name.split(".")[0]
+        for name in sys.modules
+        if name.split(".")[0] not in sys.stdlib_module_names and not name.startswith("_")
+    } - {"minevent", "tests"}
+    assert not third_party, f"third-party modules imported: {sorted(third_party)}"
+
+
 def check_exports() -> None:
     logger.info("Checking exports...")
     for name in minevent.__all__:
@@ -87,6 +98,7 @@ def check_version() -> None:
 
 
 def main() -> None:
+    check_no_third_party_import()
     check_exports()
     check_version()
     check_event_manager()

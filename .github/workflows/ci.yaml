@@ -72,10 +72,3 @@ jobs:
     with:
       test-matrix: ${{ needs.get-matrix.outputs.test_matrix }}
     secrets: inherit
-
-  # Test compatibility with different dependency versions
-  test-deps:
-    needs: get-matrix
-    uses: ./.github/workflows/ci-test-deps.yaml
-    with:
-      test-matrix: ${{ needs.get-matrix.outputs.test_matrix }}

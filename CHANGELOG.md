@@ -10,7 +10,7 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
 ### Migration from `0.5.0`
 
 - **Python**: `minevent` requires Python `>=3.11` (`0.5.0` supported `>=3.10`).
-- **Dependencies**: `coola>=1.0,<2.0`, as in `0.5.0`.
+- **Dependencies**: `minevent` has no dependency (`0.5.0` required `coola>=1.0,<2.0`).
 - `EventManager.has_event_handler` and `remove_event_handler` are removed, and so are `equal` and
   `==` of event handlers and conditions: they are compared by identity. Keep the `Subscription`
   returned by `add_event_handler` and call `subscription.remove()` (it returns `False` when the

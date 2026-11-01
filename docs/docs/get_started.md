@@ -14,8 +14,7 @@ a [virtual environment](https://packaging.python.org/guides/installing-using-pip
 pip install minevent
 ```
 
-`minevent` only depends on [`coola`](https://github.com/durandtibo/coola), so no optional
-dependencies or extras are required.
+`minevent` has no dependency, so no optional dependencies or extras are required.
 
 ## Installing from source
 

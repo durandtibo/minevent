@@ -77,7 +77,7 @@
   and no logic (loops, branches) in the test body. Anything slow or concurrent belongs in
   `tests/integration/`.
 - Add the missing tests to get 100% coverage of the code you add or change
-  (`.venv/bin/pytest <tests> --cov=coola --cov-report=term-missing`). Do not use
+  (`.venv/bin/pytest <tests> --cov=minevent --cov-report=term-missing`). Do not use
   `# pragma: no cover` to skip a line that can be tested.
 - Use `pytest.mark.parametrize` for the same check on several values.
 - Every `pytest.raises` (and `pytest.warns`) must define `match` with a regular expression for the
