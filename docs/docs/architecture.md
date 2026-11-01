@@ -238,13 +238,10 @@ trigger_event()
 1. User triggers event
    manager.trigger_event("event")
 
-2. Manager updates state
-   _last_triggered_event = "event"
-
-3. Manager gets handlers
+2. Manager gets handlers
    handlers = a snapshot of the list of the event
 
-4. Manager executes each handler
+3. Manager executes each handler
    for handler in handlers:
        handler.handle()
 ```

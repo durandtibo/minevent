@@ -8,13 +8,11 @@ import logging
 import threading
 from typing import TYPE_CHECKING, TypeVar
 
-from coola.utils.format import str_indent, str_mapping, str_sequence
-
 from minevent.handlers import BaseEventHandler, EventHandler
 from minevent.subscription import Subscription
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Mapping, Sequence
+    from collections.abc import Callable
 
 _F = TypeVar("_F", bound="Callable[..., object]")
 
@@ -50,9 +48,6 @@ class EventManager:
     events. An event is represented by a case-sensitive string. Each
     event can have multiple handlers attached, and all handlers are
     executed in the order they were added when the event is triggered.
-    The manager also tracks the last triggered event. This is
-    informational: it is meaningful in single-threaded code, and with
-    several threads it is the event of whichever trigger started last.
 
     Error policy: handlers run fail-fast. If a handler raises, the
     exception propagates to the caller of ``trigger_event`` and the
@@ -85,42 +80,13 @@ class EventManager:
     def __init__(self) -> None:
         # This variable is used to store the registrations of each event, in the order they run.
         self._subscriptions: dict[str, list[Subscription]] = {}
-        # This variable is used to track the last fired event name
-        self._last_triggered_event: str | None = None
         # This lock protects the state above. It is reentrant, so a handler can use the manager.
         self._lock = threading.RLock()
 
     def __repr__(self) -> str:
         with self._lock:
-            event_handlers = {
-                event: tuple(sub.event_handler for sub in subs)
-                for event, subs in self._subscriptions.items()
-            }
-            last_triggered_event = self._last_triggered_event
-        # The handlers can have a custom repr, so they are formatted outside of the lock.
-        config = {
-            "event_handlers": self._format_event_handlers(event_handlers),
-            "last_triggered_event": last_triggered_event,
-        }
-        args = str_indent(str_mapping(config))
-        return f"{self.__class__.__qualname__}(\n  {args}\n)"
-
-    @staticmethod
-    def _format_event_handlers(event_handlers: Mapping[str, Sequence[BaseEventHandler]]) -> str:
-        r"""Format the registered handlers, one block per event.
-
-        Args:
-            event_handlers: The handlers of each event.
-
-        Returns:
-            The formatted handlers, starting with a newline, or
-                ``"{}"`` if no handler is registered.
-        """
-        if not event_handlers:
-            return "{}"
-        return "\n" + str_mapping(
-            {event: "\n" + str_sequence(handlers) for event, handlers in event_handlers.items()}
-        )
+            events = {event: len(subs) for event, subs in self._subscriptions.items()}
+        return f"{self.__class__.__qualname__}(events={events})"
 
     def __contains__(self, event: object) -> bool:
         with self._lock:
@@ -154,49 +120,17 @@ class EventManager:
         with self._lock:
             return list(self._subscriptions)
 
-    @property
-    def last_triggered_event(self) -> str | None:
-        r"""Get the last event name that was triggered.
-
-        The name is recorded when the dispatch starts, before any
-        handler runs. It is therefore already updated when a handler
-        reads it, and it is kept even if a handler raises. It is
-        informational: if several threads trigger events, it is the
-        event of the trigger that started last.
-
-        Returns:
-            The last event name that was triggered, or ``None`` if no event
-                was fired.
-
-        Example:
-            ```pycon
-            >>> from minevent import EventHandler, EventManager
-            >>> manager = EventManager()
-            >>> def hello_handler():
-            ...     print("Hello!")
-            ...
-            >>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
-            >>> manager.trigger_event("my_event")
-            Hello!
-            >>> manager.last_triggered_event
-            'my_event'
-
-            ```
-        """
-        with self._lock:
-            return self._last_triggered_event
-
-    def get_event_handlers(self, event: str) -> tuple[BaseEventHandler, ...]:
-        r"""Get the event handlers registered for an event.
+    def get_subscriptions(self, event: str) -> tuple[Subscription, ...]:
+        r"""Get the subscriptions registered for an event.
 
         Args:
             event: The event name (case-sensitive string).
 
         Returns:
-            A snapshot of the event handlers, in the order they were
-                added. It is empty if no handler is registered. The
-                handlers added with ``once=True`` are returned
-                as registered. Changing the manager does not change the
+            A snapshot of the subscriptions, in the order the handlers
+                run. It is empty if no handler is registered. Use the
+                ``event_handler`` property of a subscription to get its
+                handler. Changing the manager does not change the
                 returned tuple.
 
         Raises:
@@ -206,11 +140,13 @@ class EventManager:
             ```pycon
             >>> from minevent import EventHandler, EventManager
             >>> manager = EventManager()
-            >>> manager.get_event_handlers("my_event")
+            >>> manager.get_subscriptions("my_event")
             ()
             >>> handler = EventHandler(print)
-            >>> _ = manager.add_event_handler("my_event", handler)
-            >>> manager.get_event_handlers("my_event") == (handler,)
+            >>> subscription = manager.add_event_handler("my_event", handler)
+            >>> manager.get_subscriptions("my_event") == (subscription,)
+            True
+            >>> subscription.event_handler is handler
             True
             >>> len(manager)
             1
@@ -219,7 +155,7 @@ class EventManager:
         """
         _check_event(event)
         with self._lock:
-            return tuple(sub.event_handler for sub in self._subscriptions.get(event, ()))
+            return tuple(self._subscriptions.get(event, ()))
 
     def add_event_handler(
         self, event: str, event_handler: BaseEventHandler, *, once: bool = False
@@ -397,7 +333,7 @@ class EventManager:
 
             ```
         """
-        for subscription in self._start_trigger(event):
+        for subscription in self._snapshot(event):
             if subscription._once and not self._remove(subscription):
                 continue
             try:
@@ -439,7 +375,7 @@ class EventManager:
 
             ```
         """
-        for subscription in self._start_trigger(event):
+        for subscription in self._snapshot(event):
             if subscription._once and not self._remove(subscription):
                 continue
             try:
@@ -448,8 +384,8 @@ class EventManager:
                 _add_error_note(exc, event, subscription._event_handler)
                 raise
 
-    def _start_trigger(self, event: str) -> tuple[Subscription, ...]:
-        r"""Record a trigger and return the handlers to run.
+    def _snapshot(self, event: str) -> tuple[Subscription, ...]:
+        r"""Return the registrations to run for a trigger.
 
         Args:
             event: The event name.
@@ -463,7 +399,6 @@ class EventManager:
         _check_event(event)
         logger.debug("Firing %s event", event)
         with self._lock:
-            self._last_triggered_event = event
             return tuple(self._subscriptions.get(event, ()))
 
     def has_event_handler(
@@ -652,9 +587,9 @@ class EventManager:
         r"""Reset the event manager.
 
         This method removes all registered event handlers from the
-        event manager and resets the last triggered event to ``None``.
-        After calling this method, the event manager returns to its
-        initial state.
+        event manager, so their subscriptions become inactive. After
+        calling this method, the event manager returns to its initial
+        state.
 
         Example:
             ```pycon
@@ -672,15 +607,11 @@ class EventManager:
             True
             >>> manager.trigger_event("my_event")
             Hello!
-            >>> manager.last_triggered_event
-            'my_event'
             >>> # Reset the event manager
             >>> manager.reset()
             >>> # Check if `hello_handler` is registered in the event manager for 'my_event' event
             >>> manager.has_event_handler(EventHandler(hello_handler), "my_event")
             False
-            >>> manager.last_triggered_event is None
-            True
 
             ```
         """
@@ -689,4 +620,3 @@ class EventManager:
                 for sub in subs:
                     sub._active = False
             self._subscriptions.clear()
-            self._last_triggered_event = None

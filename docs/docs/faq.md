@@ -249,8 +249,8 @@ def my_handler():
 Or check the event manager state:
 
 ```python
-print(manager)  # Shows all registered handlers
-print(manager.last_triggered_event)  # Shows last triggered event
+print(manager)  # Shows the number of handlers of each event
+print(manager.get_subscriptions("my_event"))  # Shows the registrations of an event
 ```
 
 ## Getting Help

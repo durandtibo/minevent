@@ -74,31 +74,6 @@ def test_event_manager_str_with_event_handler() -> None:
     assert str(event_manager).startswith("EventManager(")
 
 
-def test_event_manager_last_triggered_event_none() -> None:
-    assert EventManager().last_triggered_event is None
-
-
-def test_event_manager_last_triggered_event_after_trigger() -> None:
-    event_manager = EventManager()
-    event_manager.trigger_event("my_event")
-    assert event_manager.last_triggered_event == "my_event"
-
-
-def test_event_manager_last_triggered_event_after_two_triggers() -> None:
-    event_manager = EventManager()
-    event_manager.trigger_event("my_event")
-    event_manager.trigger_event("my_other_event")
-    assert event_manager.last_triggered_event == "my_other_event"
-
-
-def test_event_manager_last_triggered_event_after_back_to_first_event() -> None:
-    event_manager = EventManager()
-    event_manager.trigger_event("my_event")
-    event_manager.trigger_event("my_other_event")
-    event_manager.trigger_event("my_event")
-    assert event_manager.last_triggered_event == "my_event"
-
-
 @pytest.mark.parametrize("event", EVENTS)
 def test_event_manager_add_event_handler_event(event: str) -> None:
     event_manager = EventManager()
@@ -129,12 +104,6 @@ def test_event_manager_trigger_event_2_times() -> None:
     event_manager.trigger_event("my_event")
     event_manager.trigger_event("my_event")
     assert hello_handler.call_count == 2
-
-
-def test_event_manager_trigger_event_without_event_handler() -> None:
-    event_manager = EventManager()
-    event_manager.trigger_event("my_event")
-    assert event_manager.last_triggered_event == "my_event"
 
 
 def test_event_manager_has_event_handler_true() -> None:
@@ -215,13 +184,6 @@ def test_event_manager_reset() -> None:
     event_manager.add_event_handler("my_other_event", EventHandler(hello_handler))
     event_manager.reset()
     assert not event_manager.has_event_handler(EventHandler(hello_handler))
-
-
-def test_event_manager_reset_last_triggered_event() -> None:
-    event_manager = EventManager()
-    event_manager.trigger_event("my_event")
-    event_manager.reset()
-    assert event_manager.last_triggered_event is None
 
 
 def test_event_manager_reset_empty() -> None:
@@ -349,24 +311,6 @@ def test_event_manager_trigger_event_base_exception_has_no_note() -> None:
     assert not hasattr(exc_info.value, "__notes__")
 
 
-def test_event_manager_trigger_event_handler_raises_keeps_last_triggered_event() -> None:
-    event_manager = EventManager()
-    event_manager.add_event_handler("my_event", EventHandler(fail))
-    with contextlib.suppress(ValueError):
-        event_manager.trigger_event("my_event")
-    assert event_manager.last_triggered_event == "my_event"
-
-
-def test_event_manager_last_triggered_event_set_before_handlers_run() -> None:
-    event_manager = EventManager()
-    seen = []
-    event_manager.add_event_handler(
-        "my_event", EventHandler(lambda: seen.append(event_manager.last_triggered_event))
-    )
-    event_manager.trigger_event("my_event")
-    assert seen == ["my_event"]
-
-
 INVALID_EVENTS = [1, None, b"my_event"]
 
 
@@ -404,28 +348,15 @@ def test_event_manager_remove_event_handler_missing_ok() -> None:
 
 
 def test_event_manager_repr_empty() -> None:
-    assert repr(EventManager()) == (
-        "EventManager(\n  (event_handlers): {}\n  (last_triggered_event): None\n)"
-    )
+    assert repr(EventManager()) == "EventManager(events={})"
 
 
 def test_event_manager_repr_with_event_handlers() -> None:
     event_manager = EventManager()
     event_manager.add_event_handler("my_event", EventHandler(hello_handler))
-    event_manager.trigger_event("my_event")
-    out = repr(event_manager)
-    assert out == (
-        "EventManager(\n"
-        "  (event_handlers): \n"
-        "    (my_event): \n"
-        "      (0): EventHandler(\n"
-        f"          (handler): {hello_handler!r}\n"
-        "          (handler_args): ()\n"
-        "          (handler_kwargs): {}\n"
-        "        )\n"
-        "  (last_triggered_event): my_event\n"
-        ")"
-    )
+    event_manager.add_event_handler("my_event", EventHandler(hello_handler))
+    event_manager.add_event_handler("my_other_event", EventHandler(hello_handler))
+    assert repr(event_manager) == "EventManager(events={'my_event': 2, 'my_other_event': 1})"
 
 
 def test_event_manager_events_empty() -> None:
@@ -699,14 +630,6 @@ def test_event_manager_has_event_handler_equal_called_without_lock() -> None:
     assert probe.lock_held == [False]
 
 
-def test_event_manager_repr_called_without_lock() -> None:
-    manager = EventManager()
-    probe = LockProbeHandler(manager)
-    manager.add_event_handler("my_event", probe)
-    repr(manager)
-    assert probe.lock_held == [False]
-
-
 def test_event_manager_remove_event_handler_removes_all_equal_registrations() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", EventHandler(hello_handler))
@@ -733,17 +656,7 @@ def test_event_manager_remove_event_handler_keeps_order_of_remaining_handlers() 
     manager.add_event_handler("my_event", EventHandler(hello_handler))
     manager.add_event_handler("my_event", last)
     manager.remove_event_handler("my_event", EventHandler(hello_handler))
-    assert manager.get_event_handlers("my_event") == (first, last)
-
-
-def test_event_manager_format_event_handlers_empty() -> None:
-    assert EventManager._format_event_handlers({}) == "{}"
-
-
-def test_event_manager_format_event_handlers() -> None:
-    assert EventManager._format_event_handlers({"my_event": (EventHandler(print),)}).startswith(
-        "\n(my_event):"
-    )
+    assert [s.event_handler for s in manager.get_subscriptions("my_event")] == [first, last]
 
 
 def test_event_manager_trigger_event_handler_retriggering_its_event_raises_recursion_error() -> (
@@ -755,9 +668,9 @@ def test_event_manager_trigger_event_handler_retriggering_its_event_raises_recur
         manager.trigger_event("my_event")
 
 
-################################################
-#     Tests for get_event_handlers and len     #
-################################################
+###############################################
+#     Tests for get_subscriptions and len     #
+###############################################
 
 
 def test_event_manager_len_empty() -> None:
@@ -779,53 +692,42 @@ def test_event_manager_len_after_remove() -> None:
     assert len(manager) == 0
 
 
-def test_event_manager_get_event_handlers_empty() -> None:
-    assert EventManager().get_event_handlers("my_event") == ()
+def test_event_manager_get_subscriptions_empty() -> None:
+    assert EventManager().get_subscriptions("my_event") == ()
 
 
-def test_event_manager_get_event_handlers_does_not_create_event() -> None:
+def test_event_manager_get_subscriptions_does_not_create_event() -> None:
     manager = EventManager()
-    manager.get_event_handlers("my_event")
+    manager.get_subscriptions("my_event")
     assert "my_event" not in manager
 
 
-def test_event_manager_get_event_handlers_keeps_order() -> None:
+def test_event_manager_get_subscriptions_keeps_order() -> None:
     manager = EventManager()
-    first = EventHandler(hello_handler)
-    second = EventHandler(payload_handler)
-    manager.add_event_handler("my_event", first)
-    manager.add_event_handler("my_event", second)
-    assert manager.get_event_handlers("my_event") == (first, second)
+    first = manager.add_event_handler("my_event", EventHandler(hello_handler))
+    second = manager.add_event_handler("my_event", EventHandler(payload_handler))
+    assert manager.get_subscriptions("my_event") == (first, second)
 
 
-def test_event_manager_get_event_handlers_only_requested_event() -> None:
+def test_event_manager_get_subscriptions_only_requested_event() -> None:
     manager = EventManager()
-    handler = EventHandler(hello_handler)
-    manager.add_event_handler("my_event", handler)
+    subscription = manager.add_event_handler("my_event", EventHandler(hello_handler))
     manager.add_event_handler("my_other_event", EventHandler(payload_handler))
-    assert manager.get_event_handlers("my_event") == (handler,)
+    assert manager.get_subscriptions("my_event") == (subscription,)
 
 
-def test_event_manager_get_event_handlers_unwraps_once() -> None:
+def test_event_manager_get_subscriptions_is_a_snapshot() -> None:
     manager = EventManager()
-    handler = EventHandler(hello_handler)
-    manager.add_event_handler("my_event", handler, once=True)
-    assert manager.get_event_handlers("my_event") == (handler,)
-
-
-def test_event_manager_get_event_handlers_is_a_snapshot() -> None:
-    manager = EventManager()
-    handler = EventHandler(hello_handler)
-    manager.add_event_handler("my_event", handler)
-    handlers = manager.get_event_handlers("my_event")
+    subscription = manager.add_event_handler("my_event", EventHandler(hello_handler))
+    subscriptions = manager.get_subscriptions("my_event")
     manager.add_event_handler("my_event", EventHandler(payload_handler))
-    assert handlers == (handler,)
+    assert subscriptions == (subscription,)
 
 
 @pytest.mark.parametrize("event", INVALID_EVENTS)
-def test_event_manager_get_event_handlers_event_must_be_str(event: Any) -> None:
+def test_event_manager_get_subscriptions_event_must_be_str(event: Any) -> None:
     with pytest.raises(TypeError, match=r"event must be a str"):
-        EventManager().get_event_handlers(event)
+        EventManager().get_subscriptions(event)
 
 
 ##############################################
@@ -1046,3 +948,10 @@ def test_event_manager_trigger_event_filter_payload_does_not_fail_other_handler(
     manager.add_event_handler("my_event", EventHandler(hello_handler, filter_payload=True))
     manager.trigger_event("my_event", epoch=3)
     assert hello_handler.call_count == 1
+
+
+def test_event_manager_get_subscriptions_event_handler() -> None:
+    manager = EventManager()
+    handler = EventHandler(hello_handler)
+    manager.add_event_handler("my_event", handler, once=True)
+    assert manager.get_subscriptions("my_event")[0].event_handler is handler
