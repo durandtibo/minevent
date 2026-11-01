@@ -117,7 +117,9 @@ class BaseEventHandlerWithArguments(BaseEventHandler):
         handler_args: The positional arguments to pass to the handler
             when it is called. Default is ``None``.
         handler_kwargs: The keyword arguments to pass to the handler
-            when it is called. Default is ``None``.
+            when it is called. The dictionary is copied, so changing
+            it afterwards does not change the handler.
+            Default is ``None``.
 
     Raises:
         TypeError: if ``handler`` is not callable.
@@ -155,7 +157,7 @@ class BaseEventHandlerWithArguments(BaseEventHandler):
             raise TypeError(msg)
         self._handler = handler
         self._handler_args = tuple(handler_args or ())
-        self._handler_kwargs = handler_kwargs or {}
+        self._handler_kwargs = dict(handler_kwargs or {})
 
     def __repr__(self) -> str:
         args = str_indent(
@@ -194,10 +196,12 @@ class BaseEventHandlerWithArguments(BaseEventHandler):
         r"""Get the keyword arguments for the handler.
 
         Returns:
-            A dictionary containing the keyword arguments that will be
-                passed to the handler when it is called.
+            A copy of the dictionary containing the keyword arguments
+                that will be passed to the handler when it is called.
+                Modifying the returned dictionary does not change the
+                handler.
         """
-        return self._handler_kwargs
+        return dict(self._handler_kwargs)
 
     def handle(self) -> None:
         self._handler(*self._handler_args, **self._handler_kwargs)
@@ -217,7 +221,9 @@ class EventHandler(BaseEventHandlerWithArguments):
         handler_args: The positional arguments to pass to the handler
             when it is called. Default is ``None``.
         handler_kwargs: The keyword arguments to pass to the handler
-            when it is called. Default is ``None``.
+            when it is called. The dictionary is copied, so changing
+            it afterwards does not change the handler.
+            Default is ``None``.
 
     Raises:
         TypeError: if ``handler`` is not callable.
@@ -271,7 +277,9 @@ class ConditionalEventHandler(BaseEventHandlerWithArguments):
         handler_args: The positional arguments to pass to the handler
             when it is called. Default is ``None``.
         handler_kwargs: The keyword arguments to pass to the handler
-            when it is called. Default is ``None``.
+            when it is called. The dictionary is copied, so changing
+            it afterwards does not change the handler.
+            Default is ``None``.
 
     Raises:
         TypeError: if ``handler`` is not callable.
