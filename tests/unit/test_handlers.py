@@ -192,42 +192,34 @@ def test_event_handler_handler_kwargs_mapping() -> None:
 
 def test_event_handler_handle_without_args_and_kwargs() -> None:
     EventHandler(hello_handler).handle()
-    assert (hello_handler.call_count, hello_handler.args, hello_handler.kwargs) == (
-        1,
-        (),
-        {},
-    )
+    assert hello_handler.call_count == 1
+    assert hello_handler.args == ()
+    assert hello_handler.kwargs == {}
 
 
 def test_event_handler_handle_with_only_args() -> None:
     EventHandler(hello_name_handler, handler_args=("John", "Doe")).handle()
-    assert (hello_name_handler.call_count, hello_name_handler.args, hello_name_handler.kwargs) == (
-        1,
-        ("John", "Doe"),
-        {},
-    )
+    assert hello_name_handler.call_count == 1
+    assert hello_name_handler.args == ("John", "Doe")
+    assert hello_name_handler.kwargs == {}
 
 
 def test_event_handler_handle_with_only_kwargs() -> None:
     EventHandler(
         hello_name_handler, handler_kwargs={"first_name": "John", "last_name": "Doe"}
     ).handle()
-    assert (hello_name_handler.call_count, hello_name_handler.args, hello_name_handler.kwargs) == (
-        1,
-        (),
-        {"first_name": "John", "last_name": "Doe"},
-    )
+    assert hello_name_handler.call_count == 1
+    assert hello_name_handler.args == ()
+    assert hello_name_handler.kwargs == {"first_name": "John", "last_name": "Doe"}
 
 
 def test_event_handler_handle_with_args_and_kwargs() -> None:
     EventHandler(
         hello_name_handler, handler_args=("John",), handler_kwargs={"last_name": "Doe"}
     ).handle()
-    assert (hello_name_handler.call_count, hello_name_handler.args, hello_name_handler.kwargs) == (
-        1,
-        ("John",),
-        {"last_name": "Doe"},
-    )
+    assert hello_name_handler.call_count == 1
+    assert hello_name_handler.args == ("John",)
+    assert hello_name_handler.kwargs == {"last_name": "Doe"}
 
 
 def test_event_handler_handle_called_2_times() -> None:
@@ -290,20 +282,16 @@ def test_event_handler_condition_callable_condition() -> None:
 
 def test_event_handler_condition_handle_1() -> None:
     EventHandler(hello_handler, condition=PeriodicCondition(3)).handle()
-    assert (hello_handler.call_count, hello_handler.args, hello_handler.kwargs) == (
-        1,
-        (),
-        {},
-    )
+    assert hello_handler.call_count == 1
+    assert hello_handler.args == ()
+    assert hello_handler.kwargs == {}
 
 
 def test_event_handler_condition_handle_10() -> None:
     handle_n_times(EventHandler(hello_handler, condition=PeriodicCondition(3)), 10)
-    assert (hello_handler.call_count, hello_handler.args, hello_handler.kwargs) == (
-        4,
-        (),
-        {},
-    )
+    assert hello_handler.call_count == 4
+    assert hello_handler.args == ()
+    assert hello_handler.kwargs == {}
 
 
 ############################################
@@ -351,15 +339,14 @@ def test_event_handler_equal_unchanged_after_mutating_caller_kwargs() -> None:
 
 def test_event_handler_handle_payload() -> None:
     EventHandler(hello_name_handler).handle(first_name="John", last_name="Doe")
-    assert (hello_name_handler.args, hello_name_handler.kwargs) == (
-        (),
-        {"first_name": "John", "last_name": "Doe"},
-    )
+    assert hello_name_handler.args == ()
+    assert hello_name_handler.kwargs == {"first_name": "John", "last_name": "Doe"}
 
 
 def test_event_handler_handle_payload_after_handler_args_and_kwargs() -> None:
     EventHandler(hello_name_handler, handler_args=("John",)).handle(last_name="Doe")
-    assert (hello_name_handler.args, hello_name_handler.kwargs) == (("John",), {"last_name": "Doe"})
+    assert hello_name_handler.args == ("John",)
+    assert hello_name_handler.kwargs == {"last_name": "Doe"}
 
 
 def test_event_handler_handle_payload_conflicts_with_handler_kwargs() -> None:

@@ -57,7 +57,10 @@ def test_tracer_reset() -> None:
     tracer = Tracer(add)
     tracer(1, b=2)
     tracer.reset()
-    assert (tracer.called, tracer.call_count, tracer.args, tracer.kwargs) == (False, 0, (), {})
+    assert not tracer.called
+    assert tracer.call_count == 0
+    assert tracer.args == ()
+    assert tracer.kwargs == {}
 
 
 ###########################
