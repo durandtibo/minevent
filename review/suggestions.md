@@ -1,408 +1,412 @@
 # Codebase review and suggestions
 
-Scope: every tracked file (`src/`, `tests/`, `dev/`, `docs/`, `.github/`, `.make/`, packaging and
-config). The library itself is small (about 800 lines including docstrings), so most of the value is
-in API semantics, a few latent bugs, and repo hygiene. Breaking changes are allowed, since the
-README states the API is unstable before 1.0.
+Reviewed at `976989a` (`main`): every tracked file (`src/`, `tests/`, `dev/`, `docs/`, `.github/`,
+`.make/`, packaging and config). The previous version of this file described the code before
+payloads, `once`, `Subscription`, async, locking, the extra conditions and the `ValueError`/`TypeError`
+changes. Nearly all of its items have been fixed, so this version is rewritten from scratch against
+the current code.
 
-Priority legend: **P0** bug or surprising behavior, **P1** API/design improvement,
-**P2** quality/maintenance, **P3** nice to have.
+Baseline: `ruff check`, `ruff format --check`, `ty check`, the 288 tests (100% line and branch
+coverage) and the 31 source doctests all pass. The items below are things that baseline does not catch.
+
+Items marked **[verified]** were reproduced with a script against the current code, not just read.
+Priority: **P0** bug, **P1** design flaw or likely user pain, **P2** quality, **P3** nice to have.
+Breaking changes are acceptable (the README says the API is unstable before 1.0).
 
 ---
 
-## 1. Bugs and surprising behavior in `EventManager` (`src/minevent/manager.py`)
+## 1. Bugs
 
-### 1.1 (P0) Read operations mutate the internal `defaultdict`
+### 1.1 (P0) [verified] A `once` handler can run more than once under concurrency
 
-`_event_handlers` is a `defaultdict(list)`, so plain reads create keys:
+`_OnceEventHandler.handle` (`manager.py:53`) calls `self.subscription.remove()` and ignores its
+return value. Two threads that both took their snapshot before either removed the registration both
+run the handler. With two threads synchronised right after `_start_trigger`, the wrapped handler ran
+**2** times.
 
-- `trigger_event("x")` does `self._event_handlers[event]` (line ~121), which creates an empty entry
-  for every event ever triggered, even when no handler exists.
-- `has_event_handler(h, event="x")` does `self._event_handlers[evnt]` (line ~170), so a query
-  creates an empty entry.
+The "once from threads" integration test (`test_manager_threads.py`) only passes because the window
+is tiny: it is a probabilistic test of a guarantee the code does not provide.
 
-Consequences:
+Fix: make the claim atomic, so only the caller whose `remove()` returns `True` runs the handler:
 
-- `__repr__` lists phantom events with no handlers.
-- `remove_event_handler("x", h)` after a `trigger_event("x")` raises
-  _"handler is not found among registered..."_ instead of _"'x' event does not exist"_. The error
-  depends on whether the event was previously triggered, and `remove_event_handler` itself relies on
-  `event not in self._event_handlers`, which the other two methods corrupt.
-- The dict grows without bound if event names are dynamic (for example `f"epoch_{i}"`).
-- A query from another thread can raise `RuntimeError: dictionary changed size during iteration`
-  while `has_event_handler` iterates over `self._event_handlers`.
+```python
+def handle(self, **payload):
+    if self.subscription is None or self.subscription.remove():
+        self.event_handler.handle(**payload)
+```
 
-Fix: use a plain `dict[str, list[BaseEventHandler]]` and read with `.get(event, ())`. Keep
-`setdefault` only in `add_event_handler`. Add regression tests for `repr` after a trigger, and for
-the `remove` error message after a trigger.
+(Same in `ahandle`.) Then replace the integration test with a deterministic one using a
+`threading.Barrier` between snapshot and dispatch, as in the reproduction.
 
-### 1.2 (P0) `has_event_handler(..., event="")` silently searches all events
+### 1.2 (P0) `subscription` is attached to the `once` wrapper after it is visible
 
-`events = [event] if event else self._event_handlers` uses truthiness, so `event=""` means
-"all events". Use `event is None`. This is a real, if unlikely, bug because an empty string is a
-valid event name for `add_event_handler`.
+`add_event_handler` (`manager.py:257-261`) appends the wrapper under the lock, releases the lock,
+builds the `Subscription`, and only then sets `registered.subscription`. A trigger from another
+thread in that window runs the wrapper with `subscription is None`: it skips the removal and the
+handler will run again at every later trigger. Build the `Subscription` first (it only needs
+`registered`), assign it, then append under the lock.
 
-### 1.3 (P0) Handlers added during a trigger run in the same trigger
+### 1.3 (P1) [verified] Payload keys `event` and `self` collide with parameter names
 
-`trigger_event` iterates the live list. If a handler calls `add_event_handler` for the same event,
-the new handler is appended to the list being iterated and runs immediately. Meanwhile
-`remove_event_handler` swaps the list, so the in-progress loop is unaffected and removed handlers
-still run for the current dispatch. The two cases behave inconsistently. Iterate over a snapshot
-(`tuple(self._event_handlers.get(event, ()))`) and document the semantic: "handlers registered or
-removed during dispatch take effect on the next trigger".
+`trigger_event(self, event, **payload)` means `manager.trigger_event("batch_end", event=e)` raises
+`TypeError: got multiple values for argument 'event'`, and `self=...` does too. The same applies to
+`handle(self, **payload)` and `ahandle`. Make the positional parameters positional-only:
+`trigger_event(self, event, /, **payload)`, `atrigger_event`, `handle(self, /, **payload)`,
+`ahandle`. This is source compatible for every normal call.
 
-### 1.4 (P1) Exception policy is undefined
+### 1.4 (P1) [verified] A coroutine handler passed to `trigger_event` is silently dropped
 
-If handler _k_ raises, handlers _k+1..n_ never run and `last_triggered_event` is already set. The
-docs (`best_practices.md`, `troubleshooting.md`) tell users to wrap each handler in `try/except`,
-which shows the library should offer a policy. Options:
+`EventHandler.handle` calls the function and discards the result. For `async def` handlers this
+creates a coroutine that is never awaited: the only trace is a `RuntimeWarning` at garbage
+collection (which is invisible in most apps, and an error only under pytest's `filterwarnings =
+error`). The docstring of `ahandle` mentions it, but the failure mode is silent loss of work.
 
-- Keep fail-fast, and document it in the `trigger_event` docstring.
-- Add `trigger_event(event, *, on_error="raise" | "log" | "collect")`. With `"collect"`, raise an
-  `ExceptionGroup` (Python >= 3.11 is already the minimum) after all handlers have run.
+Suggestion: in `EventHandler.handle`, if `inspect.isawaitable(result)`, close it and raise
+`TypeError("... returned an awaitable; use atrigger_event")`. Or at least `warnings.warn` right
+there with the handler name. Add a test for the chosen behaviour.
 
-### 1.5 (P1) `last_triggered_event` is set before the handlers run
+### 1.5 (P1) [verified] `handler_args or ()` fails for array-like arguments
 
-If a handler raises, or a handler reads `manager.last_triggered_event`, the semantics are unclear.
-Decide whether it means "last event whose dispatch started" or "last event that completed", and
-document it. Also check that the feature earns its place: nothing in the repo uses it besides
-tests and docs. Consider removing it or replacing it with an opt-in hook.
+`EventHandler.__init__` (`handlers.py:248`) does `tuple(handler_args or ())`. For an object whose
+truth value is ambiguous (a NumPy array or torch tensor passed as the sequence itself) this raises
+`ValueError: truth value ... is ambiguous`. The library targets ML code, so write
+`() if handler_args is None else tuple(handler_args)`. Same pattern for `handler_kwargs or {}`
+(harmless for `Mapping`, but be consistent). Add a regression test.
 
-### 1.6 (P1) `event` is coerced with `str()` in `add_event_handler` only
+### 1.6 (P1) `once` is consumed even when the condition is false
 
-`add_event_handler(1, h)` stores the key `"1"`, but `trigger_event(1)` looks up the key `1` and
-finds nothing. Either coerce everywhere or, better, reject non-`str` events with a `TypeError`.
-Also consider accepting any hashable, or an `enum.StrEnum`, to avoid typos in magic strings (see
-2.3).
+[verified] `EventHandler(f, condition=lambda: False)` registered with `once=True` is removed on the
+first trigger without ever running `f`. That is surprising: "once" reads as "run once", not "give it
+one chance". Either document it explicitly in `add_event_handler`, or (better) remove the
+registration only after the wrapped handler actually ran. The latter needs `handle` to report
+whether the condition fired, for example by having `EventHandler.handle` return `bool`.
 
-### 1.7 (P2) `remove_event_handler` raises `RuntimeError`
+### 1.7 (P2) User code runs while the manager lock is held
 
-`KeyError` or `ValueError` would be more idiomatic and match `list.remove`. Add an opt-out
-`missing_ok: bool = False` parameter. Currently users must wrap it in `try/except RuntimeError`,
-which is a very broad exception type.
+`remove_event_handler` calls `event_handler.equal(...)` inside `with self._lock`
+(`manager.py:497-517`), and `__repr__` formats user handlers under the lock. `equal` goes through
+`coola.objects_are_equal`, which can be slow for large tensors, and a custom `equal`/`__repr__` may
+block or call back into the manager from another thread, which can deadlock. Take a snapshot under
+the lock, compare outside it, then re-acquire the lock and remove by identity (the same
+`_remove_registration` path `Subscription` uses). This also gives the two removal paths one
+implementation (today one rebuilds the list and the other does `del handlers[i]`).
 
-### 1.8 (P2) `__init__` calls `self.reset()` after initialising the same fields
+### 1.8 (P2) [verified] Unbounded recursion if a handler re-triggers its own event
 
-`self._event_handlers = defaultdict(list)`, `self._last_triggered_event = None`, then `reset()`
-clears them again. Pick one. Also annotate the attributes (`self._event_handlers: dict[str,
-list[BaseEventHandler]] = {}`). The bare `defaultdict(list)` is untyped, so `ty` infers `Unknown`.
+A handler that triggers the event it handles raises `RecursionError`. The snapshot semantic is
+fine, but this is an easy mistake in training code (`after_epoch` handler that triggers
+`after_epoch`). Consider a re-entrancy guard (opt-in or raising a clear `RuntimeError`), or at least
+a sentence in the `trigger_event` docstring.
 
-### 1.9 (P2) `__repr__` is hard to read
+### 1.9 (P2) [verified] Empty `EventManager.__repr__` has trailing whitespace
 
-The nested `"\n" + str_sequence(...)` plus conditional strings is hard to follow and produces odd
-output for empty managers. Build the representation in a helper and cover it with a snapshot test
-(the current tests only assert `startswith("EventManager(")`).
-
-### 1.10 (P3) Missing small conveniences
-
-- `__len__` / `__contains__`, and an `events` property (list of events with handlers).
-- A `clear_event(event)` method. `reset()` is the only way to clear.
-- `add_event_handler` could return the handler, and `trigger_event` could return nothing or a count.
-  This makes decorator-style registration possible:
-
-  ```python
-  @manager.on("after_epoch")
-  def log(): ...
-  ```
-
-- A `trigger_event(event, *args, **kwargs)` form so handlers can receive context (see 2.1).
+`repr(EventManager())` yields ` (event_handlers):` followed by a newline (a trailing space).
+`_format_event_handlers` returns `""` and the format adds the separator regardless. Trailing
+whitespace is stripped by the `trailing-whitespace` pre-commit hook, so the docs show a different
+output than the code produces: running the docs as doctests (see 5.1) fails on this exact line in
+`quickstart.md:227`. Return `"{}"` or `"()"` for the empty case, and cover `repr` with an exact
+string test.
 
 ---
 
 ## 2. API and design
 
-### 2.1 (P1) Handlers cannot receive event data
+### 2.1 (P1) `last_triggered_event` has unclear value
 
-`BaseEventHandler.handle()` takes no arguments, and `trigger_event` takes no payload. Everything the
-handler needs must be bound at registration time (`handler_args`, `handler_kwargs`, closures). For
-the stated target (ML training loops) this is the main practical limitation. Users want the epoch,
-the loss, or the model at trigger time. The docs (`architecture.md`) even sketch an
-`Event(name=..., priority=...)` object that does not exist.
+It is set when dispatch starts, so it is only meaningful in single-threaded code and a handler that
+reads it sees its own event. Under threads it is a last-writer-wins race. Nothing in the library
+uses it. Options: remove it (breaking, but it pollutes `__repr__`, `reset()` and the lock scope), or
+keep it and say in the class docstring that it is informational and not thread-meaningful.
 
-Proposal (breaking): `trigger_event(event, **payload)` calls `handler.handle(**payload)`, or passes
-a small immutable `EventContext`. Keep the zero-argument form as the default so existing code still
-works.
+### 2.2 (P1) No way to see what is registered, only whether something is
 
-### 2.2 (P1) `EventHandler` vs `ConditionalEventHandler` vs `BaseEventHandlerWithArguments`
+There is `events`, `__contains__` and `has_event_handler(handler)` (which needs a handler built to
+match). Add `get_event_handlers(event) -> tuple[BaseEventHandler, ...]` (a snapshot) and `__len__`
+(number of registrations). It makes debugging and tests simpler, and lets tests stop reaching for
+`repr`.
 
-Three classes plus a base class for what is functionally "callable + args + optional condition".
-Issues:
+### 2.3 (P1) Equality-based lookup is the weakest part of the API
 
-- `BaseEventHandlerWithArguments` and `EventHandler` have identical bodies except for `equal`.
-- `equal` is copy-pasted in both subclasses, and `__repr__` is copy-pasted too.
-- `isinstance(other, EventHandler)` in `EventHandler.equal` means a user subclass of `EventHandler`
-  compares equal to a plain `EventHandler`, while `ConditionalEventHandler` is not a subclass, which
-  is inconsistent.
+`has_event_handler`/`remove_event_handler` depend on `coola.objects_are_equal`, which falls back to
+`==`: lambdas, closures and bound methods of different instances never match [verified:
+`has_event_handler(EventHandler(lambda: 1))` is `False` after registering an identical lambda].
+`Subscription` already solves removal. Options, in order of preference:
 
-Proposal: collapse into one `EventHandler(handler, *args, condition=None, **kwargs)` or
-`EventHandler(handler, args=(), kwargs=None, condition=None)`. Keep `ConditionalEventHandler` only
-as a deprecated alias for one release. Implement `equal` once in the base class by comparing
-`type(self) is type(other)` and a `_key()` tuple.
+1. Keep equality but document the limits prominently (partly done), and steer all docs toward
+   `Subscription` (see 5.2: the docs still teach the equality workflow).
+2. Make `remove_event_handler` / `has_event_handler` accept a `Subscription` as well.
+3. Drop `coola` (see 4.1) and compare with `==`/`is`.
 
-### 2.3 (P1) Equality semantics: `objects_are_equal` is heavy, and surprising for callables
+### 2.4 (P2) `Subscription` conveniences
 
-`equal` relies on `coola.objects_are_equal`, which, for functions, falls back to `==`:
+- Context manager (`with manager.add_event_handler(...) as sub:` removes on exit) for scoped
+  instrumentation such as a profiler active during one phase.
+- `__bool__`/`active` property to tell if it is still registered.
+- Allow `manager.add_event_handler` to be used as a decorator factory, e.g. `@manager.on("e")`,
+  which returns the function unchanged. Tiny, and popular in event libraries.
 
-- Lambdas and bound methods compare unequal across instances (`obj.method != other.method`), so
-  `has_event_handler` and `remove_event_handler` often silently fail for them. The docs only
-  partially warn about this.
-- For tensors or arrays in `handler_args`, `objects_are_equal` is exactly right, but it is the only
-  reason `coola` is a runtime dependency. That is a heavy dependency for a "minimal" library,
-  and `coola` has changed major versions three times (see the README table).
+### 2.5 (P2) `ConditionalEventHandler` is a function named like a class
 
-Options:
+[verified] `isinstance(x, ConditionalEventHandler)` raises `TypeError`, and subclassing it fails.
+This is documented as deprecated, so either delete it at the next release (the changelog already
+gives the migration), or make it a real thin subclass of `EventHandler` that warns in `__init__`.
+Deleting is simpler and also removes a `# noqa: N802`.
 
-1. Drop `coola` and compare with `==` and `is` (zero dependencies), documenting that handlers
-   with array arguments should use identity.
-2. Keep `coola` but make it an optional extra and fall back to `==`.
-3. Return a registration token from `add_event_handler` (see 2.4) so removal never needs equality.
+### 2.6 (P2) Payload is all-or-nothing
 
-I recommend (3) combined with (1). The whole `equal` abstraction then becomes optional.
+Every handler receives the whole payload and raises `TypeError` if it does not accept a key
+[verified]. In training loops, handlers with different needs (`loss` vs `epoch`) cannot share an
+event unless each takes `**kwargs`. Options: an opt-in `EventHandler(..., filter_payload=True)` that
+passes only the keys the signature accepts (via `inspect.signature`, computed once at construction),
+or document the `**_` idiom in the quickstart.
 
-### 2.4 (P1) Add a way to unsubscribe without re-creating an equal handler
+### 2.7 (P2) Combinators evaluate every operand (no short-circuit)
 
-Removal requires constructing an equal handler again. Return a `Subscription`/token (or the
-handler) from `add_event_handler`, with `.remove()` support. This also avoids the "remove deletes
-all duplicates" surprise (documented, but rarely wanted). Also consider a `once=True` option, which
-the quickstart currently emulates by hand with `has_event_handler` (`quickstart.md` ~line 343).
+This is deliberate and documented (stateful operands advance together), but it makes
+`AndCondition(cheap, expensive)` always pay for `expensive`. Offer `short_circuit: bool = False` or
+document the trade-off in the "conditions" page, not only in the docstring.
 
-### 2.5 (P1) `PeriodicCondition` has shared mutable state and a fragile contract
+### 2.8 (P2) Stateful conditions are shared by reference
 
-- `freq=0` constructs successfully and fails later with `ZeroDivisionError` inside `evaluate()`.
-  Negative values are accepted silently (`step % -3` works, but is meaningless). The docstring
-  admits this. Validate in `__init__` (`ValueError` for `freq < 1`) and update the tests.
-- `int(freq)` silently truncates `2.9` to `2`. Reject non-integers.
-- `equal` ignores `_step`, so two conditions with different progress compare equal. That is probably
-  intended for duplicate detection but must be documented. The state is also shared if the same
-  condition instance is passed to two handlers.
-- `evaluate()` has a side effect (increments a counter), so it is not idempotent, which is not
-  obvious from the name. Consider `__call__`/`should_run()` or a `reset()` method.
-- No way to express "every N calls but skip the first" (the docstring says it fires on the first
-  call, which matches 0-based epoch semantics but not "every 10th epoch" in the usual meaning).
-  Add `offset`/`skip_first`.
-- Use `itertools.count()` for the counter, and annotate `freq: int` as positive.
+One `PeriodicCondition` instance passed to two handlers shares a counter, and this is only a
+docstring warning. Consider `condition.copy()`/`__copy__` or documenting `functools.partial`-style
+factories. For `once=True`, nothing else is needed, but for `OnceCondition` combined with
+`once=True` there are now two mechanisms for "run once"; mention which to prefer.
 
-### 2.6 (P2) Conditions only exist as a class hierarchy
+### 2.9 (P2) Weak references to bound methods
 
-`ConditionalEventHandler` accepts any `BaseCondition`, yet the test `callable_condition` and docs
-suggest plain callables might be accepted. Allow `Callable[[], bool]` as a condition (via a
-`Protocol`) so users do not need to subclass an ABC with two abstract methods (`equal` +
-`evaluate`) for a one-liner. Provide a couple more built-ins (`AlwaysCondition`, `OnceCondition`,
-`AfterNCondition`, combinators `AndCondition`/`OrCondition`/`NotCondition`) if the "conditions" idea
-is meant to be a selling point. At present there is exactly one concrete condition.
+`EventHandler(self.method)` keeps `self` alive for the lifetime of the manager. The troubleshooting
+page's "Memory Leaks" answer is a hand-rolled `weakref` handler that is not even a valid
+`BaseEventHandler` (no `equal`, wrong `handle` signature). A `weak=True` option using
+`weakref.WeakMethod` (auto-unsubscribing when the owner dies) would replace that recipe. The
+architecture page lists weak references as a non-goal, so decide and align the docs either way.
 
-### 2.7 (P2) `__eq__` without `__hash__`
+### 2.10 (P3) Exception policy
 
-Both ABCs define `__eq__` and silence `PLW1641` with `# noqa`, which leaves instances
-unhashable (`Python` sets `__hash__ = None`). That prevents putting handlers in sets or as dict
-keys. Either define a consistent `__hash__` (impossible with `objects_are_equal` semantics), or
-document it as an intentional property. Having `__eq__` delegate to an `equal` method that other
-code calls directly is also an API duplication. One of them should be the primary API.
+Fail-fast is documented, and the docs tell users to wrap handlers in `try/except`. An opt-in
+`trigger_event(..., on_error="raise" | "collect")` that raises an `ExceptionGroup` after all handlers
+ran (Python >= 3.11 is the minimum) would remove that boilerplate. Not needed for a minimal library;
+mention as a conscious non-goal if you decline.
 
-### 2.8 (P2) Defensive copying
+### 2.11 (P3) `Any` for payload and `Callable` plumbing
 
-`handler_kwargs` is stored by reference (`handler_kwargs or {}`), and the property returns the live
-dict. Mutating the caller's dict later changes the registered handler, which also invalidates
-`equal`. Copy on construction (`dict(handler_kwargs or {})`) or expose a read-only
-`MappingProxyType`.
-
-### 2.9 (P3) Async support
-
-`architecture.md` says async is a non-goal and recommends threads. If the target audience includes
-async training or serving code, `atrigger_event` (awaiting coroutine handlers) is a small addition
-that would remove the need for the thread-pool workaround documented in `troubleshooting.md`.
-
-### 2.10 (P3) Thread safety
-
-Documented as unsupported. A lock around mutations and a snapshot on trigger (1.3) would make the
-manager safe for the common "register in main thread, trigger from worker threads" pattern, and the
-CI already tests free-threaded builds (3.14t), where races are likelier. At least test and document
-the guarantee that does hold.
+`**payload: Any` could be `**payload: object`. `ANN401` is globally ignored in `pyproject.toml`;
+enable it and fix the few places that really mean `object`.
 
 ---
 
-## 3. Typing and docstrings
+## 3. Tests (`tests/`)
 
-- (P1) `Callable` is unparameterised everywhere (`handler: Callable`). Use `Callable[..., Any]`, or
-  better, `Callable[..., object]`. With a `ParamSpec`-based generic handler the arguments could even
-  be type-checked against `handler_args`.
-- (P2) `handler_kwargs: dict[str, Any]` should be `Mapping[str, Any]`, `handler_args:
-Sequence[Any]` should reject `str` (a `str` is a `Sequence`, so `handler_args="abc"` silently
-  becomes `("a", "b", "c")`).
-- (P2) `BaseCondition.__eq__` returns `self.equal(other)` and `equal` takes `Any`. Use
-  `object` instead of `Any` for `other`.
-- (P2) `ty` only checks `src` (`[tool.ty.src] include = ["src"]`). Include `tests`, since the
-  test helper `trace` assigns attributes on functions (`wrapper.called = ...`), which a checker
-  would flag. Replace it with `unittest.mock.Mock`/`MagicMock` or a small callable class.
-- (P2) The module `__init__` has `__all__` containing `__version__`; fine, but also export
-  `__version__` consistently, and avoid the `"0.0.0"` fallback masking a broken install.
-- (P3) Docstrings: `r"""` prefixes are used on all docstrings with no backslashes. Harmless but
-  noisy. Several "Returns:" blocks have inconsistent indentation, and `BaseEventHandlerWithArguments`
-  docs show `EventHandler` examples. Docstring style is otherwise good.
+All checks below were computed by script over `tests/`, against the rules in `CLAUDE.md`.
 
----
-
-## 4. Tests (`tests/`)
-
-- (P1) Tests access private state (`event_manager._event_handlers[...]`) in about ten places.
-  Assert behavior through the public API (`has_event_handler`, `trigger_event`) so that the
-  refactors in section 1 do not need test rewrites.
-- (P1) Missing coverage for real-world cases:
-  - handler raising an exception during `trigger_event` (and the order of later handlers),
-  - handler adding/removing handlers during dispatch,
-  - `trigger_event` followed by `remove_event_handler` (bug 1.1),
-  - `has_event_handler(event="")` (bug 1.2),
-  - `PeriodicCondition(0)` / negative / float,
-  - `ConditionalEventHandler` inside a manager, and `has_event_handler` with a conditional handler,
-  - `__repr__` content (not just `startswith`),
-  - a custom `BaseCondition`/`BaseEventHandler` subclass, to prove the extension story in the docs,
-  - `handler_args` as a `str` (pitfall above) and mutation of `handler_kwargs` after construction.
-- (P2) `trace` in `tests/unit/utils.py` plus the identical `_reset_tracer` fixture duplicated in
-  `test_manager.py` and `test_handlers.py` is reinventing `Mock`. Replace with `Mock(spec=...)`, or
-  move the fixture to `tests/conftest.py`. Module-level state shared between tests is also a
-  `pytest-xdist` hazard.
-- (P2) `PeriodicCondition` tests spell out ten-element boolean lists. Use `parametrize` with a
-  generated expected list (`[i % freq == 0 for i in range(10)]`) or a compact string
-  (`"TFFTFFTFFT"`).
-- (P2) Tests are duplicated: `test_last_triggered_event_name_after_fire` and
-  `test_event_manager_last_triggered_event` check the same thing, and
-  `test_event_handler_handle_1`/`_10` appear to differ only by parameter, so parametrise them.
-  Naming also drifts (`test_event_handler_handle_*` is used for `ConditionalEventHandler` tests).
-- (P3) Add property-based tests (Hypothesis) for `PeriodicCondition` (`evaluate` is True exactly
-  at multiples of `freq`) and a few invariants for the manager (add then remove is a no-op).
-- (P3) `tests/package_checks.py` is not named `test_*`, which is intended (it is run by the
-  package workflow), but it only asserts a happy path. Extend it to import every symbol in
-  `__all__` and check `__version__`.
+- (P1) **One-assert rule is broken in about 35 tests.** Examples:
+  `test_handlers.py` (`test_event_handler_without_args_and_kwargs`: 3 asserts; the four
+  `test_event_handler_handle_*`: 4 asserts; `test_event_handler_condition_*`: 4 asserts),
+  `test_manager.py` (`test_event_manager_contains`: 3 asserts;
+  `test_event_manager_last_triggered_event_after_trigger`: 3). Split them, or assert one tuple/dict
+  of the observable state. Tests with a `for`/`if`: `test_event_handler_condition_handle_10`,
+  `test_event_handler_condition_combinator`, `test_event_manager_no_duplicate`,
+  `test_event_manager_atrigger_event_mixes_sync_and_async_in_order`; parametrize them.
+- (P1) **No deterministic concurrency test.** The race in 1.1 passes the current thread test. Add a
+  barrier-based test (see 1.1) and a test for 1.2. Keep randomised stress tests, but do not count
+  them as proof.
+- (P1) **Missing regression tests** for the items in sections 1 and 2: payload keys `event`/`self`,
+  coroutine handler through `trigger_event`, array-like `handler_args`, `once` + false condition,
+  `repr` of an empty manager (exact string), re-entrant trigger.
+- (P2) **Malformed section headers** (rule: three lines, 5 spaces each side of the name):
+  `test_manager.py:602` (`#     Tests for _unwrap #`), `test_utils.py:11` and `:64`.
+- (P2) **Misplaced and duplicated tests** in `test_manager.py`:
+  `test_event_manager_subscription_remove_second_registration` (line 616) sits under the `_unwrap`
+  header; `test_event_manager_remove_event_handler_after_trigger` (224) and
+  `..._after_trigger_event` (774), and `test_event_manager_trigger_event_does_not_register_event`
+  (212) and `..._unknown_event_does_not_register_it` (782), test the same thing. Delete one of each
+  pair. The file is 849 lines; split it into `test_manager.py`, `test_manager_once.py`,
+  `test_manager_async.py`.
+- (P2) `tests/unit/utils.py::Tracer` re-implements `unittest.mock.Mock(wraps=f)` and carries its own
+  test file. Module-level `@trace` handlers share state across tests via `_reset_tracer` fixtures
+  (a `pytest-xdist` hazard). Replace it with `Mock`, or with per-test local functions.
+- (P2) `test_init.py` patches `importlib.metadata.version` for the fallback and `package_checks.py`
+  only verifies `__version__ != "0.0.0"`, so the "patched stand-in vs real thing" rule is only met
+  half way. This goes away if the lazy `__version__` is removed (4.2).
+- (P3) Property-based tests (Hypothesis) for `PeriodicCondition`/`AfterNCondition` against a
+  closed-form oracle, and for "add then `Subscription.remove` leaves the manager unchanged".
+- (P3) `tests/package_checks.py` (run by `ci-build`) only covers a bare trigger. Extend it to
+  exercise `once`, a payload and `atrigger_event` against the built wheel.
 
 ---
 
-## 5. Packaging and configuration (`pyproject.toml`, `uv.lock`, root files)
+## 4. Source, packaging and configuration
 
-- (P1) Build artifacts `coverage.xml`, `htmlcov/`, and `dist/` exist in the working directory. They
-  are ignored by git (good), but `dist/` and the others should be removed regularly. `make clean`
-  does not remove `dist/`. Add it.
-- (P2) `[tool.uv.pip] torch-backend = "auto"` is irrelevant to this project (no torch dependency).
-  It looks copy-pasted from another repo. Remove it.
-- (P2) `[project.optional-dependencies]` is an empty table that is still consumed by the
-  `autoextras` build hook and by `dev/generate_versions.py`
-  (`read_pyproject_optional_dependencies`). Either delete both, or document why they remain.
-  README line "no optional dependencies or extras are required" matches reality.
-- (P2) Classifier `Programming Language :: Python :: 3.15` is listed, but the 3.15 interpreter is
-  pre-release for much of its life. Make sure CI actually tests it (`lib-get-test-matrix.yaml`) or
-  drop the classifier. "Development Status :: 4 - Beta" is also at odds with the README's "no API is
-  guaranteed" notice.
-- (P2) `coola>=1.0,<2.0` is the only runtime dependency, and it is used only for equality and
-  formatting helpers (`str_indent`, `str_mapping`, `str_sequence`). See 2.3. Dropping it makes
-  `minevent` a true zero-dependency package, which fits the "minimal" pitch and removes the
-  yearly cross-major compatibility burden visible in the README table.
-- (P2) `[tool.ruff.lint]` selects `NPY` and `PD` (NumPy, pandas), and contains `ANN401` ignored,
-  `PLR0913` ignored. Those are copy-paste from a data library. Prune what is not relevant.
-  Conversely, consider enabling `DOC` (pydoclint, preview) and `ERA` (commented-out code).
-- (P2) `pytest` `filterwarnings = ["error"]` is great. `log_level = "DEBUG"` globally, together
-  with `--durations 10`, is noisy. Set it per test with `caplog` where needed.
-- (P3) `[tool.codespell] skip` mentions `./docs/site`; verify the path (`docs/site` is the mkdocs
-  default output, but not present).
-- (P3) `CODEOWNERS` has two lines and a single owner. Fine, but add `/.github/` ownership rules or
-  remove the file if unused.
-- (P3) Both `CONTRIBUTING.md`/`CODE_OF_CONDUCT.md` and `.make/CONTRIBUTING.md`/
-  `.make/CODE_OF_CONDUCT.md` exist, along with `.make/LICENSE`, `.make/SECURITY.md`, and
-  `.make/README.md` (synced by `bot-sync-shared-makefile.yaml`). It is confusing to have two copies
-  of governance files. Exclude `.make/*.md` from the sync, or from the repo root searches, so
-  contributors do not edit the wrong one.
+### 4.1 (P1) `coola` is the only dependency and costs 90% of the import time
 
----
+[verified] `import minevent` takes about 43 ms, of which `coola` is about 39 ms (it imports its whole
+equality interface eagerly). It is used for `objects_are_equal` (equality) and three `str_*`
+formatters. Because `Subscription` makes equality optional for removal, a zero-dependency
+`minevent` is realistic: compare with `==`, write a 10-line indenter for `__repr__`. That also
+deletes `ci-test-deps`, `ci-test-code-dep`, `nightly-test-package-dep`, `lib-get-package-versions`,
+`dev/generate_versions.py`, `dev/config/package_versions.json` and the version table in the README
+(about a fifth of the CI surface). If equality of array arguments is wanted, make `coola` an
+optional extra and import it lazily, as CLAUDE.md already requires for numpy/torch.
 
-## 6. Documentation (`README.md`, `docs/`)
+### 4.2 (P2) Lazy `__version__` saves nothing and hides the attribute from tools
 
-- (P0) The README badges point to workflows that do not exist:
-  `nightly-tests.yaml`, `docs.yaml`, `docs-dev.yaml`. The existing files are
-  `nightly-test-package.yaml`, `nightly-test-package-dep.yaml`, `release-docs.yaml`, and
-  `release-docs-dev.yaml`. `docs/docs/index.md` uses yet another form (`workflows/Nightly%20Tests/
-badge.svg` by workflow _name_). Badges render as "no status" or broken.
-- (P1) `README.md` and `docs/docs/index.md` are two diverging copies of the same content (badges,
-  overview, install). Use `mkdocs-include-markdown-plugin` (already a dependency in the `docs`
-  group) to include the README, or trim `index.md` to the essentials. Note the README version table
-  lists `0.5.0` as `>=3.10`, while `main` is `>=3.11`.
-- (P1) Documentation volume (about 2,450 lines in `docs/docs`) is large compared with about 800
-  lines of source, and much of it is speculative:
-  - `architecture.md` describes hypothetical features ("Thread-Safe Event Managers", "Async
-    Support", an `Event(name=..., priority=...)` object) and comparison tables against other
-    libraries. These are easy to go stale and make the library look more featureful than it is.
-    Move them to a short "Roadmap/Non-goals" section or delete them.
-  - `best_practices.md`, `troubleshooting.md`, and `faq.md` repeat the same advice (exception
-    handling, duplicates, testing with mocks). Merge them and de-duplicate.
-- (P1) All Markdown code snippets should be executed in CI. `ci-doctest.yaml` covers docstrings
-  via `xdoctest`, but the many ` ```python ` blocks in `docs/` are not tested. Use
-  `pytest --doctest-glob`, `mktestdocs`, or `pytest-markdown-docs` to prevent drift.
-- (P2) `mkdocs.yml` has the `pymdownx.emoji` configuration with `!!python/name:` tags, which makes the
-  YAML unsafe to load (which is why `check-yaml --unsafe` is needed). Consider `material.extensions`
-  string references (supported by recent versions) or remove emoji.
-- (P2) Missing: a `CHANGELOG.md` (the `Changelog` URL points at GitHub Releases only), and a
-  migration note for the `0.5.0 -> main` break (Python 3.10 dropped, `coola` 1.x).
-- (P3) Grammar fixes in the overview: "allows to customize" -> "allows you to customize", "piece of
-  code that are executed" -> "pieces of code that are executed". The same sentence is repeated in
-  `CITATION.cff`.
-- (P3) `README` still shows the Black badge although the project uses `ruff format`.
-- (P3) `CITATION.cff` has no `version` or `date-released`. Add them and automate them in
-  `release-pypi.yaml`.
+[verified] `importlib.metadata` is already imported by `coola` (it shows in the import profile under
+`coola`), so the PEP 562 `__getattr__`/`__dir__` in `__init__.py` defers a cost that is paid anyway.
+Meanwhile `ty`/IDEs cannot see `minevent.__version__`, `__all__` lists a name that is not defined,
+and four tests plus a `"0.0.0"` fallback exist to support it. Either import `version` eagerly (3
+lines), or, if `coola` goes away (4.1), keep it lazy and measure.
+
+### 4.3 (P2) `ruff` config
+
+- Keep `ERA` (already on). Enable `ANN401` and `DOC` (pydoclint, preview) to enforce the
+  `Args/Returns/Raises` convention that CLAUDE.md demands.
+- `pytest` `addopts` uses `--color yes` unconditionally, which pollutes CI logs and redirected output
+  . Let pytest auto-detect.
+- `[project.optional-dependencies]` is an empty table whose only purpose is the generated, empty
+  `all` extra (`Provides-Extra: all` in the built wheel). The nightly workflow installs
+  `minevent[all]` for nothing. Remove the table, the `autoextras` build hook, and the `-all`
+  nightly jobs, or document why they stay.
+- Classifiers: `Operating System :: POSIX :: Linux` and `MacOS` only, but the package is pure
+  Python and nothing blocks Windows. Either use `OS Independent` or add Windows to CI. "Development
+  Status :: 4 - Beta" contradicts the README's "no API is guaranteed" notice; use `3 - Alpha` or
+  update the notice. `Python :: 3.15` is advertised: confirm the matrix tests it.
+
+### 4.4 (P3) `__init__.py` export list is hand-maintained in three places
+
+Each new symbol is added to the submodule `__all__`, the import block, and the top-level `__all__`.
+That is fine at this size; `tests/package_checks.py::check_exports` guards it.
 
 ---
 
-## 7. CI/CD (`.github/`)
+## 5. Documentation
 
-This is the most elaborate part of the repository (35 workflow files for a library with 3 modules).
+### 5.1 (P1) [verified] The Markdown docs are not tested and have already drifted
 
-- (P1) Maintenance cost vs benefit: there are seven `bot-*`, three `lib-*`, three `nightly-*`, and
-  three `release-docs*` workflows. Consider whether `bot-pin-action` + `bot-pre-commit-autoupdate`
-  - `bot-update-deps` + `bot-generate-package-versions` + `dependabot.yml` overlap (Dependabot is
-    also configured). Pick one mechanism per concern.
-- (P1) `ci-test-code-dep.yaml`, `ci-test-deps.yaml`, `nightly-test-package-dep.yaml`, and
-  `lib-get-package-versions.yaml` test version matrices of `coola`. If `coola` is removed
-  (5), roughly a quarter of the CI disappears, along with `dev/generate_versions.py` and
-  `dev/config/package_versions.json`.
-- (P2) `ci-test.yaml` runs the same test job for `all` and `min` (`--no-optional-deps`), but the
-  project has no optional dependencies, so the `min` job is an exact duplicate on every OS and
-  Python cell. Drop it, or replace it with a "lowest direct dependency versions"
-  job (`uv sync --resolution lowest-direct`), which tests the `coola>=1.0` bound for real.
-- (P2) Pass `permissions: contents: read` at the workflow level for every workflow, and verify each
-  job pins the minimum. `ci-test.yaml` does. Run the same audit on the others (a check can be
-  automated with `zizmor`).
-- (P2) Add a `concurrency:` group to cancel superseded PR runs, which would make
-  `bot-cancel-stale-queued-runs.yaml` unnecessary.
-- (P2) Add `pip-audit`/`uv audit` and `zizmor` into `security-audit.yaml` if they are not there.
-- (P3) The CI matrix includes macOS and free-threaded builds with a 10 minute timeout "because they
-  are slow". For a pure-Python library with a sub-second test suite, test only
-  `{ubuntu: all versions, macos + windows: oldest + newest}`. Windows is not in the classifiers
-  (`Operating System :: POSIX :: Linux`, `MacOS`); either add Windows to CI and the classifier, or
-  state that it is unsupported.
+`ci-doctest.yaml` only runs `xdoctest` on `src/`. Running the docs through
+`pytest --doctest-glob='*.md' docs/docs README.md` shows `quickstart.md:227` already fails (see 1.9).
+Only the `pycon` blocks (29 in `quickstart.md`, one each in `README.md` and `index.md`) are
+executable at all; `get_started`, `architecture`, `faq`, `best_practices` and `troubleshooting` have
+none, and their plain `python` blocks are checked by nothing. Add that command to CI, convert
+code blocks to `pycon` where practical, and consider `pytest-markdown-docs` or `mktestdocs` for the
+plain blocks.
+
+### 5.2 (P1) [verified] `best_practices.md`, `faq.md`, `troubleshooting.md` do not know the new API
+
+Zero mentions of `Subscription`, `missing_ok`, `once=True` or `atrigger_event` in these three files
+(`quickstart.md` was updated). Concretely:
+
+- `faq.md:167`, `architecture.md:244` and `troubleshooting.md:149` define custom handlers as
+  `def handle(self) -> None`. With a payload, `trigger_event("e", epoch=1)` raises `TypeError` for
+  such a handler. They must be `handle(self, **payload)`.
+- `troubleshooting.md` "Event Does Not Exist" / "Handler Not Found" teach
+  `if manager.has_event_handler(...): try: remove...`, which is racy and verbose; the answer is
+  `missing_ok=True` or the `Subscription`.
+- `troubleshooting.md` "Memory Leaks" shows a `weakref` handler that is not a `BaseEventHandler`
+  (no `equal`, wrong `handle`); see 2.9.
+- `architecture.md` "Custom Event Manager" sketches `trigger_event(self, event)` with no payload,
+  without `atrigger_event`, `clear_event`, `once`; and the registration flow still says
+  `_event_handlers["event"].append(...)` as if it were a `defaultdict`. The "Use Cases" under it
+  ("Thread-safe event managers") are now what `EventManager` is.
+- `README.md` "Features" does not mention payloads, `once`, subscriptions, async or thread safety,
+  which are the library's main additions since 0.5.0.
+
+### 5.3 (P2) Overlap between FAQ, troubleshooting and best practices
+
+The three pages repeat the same advice (duplicates, exceptions in handlers, testing with mocks,
+logging). About 1,100 lines for a 3-class library. Merge into one "Guide" page plus an FAQ of
+short answers that link into it, and let `quickstart.md` own all runnable examples.
+
+### 5.4 (P2) Contributor docs refer to commands that do not exist
+
+[verified] `CONTRIBUTING.md` step 4 says `make unit-test-cov`; `make: *** No rule to make target
+'unit-test-cov'`. The unit tests run through `inv test.unit --cov` (see `.github/workflows`).
+`CONTRIBUTING.md` should list the real entry points (`inv env.install`, `inv test.unit`,
+`inv lint.check-python`, `pre-commit run --all-files`), which are three tools (`make`, `inv`,
+`pre-commit`) with no overview. `CONTRIBUTING.md` also never mentions type checking (`ty`).
+
+### 5.5 (P2) `mkdocs.yml`
+
+`pymdownx.emoji` uses `!!python/name:` tags, which is why `check-yaml --unsafe` is needed. Drop the
+extension unless emoji are used (grep shows none in `docs/docs`). `pymdownx.snippets` is enabled but
+unused. The `GitHub` nav entry duplicates `repo_url`.
+
+### 5.6 (P3) Other
+
+- `CITATION.cff` has no `version` / `date-released`; update them in the release workflow.
+- The README version table keeps 14 rows of history; keep the last three rows and link the
+  changelog for the rest.
+- `CHANGELOG.md` has no link targets for `0.5.0` and no release procedure; add "move `Unreleased`
+  into a dated heading" to the release checklist.
 
 ---
 
-## 8. Developer tooling
+## 6. CI/CD and tooling (`.github/`, `.make/`, `dev/`)
 
-- (P2) `tasks.py` is just `from invoke_tasklib import ns`. All task logic lives in an external
-  `invoke-tasklib`, and `Makefile` provides a second, different set of targets (`format`, `lint`,
-  `clean`) for non-Python files. Newcomers need to learn `make`, `inv`, and `pre-commit`. Document
-  all three entry points in one place (`CONTRIBUTING.md` currently does not list the `inv` tasks).
-- (P2) `dev/generate_versions.py` has `# noqa: INP001` and is invoked by a bot workflow. Add a
-  smoke test, or run it in CI with a mocked network, since an upstream API change in `feu` breaks
-  the bot silently.
-- (P3) `.pre-commit-config.yaml` runs `ty` through `language: system` + `uv run`, which bypasses
-  pre-commit's environment isolation. This is acceptable, but worth a comment. Also pin the hook
-  revisions through a single mechanism (the `bot-pre-commit-autoupdate` workflow).
-- (P3) Consider adding `mypy` or `pyright` strict runs alongside `ty` until `ty` is stable (it is
-  still `0.0.x`).
+For a library with about 400 statements there are 35 workflow files. Not wrong, but the following
+add cost without adding signal.
+
+- (P1) **Redundant `min` job.** `ci-test.yaml` runs the `all` and `min` jobs; `min` uses
+  `--no-optional-deps` but there are no optional dependencies, so it is an exact duplicate on every
+  OS x Python cell. Replace it with `uv sync --resolution lowest-direct`, which tests the real
+  `coola>=1.0` lower bound, or delete it.
+- (P1) **No `concurrency` group** on `ci.yaml` (only `release-pypi` and the Makefile-sync workflow
+  have one), so every push to a PR branch runs the full matrix to completion. Add
+  `concurrency: {group: ${{ github.workflow }}-${{ github.ref }}, cancel-in-progress: true}` for PR
+  events. It would also likely reduce the need for the hourly `bot-cancel-stale-queued-runs`
+  workflow.
+- (P1) **No tag/version consistency check in `release-pypi.yaml`.** The workflow triggers on
+  `v*.*.*` but `pyproject.toml` has a static `version = "0.5.0"`. Nothing verifies the tag equals the
+  project version, so a mismatched tag publishes the wrong number to PyPI. Add a step comparing
+  `${GITHUB_REF_NAME#v}` with `uv version --short` before building.
+- (P2) **`ci.yaml` also runs on a daily `schedule`** (full matrix, including docs build) while
+  `nightly-package.yaml` and `nightly-test-package*.yaml` run separately. One nightly entry point
+  is easier to read.
+- (P2) **Overlapping dependency bots.** `dependabot.yml` (uv + actions, weekly),
+  `bot-update-deps` (Saturday), `bot-pre-commit-autoupdate`, `bot-pin-action` and
+  `bot-generate-package-versions` all touch dependency pins. Keep one mechanism per concern, for
+  example Dependabot for `uv` and actions, `pre-commit.ci` or Dependabot for hooks. Check whether
+  `bot-pin-action` (which maintains the `ratchet:` pins) overlaps with the Dependabot actions entry.
+- (P2) **Timeouts and cost.** The test suite runs in 0.6 s but every cell gets a 10-minute timeout
+  and runs on all Python versions x OS. Test the full matrix on Linux and only oldest/newest on
+  macOS; `ci-test.yaml` already notes macOS and free-threaded cells are slow.
+- (P2) **Docs build job** in `ci-doctest.yaml` publishes to a throwaway branch name
+  (`tmp-doc-build-1234`) with `mike deploy`; `mkdocs build --strict` checks the same thing without
+  needing git credentials or the bot email secret, and `--strict` turns broken cross-references into
+  failures. Add `--strict` either way.
+- (P2) `dev/generate_versions.py` has no test and depends on the `feu` network API; if 4.1 is not
+  adopted, add a smoke test with the network call mocked.
+- (P3) `.pre-commit-config.yaml`: `ty` runs as `language: system` (`uv run ty check`) and
+  `docformatter` also runs as a `local` hook; the former bypasses pre-commit's isolated
+  environments, so it deserves a one-line comment. The `uvx pip-audit` step
+  in `security-audit.yaml` is weekly only; also run it on PRs that touch `uv.lock`.
+- (P3) `CODEOWNERS` has the same owner on both lines, so the `/.github/` rule adds nothing.
+- (P3) `.make/` holds a second copy of `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `LICENSE`,
+  `SECURITY.md`, `README.md` (synced from a shared repository). Searching the repo for a policy file
+  returns two hits; the root copies should be the only ones indexed (exclude `.make/*.md` from
+  markdownlint and from editors' search, or generate the root files from the shared source).
 
 ---
 
-## 9. Suggested roadmap
+## 7. Suggested order of work
 
-1. **Quick fixes (one PR):** items 1.1, 1.2, 1.3, 2.5 validation, 2.8, README badges (6), remove
-   `torch-backend`, add tests for each.
-2. **Semantics PR (breaking):** payload on `trigger_event` (2.1), exception policy (1.4), event key
-   validation (1.6), `remove_event_handler` error type (1.7), subscription tokens (2.4).
-3. **Simplification PR (breaking):** merge handler classes (2.2), accept plain callables as
-   conditions (2.6), drop `coola` (2.3/5), delete the now-unneeded CI matrices (7).
-4. **Docs PR:** consolidate and test the docs (6), add a CHANGELOG and a migration guide.
-5. **Optional features:** async triggering (2.9), thread safety (2.10), more built-in conditions
-   (2.6).
+1. **Bug-fix PR (small, no API change):** 1.1 and 1.2 (`once` atomicity and ordering) with a
+   deterministic test, 1.5, 1.9, and the `CONTRIBUTING.md` command (5.4).
+2. **Semantics PR (small, breaking only for odd callers):** 1.3 positional-only `event`/`self`/payload
+   parameters, 1.4 coroutine through `trigger_event`, 1.6 `once` with a false condition.
+3. **Docs PR:** 5.2 (stale handler signatures and removal recipes) and 5.1 (run Markdown doctests
+   in CI), then merge FAQ/troubleshooting/best practices (5.3).
+4. **Test hygiene PR:** section 3 (split multi-assert tests, headers, duplicates, replace `Tracer`).
+5. **CI PR:** 6 (`concurrency`, drop the `min` job, tag/version check, `mkdocs build --strict`).
+6. **Decision PR (breaking):** 4.1 drop or make optional `coola`, 2.1 `last_triggered_event`,
+   2.5 remove `ConditionalEventHandler`, then 2.2-2.4 conveniences and 2.9 weak references if wanted.
+
+## Not changed / decisions that look right
+
+- Snapshot-on-trigger with a reentrant lock and handlers running outside it is the correct design,
+  and the thread-safety section of the architecture page matches the code.
+- `Subscription` removing by identity (not equality) is the right primitive.
+- `EventHandler` copying `handler_kwargs` and rejecting `str` `handler_args`; `PeriodicCondition`
+  validation; `TypeError` for non-`str` events and `ValueError` + `missing_ok` for removal.
+- Combinators evaluating all operands (documented), keeping stateful conditions in step.
+- Keeping `tests/integration` for cross-thread tests, `filterwarnings = error`, and the pinned
+  (`ratchet:`) GitHub Actions.
