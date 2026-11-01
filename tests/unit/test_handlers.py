@@ -227,3 +227,41 @@ def test_event_handler_handle_10() -> None:
     assert hello_handler.call_count == 4
     assert hello_handler.args == ()
     assert hello_handler.kwargs == {}
+
+
+#############################################
+#     Tests for handler_kwargs copying      #
+#############################################
+
+
+def test_event_handler_handler_kwargs_copied_on_construction() -> None:
+    kwargs = {"first_name": "John", "last_name": "Doe"}
+    event_handler = EventHandler(hello_name_handler, handler_kwargs=kwargs)
+    kwargs["first_name"] = "Jane"
+    assert event_handler.handler_kwargs == {"first_name": "John", "last_name": "Doe"}
+
+
+def test_event_handler_handler_kwargs_property_returns_copy() -> None:
+    event_handler = EventHandler(
+        hello_name_handler, handler_kwargs={"first_name": "John", "last_name": "Doe"}
+    )
+    event_handler.handler_kwargs["first_name"] = "Jane"
+    assert event_handler.handler_kwargs == {"first_name": "John", "last_name": "Doe"}
+
+
+def test_conditional_event_handler_handler_kwargs_copied_on_construction() -> None:
+    kwargs = {"first_name": "John", "last_name": "Doe"}
+    event_handler = ConditionalEventHandler(
+        hello_name_handler, condition=PeriodicCondition(1), handler_kwargs=kwargs
+    )
+    kwargs["first_name"] = "Jane"
+    assert event_handler.handler_kwargs == {"first_name": "John", "last_name": "Doe"}
+
+
+def test_event_handler_equal_unchanged_after_mutating_caller_kwargs() -> None:
+    kwargs = {"first_name": "John", "last_name": "Doe"}
+    event_handler = EventHandler(hello_name_handler, handler_kwargs=kwargs)
+    kwargs["first_name"] = "Jane"
+    assert event_handler.equal(
+        EventHandler(hello_name_handler, handler_kwargs={"first_name": "John", "last_name": "Doe"})
+    )
