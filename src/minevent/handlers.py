@@ -245,8 +245,8 @@ class EventHandler(BaseEventHandler):
             msg = f"handler_args must be a sequence of arguments, not a string: {handler_args!r}"
             raise TypeError(msg)
         self._handler = handler
-        self._handler_args = tuple(handler_args or ())
-        self._handler_kwargs = dict(handler_kwargs or {})
+        self._handler_args = () if handler_args is None else tuple(handler_args)
+        self._handler_kwargs = {} if handler_kwargs is None else dict(handler_kwargs)
         self._condition = None if condition is None else as_condition(condition)
 
     def __repr__(self) -> str:
