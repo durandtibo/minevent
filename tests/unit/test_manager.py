@@ -161,7 +161,7 @@ def test_event_manager_remove_event_handler_multiple_events() -> None:
 
 def test_event_manager_remove_event_handler_missing_event() -> None:
     event_manager = EventManager()
-    with pytest.raises(RuntimeError, match=r"'my_event' event does not exist"):
+    with pytest.raises(ValueError, match=r"'my_event' event does not exist"):
         event_manager.remove_event_handler("my_event", EventHandler(hello_handler))
 
 
@@ -169,7 +169,7 @@ def test_event_manager_remove_event_handler_missing_handler() -> None:
     event_manager = EventManager()
     event_manager.add_event_handler("my_event", EventHandler(lambda: True))
     with pytest.raises(
-        RuntimeError, match=r"is not found among registered event handlers for 'my_event' event"
+        ValueError, match=r"is not found among registered event handlers for 'my_event' event"
     ):
         event_manager.remove_event_handler("my_event", EventHandler(hello_handler))
 
@@ -215,7 +215,7 @@ def test_event_manager_has_event_handler_does_not_register_event() -> None:
 def test_event_manager_remove_event_handler_after_trigger() -> None:
     event_manager = EventManager()
     event_manager.trigger_event("my_event")
-    with pytest.raises(RuntimeError, match=r"'my_event' event does not exist"):
+    with pytest.raises(ValueError, match=r"'my_event' event does not exist"):
         event_manager.remove_event_handler("my_event", EventHandler(hello_handler))
 
 
@@ -303,3 +303,12 @@ def test_event_manager_remove_event_handler_event_must_be_str(event: object) -> 
 def test_event_manager_has_event_handler_event_must_be_str() -> None:
     with pytest.raises(TypeError, match=r"event must be a str"):
         EventManager().has_event_handler(EventHandler(hello_handler), event=1)
+
+
+def test_event_manager_remove_event_handler_missing_ok() -> None:
+    event_manager = EventManager()
+    event_manager.remove_event_handler("my_event", EventHandler(hello_handler), missing_ok=True)
+    event_manager.add_event_handler("my_event", EventHandler(lambda: True))
+    event_manager.remove_event_handler("my_event", EventHandler(hello_handler), missing_ok=True)
+    assert event_manager.has_event_handler(EventHandler(lambda: True), "my_event") is False
+    event_manager.trigger_event("my_event")

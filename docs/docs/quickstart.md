@@ -621,7 +621,8 @@ EventManager(
 
 ```
 
-A `RuntimeError` exception is raised if you try to remove an event handler that does not exist.
+A `ValueError` exception is raised if you try to remove an event handler that does not exist.
+Pass `missing_ok=True` to `remove_event_handler` to ignore this case.
 
 ### Reset the event manager
 

@@ -235,7 +235,9 @@ class EventManager:
                     return True
         return False
 
-    def remove_event_handler(self, event: str, event_handler: BaseEventHandler) -> None:
+    def remove_event_handler(
+        self, event: str, event_handler: BaseEventHandler, *, missing_ok: bool = False
+    ) -> None:
         r"""Remove an event handler of a given event.
 
         This method removes all occurrences of the specified event
@@ -249,11 +251,15 @@ class EventManager:
                 the handler should be removed.
             event_handler: The event handler instance to remove from
                 the event.
+            missing_ok: If ``True``, do nothing when the event does
+                not exist or the handler is not attached to it,
+                instead of raising an exception. Default is ``False``.
 
         Raises:
             TypeError: if ``event`` is not a string.
-            RuntimeError: if the event does not exist or if the
-                handler is not attached to the event.
+            ValueError: if the event does not exist or if the
+                handler is not attached to the event, and
+                ``missing_ok`` is ``False``.
 
         Example:
             ```pycon
@@ -276,17 +282,21 @@ class EventManager:
         """
         _check_event(event)
         if event not in self._event_handlers:
+            if missing_ok:
+                return
             msg = f"'{event}' event does not exist"
-            raise RuntimeError(msg)
+            raise ValueError(msg)
 
         new_event_handlers = [
             handler for handler in self._event_handlers[event] if not event_handler.equal(handler)
         ]
         if len(new_event_handlers) == len(self._event_handlers[event]):
+            if missing_ok:
+                return
             msg = (
                 f"{event_handler} is not found among registered event handlers for '{event}' event"
             )
-            raise RuntimeError(msg)
+            raise ValueError(msg)
         if len(new_event_handlers) > 0:
             self._event_handlers[event] = new_event_handlers
         else:
