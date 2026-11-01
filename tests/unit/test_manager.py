@@ -2,16 +2,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import pytest
 
 from minevent import EventHandler, EventManager, Subscription
 from minevent.manager import _OnceEventHandler, _unwrap
 from tests.unit.utils import trace
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -39,16 +36,10 @@ def payload_handler(*args: Any, **kwargs: Any) -> None:
 
 @pytest.fixture(autouse=True)
 def _reset_tracer() -> None:
-    def reset_func(func: Callable) -> None:
-        func.called = False
-        func.call_count = 0
-        func.args = ()
-        func.kwargs = {}
-
-    reset_func(hello_handler)
-    reset_func(payload_handler)
-    reset_func(failing_handler)
-    reset_func(async_handler)
+    hello_handler.reset()
+    payload_handler.reset()
+    failing_handler.reset()
+    async_handler.reset()
 
 
 ##################################
@@ -301,26 +292,27 @@ INVALID_EVENTS = [1, None, b"my_event"]
 
 
 @pytest.mark.parametrize("event", INVALID_EVENTS)
-def test_event_manager_add_event_handler_event_must_be_str(event: object) -> None:
+def test_event_manager_add_event_handler_event_must_be_str(event: Any) -> None:
     with pytest.raises(TypeError, match=r"event must be a str"):
         EventManager().add_event_handler(event, EventHandler(hello_handler))
 
 
 @pytest.mark.parametrize("event", INVALID_EVENTS)
-def test_event_manager_trigger_event_event_must_be_str(event: object) -> None:
+def test_event_manager_trigger_event_event_must_be_str(event: Any) -> None:
     with pytest.raises(TypeError, match=r"event must be a str"):
         EventManager().trigger_event(event)
 
 
 @pytest.mark.parametrize("event", INVALID_EVENTS)
-def test_event_manager_remove_event_handler_event_must_be_str(event: object) -> None:
+def test_event_manager_remove_event_handler_event_must_be_str(event: Any) -> None:
     with pytest.raises(TypeError, match=r"event must be a str"):
         EventManager().remove_event_handler(event, EventHandler(hello_handler))
 
 
 def test_event_manager_has_event_handler_event_must_be_str() -> None:
+    event: Any = 1
     with pytest.raises(TypeError, match=r"event must be a str"):
-        EventManager().has_event_handler(EventHandler(hello_handler), event=1)
+        EventManager().has_event_handler(EventHandler(hello_handler), event=event)
 
 
 def test_event_manager_remove_event_handler_missing_ok() -> None:
@@ -391,8 +383,9 @@ def test_event_manager_clear_event_missing() -> None:
 
 
 def test_event_manager_clear_event_must_be_str() -> None:
+    event: Any = 1
     with pytest.raises(TypeError, match=r"event must be a str"):
-        EventManager().clear_event(1)
+        EventManager().clear_event(event)
 
 
 ###########################################

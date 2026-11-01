@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import pytest
 
@@ -17,9 +17,6 @@ from minevent import (
     PeriodicCondition,
 )
 from tests.unit.utils import trace
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -47,15 +44,9 @@ def always_false() -> bool:
 
 @pytest.fixture(autouse=True)
 def _reset_tracer() -> None:
-    def reset_func(func: Callable) -> None:
-        func.called = False
-        func.call_count = 0
-        func.args = ()
-        func.kwargs = {}
-
-    reset_func(hello_handler)
-    reset_func(hello_name_handler)
-    reset_func(async_name_handler)
+    hello_handler.reset()
+    hello_name_handler.reset()
+    async_name_handler.reset()
 
 
 ##################################
@@ -128,8 +119,9 @@ def test_event_handler_with_args_and_kwargs() -> None:
 
 
 def test_event_handler_incorrect_handler() -> None:
+    handler: Any = "abc"
     with pytest.raises(TypeError, match=r"handler is not callable:"):
-        EventHandler("abc")
+        EventHandler(handler)
 
 
 @pytest.mark.parametrize("handler_args", ["abc", b"abc"])
