@@ -217,7 +217,10 @@ def test_callable_condition_evaluate_false() -> None:
 
 
 def test_callable_condition_evaluate_converts_to_bool() -> None:
-    assert CallableCondition(lambda: 1).evaluate() is True
+    def return_one() -> Any:
+        return 1
+
+    assert CallableCondition(return_one).evaluate() is True
 
 
 def test_callable_condition_evaluate_called_each_time() -> None:
