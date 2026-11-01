@@ -11,7 +11,6 @@ from minevent import (
     EventHandler,
     EventManager,
 )
-from minevent.manager import _OnceEventHandler
 from tests.unit.utils import trace
 
 logger = logging.getLogger(__name__)
@@ -126,9 +125,8 @@ def test_event_manager_atrigger_event_snapshot() -> None:
 
 def test_event_manager_start_trigger_returns_snapshot() -> None:
     manager = EventManager()
-    handler = EventHandler(hello_handler)
-    manager.add_event_handler("my_event", handler)
-    assert manager._start_trigger("my_event") == (handler,)
+    subscription = manager.add_event_handler("my_event", EventHandler(hello_handler))
+    assert manager._start_trigger("my_event") == (subscription,)
 
 
 def test_event_manager_start_trigger_sets_last_triggered_event() -> None:
@@ -141,11 +139,6 @@ def test_event_manager_start_trigger_incorrect_event() -> None:
     bad: Any = 1
     with pytest.raises(TypeError, match=r"event must be a str"):
         EventManager()._start_trigger(bad)
-
-
-def test_once_event_handler_ahandle_without_subscription() -> None:
-    asyncio.run(_OnceEventHandler(EventHandler(async_handler)).ahandle())
-    assert async_handler.call_count == 1
 
 
 ############################################################

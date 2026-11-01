@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
-from typing import Any, cast
+from typing import Any
 
 import pytest
 
@@ -12,7 +12,6 @@ from minevent import (
     EventManager,
     Subscription,
 )
-from minevent.manager import _OnceEventHandler, _unwrap
 from tests.unit.utils import trace
 
 logger = logging.getLogger(__name__)
@@ -193,17 +192,40 @@ def test_event_manager_add_event_handler_once_subscription_remove_before_trigger
     assert not hello_handler.called
 
 
-def test_event_manager_add_event_handler_once_registers_wrapper() -> None:
+def test_event_manager_add_event_handler_once_subscription_is_once() -> None:
     manager = EventManager()
-    manager.add_event_handler("my_event", EventHandler(hello_handler), once=True)
-    assert isinstance(manager._event_handlers["my_event"][0], _OnceEventHandler)
+    assert manager.add_event_handler("my_event", EventHandler(hello_handler), once=True).once
 
 
-def test_event_manager_add_event_handler_once_has_subscription_when_visible() -> None:
+def test_event_manager_add_event_handler_not_once_subscription_is_not_once() -> None:
+    manager = EventManager()
+    assert not manager.add_event_handler("my_event", EventHandler(hello_handler)).once
+
+
+def test_event_manager_once_same_handler_registered_twice_runs_twice() -> None:
+    manager = EventManager()
+    handler = EventHandler(hello_handler)
+    manager.add_event_handler("my_event", handler, once=True)
+    manager.add_event_handler("my_event", handler, once=True)
+    manager.trigger_event("my_event")
+    manager.trigger_event("my_event")
+    assert hello_handler.call_count == 2
+
+
+def test_event_manager_once_removed_by_subscription_before_trigger_does_not_run() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", EventHandler(hello_handler), once=True)
+    subscription.remove()
+    manager.trigger_event("my_event")
+    assert hello_handler.call_count == 0
+
+
+def test_event_manager_atrigger_event_once_runs_once() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", EventHandler(hello_handler), once=True)
-    registered = cast("_OnceEventHandler", manager._event_handlers["my_event"][0])
-    assert registered.subscription is not None
+    asyncio.run(manager.atrigger_event("my_event"))
+    asyncio.run(manager.atrigger_event("my_event"))
+    assert hello_handler.call_count == 1
 
 
 def test_event_manager_add_event_handler_once_removed_when_condition_false() -> None:
@@ -240,77 +262,60 @@ def test_event_manager_remove_event_handler_once() -> None:
 def test_event_manager_repr_once() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", EventHandler(hello_handler), once=True)
-    assert "_OnceEventHandler(EventHandler(" in repr(manager)
+    assert "EventHandler(" in repr(manager)
 
 
-#######################################
-#     Tests for _OnceEventHandler     #
-#######################################
+def test_event_manager_once_removed_by_earlier_handler_of_same_trigger_does_not_run() -> None:
+    manager = EventManager()
+    subscriptions: list[Subscription] = []
 
+    def remove_once() -> None:
+        subscriptions[0].remove()
 
-def test_once_event_handler_equal_true_with_wrapped_equal_handler() -> None:
-    assert _OnceEventHandler(EventHandler(hello_handler)).equal(EventHandler(hello_handler))
-
-
-def test_once_event_handler_equal_true_with_other_once() -> None:
-    assert _OnceEventHandler(EventHandler(hello_handler)).equal(
-        _OnceEventHandler(EventHandler(hello_handler))
+    manager.add_event_handler("my_event", EventHandler(remove_once))
+    subscriptions.append(
+        manager.add_event_handler("my_event", EventHandler(hello_handler), once=True)
     )
-
-
-def test_once_event_handler_equal_false() -> None:
-    assert not _OnceEventHandler(EventHandler(hello_handler)).equal(EventHandler(print))
-
-
-def test_once_event_handler_handle_without_subscription() -> None:
-    _OnceEventHandler(EventHandler(hello_handler)).handle()
-    assert hello_handler.call_count == 1
-
-
-def test_once_event_handler_handle_skips_when_already_removed() -> None:
-    handler = _OnceEventHandler(EventHandler(hello_handler))
-    handler.subscription = Subscription("my_event", handler, lambda _event, _handler: False)
-    handler.handle()
+    manager.trigger_event("my_event")
     assert hello_handler.call_count == 0
 
 
-def test_once_event_handler_handle_runs_when_removal_succeeds() -> None:
-    handler = _OnceEventHandler(EventHandler(hello_handler))
-    handler.subscription = Subscription("my_event", handler, lambda _event, _handler: True)
-    handler.handle()
-    assert hello_handler.call_count == 1
+def test_event_manager_atrigger_event_once_removed_by_earlier_handler_does_not_run() -> None:
+    manager = EventManager()
+    subscriptions: list[Subscription] = []
 
+    def remove_once() -> None:
+        subscriptions[0].remove()
 
-def test_once_event_handler_ahandle_skips_when_already_removed() -> None:
-    handler = _OnceEventHandler(EventHandler(hello_handler))
-    handler.subscription = Subscription("my_event", handler, lambda _event, _handler: False)
-    asyncio.run(handler.ahandle())
+    manager.add_event_handler("my_event", EventHandler(remove_once))
+    subscriptions.append(
+        manager.add_event_handler("my_event", EventHandler(hello_handler), once=True)
+    )
+    asyncio.run(manager.atrigger_event("my_event"))
     assert hello_handler.call_count == 0
 
 
-def test_once_event_handler_ahandle_runs_when_removal_succeeds() -> None:
-    handler = _OnceEventHandler(EventHandler(hello_handler))
-    handler.subscription = Subscription("my_event", handler, lambda _event, _handler: True)
-    asyncio.run(handler.ahandle())
-    assert hello_handler.call_count == 1
+###############################
+#     Tests for _claim     #
+###############################
 
 
-def test_once_event_handler_repr() -> None:
-    assert repr(_OnceEventHandler(EventHandler(hello_handler))).startswith(
-        "_OnceEventHandler(EventHandler("
-    )
+def test_event_manager_claim_not_once_does_not_remove() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", EventHandler(hello_handler))
+    assert manager._claim(subscription)
+    assert subscription.active
 
 
-#############################
-#     Tests for _unwrap     #
-#############################
+def test_event_manager_claim_once_removes() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", EventHandler(hello_handler), once=True)
+    assert manager._claim(subscription)
+    assert not subscription.active
 
 
-def test_unwrap_once_event_handler() -> None:
-    handler = EventHandler(hello_handler)
-    assert _unwrap(_OnceEventHandler(handler)) is handler
-
-
-def test_unwrap_other_event_handler() -> None:
-    handler = EventHandler(hello_handler)
-    assert _unwrap(handler) is handler
+def test_event_manager_claim_once_twice_returns_false() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", EventHandler(hello_handler), once=True)
+    manager._claim(subscription)
+    assert not manager._claim(subscription)

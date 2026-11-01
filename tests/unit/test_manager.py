@@ -707,7 +707,7 @@ def test_event_manager_remove_event_handler_keeps_order_of_remaining_handlers() 
     manager.add_event_handler("my_event", EventHandler(hello_handler))
     manager.add_event_handler("my_event", last)
     manager.remove_event_handler("my_event", EventHandler(hello_handler))
-    assert manager._event_handlers["my_event"] == [first, last]
+    assert manager.get_event_handlers("my_event") == (first, last)
 
 
 def test_event_manager_format_event_handlers_empty() -> None:
@@ -849,7 +849,7 @@ def test_event_manager_has_event_handler_subscription_incorrect_event() -> None:
     event: Any = 1
     with pytest.raises(TypeError, match=r"event must be a str"):
         EventManager().has_event_handler(
-            Subscription("my_event", EventHandler(hello_handler), lambda *_: False), event
+            Subscription(EventManager(), "my_event", EventHandler(hello_handler)), event
         )
 
 
@@ -1005,23 +1005,6 @@ def test_event_manager_on_event_registered() -> None:
 def test_event_manager_on_event_must_be_str(event: Any) -> None:
     with pytest.raises(TypeError, match=r"event must be a str"):
         EventManager().on(event)
-
-
-def test_event_manager_is_registered_true() -> None:
-    manager = EventManager()
-    handler = EventHandler(hello_handler)
-    manager.add_event_handler("my_event", handler)
-    assert manager._is_registered("my_event", handler)
-
-
-def test_event_manager_is_registered_false_for_equal_instance() -> None:
-    manager = EventManager()
-    manager.add_event_handler("my_event", EventHandler(hello_handler))
-    assert not manager._is_registered("my_event", EventHandler(hello_handler))
-
-
-def test_event_manager_is_registered_false_unknown_event() -> None:
-    assert not EventManager()._is_registered("my_event", EventHandler(hello_handler))
 
 
 def test_event_manager_trigger_event_filter_payload_shares_event() -> None:
