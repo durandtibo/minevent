@@ -408,6 +408,11 @@ Hello!
 
 ```
 
+`once=True` means "the next trigger", not "the next time the handler runs": the registration is
+removed on the next trigger even if the condition of the `EventHandler` is `False` and the
+function is not called. If you need the handler to run the first time its condition is `True`,
+register it without `once` and use `OnceCondition` as the condition.
+
 `add_event_handler` returns a `Subscription`. Its `remove()` method removes exactly that
 registration, so you do not need to re-create an equal handler, and equal handlers registered
 elsewhere are kept:

@@ -557,6 +557,24 @@ def test_event_manager_add_event_handler_once_has_subscription_when_visible() ->
     assert registered.subscription is not None
 
 
+def test_event_manager_add_event_handler_once_removed_when_condition_false() -> None:
+    manager = EventManager()
+    manager.add_event_handler(
+        "my_event", EventHandler(hello_handler, condition=lambda: False), once=True
+    )
+    manager.trigger_event("my_event")
+    assert "my_event" not in manager
+
+
+def test_event_manager_add_event_handler_once_condition_false_does_not_call() -> None:
+    manager = EventManager()
+    manager.add_event_handler(
+        "my_event", EventHandler(hello_handler, condition=lambda: False), once=True
+    )
+    manager.trigger_event("my_event")
+    assert hello_handler.call_count == 0
+
+
 def test_event_manager_has_event_handler_once_true() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", EventHandler(hello_handler), once=True)
