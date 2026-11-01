@@ -450,17 +450,23 @@ class EventManager:
             self._last_triggered_event = event
             return tuple(self._event_handlers.get(event, ()))
 
-    def has_event_handler(self, event_handler: BaseEventHandler, event: str | None = None) -> bool:
+    def has_event_handler(
+        self, event_handler: BaseEventHandler | Subscription, event: str | None = None
+    ) -> bool:
         r"""Indicate if a handler is registered in the event manager.
 
         This method checks whether a specific event handler is
         registered, either for a specific event or across all events.
         Note that this method relies on the ``equal`` method of the
-        input event handler to compare event handlers.
+        input event handler to compare event handlers. Lambdas,
+        closures and bound methods of different instances are usually
+        not equal, so prefer passing the ``Subscription`` returned by
+        ``add_event_handler``: it matches exactly that registration.
 
         Args:
-            event_handler: The event handler instance to search for in
-                the registered handlers.
+            event_handler: The event handler instance, or the
+                subscription, to search for in the registered
+                handlers.
             event: An event name (case-sensitive string) to check. If
                 ``None``, the method will search across all registered
                 events. Default is ``None``.
@@ -501,6 +507,14 @@ class EventManager:
         """
         if event is not None:
             _check_event(event)
+        if isinstance(event_handler, Subscription):
+            if event is not None and event != event_handler.event:
+                return False
+            with self._lock:
+                registered_handlers = self._event_handlers.get(event_handler.event, ())
+                return any(
+                    handler is event_handler.event_handler for handler in registered_handlers
+                )
         with self._lock:
             events = list(self._event_handlers) if event is None else [event]
             registered = [tuple(self._event_handlers.get(evnt, ())) for evnt in events]
@@ -509,7 +523,11 @@ class EventManager:
         )
 
     def remove_event_handler(
-        self, event: str, event_handler: BaseEventHandler, *, missing_ok: bool = False
+        self,
+        event: str,
+        event_handler: BaseEventHandler | Subscription,
+        *,
+        missing_ok: bool = False,
     ) -> None:
         r"""Remove an event handler of a given event.
 
@@ -517,13 +535,16 @@ class EventManager:
         handler from the given event. If the same event handler was
         added multiple times to the event, all duplicates are removed.
         This method relies on the ``equal`` method of the input event
-        handler to compare event handlers.
+        handler to compare event handlers. Lambdas, closures and bound
+        methods of different instances are usually not equal, so
+        prefer passing the ``Subscription`` returned by
+        ``add_event_handler``: it removes exactly that registration.
 
         Args:
             event: The event name (case-sensitive string) from which
                 the handler should be removed.
-            event_handler: The event handler instance to remove from
-                the event.
+            event_handler: The event handler instance, or the
+                subscription, to remove from the event.
             missing_ok: If ``True``, do nothing when the event does
                 not exist or the handler is not attached to it,
                 instead of raising an exception. Default is ``False``.
@@ -554,6 +575,17 @@ class EventManager:
             ```
         """
         _check_event(event)
+        if isinstance(event_handler, Subscription):
+            if event_handler.event == event and self._remove_registration(
+                event, event_handler.event_handler
+            ):
+                return
+            if missing_ok:
+                return
+            msg = (
+                f"{event_handler} is not found among registered event handlers for '{event}' event"
+            )
+            raise ValueError(msg)
         with self._lock:
             registered = tuple(self._event_handlers.get(event, ()))
         if not registered:
