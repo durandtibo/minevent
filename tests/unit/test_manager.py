@@ -327,7 +327,7 @@ def test_event_manager_remove_event_handler_missing_ok() -> None:
 
 def test_event_manager_repr_empty() -> None:
     assert repr(EventManager()) == (
-        "EventManager(\n  (event_handlers): \n  (last_triggered_event): None\n)"
+        "EventManager(\n  (event_handlers): {}\n  (last_triggered_event): None\n)"
     )
 
 
@@ -1024,7 +1024,7 @@ def test_event_manager_remove_event_handler_keeps_order_of_remaining_handlers() 
 
 
 def test_event_manager_format_event_handlers_empty() -> None:
-    assert EventManager._format_event_handlers({}) == ""
+    assert EventManager._format_event_handlers({}) == "{}"
 
 
 def test_event_manager_format_event_handlers() -> None:

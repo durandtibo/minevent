@@ -226,7 +226,7 @@ To create an event manager, you can write:
 >>> manager = EventManager()
 >>> manager
 EventManager(
-  (event_handlers):
+  (event_handlers): {}
   (last_triggered_event): None
 )
 
@@ -603,7 +603,7 @@ EventManager(
 >>> manager.remove_event_handler("my_event", EventHandler(hello_handler))
 >>> manager
 EventManager(
-  (event_handlers):
+  (event_handlers): {}
   (last_triggered_event): None
 )
 
@@ -740,7 +740,7 @@ EventManager(
 >>> manager.reset()
 >>> manager
 EventManager(
-  (event_handlers):
+  (event_handlers): {}
   (last_triggered_event): None
 )
 
