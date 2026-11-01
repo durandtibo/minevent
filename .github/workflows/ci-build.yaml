@@ -45,7 +45,6 @@ jobs:
         with:
           package-name: minevent
           package-extra: ${{ matrix.package-extra }}
-          package-dependencies: "coola"
           dist-type: ${{ matrix.dist-type }}
       - name: Run package checks
         shell: bash
@@ -81,7 +80,6 @@ jobs:
         with:
           package-name: minevent
           package-extra: all
-          package-dependencies: "coola"
           dist-type: ${{ matrix.dist-type }}
           verify-sdist-extra: false
       - name: Run package checks

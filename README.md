@@ -99,7 +99,7 @@ It allows you to customize the function `say_something` without changing its imp
 
 ## Features
 
-- **Minimal and Lightweight**: Only depends on `coola`, keeping your project dependencies clean
+- **Minimal and Lightweight**: No dependency, keeping your project dependencies clean
 - **Simple API**: Easy to learn and use with intuitive event registration and triggering
 - **Conditional Handlers**: Built-in support for conditional event execution (e.g., periodic
   execution)
@@ -129,37 +129,18 @@ a [virtual environment](https://packaging.python.org/guides/installing-using-pip
 pip install minevent
 ```
 
-`minevent` only depends on [`coola`](https://github.com/durandtibo/coola), so no optional
-dependencies or extras are required.
+`minevent` has no dependency, so no optional dependencies or extras are required.
 
 Please check the [get started page](https://durandtibo.github.io/minevent/get_started) to see how to
 install only some specific dependencies or other alternatives to install the library.
-The following is the corresponding `minevent` versions and supported dependencies.
+The following is the corresponding `minevent` versions and supported dependencies. The older
+versions are listed on the [releases page](https://github.com/durandtibo/minevent/releases).
 
-| `minevent` | `coola`         | `python`       |
-| ---------- | --------------- | -------------- |
-| `main`     | `>=1.0,<2.0`    | `>=3.11`       |
-| `0.5.0`    | `>=1.0,<2.0`    | `>=3.10`       |
-| `0.4.0`    | `>=0.10,<1.0`   | `>=3.10`       |
-| `0.3.2`    | `>=0.9.1,<1.0`  | `>=3.10,<3.15` |
-| `0.3.1`    | `>=0.8.4,<1.0`  | `>=3.9,<3.14`  |
-| `0.3.0`    | `>=0.1,<1.0`    | `>=3.9,<3.13`  |
-| `0.2.1`    | `>=0.1,<0.3`    | `>=3.9,<3.13`  |
-| `0.2.0`    | `>=0.1,<0.3`    | `>=3.9,<3.13`  |
-| `0.1.0`    | `>=0.0.20,<0.2` | `>=3.9,<3.13`  |
-
-<details>
-    <summary>older versions</summary>
-
-| `minevent` | `coola`            | `python`      |
-| ---------- | ------------------ | ------------- |
-| `0.0.5`    | `>=0.0.20,<0.0.24` | `>=3.9,<3.12` |
-| `0.0.4`    | `>=0.0.20,<0.0.24` | `>=3.9,<3.12` |
-| `0.0.3`    | `>=0.0.20,<0.0.24` | `>=3.9,<3.12` |
-| `0.0.2`    | `>=0.0.20,<0.0.23` | `>=3.9,<3.12` |
-| `0.0.1`    | `>=0.0.20,<0.0.23` | `>=3.9,<3.12` |
-
-</details>
+| `minevent` | `coola`       | `python`  |
+| ---------- | ------------- | --------- |
+| `main`     | none          | `>=3.11`  |
+| `0.5.0`    | `>=1.0,<2.0`  | `>=3.10`  |
+| `0.4.0`    | `>=0.10,<1.0` | `>=3.10`  |
 
 ## Contributing
 
