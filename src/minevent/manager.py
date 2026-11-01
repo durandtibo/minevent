@@ -310,6 +310,11 @@ class EventManager:
         triggered. Handlers added or removed by a running handler
         take effect on the next trigger, not the current one.
 
+        A handler can trigger events, including the event it handles,
+        but nothing stops the recursion: a handler that always
+        triggers its own event raises a ``RecursionError``. Guard the
+        recursive trigger with a condition or a flag.
+
         The keyword arguments ``payload`` are passed to every
         handler as keyword arguments, after the arguments given at
         registration. Without payload, handlers are called exactly as
