@@ -591,6 +591,27 @@ The `trigger_event` method does nothing if there is no event handler registered 
 
 ```
 
+### Share an event between handlers that need different payload keys
+
+Every handler receives the whole payload, so a handler that does not accept a key raises a
+`TypeError`. Either accept the extra keys with `**_`, or create the handler with
+`filter_payload=True` to pass only the keys its signature accepts:
+
+```pycon
+>>> from minevent import EventHandler, EventManager
+>>> def log_loss(loss):
+...     print(f"loss {loss}")
+>>> def log_epoch(epoch):
+...     print(f"epoch {epoch}")
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler("epoch_end", EventHandler(log_loss, filter_payload=True))
+>>> _ = manager.add_event_handler("epoch_end", EventHandler(log_epoch, filter_payload=True))
+>>> manager.trigger_event("epoch_end", epoch=3, loss=0.5)
+loss 0.5
+epoch 3
+
+```
+
 ### Fire an event with coroutine handlers
 
 `trigger_event` calls the handlers synchronously and raises a `TypeError` for a coroutine function
