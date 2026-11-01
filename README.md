@@ -4,8 +4,8 @@
     <a href="https://github.com/durandtibo/minevent/actions/workflows/ci.yaml">
         <img alt="CI" src="https://github.com/durandtibo/minevent/actions/workflows/ci.yaml/badge.svg">
     </a>
-    <a href="https://github.com/durandtibo/minevent/actions/workflows/nightly-tests.yaml">
-        <img alt="Nightly Tests" src="https://github.com/durandtibo/minevent/actions/workflows/nightly-tests.yaml/badge.svg">
+    <a href="https://github.com/durandtibo/minevent/actions/workflows/nightly-test-package.yaml">
+        <img alt="Nightly Tests" src="https://github.com/durandtibo/minevent/actions/workflows/nightly-test-package.yaml/badge.svg">
     </a>
     <a href="https://github.com/durandtibo/minevent/actions/workflows/nightly-package.yaml">
         <img alt="Nightly Package Tests" src="https://github.com/durandtibo/minevent/actions/workflows/nightly-package.yaml/badge.svg">
@@ -15,15 +15,12 @@
     </a>
     <br/>
     <a href="https://durandtibo.github.io/minevent/">
-        <img alt="Documentation" src="https://github.com/durandtibo/minevent/actions/workflows/docs.yaml/badge.svg">
+        <img alt="Documentation" src="https://github.com/durandtibo/minevent/actions/workflows/release-docs.yaml/badge.svg">
     </a>
     <a href="https://durandtibo.github.io/minevent/dev/">
-        <img alt="Documentation" src="https://github.com/durandtibo/minevent/actions/workflows/docs-dev.yaml/badge.svg">
+        <img alt="Documentation (dev)" src="https://github.com/durandtibo/minevent/actions/workflows/release-docs-dev.yaml/badge.svg">
     </a>
     <br/>
-    <a href="https://github.com/psf/black">
-        <img  alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg">
-    </a>
     <a href="https://google.github.io/styleguide/pyguide.html#s3.8-comments-and-docstrings">
         <img  alt="Doc style: google" src="https://img.shields.io/badge/%20style-google-3666d6.svg">
     </a>
@@ -56,7 +53,7 @@
 ## Overview
 
 `minevent` is a Python library that provides a minimal event system for Machine Learning.
-It allows to customize a code by adding some piece of code that are executed when an event is
+It allows you to customize code by adding pieces of code that are executed when an event is
 fired.
 `minevent` is organized around three main concepts:
 
@@ -98,7 +95,7 @@ Hello!
 
 ```
 
-It allows to customize the function `say_something` without changing its implementation.
+It allows you to customize the function `say_something` without changing its implementation.
 
 ## Features
 
