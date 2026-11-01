@@ -1040,3 +1040,76 @@ def test_event_manager_trigger_event_handler_retriggering_its_event_raises_recur
     manager.add_event_handler("my_event", EventHandler(lambda: manager.trigger_event("my_event")))
     with pytest.raises(RecursionError, match=r"maximum recursion depth exceeded"):
         manager.trigger_event("my_event")
+
+
+################################################
+#     Tests for get_event_handlers and len     #
+################################################
+
+
+def test_event_manager_len_empty() -> None:
+    assert len(EventManager()) == 0
+
+
+def test_event_manager_len_counts_registrations_of_all_events() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", EventHandler(hello_handler))
+    manager.add_event_handler("my_event", EventHandler(hello_handler))
+    manager.add_event_handler("my_other_event", EventHandler(hello_handler))
+    assert len(manager) == 3
+
+
+def test_event_manager_len_after_remove() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", EventHandler(hello_handler))
+    subscription.remove()
+    assert len(manager) == 0
+
+
+def test_event_manager_get_event_handlers_empty() -> None:
+    assert EventManager().get_event_handlers("my_event") == ()
+
+
+def test_event_manager_get_event_handlers_does_not_create_event() -> None:
+    manager = EventManager()
+    manager.get_event_handlers("my_event")
+    assert "my_event" not in manager
+
+
+def test_event_manager_get_event_handlers_keeps_order() -> None:
+    manager = EventManager()
+    first = EventHandler(hello_handler)
+    second = EventHandler(payload_handler)
+    manager.add_event_handler("my_event", first)
+    manager.add_event_handler("my_event", second)
+    assert manager.get_event_handlers("my_event") == (first, second)
+
+
+def test_event_manager_get_event_handlers_only_requested_event() -> None:
+    manager = EventManager()
+    handler = EventHandler(hello_handler)
+    manager.add_event_handler("my_event", handler)
+    manager.add_event_handler("my_other_event", EventHandler(payload_handler))
+    assert manager.get_event_handlers("my_event") == (handler,)
+
+
+def test_event_manager_get_event_handlers_unwraps_once() -> None:
+    manager = EventManager()
+    handler = EventHandler(hello_handler)
+    manager.add_event_handler("my_event", handler, once=True)
+    assert manager.get_event_handlers("my_event") == (handler,)
+
+
+def test_event_manager_get_event_handlers_is_a_snapshot() -> None:
+    manager = EventManager()
+    handler = EventHandler(hello_handler)
+    manager.add_event_handler("my_event", handler)
+    handlers = manager.get_event_handlers("my_event")
+    manager.add_event_handler("my_event", EventHandler(payload_handler))
+    assert handlers == (handler,)
+
+
+@pytest.mark.parametrize("event", INVALID_EVENTS)
+def test_event_manager_get_event_handlers_event_must_be_str(event: Any) -> None:
+    with pytest.raises(TypeError, match=r"event must be a str"):
+        EventManager().get_event_handlers(event)
