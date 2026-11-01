@@ -1031,3 +1031,12 @@ def test_event_manager_format_event_handlers() -> None:
     assert EventManager._format_event_handlers({"my_event": (EventHandler(print),)}).startswith(
         "\n(my_event):"
     )
+
+
+def test_event_manager_trigger_event_handler_retriggering_its_event_raises_recursion_error() -> (
+    None
+):
+    manager = EventManager()
+    manager.add_event_handler("my_event", EventHandler(lambda: manager.trigger_event("my_event")))
+    with pytest.raises(RecursionError, match=r"maximum recursion depth exceeded"):
+        manager.trigger_event("my_event")
