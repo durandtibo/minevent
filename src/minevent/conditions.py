@@ -33,6 +33,10 @@ class BaseCondition(ABC):  # noqa: PLW1641
         - ``evaluate``
         - ``equal``
 
+    ``equal`` is the primary comparison API and ``==`` delegates to
+    it. Conditions are intentionally unhashable, like the event
+    handlers.
+
     Example:
         ```pycon
         >>> from minevent import PeriodicCondition

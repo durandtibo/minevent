@@ -27,6 +27,14 @@ class BaseEventHandler(ABC):  # noqa: PLW1641
         - ``handle``
         - ``equal``
 
+    ``equal`` is the primary comparison API and ``==`` delegates to
+    it. Because equality is defined by ``equal`` (for example with
+    ``coola.objects_are_equal``, which supports arrays and tensors),
+    no consistent hash can be computed, so event handlers are
+    intentionally unhashable: they cannot be put in a ``set`` or used
+    as ``dict`` keys. Use the ``Subscription`` returned by
+    ``EventManager.add_event_handler`` to identify a registration.
+
     Example:
         ```pycon
         >>> from minevent import EventHandler
@@ -124,6 +132,17 @@ class EventHandler(BaseEventHandler):
     ``payload`` is the data given when the event is triggered. Two
     event handlers are equal if they have the same class, handler,
     arguments and condition.
+
+    Equality compares the handlers with ``coola.objects_are_equal``,
+    which falls back to ``==`` for functions. Module-level functions
+    compare equal to themselves, but lambdas and bound methods of
+    different instances (``obj.method != other.method``) do not, so
+    ``has_event_handler`` and ``remove_event_handler`` do not find a
+    handler built from a new lambda or from another instance. Keep a
+    reference to the function, or use the ``Subscription`` returned
+    by ``EventManager.add_event_handler``, which does not need
+    equality. Arrays and tensors in ``handler_args`` are compared by
+    value.
 
     Args:
         handler: The callable function or method to be invoked when
