@@ -60,21 +60,31 @@ class EventManager:
         self._last_triggered_event: str | None = None
 
     def __repr__(self) -> str:
-        event_handlers = str_mapping(
-            {
-                event: "\n" + str_sequence(handler) if handler else ""
-                for event, handler in self._event_handlers.items()
-            }
-        )
         args = str_indent(
             str_mapping(
                 {
-                    "event_handlers": "\n" + event_handlers if event_handlers else event_handlers,
+                    "event_handlers": self._format_event_handlers(),
                     "last_triggered_event": self._last_triggered_event,
                 }
             )
         )
         return f"{self.__class__.__qualname__}(\n  {args}\n)"
+
+    def _format_event_handlers(self) -> str:
+        r"""Format the registered handlers, one block per event.
+
+        Returns:
+            The formatted handlers, starting with a newline, or an
+                empty string if no handler is registered.
+        """
+        if not self._event_handlers:
+            return ""
+        return "\n" + str_mapping(
+            {
+                event: "\n" + str_sequence(handlers)
+                for event, handlers in self._event_handlers.items()
+            }
+        )
 
     @property
     def last_triggered_event(self) -> str | None:
