@@ -911,3 +911,10 @@ def test_event_manager_atrigger_event_once_payload_with_self_key() -> None:
     manager.add_event_handler("my_event", EventHandler(payload_handler), once=True)
     asyncio.run(manager.atrigger_event("my_event", self=1))
     assert payload_handler.kwargs == {"self": 1}
+
+
+def test_event_manager_trigger_event_coroutine_handler_raises() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", EventHandler(async_handler))
+    with pytest.raises(TypeError, match=r"returned an awaitable; use ahandle or atrigger_event"):
+        manager.trigger_event("my_event")

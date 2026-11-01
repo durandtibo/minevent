@@ -317,16 +317,51 @@ class EventHandler(BaseEventHandler):
         return objects_are_equal(self._key(), other._key())
 
     def handle(self, /, **payload: Any) -> None:
+        r"""Handle the event.
+
+        Calls the handler if the condition is ``True`` (or if there is
+        no condition). The handler must be synchronous: a coroutine
+        function would be silently dropped, so it is rejected.
+
+        Args:
+            **payload: The keyword arguments given to
+                ``EventManager.trigger_event``. The payload is empty
+                when the event is triggered without data.
+
+        Raises:
+            TypeError: if the handler returns an awaitable. Use
+                ``ahandle`` (or ``EventManager.atrigger_event``) with
+                coroutine functions.
+
+        Example:
+            ```pycon
+            >>> from minevent import EventHandler
+            >>> async def hello_handler() -> None:
+            ...     print("Hello!")
+            ...
+            >>> EventHandler(hello_handler).handle()
+            Traceback (most recent call last):
+                ...
+            TypeError: ...hello_handler... returned an awaitable; use ahandle or atrigger_event
+
+            ```
+        """
         if self._condition is None or self._condition.evaluate():
-            self._handler(*self._handler_args, **self._handler_kwargs, **payload)
+            result = self._handler(*self._handler_args, **self._handler_kwargs, **payload)
+            if inspect.isawaitable(result):
+                if inspect.iscoroutine(result):
+                    result.close()
+                msg = f"{self._handler!r} returned an awaitable; use ahandle or atrigger_event"
+                raise TypeError(msg)
 
     async def ahandle(self, /, **payload: Any) -> None:
         r"""Handle the event asynchronously.
 
         Like ``handle``, but if the handler returns an awaitable (for
         example because it is a coroutine function), the awaitable is
-        awaited. ``handle`` does not await it, so use ``ahandle``
-        (or ``EventManager.atrigger_event``) with coroutine functions.
+        awaited. ``handle`` raises a ``TypeError`` for an awaitable, so
+        use ``ahandle`` (or ``EventManager.atrigger_event``) with
+        coroutine functions.
 
         Args:
             **payload: The keyword arguments given to
