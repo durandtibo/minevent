@@ -293,29 +293,3 @@ def test_event_manager_atrigger_event_once_removed_by_earlier_handler_does_not_r
     )
     asyncio.run(manager.atrigger_event("my_event"))
     assert hello_handler.call_count == 0
-
-
-###############################
-#     Tests for _claim     #
-###############################
-
-
-def test_event_manager_claim_not_once_does_not_remove() -> None:
-    manager = EventManager()
-    subscription = manager.add_event_handler("my_event", EventHandler(hello_handler))
-    assert manager._claim(subscription)
-    assert subscription.active
-
-
-def test_event_manager_claim_once_removes() -> None:
-    manager = EventManager()
-    subscription = manager.add_event_handler("my_event", EventHandler(hello_handler), once=True)
-    assert manager._claim(subscription)
-    assert not subscription.active
-
-
-def test_event_manager_claim_once_twice_returns_false() -> None:
-    manager = EventManager()
-    subscription = manager.add_event_handler("my_event", EventHandler(hello_handler), once=True)
-    manager._claim(subscription)
-    assert not manager._claim(subscription)

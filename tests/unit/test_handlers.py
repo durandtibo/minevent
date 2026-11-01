@@ -776,3 +776,38 @@ def test_accepted_keywords_no_parameter() -> None:
 
 def test_accepted_keywords_mixed() -> None:
     assert _accepted_keywords(hello_name_handler) == frozenset({"first_name", "last_name"})
+
+
+#############################
+#     Tests for _call     #
+#############################
+
+
+def test_event_handler_call_returns_handler_result() -> None:
+    assert EventHandler(lambda: 42)._call({}) == 42
+
+
+def test_event_handler_call_passes_args_kwargs_and_payload() -> None:
+    handler = EventHandler(
+        lambda *args, **kwargs: (args, kwargs), handler_args=(1,), handler_kwargs={"a": 2}
+    )
+    assert handler._call({"b": 3}) == ((1,), {"a": 2, "b": 3})
+
+
+def test_event_handler_call_condition_false_returns_none_without_calling() -> None:
+    handler = EventHandler(hello_handler, condition=always_false)
+    handler._call({})
+    assert hello_handler.call_count == 0
+
+
+def test_event_handler_call_condition_false_returns_none() -> None:
+    assert EventHandler(lambda: 42, condition=always_false)._call({}) is None
+
+
+def test_event_handler_call_condition_true_returns_handler_result() -> None:
+    assert EventHandler(lambda: 42, condition=always_true)._call({}) == 42
+
+
+def test_event_handler_call_filters_payload() -> None:
+    handler = EventHandler(lambda epoch: epoch, filter_payload=True)
+    assert handler._call({"epoch": 3, "loss": 0.5}) == 3

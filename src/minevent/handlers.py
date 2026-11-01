@@ -384,6 +384,22 @@ class EventHandler(BaseEventHandler):
             return payload
         return {key: value for key, value in payload.items() if key in self._payload_keys}
 
+    def _call(self, payload: dict[str, Any]) -> object:
+        r"""Call the handler if the condition is ``True``.
+
+        Args:
+            payload: The payload given to ``handle`` or ``ahandle``.
+
+        Returns:
+            The value returned by the handler, or ``None`` if the
+                condition is ``False``.
+        """
+        if self._condition is not None and not self._condition.evaluate():
+            return None
+        return self._handler(
+            *self._handler_args, **self._handler_kwargs, **self._select_payload(payload)
+        )
+
     def _key(self) -> tuple[Any, ...]:
         r"""Return the values compared by ``equal``.
 
@@ -434,15 +450,12 @@ class EventHandler(BaseEventHandler):
 
             ```
         """
-        if self._condition is None or self._condition.evaluate():
-            result = self._handler(
-                *self._handler_args, **self._handler_kwargs, **self._select_payload(payload)
-            )
-            if inspect.isawaitable(result):
-                if inspect.iscoroutine(result):
-                    result.close()
-                msg = f"{self._handler!r} returned an awaitable; use ahandle or atrigger_event"
-                raise TypeError(msg)
+        result = self._call(payload)
+        if inspect.isawaitable(result):
+            if inspect.iscoroutine(result):
+                result.close()
+            msg = f"{self._handler!r} returned an awaitable; use ahandle or atrigger_event"
+            raise TypeError(msg)
 
     async def ahandle(self, /, **payload: object) -> None:
         r"""Handle the event asynchronously.
@@ -469,9 +482,6 @@ class EventHandler(BaseEventHandler):
 
             ```
         """
-        if self._condition is None or self._condition.evaluate():
-            result = self._handler(
-                *self._handler_args, **self._handler_kwargs, **self._select_payload(payload)
-            )
-            if inspect.isawaitable(result):
-                await result
+        result = self._call(payload)
+        if inspect.isawaitable(result):
+            await result
