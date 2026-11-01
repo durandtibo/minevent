@@ -16,7 +16,7 @@ __all__ = [
 ]
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from coola.equality import objects_are_equal
 
@@ -63,7 +63,7 @@ class BaseCondition(ABC):  # noqa: PLW1641
         return self.equal(other)
 
     @abstractmethod
-    def equal(self, other: Any) -> bool:
+    def equal(self, other: object) -> bool:
         r"""Compare two conditions for equality.
 
         This method should be implemented by child classes to define
@@ -210,7 +210,7 @@ class PeriodicCondition(BaseCondition):
         """
         return self._skip_first
 
-    def equal(self, other: Any) -> bool:
+    def equal(self, other: object) -> bool:
         if isinstance(other, PeriodicCondition):
             return self.freq == other.freq and self.skip_first == other.skip_first
         return False
@@ -282,7 +282,7 @@ class CallableCondition(BaseCondition):
         """
         return self._func
 
-    def equal(self, other: Any) -> bool:
+    def equal(self, other: object) -> bool:
         if isinstance(other, CallableCondition):
             return objects_are_equal(self._func, other.func)
         return False
@@ -340,7 +340,7 @@ class AlwaysCondition(BaseCondition):
     def __repr__(self) -> str:
         return f"{self.__class__.__qualname__}()"
 
-    def equal(self, other: Any) -> bool:
+    def equal(self, other: object) -> bool:
         return isinstance(other, AlwaysCondition)
 
     def evaluate(self) -> bool:
@@ -371,7 +371,7 @@ class OnceCondition(BaseCondition):
     def __repr__(self) -> str:
         return f"{self.__class__.__qualname__}(done={self._done})"
 
-    def equal(self, other: Any) -> bool:
+    def equal(self, other: object) -> bool:
         return isinstance(other, OnceCondition)
 
     def evaluate(self) -> bool:
@@ -433,7 +433,7 @@ class AfterNCondition(BaseCondition):
         """
         return self._n
 
-    def equal(self, other: Any) -> bool:
+    def equal(self, other: object) -> bool:
         if isinstance(other, AfterNCondition):
             return self._n == other.n
         return False
@@ -480,7 +480,7 @@ class _CombinedCondition(BaseCondition):
         """
         return self._conditions
 
-    def equal(self, other: Any) -> bool:
+    def equal(self, other: object) -> bool:
         if type(self) is not type(other):
             return False
         return objects_are_equal(self._conditions, other.conditions)
@@ -580,7 +580,7 @@ class NotCondition(BaseCondition):
         """
         return self._condition
 
-    def equal(self, other: Any) -> bool:
+    def equal(self, other: object) -> bool:
         if isinstance(other, NotCondition):
             return objects_are_equal(self._condition, other.condition)
         return False

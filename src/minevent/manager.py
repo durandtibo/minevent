@@ -45,7 +45,7 @@ class _OnceEventHandler(BaseEventHandler):
     def __repr__(self) -> str:
         return f"{self.__class__.__qualname__}({self.event_handler!r})"
 
-    def equal(self, other: Any) -> bool:
+    def equal(self, other: object) -> bool:
         if isinstance(other, _OnceEventHandler):
             other = other.event_handler
         return self.event_handler.equal(other)
