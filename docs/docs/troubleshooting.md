@@ -128,30 +128,50 @@ manager.has_event_handler(original_handler, "event")  # True
 
 **Symptoms**: Memory usage grows over time in long-running applications.
 
-**Cause**: Event handlers holding references to large objects or not being cleaned up.
+**Cause**: A registered handler stays alive as long as the manager does. `EventHandler(obj.method)`
+keeps `obj` alive, and so do `handler_args` and closures. `minevent` does not use weak references
+(see the non-goals in the architecture page), so unsubscribe handlers you no longer need.
 
 **Solution**:
 
 ```python
-# Clear handlers when done
-def cleanup():
-    manager.reset()  # Removes all handlers
+# Keep the Subscription and remove it when the owner is done
+subscription = manager.add_event_handler("event", EventHandler(obj.method))
+# Later...
+subscription.remove()  # `obj` can be garbage collected
 
 
-# Use weak references for large objects
+# Or scope the registration to a block
+with manager.add_event_handler("event", EventHandler(obj.method)):
+    run_phase()
+
+# Clear all the handlers of an event, or of the manager
+manager.clear_event("event")
+manager.reset()
+```
+
+If a handler must not keep an object alive, give it a `weakref` and do nothing when the object is
+gone:
+
+```python
 import weakref
 
 
-class MyHandler:
-    def __init__(self, large_object):
-        self._large_object_ref = weakref.ref(large_object)
+def make_handler(large_object):
+    ref = weakref.ref(large_object)
 
-    def handle(self):
-        obj = self._large_object_ref()
+    def handle():
+        obj = ref()
         if obj is not None:
-            # Use object
-            pass
+            ...  # Use the object
+
+    return EventHandler(handle)
+
+
+subscription = manager.add_event_handler("event", make_handler(large_object))
 ```
+
+The handler itself stays registered (and cheap) until you remove it.
 
 ### Unexpected Handler Execution Order
 
