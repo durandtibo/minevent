@@ -458,7 +458,7 @@ EventManager(
           (handler): <function hello_handler at  0x...>
           (handler_args): ()
           (handler_kwargs): {}
-          (condition): PeriodicCondition(freq=3, step=0)
+          (condition): PeriodicCondition(freq=3, skip_first=False, step=0)
         )
   (last_triggered_event): None
 )
@@ -560,7 +560,7 @@ EventManager(
           (handler): <function hello_handler at  0x...>
           (handler_args): ()
           (handler_kwargs): {}
-          (condition): PeriodicCondition(freq=3, step=0)
+          (condition): PeriodicCondition(freq=3, skip_first=False, step=0)
         )
   (last_triggered_event): None
 )
@@ -573,7 +573,7 @@ EventManager(
           (handler): <function hello_handler at  0x...>
           (handler_args): ()
           (handler_kwargs): {}
-          (condition): PeriodicCondition(freq=3, step=0)
+          (condition): PeriodicCondition(freq=3, skip_first=False, step=0)
         )
   (last_triggered_event): None
 )
