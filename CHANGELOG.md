@@ -39,6 +39,7 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
 - `has_event_handler` and `remove_event_handler` accept a `Subscription`.
 - `Subscription` is a context manager and has an `active` property.
 - `EventHandler(..., filter_payload=True)` passes only the payload keys the handler accepts.
+- The exception of a handler has a note (`__notes__`) with the event and the handler that raised it.
 
 ### Fixed
 

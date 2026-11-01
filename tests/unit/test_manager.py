@@ -5,6 +5,7 @@ import contextlib
 import logging
 import threading
 from typing import Any
+from unittest.mock import Mock
 
 import pytest
 
@@ -317,6 +318,36 @@ def test_event_manager_trigger_event_handler_raises_skips_next_handlers() -> Non
     with contextlib.suppress(ValueError):
         event_manager.trigger_event("my_event")
     assert hello_handler.call_count == 0
+
+
+def test_event_manager_trigger_event_handler_raises_adds_note() -> None:
+    event_manager = EventManager()
+    handler = EventHandler(fail)
+    event_manager.add_event_handler("my_event", handler)
+    with pytest.raises(ValueError, match=r"boom") as exc_info:
+        event_manager.trigger_event("my_event")
+    assert exc_info.value.__notes__ == [
+        f"raised by {handler!r} while handling the event 'my_event'"
+    ]
+
+
+def test_event_manager_trigger_event_handler_raises_same_exception_type_and_object() -> None:
+    error = ValueError("boom")
+    event_manager = EventManager()
+    event_manager.add_event_handler("my_event", EventHandler(Mock(side_effect=error)))
+    with pytest.raises(ValueError, match=r"boom") as exc_info:
+        event_manager.trigger_event("my_event")
+    assert exc_info.value is error
+
+
+def test_event_manager_trigger_event_base_exception_has_no_note() -> None:
+    event_manager = EventManager()
+    event_manager.add_event_handler(
+        "my_event", EventHandler(Mock(side_effect=KeyboardInterrupt("interrupted")))
+    )
+    with pytest.raises(KeyboardInterrupt, match=r"interrupted") as exc_info:
+        event_manager.trigger_event("my_event")
+    assert not hasattr(exc_info.value, "__notes__")
 
 
 def test_event_manager_trigger_event_handler_raises_keeps_last_triggered_event() -> None:
