@@ -218,7 +218,7 @@ the computation time of training operations.
 
 ## Troubleshooting
 
-### I get "RuntimeError: event does not exist" when removing a handler
+### I get "ValueError: event does not exist" when removing a handler
 
 This means you're trying to remove a handler from an event that hasn't been registered. Make sure:
 

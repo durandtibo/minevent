@@ -63,9 +63,9 @@ This guide helps you diagnose and resolve common issues when using `minevent`.
    manager.add_event_handler("my_event", EventHandler(safe_handler))
    ```
 
-### RuntimeError: Event Does Not Exist
+### ValueError: Event Does Not Exist
 
-**Symptoms**: `RuntimeError: 'event_name' event does not exist` when trying to remove a handler.
+**Symptoms**: `ValueError: 'event_name' event does not exist` when trying to remove a handler.
 
 **Cause**: You're trying to remove a handler from an event that has no registered handlers.
 
@@ -76,17 +76,17 @@ This guide helps you diagnose and resolve common issues when using `minevent`.
 if manager.has_event_handler(handler):
     try:
         manager.remove_event_handler("my_event", handler)
-    except RuntimeError as e:
+    except ValueError as e:
         print(f"Could not remove handler: {e}")
 ```
 
-### RuntimeError: Handler Not Found
+### ValueError: Handler Not Found
 
 **Symptoms**: Error when trying to remove a handler that doesn't exist for that event.
 
 **Cause**: The handler was never added, or it was already removed.
 
-**Solution**:
+**Solution**: pass `missing_ok=True` to ignore missing handlers, or check first:
 
 ```python
 # Verify handler exists before removal
