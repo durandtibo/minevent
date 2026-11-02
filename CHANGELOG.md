@@ -59,5 +59,5 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
 - The note of the exception of a handler names the event and the function of the handler, not the
   `repr` of the handler: a `repr` that raised used to replace the exception of the handler, and the
   arguments of the handler could make the note very long.
-- Documentation: the `trigger_event` docstring, the internal structure of `architecture.md` and the
-  version table of the README describe the current code.
+- Documentation: the `trigger_event` docstring, and the internal structure of `architecture.md`
+  describe the current code.
