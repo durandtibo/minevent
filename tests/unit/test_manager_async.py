@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import contextlib
 import logging
 from typing import Any
@@ -53,72 +52,72 @@ async def async_handler(**kwargs: Any) -> None:
     logger.info("Async payload: %s", kwargs)
 
 
-def test_event_manager_atrigger_event_awaits_coroutine_handler() -> None:
+async def test_event_manager_atrigger_event_awaits_coroutine_handler() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", EventHandler(async_handler))
-    asyncio.run(manager.atrigger_event("my_event"))
+    await manager.atrigger_event("my_event")
     assert async_handler.call_count == 1
 
 
-def test_event_manager_atrigger_event_payload() -> None:
+async def test_event_manager_atrigger_event_payload() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", EventHandler(async_handler))
-    asyncio.run(manager.atrigger_event("my_event", epoch=3))
+    await manager.atrigger_event("my_event", epoch=3)
     assert async_handler.kwargs == {"epoch": 3}
 
 
-def test_event_manager_atrigger_event_mixes_sync_and_async_in_order() -> None:
+async def test_event_manager_atrigger_event_mixes_sync_and_async_in_order() -> None:
     order: list[str] = []
     manager = EventManager()
     manager.add_event_handler("my_event", EventHandler(append_async, handler_args=(order, "first")))
     manager.add_event_handler("my_event", EventHandler(order.append, handler_args=("second",)))
     manager.add_event_handler("my_event", EventHandler(append_async, handler_args=(order, "third")))
-    asyncio.run(manager.atrigger_event("my_event"))
+    await manager.atrigger_event("my_event")
     assert order == ["first", "second", "third"]
 
 
-def test_event_manager_atrigger_event_without_event_handler() -> None:
-    asyncio.run(EventManager().atrigger_event("my_event"))
+async def test_event_manager_atrigger_event_without_event_handler() -> None:
+    await EventManager().atrigger_event("my_event")
 
 
-def test_event_manager_atrigger_event_fail_fast() -> None:
+async def test_event_manager_atrigger_event_fail_fast() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", EventHandler(async_fail))
     with pytest.raises(RuntimeError, match=r"async failed"):
-        asyncio.run(manager.atrigger_event("my_event"))
+        await manager.atrigger_event("my_event")
 
 
-def test_event_manager_atrigger_event_fail_fast_skips_next_handlers() -> None:
+async def test_event_manager_atrigger_event_fail_fast_skips_next_handlers() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", EventHandler(async_fail))
     manager.add_event_handler("my_event", EventHandler(hello_handler))
     with contextlib.suppress(RuntimeError):
-        asyncio.run(manager.atrigger_event("my_event"))
+        await manager.atrigger_event("my_event")
     assert hello_handler.call_count == 0
 
 
-def test_event_manager_atrigger_event_incorrect_event() -> None:
+async def test_event_manager_atrigger_event_incorrect_event() -> None:
     bad: Any = 1
     with pytest.raises(TypeError, match=r"event must be a str"):
-        asyncio.run(EventManager().atrigger_event(bad))
+        await EventManager().atrigger_event(bad)
 
 
-def test_event_manager_atrigger_event_once() -> None:
+async def test_event_manager_atrigger_event_once() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", EventHandler(async_handler), once=True)
-    asyncio.run(manager.atrigger_event("my_event"))
-    asyncio.run(manager.atrigger_event("my_event"))
+    await manager.atrigger_event("my_event")
+    await manager.atrigger_event("my_event")
     assert async_handler.call_count == 1
 
 
-def test_event_manager_atrigger_event_snapshot() -> None:
+async def test_event_manager_atrigger_event_snapshot() -> None:
     manager = EventManager()
 
     async def add_handler() -> None:
         manager.add_event_handler("my_event", EventHandler(async_handler))
 
     manager.add_event_handler("my_event", EventHandler(add_handler))
-    asyncio.run(manager.atrigger_event("my_event"))
+    await manager.atrigger_event("my_event")
     assert async_handler.call_count == 0
 
 
@@ -134,12 +133,12 @@ def test_event_manager_trigger_event_coroutine_handler_raises() -> None:
         manager.trigger_event("my_event")
 
 
-def test_event_manager_atrigger_event_handler_raises_adds_note() -> None:
+async def test_event_manager_atrigger_event_handler_raises_adds_note() -> None:
     manager = EventManager()
     handler = EventHandler(failing_async_handler)
     manager.add_event_handler("my_event", handler)
     with pytest.raises(ValueError, match=r"boom") as exc_info:
-        asyncio.run(manager.atrigger_event("my_event"))
+        await manager.atrigger_event("my_event")
     assert exc_info.value.__notes__ == [
         "raised by failing_async_handler while handling the event 'my_event'"
     ]
