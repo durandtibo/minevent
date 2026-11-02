@@ -145,13 +145,6 @@ match). Add `get_event_handlers(event) -> tuple[BaseEventHandler, ...]` (a snaps
 - Allow `manager.add_event_handler` to be used as a decorator factory, e.g. `@manager.on("e")`,
   which returns the function unchanged. Tiny, and popular in event libraries.
 
-### 2.5 (P2) `ConditionalEventHandler` is a function named like a class
-
-[verified] `isinstance(x, ConditionalEventHandler)` raises `TypeError`, and subclassing it fails.
-This is documented as deprecated, so either delete it at the next release (the changelog already
-gives the migration), or make it a real thin subclass of `EventHandler` that warns in `__init__`.
-Deleting is simpler and also removes a `# noqa: N802`.
-
 ### 2.6 (P2) Payload is all-or-nothing
 
 Every handler receives the whole payload and raises `TypeError` if it does not accept a key
@@ -398,7 +391,7 @@ add cost without adding signal.
 4. **Test hygiene PR:** section 3 (split multi-assert tests, headers, duplicates, replace `Tracer`).
 5. **CI PR:** 6 (`concurrency`, drop the `min` job, tag/version check, `mkdocs build --strict`).
 6. **Decision PR (breaking):** 4.1 drop or make optional `coola`, 2.1 `last_triggered_event`,
-   2.5 remove `ConditionalEventHandler`, then 2.2-2.4 conveniences and 2.9 weak references if wanted.
+   then 2.2-2.4 conveniences and 2.9 weak references if wanted.
 
 ## Not changed / decisions that look right
 
