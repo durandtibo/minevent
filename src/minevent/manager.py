@@ -278,9 +278,8 @@ class EventManager:
         r"""Trigger the handler(s) for the given event.
 
         This method executes all event handlers registered for the
-        specified event in the order they were added. The last
-        triggered event name is updated regardless of whether any
-        handlers are registered.
+        specified event in the order they were added. Nothing happens
+        if no handler is registered.
 
         Handlers are executed fail-fast: if a handler raises, the
         exception propagates and the remaining handlers are skipped.
