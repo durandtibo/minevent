@@ -22,7 +22,7 @@ you to register event handlers that execute when specific events are triggered.
 
 `minevent` is designed to be minimal and focused. It:
 
-- Has minimal dependencies (only requires `coola`)
+- Has no dependency
 - Is synchronous by design (simpler reasoning about execution order)
 - Provides conditional event handling out of the box
 - Is specifically tailored for ML workflows but works for any Python application
