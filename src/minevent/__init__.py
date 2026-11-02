@@ -24,8 +24,7 @@ from minevent.handlers import (
     BaseEventHandler,
     EventHandler,
 )
-from minevent.manager import EventManager
-from minevent.subscription import Subscription
+from minevent.manager import EventManager, Subscription
 
 
 def __getattr__(name: str) -> object:

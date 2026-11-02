@@ -63,6 +63,8 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
   result uses `collections.abc`: `import minevent` is about 3.5 ms faster and each handler call about
   0.2 µs faster. A legacy generator-based coroutine (`types.coroutine`) is no longer detected as an
   awaitable.
+- `Subscription` is defined in `minevent.manager` (the module `minevent.subscription` is removed);
+  `from minevent import Subscription` is unchanged.
 - The note of the exception of a handler names the event and the function of the handler, not the
   `repr` of the handler: a `repr` that raised used to replace the exception of the handler, and the
   arguments of the handler could make the note very long.

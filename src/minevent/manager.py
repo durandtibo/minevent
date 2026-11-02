@@ -2,17 +2,17 @@ r"""Implement the event manager."""
 
 from __future__ import annotations
 
-__all__ = ["EventManager"]
+__all__ = ["EventManager", "Subscription"]
 
 import logging
 import threading
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, Self, TypeVar
 
 from minevent.handlers import BaseEventHandler, EventHandler
-from minevent.subscription import Subscription
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+    from types import TracebackType
 
 _F = TypeVar("_F", bound="Callable[..., object]")
 
@@ -70,6 +70,138 @@ def _add_error_note(exc: Exception, event: str, event_handler: BaseEventHandler)
         event_handler: The event handler that raised the exception.
     """
     exc.add_note(f"raised by {_describe(event_handler)} while handling the event {event!r}")
+
+
+class Subscription:
+    r"""Represent the registration of an event handler to an event.
+
+    A subscription is returned by ``EventManager.add_event_handler``.
+    It is the registration itself: the manager stores it, and it
+    removes exactly the registration that created it. The handler does
+    not need to be re-created to be unsubscribed, other registrations
+    of the same handler are not removed, and registering the same handler twice creates two
+    independent subscriptions.
+
+    A subscription is a context manager: the registration is removed
+    when the ``with`` block exits.
+
+    The constructor is internal: subscriptions are created by the
+    event manager.
+
+    Args:
+        manager: The event manager that stores the registration.
+        event: The event name of the registration.
+        event_handler: The registered event handler.
+        once: If ``True``, the registration is removed before its
+            first execution. Default is ``False``.
+
+    Example:
+        ```pycon
+        >>> from minevent import EventHandler, EventManager
+        >>> manager = EventManager()
+        >>> subscription = manager.add_event_handler("my_event", EventHandler(print))
+        >>> subscription.event
+        'my_event'
+        >>> subscription.active
+        True
+        >>> subscription.remove()
+        True
+        >>> subscription.remove()
+        False
+        >>> subscription.active
+        False
+        >>> manager.events
+        []
+        >>> with manager.add_event_handler("my_event", EventHandler(print)):
+        ...     manager.events
+        ...
+        ['my_event']
+        >>> manager.events
+        []
+
+        ```
+    """
+
+    def __init__(
+        self,
+        manager: EventManager,
+        event: str,
+        event_handler: BaseEventHandler,
+        *,
+        once: bool = False,
+    ) -> None:
+        self._manager = manager
+        self._event = event
+        self._event_handler = event_handler
+        self._once = once
+        self._active = True
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        self.remove()
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__qualname__}(event={self._event!r})"
+
+    @property
+    def event(self) -> str:
+        r"""Get the event name of the registration.
+
+        Returns:
+            The event name.
+        """
+        return self._event
+
+    @property
+    def event_handler(self) -> BaseEventHandler:
+        r"""Get the registered event handler.
+
+        Returns:
+            The event handler.
+        """
+        return self._event_handler
+
+    @property
+    def once(self) -> bool:
+        r"""Indicate if the registration is removed before its first
+        execution.
+
+        Returns:
+            ``True`` if the event handler runs at most once, otherwise
+                ``False``.
+        """
+        return self._once
+
+    @property
+    def active(self) -> bool:
+        r"""Indicate if the registration is still registered.
+
+        Returns:
+            ``True`` if the event handler is still registered,
+                ``False`` if it was removed (by this subscription, by
+                ``clear_event``, ``reset`` or because it was a ``once`` handler that ran).
+        """
+        return self._active
+
+    def remove(self) -> bool:
+        r"""Remove the registration.
+
+        Only this registration is removed, even if the same handler is
+        registered several times to the same event. Calling this method again, or
+        after the handler was removed by another way, does nothing.
+
+        Returns:
+            ``True`` if the registration was removed, ``False`` if it
+                was already removed.
+        """
+        return self._manager._remove(self)
 
 
 class EventManager:
@@ -369,7 +501,9 @@ class EventManager:
 
             ```
         """
-        for subscription in self._snapshot(event):
+        subscriptions = self.get_subscriptions(event)
+        logger.debug("Firing %s event", event)
+        for subscription in subscriptions:
             if subscription._once and not self._remove(subscription):
                 continue
             try:
@@ -411,7 +545,9 @@ class EventManager:
 
             ```
         """
-        for subscription in self._snapshot(event):
+        subscriptions = self.get_subscriptions(event)
+        logger.debug("Firing %s event", event)
+        for subscription in subscriptions:
             if subscription._once and not self._remove(subscription):
                 continue
             try:
@@ -419,23 +555,6 @@ class EventManager:
             except Exception as exc:
                 _add_error_note(exc, event, subscription._event_handler)
                 raise
-
-    def _snapshot(self, event: str) -> tuple[Subscription, ...]:
-        r"""Return the registrations to run for a trigger.
-
-        Args:
-            event: The event name.
-
-        Returns:
-            A snapshot of the registrations of the event.
-
-        Raises:
-            TypeError: if ``event`` is not a string.
-        """
-        _check_event(event)
-        logger.debug("Firing %s event", event)
-        with self._lock:
-            return tuple(self._subscriptions.get(event, ()))
 
     def clear_event(self, event: str) -> None:
         r"""Remove all the event handlers of a given event.
