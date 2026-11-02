@@ -303,6 +303,21 @@ changelog with its number, has its tests, and keeps `ruff`, `ty` and 100% covera
 | 6    | **Remove `OnceCondition`** (F6): class, export, tests, benchmark row, six documentation places, changelog.                                                                                                              | yes (never released)                          |
 | 7    | **One benchmark mechanism** (F8): delete `dev/benchmark.py`; `CONTRIBUTING.md` says `inv test.benchmark`.                                                                                                               | no                                            |
 
+**Status.** Stacked PRs, each on the previous one:
+
+| Step | PR   |
+| ---- | ---- |
+| 1    | #746 |
+| 2    | #747 |
+| 3    | #748 |
+| 4    | #749 |
+| 5    | #750 |
+| 6    | #751 |
+| 7    | #752 |
+
+Step 4 measured with the former `dev/benchmark.py` before it was deleted: trigger of one handler
+721 to 455 ns, ten handlers 3,994 to 1,874 ns, import about 13 to 9.5 ms.
+
 Steps 1 and 4 to 7 are safe to merge alone. Steps 2 and 3 change visible behaviour and go in the
 same release as 5 and 6 so that the migration table of section 4 is written once.
 
