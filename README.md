@@ -141,11 +141,11 @@ install only some specific dependencies or other alternatives to install the lib
 The following is the corresponding `minevent` versions and supported dependencies. The older
 versions are listed on the [releases page](https://github.com/durandtibo/minevent/releases).
 
-| `minevent` | `coola`       | `python`  |
-| ---------- | ------------- | --------- |
-| `main`     | none          | `>=3.11`  |
-| `0.5.0`    | `>=1.0,<2.0`  | `>=3.10`  |
-| `0.4.0`    | `>=0.10,<1.0` | `>=3.10`  |
+| `minevent` | `coola`       | `python` |
+| ---------- | ------------- | -------- |
+| `main`     | none          | `>=3.11` |
+| `0.5.0`    | `>=1.0,<2.0`  | `>=3.10` |
+| `0.4.0`    | `>=0.10,<1.0` | `>=3.10` |
 
 ## Contributing
 

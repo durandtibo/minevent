@@ -1,8 +1,8 @@
 r"""Implement some conditions that can be used in the event system.
 
-A condition is any function without argument that returns a boolean,
-see the ``Condition`` protocol. The conditions of this module keep a
-state between calls.
+A condition is any function without argument that returns a boolean, see
+the ``Condition`` protocol. The conditions of this module keep a state
+between calls.
 """
 
 from __future__ import annotations

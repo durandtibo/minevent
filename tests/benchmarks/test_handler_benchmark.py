@@ -20,7 +20,8 @@ def no_argument() -> None:
 
 
 def with_arguments(a: int, b: int, *, c: int = 0, epoch: int = 0) -> None:
-    r"""Implement a handler with positional, keyword and payload arguments."""
+    r"""Implement a handler with positional, keyword and payload
+    arguments."""
 
 
 def test_event_handler_handle_benchmark(benchmark: BenchmarkFixture) -> None:
