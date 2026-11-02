@@ -213,7 +213,9 @@ class EventManager:
                 registration only.
 
         Raises:
-            TypeError: if ``event`` is not a string.
+            TypeError: if ``event`` is not a string, or if
+                ``event_handler`` is not a ``BaseEventHandler``. Wrap a
+                function with ``EventHandler``.
 
         Example:
             ```pycon
@@ -236,6 +238,12 @@ class EventManager:
             ```
         """
         _check_event(event)
+        if not isinstance(event_handler, BaseEventHandler):
+            msg = (
+                "event_handler must be a BaseEventHandler, but got "
+                f"{type(event_handler).__qualname__}: wrap a function with EventHandler(func)"
+            )
+            raise TypeError(msg)
         subscription = Subscription(self, event, event_handler, once=once)
         with self._lock:
             self._subscriptions.setdefault(event, []).append(subscription)

@@ -201,6 +201,25 @@ def test_event_manager_trigger_event_base_exception_has_no_note() -> None:
 INVALID_EVENTS = [1, None, b"my_event"]
 
 
+INVALID_EVENT_HANDLERS = [hello_handler, print, None, "handler", EventHandler]
+
+
+@pytest.mark.parametrize("event_handler", INVALID_EVENT_HANDLERS)
+def test_event_manager_add_event_handler_event_handler_must_be_event_handler(
+    event_handler: Any,
+) -> None:
+    with pytest.raises(TypeError, match=r"event_handler must be a BaseEventHandler"):
+        EventManager().add_event_handler("my_event", event_handler)
+
+
+def test_event_manager_add_event_handler_invalid_event_handler_is_not_registered() -> None:
+    manager = EventManager()
+    event_handler: Any = print
+    with pytest.raises(TypeError, match=r"wrap a function with EventHandler"):
+        manager.add_event_handler("my_event", event_handler)
+    assert "my_event" not in manager
+
+
 @pytest.mark.parametrize("event", INVALID_EVENTS)
 def test_event_manager_add_event_handler_event_must_be_str(event: Any) -> None:
     with pytest.raises(TypeError, match=r"event must be a str"):
