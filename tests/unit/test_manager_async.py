@@ -77,12 +77,6 @@ def test_event_manager_atrigger_event_mixes_sync_and_async_in_order() -> None:
     assert order == ["first", "second", "third"]
 
 
-def test_event_manager_atrigger_event_updates_last_triggered_event() -> None:
-    manager = EventManager()
-    asyncio.run(manager.atrigger_event("my_event"))
-    assert manager.last_triggered_event == "my_event"
-
-
 def test_event_manager_atrigger_event_without_event_handler() -> None:
     asyncio.run(EventManager().atrigger_event("my_event"))
 
@@ -128,22 +122,16 @@ def test_event_manager_atrigger_event_snapshot() -> None:
     assert async_handler.call_count == 0
 
 
-def test_event_manager_start_trigger_returns_snapshot() -> None:
+def test_event_manager_snapshot_returns_snapshot() -> None:
     manager = EventManager()
     subscription = manager.add_event_handler("my_event", EventHandler(hello_handler))
-    assert manager._start_trigger("my_event") == (subscription,)
+    assert manager._snapshot("my_event") == (subscription,)
 
 
-def test_event_manager_start_trigger_sets_last_triggered_event() -> None:
-    manager = EventManager()
-    manager._start_trigger("my_event")
-    assert manager.last_triggered_event == "my_event"
-
-
-def test_event_manager_start_trigger_incorrect_event() -> None:
+def test_event_manager_snapshot_incorrect_event() -> None:
     bad: Any = 1
     with pytest.raises(TypeError, match=r"event must be a str"):
-        EventManager()._start_trigger(bad)
+        EventManager()._snapshot(bad)
 
 
 ############################################################

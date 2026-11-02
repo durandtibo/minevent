@@ -407,12 +407,14 @@ def test_event_handler_condition_default() -> None:
     assert EventHandler(hello_handler).condition is None
 
 
-def test_event_handler_condition_repr_without_condition() -> None:
-    assert "condition" not in repr(EventHandler(hello_handler))
+def test_event_handler_repr_without_condition() -> None:
+    assert repr(EventHandler(hello_handler, condition=None)).endswith(
+        "condition=None, filter_payload=False)"
+    )
 
 
-def test_event_handler_condition_repr_with_condition() -> None:
-    assert "(condition): PeriodicCondition(freq=2," in repr(
+def test_event_handler_repr_with_condition() -> None:
+    assert "condition=PeriodicCondition(freq=2," in repr(
         EventHandler(hello_handler, condition=PeriodicCondition(2))
     )
 
@@ -748,12 +750,8 @@ def test_accepted_keywords_uninspectable() -> None:
     assert _accepted_keywords(UninspectableCallable()) is None
 
 
-def test_event_handler_filter_payload_repr() -> None:
-    assert "(filter_payload): True" in repr(EventHandler(hello_handler, filter_payload=True))
-
-
-def test_event_handler_repr_without_filter_payload() -> None:
-    assert "filter_payload" not in repr(EventHandler(hello_handler))
+def test_event_handler_repr_filter_payload_true() -> None:
+    assert repr(EventHandler(hello_handler, filter_payload=True)).endswith("filter_payload=True)")
 
 
 def test_event_handler_equal_false_different_filter_payload() -> None:
@@ -823,3 +821,10 @@ def test_event_handler_call_condition_true_returns_handler_result() -> None:
 def test_event_handler_call_filters_payload() -> None:
     handler = EventHandler(lambda epoch: epoch, filter_payload=True)
     assert handler._call({"epoch": 3, "loss": 0.5}) == 3
+
+
+def test_event_handler_repr_full() -> None:
+    assert repr(EventHandler(print, handler_args=("hello",), handler_kwargs={"end": ""})) == (
+        "EventHandler(handler=<built-in function print>, handler_args=('hello',), "
+        "handler_kwargs={'end': ''}, condition=None, filter_payload=False)"
+    )

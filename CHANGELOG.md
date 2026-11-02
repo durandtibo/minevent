@@ -28,7 +28,9 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
   `lambda: a() and b()`. Conditions have no `equal`, so two handlers with separately created
   conditions are different.
 - `PeriodicCondition` validates `freq` and has a `skip_first` option and a `reset` method.
-- `__repr__` of `EventManager` is simpler.
+- `__repr__` of `EventManager` is simpler: `EventManager(events={'my_event': 1})`, and `__repr__` of
+  `EventHandler` is one line.
+- `EventManager.last_triggered_event` is removed.
 
 ### Added
 
@@ -39,7 +41,7 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
 - Built-in conditions `OnceCondition` and `AfterNCondition`. A condition is any function without
   argument that returns a boolean (the `Condition` protocol), so a lambda is a condition.
 - The `EventManager` registry is thread-safe.
-- `EventManager.get_event_handlers`, `__len__` and the `on` decorator.
+- `EventManager.get_subscriptions`, `__len__` and the `on` decorator.
 - `has_event_handler` and `remove_event_handler` accept a `Subscription`.
 - `Subscription` is a context manager and has an `active` property.
 - `EventHandler(..., filter_payload=True)` passes only the payload keys the handler accepts.

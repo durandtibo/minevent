@@ -251,17 +251,12 @@ To create an event manager, you can write:
 >>> from minevent import EventManager
 >>> manager = EventManager()
 >>> manager
-EventManager(
-  (event_handlers): {}
-  (last_triggered_event): None
-)
+EventManager(events={})
 
 ```
 
-The main pieces of information about the experiment manager state are the list of event handlers for
-each event name, and the last fired event name.
+The representation of the event manager shows the number of event handlers of each event.
 The event manager is empty, so it shows there is no event handler.
-In this example, there was no event fired so the last fired event name is `None`.
 
 ### Add an event handler
 
@@ -279,16 +274,7 @@ The following example shows how to add a `hello_handler` handler to the `'my_eve
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> manager
-EventManager(
-  (event_handlers):
-    (my_event):
-        (0): EventHandler(
-          (handler): <function hello_handler at  0x...>
-          (handler_args): ()
-          (handler_kwargs): {}
-        )
-  (last_triggered_event): None
-)
+EventManager(events={'my_event': 1})
 
 ```
 
@@ -305,21 +291,7 @@ The following example shows how to add an event handler with some positional arg
 >>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler, ("John", "Smith")))
 >>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler, ("Jane", "Doe")))
 >>> manager
-EventManager(
-  (event_handlers):
-    (my_event):
-      (0): EventHandler(
-          (handler): <function hello_handler at  0x...>
-          (handler_args): ('John', 'Smith')
-          (handler_kwargs): {}
-        )
-      (1): EventHandler(
-          (handler): <function hello_handler at  0x...>
-          (handler_args): ('Jane', 'Doe')
-          (handler_kwargs): {}
-        )
-  (last_triggered_event): None
-)
+EventManager(events={'my_event': 2})
 
 ```
 
@@ -336,21 +308,7 @@ It is possible to add the same event handler multiple times:
 >>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> manager
-EventManager(
-  (event_handlers):
-    (my_event):
-      (0): EventHandler(
-          (handler): <function hello_handler at  0x...>
-          (handler_args): ()
-          (handler_kwargs): {}
-        )
-      (1): EventHandler(
-          (handler): <function hello_handler at  0x...>
-          (handler_args): ()
-          (handler_kwargs): {}
-        )
-  (last_triggered_event): None
-)
+EventManager(events={'my_event': 2})
 
 ```
 
@@ -407,16 +365,7 @@ If you want to add an event handler only once, you can write something like:
 ...     if not manager.has_event_handler(EventHandler(hello_handler), "my_event"):
 ...         _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> manager
-EventManager(
-  (event_handlers):
-    (my_event):
-      (0): EventHandler(
-          (handler): <function hello_handler at  0x...>
-          (handler_args): ()
-          (handler_kwargs): {}
-        )
-  (last_triggered_event): None
-)
+EventManager(events={'my_event': 1})
 
 ```
 
@@ -507,29 +456,11 @@ The following example shows how to fire the `hello_handler` for the event `'my_e
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> manager
-EventManager(
-  (event_handlers):
-    (my_event):
-      (0): EventHandler(
-          (handler): <function hello_handler at  0x...>
-          (handler_args): ()
-          (handler_kwargs): {}
-        )
-  (last_triggered_event): None
-)
+EventManager(events={'my_event': 1})
 >>> manager.trigger_event("my_event")
 Hello!
 >>> manager
-EventManager(
-  (event_handlers):
-    (my_event):
-      (0): EventHandler(
-          (handler): <function hello_handler at  0x...>
-          (handler_args): ()
-          (handler_kwargs): {}
-        )
-  (last_triggered_event): my_event
-)
+EventManager(events={'my_event': 1})
 
 ```
 
@@ -545,21 +476,7 @@ The event manager uses the arguments that were given when the event handler was 
 >>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler, ("John", "Smith")))
 >>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler, ("Jane", "Doe")))
 >>> manager
-EventManager(
-  (event_handlers):
-    (my_event):
-      (0): EventHandler(
-          (handler): <function hello_handler at  0x...>
-          (handler_args): ('John', 'Smith')
-          (handler_kwargs): {}
-        )
-      (1): EventHandler(
-          (handler): <function hello_handler at  0x...>
-          (handler_args): ('Jane', 'Doe')
-          (handler_kwargs): {}
-        )
-  (last_triggered_event): None
-)
+EventManager(events={'my_event': 2})
 >>> manager.trigger_event("my_event")
 Hello. I am John Smith
 Hello. I am Jane Doe
@@ -578,17 +495,7 @@ The following shows how to execute the `hello_handler` every 3 `'my_event'` even
 ...     "my_event", EventHandler(hello_handler, condition=PeriodicCondition(freq=3))
 ... )
 >>> manager
-EventManager(
-  (event_handlers):
-    (my_event):
-      (0): EventHandler(
-          (handler): <function hello_handler at  0x...>
-          (handler_args): ()
-          (handler_kwargs): {}
-          (condition): PeriodicCondition(freq=3, skip_first=False, step=0)
-        )
-  (last_triggered_event): None
-)
+EventManager(events={'my_event': 1})
 >>> for i in range(10):
 ...     print(f"i={i}")
 ...     manager.trigger_event("my_event")
@@ -673,22 +580,10 @@ The following example shows how to add and remove an event handler:
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> manager
-EventManager(
-  (event_handlers):
-    (my_event):
-        (0): EventHandler(
-          (handler): <function hello_handler at  0x...>
-          (handler_args): ()
-          (handler_kwargs): {}
-        )
-  (last_triggered_event): None
-)
+EventManager(events={'my_event': 1})
 >>> manager.remove_event_handler("my_event", EventHandler(hello_handler))
 >>> manager
-EventManager(
-  (event_handlers): {}
-  (last_triggered_event): None
-)
+EventManager(events={})
 
 ```
 
@@ -709,40 +604,10 @@ If there are multiple event handlers that match, they are all removed from the e
 ...     "my_event", EventHandler(hello_handler, condition=PeriodicCondition(freq=3))
 ... )
 >>> manager
-EventManager(
-  (event_handlers):
-    (my_event):
-      (0): EventHandler(
-          (handler): <function hello_handler at  0x...>
-          (handler_args): ()
-          (handler_kwargs): {}
-        )
-      (1): EventHandler(
-          (handler): <function hello_handler at  0x...>
-          (handler_args): ()
-          (handler_kwargs): {}
-        )
-      (2): EventHandler(
-          (handler): <function hello_handler at  0x...>
-          (handler_args): ()
-          (handler_kwargs): {}
-          (condition): PeriodicCondition(freq=3, skip_first=False, step=0)
-        )
-  (last_triggered_event): None
-)
+EventManager(events={'my_event': 3})
 >>> manager.remove_event_handler("my_event", EventHandler(hello_handler))
 >>> manager
-EventManager(
-  (event_handlers):
-    (my_event):
-      (0): EventHandler(
-          (handler): <function hello_handler at  0x...>
-          (handler_args): ()
-          (handler_kwargs): {}
-          (condition): PeriodicCondition(freq=3, skip_first=False, step=0)
-        )
-  (last_triggered_event): None
-)
+EventManager(events={'my_event': 1})
 
 ```
 
@@ -756,34 +621,10 @@ If a handler is used for multiple events, only the handler associated to the eve
 >>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> _ = manager.add_event_handler("my_other_event", EventHandler(hello_handler))
 >>> manager
-EventManager(
-  (event_handlers):
-    (my_event):
-      (0): EventHandler(
-          (handler): <function hello_handler at  0x...>
-          (handler_args): ()
-          (handler_kwargs): {}
-        )
-    (my_other_event):
-      (0): EventHandler(
-          (handler): <function hello_handler at  0x...>
-          (handler_args): ()
-          (handler_kwargs): {}
-        )
-  (last_triggered_event): None
-)
+EventManager(events={'my_event': 1, 'my_other_event': 1})
 >>> manager.remove_event_handler("my_event", EventHandler(hello_handler))
 >>> manager
-EventManager(
-  (event_handlers):
-    (my_other_event):
-      (0): EventHandler(
-          (handler): <function hello_handler at  0x...>
-          (handler_args): ()
-          (handler_kwargs): {}
-        )
-  (last_triggered_event): None
-)
+EventManager(events={'my_other_event': 1})
 
 ```
 
@@ -804,27 +645,9 @@ fired event name to `None`. It is equivalent to create a new experiment manager.
 >>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
 >>> _ = manager.add_event_handler("my_other_event", EventHandler(hello_handler))
 >>> manager
-EventManager(
-  (event_handlers):
-    (my_event):
-      (0): EventHandler(
-          (handler): <function hello_handler at 0x...>
-          (handler_args): ()
-          (handler_kwargs): {}
-        )
-    (my_other_event):
-      (0): EventHandler(
-          (handler): <function hello_handler at 0x...>
-          (handler_args): ()
-          (handler_kwargs): {}
-        )
-  (last_triggered_event): None
-)
+EventManager(events={'my_event': 1, 'my_other_event': 1})
 >>> manager.reset()
 >>> manager
-EventManager(
-  (event_handlers): {}
-  (last_triggered_event): None
-)
+EventManager(events={})
 
 ```
