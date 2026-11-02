@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import contextlib
 import logging
 from typing import Any
@@ -220,11 +219,11 @@ def test_event_manager_once_removed_by_subscription_before_trigger_does_not_run(
     assert hello_handler.call_count == 0
 
 
-def test_event_manager_atrigger_event_once_runs_once() -> None:
+async def test_event_manager_atrigger_event_once_runs_once() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", EventHandler(hello_handler), once=True)
-    asyncio.run(manager.atrigger_event("my_event"))
-    asyncio.run(manager.atrigger_event("my_event"))
+    await manager.atrigger_event("my_event")
+    await manager.atrigger_event("my_event")
     assert hello_handler.call_count == 1
 
 
@@ -267,7 +266,7 @@ def test_event_manager_once_removed_by_earlier_handler_of_same_trigger_does_not_
     assert hello_handler.call_count == 0
 
 
-def test_event_manager_atrigger_event_once_removed_by_earlier_handler_does_not_run() -> None:
+async def test_event_manager_atrigger_event_once_removed_by_earlier_handler_does_not_run() -> None:
     manager = EventManager()
     subscriptions: list[Subscription] = []
 
@@ -278,5 +277,5 @@ def test_event_manager_atrigger_event_once_removed_by_earlier_handler_does_not_r
     subscriptions.append(
         manager.add_event_handler("my_event", EventHandler(hello_handler), once=True)
     )
-    asyncio.run(manager.atrigger_event("my_event"))
+    await manager.atrigger_event("my_event")
     assert hello_handler.call_count == 0

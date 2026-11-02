@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import contextlib
 import inspect
 import logging
@@ -316,17 +315,17 @@ def test_event_handler_handle_payload_with_self_key() -> None:
     assert kwargs_handler.kwargs == {"self": 1}
 
 
-def test_event_handler_ahandle_payload_with_self_key() -> None:
-    asyncio.run(EventHandler(kwargs_handler).ahandle(self=1))
+async def test_event_handler_ahandle_payload_with_self_key() -> None:
+    await EventHandler(kwargs_handler).ahandle(self=1)
     assert kwargs_handler.kwargs == {"self": 1}
 
 
-def test_base_event_handler_ahandle_payload_with_self_key() -> None:
+async def test_base_event_handler_ahandle_payload_with_self_key() -> None:
     class MyHandler(BaseEventHandler):
         def handle(self, /, **payload: Any) -> None:
             kwargs_handler(**payload)
 
-    asyncio.run(MyHandler().ahandle(self=1))
+    await MyHandler().ahandle(self=1)
     assert kwargs_handler.kwargs == {"self": 1}
 
 
@@ -467,17 +466,17 @@ def test_event_handler_handle_coroutine_condition_false_does_not_call() -> None:
     assert async_hello_handler.call_count == 0
 
 
-def test_event_handler_ahandle_coroutine_awaited() -> None:
+async def test_event_handler_ahandle_coroutine_awaited() -> None:
     awaited = []
 
     async def handler() -> None:
         awaited.append(1)
 
-    asyncio.run(EventHandler(handler).ahandle())
+    await EventHandler(handler).ahandle()
     assert awaited == [1]
 
 
-def test_event_handler_ahandle_awaits_object_with_await() -> None:
+async def test_event_handler_ahandle_awaits_object_with_await() -> None:
     awaited = []
 
     class Awaitable:
@@ -485,45 +484,45 @@ def test_event_handler_ahandle_awaits_object_with_await() -> None:
             awaited.append(1)
             yield
 
-    asyncio.run(EventHandler(Awaitable).ahandle())
+    await EventHandler(Awaitable).ahandle()
     assert awaited == [1]
 
 
-def test_event_handler_ahandle_sync_handler() -> None:
-    asyncio.run(EventHandler(hello_handler).ahandle())
+async def test_event_handler_ahandle_sync_handler() -> None:
+    await EventHandler(hello_handler).ahandle()
     assert hello_handler.call_count == 1
 
 
-def test_event_handler_ahandle_payload_and_arguments() -> None:
-    asyncio.run(EventHandler(async_name_handler, handler_args=("John",)).ahandle(last_name="Doe"))
+async def test_event_handler_ahandle_payload_and_arguments() -> None:
+    await EventHandler(async_name_handler, handler_args=("John",)).ahandle(last_name="Doe")
     assert async_name_handler.kwargs == {"last_name": "Doe"}
 
 
-def test_event_handler_ahandle_condition_false() -> None:
-    asyncio.run(EventHandler(hello_handler, condition=always_false).ahandle())
+async def test_event_handler_ahandle_condition_false() -> None:
+    await EventHandler(hello_handler, condition=always_false).ahandle()
     assert hello_handler.call_count == 0
 
 
-def test_event_handler_ahandle_condition_true() -> None:
-    asyncio.run(EventHandler(hello_handler, condition=always_true).ahandle())
+async def test_event_handler_ahandle_condition_true() -> None:
+    await EventHandler(hello_handler, condition=always_true).ahandle()
     assert hello_handler.call_count == 1
 
 
-def test_event_handler_ahandle_coroutine_error_propagates() -> None:
+async def test_event_handler_ahandle_coroutine_error_propagates() -> None:
     async def handler() -> None:
         msg = "async failed"
         raise RuntimeError(msg)
 
     with pytest.raises(RuntimeError, match=r"async failed"):
-        asyncio.run(EventHandler(handler).ahandle())
+        await EventHandler(handler).ahandle()
 
 
-def test_base_event_handler_ahandle_calls_handle() -> None:
+async def test_base_event_handler_ahandle_calls_handle() -> None:
     class MyHandler(BaseEventHandler):
         def handle(self, /, **payload: Any) -> None:
             hello_handler(**payload)
 
-    asyncio.run(MyHandler().ahandle())
+    await MyHandler().ahandle()
     assert hello_handler.call_count == 1
 
 
@@ -605,16 +604,14 @@ def test_event_handler_filter_payload_handler_kwargs_not_filtered() -> None:
     assert epoch_handler.kwargs == {"epoch": 1}
 
 
-def test_event_handler_filter_payload_ahandle() -> None:
-    asyncio.run(EventHandler(epoch_handler, filter_payload=True).ahandle(epoch=3, loss=1))
+async def test_event_handler_filter_payload_ahandle() -> None:
+    await EventHandler(epoch_handler, filter_payload=True).ahandle(epoch=3, loss=1)
     assert epoch_handler.kwargs == {"epoch": 3}
 
 
-def test_event_handler_filter_payload_ahandle_coroutine() -> None:
-    asyncio.run(
-        EventHandler(async_name_handler, filter_payload=True).ahandle(
-            first_name="A", last_name="B", x=1
-        )
+async def test_event_handler_filter_payload_ahandle_coroutine() -> None:
+    await EventHandler(async_name_handler, filter_payload=True).ahandle(
+        first_name="A", last_name="B", x=1
     )
     assert async_name_handler.kwargs == {"first_name": "A", "last_name": "B"}
 
