@@ -483,20 +483,26 @@ enough.
 
 ## Appendix: effect on the size of the package
 
-Lines include docstrings (about 70% of the lines). Statements come from `coverage` on `main` (438);
-the "after" columns are estimates from the prototype and the deleted classes, to be replaced by the
-measured values in the last PR.
+Lines include docstrings. "Measured" is the state of `main` after steps 1 to 11 and the benchmark
+suite (`wc -l`, and `coverage` for the statements); "Expected" is the estimate I wrote before.
 
-| Module                          |            Lines today | Expected after | Why                                                                                                                |
-| ------------------------------- | ---------------------: | -------------: | ------------------------------------------------------------------------------------------------------------------ |
-| `conditions.py`                 |                    590 |            180 | Protocol plus three stateful classes; no `equal`, no combinators, no wrappers                                      |
-| `handlers.py`                   |                    477 |            320 | No `equal`, no `_key`, no `__eq__` paragraph; `_call` shared                                                       |
-| `manager.py`                    |                    735 |            450 | No wrapper, no `_unwrap`, no `has_`/`remove_event_handler`, no `last_triggered_event`, no `_format_event_handlers` |
-| `subscription.py`               |                    139 |            110 | A record with a back-reference instead of two callbacks                                                            |
-| `__init__.py`                   |                     61 |             52 | 9 exported names                                                                                                   |
-| **`src`**                       |              **2,002** |     **~1,110** |                                                                                                                    |
-| `src` statements                |                    438 |           ~270 |                                                                                                                    |
-| `tests/` (unit and integration) |                  3,251 |         ~1,900 | Tests of removed code (equality, combinators, wrapper, `Tracer`) go; the new ones of section 8 are added           |
-| `docs/docs` (without `refs/`)   |                  2,492 |         ~1,300 | Three overlapping pages become one guide; quickstart loses the equality chapters                                   |
-| Workflows (`.github/workflows`) | 31 files / 1,668 lines |      ~25 files | Five dependency-table workflows, `lib-get-package-extras` and the `min` job go                                     |
-| Runtime dependencies            |                      1 |              0 |                                                                                                                    |
+| Module                          |            Lines today | Expected after | Measured |
+| ------------------------------- | ---------------------: | -------------: | -------: |
+| `conditions.py`                 |                    590 |            180 |      231 |
+| `handlers.py`                   |                    477 |            320 |      390 |
+| `manager.py`                    |                    735 |            450 |      466 |
+| `subscription.py`               |                    139 |            110 |      146 |
+| `__init__.py`                   |                     61 |             52 |       49 |
+| **`src`**                       |              **2,002** |     **~1,110** |  **1,282** |
+| `src` statements                |                    438 |           ~270 |      276 |
+| `tests/` (unit, integration, package checks) | 3,251 |         ~1,900 |    2,661 |
+| `tests/benchmarks/`             |                      0 |              - |      419 |
+| `docs/docs` (without `refs/`)   |                  2,492 |         ~1,300 |    1,505 |
+| Workflows (`.github/workflows`) | 31 files / 1,668 lines |      ~25 files | 26 files / 1,332 lines |
+| Runtime dependencies            |                      1 |              0 |        0 |
+
+The statements (276) and the dependency count match the estimate. The line counts are higher
+because I kept the docstrings of the properties and the `Raises:` sections, and the tests are higher
+because I kept the `Tracer` helper and added tests for each private method (`_call`, `_remove`,
+`_snapshot`, `_add_error_note`). Import time went from 35.5 ms to about 13 ms, and the trigger of
+one handler stayed at about 0.7 µs.
