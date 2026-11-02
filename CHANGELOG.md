@@ -11,22 +11,21 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
 
 - **Python**: `minevent` requires Python `>=3.11` (`0.5.0` supported `>=3.10`).
 - **Dependencies**: `coola>=1.0,<2.0`, as in `0.5.0`.
-- `EventManager.remove_event_handler` raises a `ValueError` (instead of a `RuntimeError`) when the
-  handler is not registered. Use `missing_ok=True` to ignore a missing handler.
+- `EventManager.has_event_handler` and `remove_event_handler` are removed, and so are `equal` and
+  `==` of event handlers and conditions: they are compared by identity. Keep the `Subscription`
+  returned by `add_event_handler` and call `subscription.remove()` (it returns `False` when the
+  registration is already removed), or use `manager.get_subscriptions(event)`.
 - Event names must be `str`: other types raise a `TypeError`.
-- `has_event_handler(handler, event=None)` searches all the events only when `event` is `None`;
-  an empty string is a regular event name.
 - `trigger_event` runs the handlers registered when the trigger starts; handlers added or removed
   by a handler take effect at the next trigger.
-- Reading the manager (`trigger_event`, `has_event_handler`, ...) no longer creates events.
+- Reading the manager (`trigger_event`, `get_subscriptions`, ...) no longer creates events.
 - `EventHandler` copies `handler_kwargs`, rejects a `str` or `bytes` `handler_args`, and accepts a
   `condition` argument. `ConditionalEventHandler` is removed: use
   `EventHandler(handler, condition=condition)`.
 - `BaseCondition` (with `evaluate` and `equal`) is removed. A condition is a function without
   argument that returns a boolean: implement `__call__` instead of `evaluate`, and call `condition()`
   instead of `condition.evaluate()`. Combine conditions with a function, for example
-  `lambda: a() and b()`. Conditions have no `equal`, so two handlers with separately created
-  conditions are different.
+  `lambda: a() and b()`.
 - `PeriodicCondition` validates `freq` and has a `skip_first` option and a `reset` method.
 - `__repr__` of `EventManager` is simpler: `EventManager(events={'my_event': 1})`, and `__repr__` of
   `EventHandler` is one line.
@@ -42,7 +41,6 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
   argument that returns a boolean (the `Condition` protocol), so a lambda is a condition.
 - The `EventManager` registry is thread-safe.
 - `EventManager.get_subscriptions`, `__len__` and the `on` decorator.
-- `has_event_handler` and `remove_event_handler` accept a `Subscription`.
 - `Subscription` is a context manager and has an `active` property.
 - `EventHandler(..., filter_payload=True)` passes only the payload keys the handler accepts.
 - The exception of a handler has a note (`__notes__`) with the event and the handler that raised it.
@@ -52,12 +50,7 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
 - `Subscription.remove` removes only its own registration: calling it twice no longer removes the
   registration of another subscription of the same handler.
 
-### Fixed
-
-- `Subscription.remove` removes only its own registration: calling it twice no longer removes the
-  registration of another subscription of the same handler.
-
 ### Changed
 
-- Stricter type hints (`Callable[..., object]`, `Mapping`, `equal(other: object)`).
+- Stricter type hints (`Callable[..., object]`, `Mapping`, `BaseEventHandler.handle(**payload: object)`).
 - `minevent.__version__` is resolved lazily from the package metadata.

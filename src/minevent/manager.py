@@ -172,12 +172,10 @@ class EventManager:
             event_handler: The event handler instance to attach to the
                 event.
             once: If ``True``, the handler is removed before its first
-                execution, so it runs at most once. It is still found
-                by ``has_event_handler`` and ``remove_event_handler``
-                until then. The registration is removed by the next
-                trigger even if the condition of the handler is
-                ``False`` and the handler function is not called.
-                Default is ``False``.
+                execution, so it runs at most once. The registration
+                is removed by the next trigger even if the condition
+                of the handler is ``False`` and the handler function is
+                not called. Default is ``False``.
 
         Returns:
             A subscription whose ``remove`` method removes this
@@ -401,158 +399,6 @@ class EventManager:
         with self._lock:
             return tuple(self._subscriptions.get(event, ()))
 
-    def has_event_handler(
-        self, event_handler: BaseEventHandler | Subscription, event: str | None = None
-    ) -> bool:
-        r"""Indicate if a handler is registered in the event manager.
-
-        This method checks whether a specific event handler is
-        registered, either for a specific event or across all events.
-        Note that this method relies on the ``equal`` method of the
-        input event handler to compare event handlers. Lambdas,
-        closures and bound methods of different instances are usually
-        not equal, so prefer passing the ``Subscription`` returned by
-        ``add_event_handler``: it matches exactly that registration.
-
-        Args:
-            event_handler: The event handler instance, or the
-                subscription, to search for in the registered
-                handlers.
-            event: An event name (case-sensitive string) to check. If
-                ``None``, the method will search across all registered
-                events. Default is ``None``.
-
-        Raises:
-            TypeError: if ``event`` is neither ``None`` nor a string.
-
-        Returns:
-            ``True`` if a matching event handler is registered,
-                otherwise ``False``.
-
-        Example:
-            ```pycon
-            >>> from minevent import EventHandler, EventManager
-            >>> def hello_handler():
-            ...     print("Hello!")
-            ...
-            >>> manager = EventManager()
-            >>> # Check if `hello_handler` is registered in the event manager
-            >>> manager.has_event_handler(EventHandler(hello_handler))
-            False
-            >>> # Check if `hello_handler` is registered in the event manager for 'my_event' event
-            >>> manager.has_event_handler(EventHandler(hello_handler), "my_event")
-            False
-            >>> # Add an event handler
-            >>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
-            >>> # Check if `hello_handler` is registered in the event manager
-            >>> manager.has_event_handler(EventHandler(hello_handler))
-            True
-            >>> # Check if `hello_handler` is registered in the event manager for 'my_event' event
-            >>> manager.has_event_handler(EventHandler(hello_handler), "my_event")
-            True
-            >>> # Check if `hello_handler` is registered in the event manager for 'my_other_event' event
-            >>> manager.has_event_handler(EventHandler(hello_handler), "my_other_event")
-            False
-
-            ```
-        """
-        if event is not None:
-            _check_event(event)
-        if isinstance(event_handler, Subscription):
-            if event is not None and event != event_handler.event:
-                return False
-            return event_handler.active and event_handler._manager is self
-        with self._lock:
-            events = list(self._subscriptions) if event is None else [event]
-            registered = [tuple(self._subscriptions.get(evnt, ())) for evnt in events]
-        return any(event_handler.equal(sub.event_handler) for subs in registered for sub in subs)
-
-    def remove_event_handler(
-        self,
-        event: str,
-        event_handler: BaseEventHandler | Subscription,
-        *,
-        missing_ok: bool = False,
-    ) -> None:
-        r"""Remove an event handler of a given event.
-
-        This method removes all occurrences of the specified event
-        handler from the given event. If the same event handler was
-        added multiple times to the event, all duplicates are removed.
-        This method relies on the ``equal`` method of the input event
-        handler to compare event handlers. Lambdas, closures and bound
-        methods of different instances are usually not equal, so
-        prefer passing the ``Subscription`` returned by
-        ``add_event_handler``: it removes exactly that registration.
-
-        Args:
-            event: The event name (case-sensitive string) from which
-                the handler should be removed.
-            event_handler: The event handler instance, or the
-                subscription, to remove from the event.
-            missing_ok: If ``True``, do nothing when the event does
-                not exist or the handler is not attached to it,
-                instead of raising an exception. Default is ``False``.
-
-        Raises:
-            TypeError: if ``event`` is not a string.
-            ValueError: if the event does not exist or if the
-                handler is not attached to the event, and
-                ``missing_ok`` is ``False``.
-
-        Example:
-            ```pycon
-            >>> from minevent import EventHandler, EventManager
-            >>> manager = EventManager()
-            >>> def hello_handler():
-            ...     print("Hello!")
-            ...
-            >>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
-            >>> # Check if `hello_handler` is registered in the event manager for 'my_event' event
-            >>> manager.has_event_handler(EventHandler(hello_handler), "my_event")
-            True
-            >>> # Remove the event handler
-            >>> manager.remove_event_handler("my_event", EventHandler(hello_handler))
-            >>> # Check if `hello_handler` is registered in the event manager for 'my_event' event
-            >>> manager.has_event_handler(EventHandler(hello_handler), "my_event")
-            False
-
-            ```
-        """
-        _check_event(event)
-        if isinstance(event_handler, Subscription):
-            if (
-                event_handler.event == event
-                and event_handler._manager is self
-                and event_handler.remove()
-            ):
-                return
-            if missing_ok:
-                return
-            msg = (
-                f"{event_handler} is not found among registered event handlers for '{event}' event"
-            )
-            raise ValueError(msg)
-        with self._lock:
-            registered = tuple(self._subscriptions.get(event, ()))
-        if not registered:
-            if missing_ok:
-                return
-            msg = f"'{event}' event does not exist"
-            raise ValueError(msg)
-
-        # The comparison can run user code, so it is done outside of the lock.
-        matches = [sub for sub in registered if event_handler.equal(sub.event_handler)]
-        if not matches:
-            if missing_ok:
-                return
-            msg = (
-                f"{event_handler} is not found among registered event handlers for '{event}' event"
-            )
-            raise ValueError(msg)
-        for sub in matches:
-            sub.remove()
-
     def clear_event(self, event: str) -> None:
         r"""Remove all the event handlers of a given event.
 
@@ -602,16 +448,14 @@ class EventManager:
             ...
             >>> from minevent import EventHandler
             >>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
-            >>> # Check if `hello_handler` is registered in the event manager for 'my_event' event
-            >>> manager.has_event_handler(EventHandler(hello_handler), "my_event")
-            True
             >>> manager.trigger_event("my_event")
             Hello!
+            >>> len(manager)
+            1
             >>> # Reset the event manager
             >>> manager.reset()
-            >>> # Check if `hello_handler` is registered in the event manager for 'my_event' event
-            >>> manager.has_event_handler(EventHandler(hello_handler), "my_event")
-            False
+            >>> len(manager)
+            0
 
             ```
         """

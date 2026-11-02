@@ -152,12 +152,12 @@ def setup_handlers(manager: EventManager):
 
 ### Check Before Adding Duplicate Handlers
 
-Prevent duplicate handler registrations:
+Prevent duplicate handler registrations by looking at the registrations of the event:
 
 ```python
 # Add handler only if not already present
 handler = EventHandler(my_function)
-if not manager.has_event_handler(handler, "my_event"):
+if not any(sub.event_handler is handler for sub in manager.get_subscriptions("my_event")):
     manager.add_event_handler("my_event", handler)
 ```
 
@@ -398,23 +398,22 @@ def profiled_handler(*args, **kwargs):
 ### Avoid Modifying State During Event Triggering
 
 ```python
-# Problematic: Removing handlers during event triggering
-def problematic_handler(manager, event, handler):
-    # This can cause issues if called during event triggering
-    manager.remove_event_handler(event, handler)
+# Surprising: a handler removed during a trigger still runs in that trigger
+def remove_other(subscription):
+    subscription.remove()
 
 
-# Better: Flag for removal, clean up later
-handlers_to_remove = []
+# Better: remove the registration after the event triggering is complete
+subscriptions_to_remove = []
 
 
-def safe_handler(event, handler):
-    handlers_to_remove.append((event, handler))
+def safe_handler(subscription):
+    subscriptions_to_remove.append(subscription)
 
 
 # Clean up after event triggering is complete
-for event, handler in handlers_to_remove:
-    manager.remove_event_handler(event, handler)
+for subscription in subscriptions_to_remove:
+    subscription.remove()
 ```
 
 ### Don't Rely on Execution Order Across Events

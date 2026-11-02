@@ -13,11 +13,13 @@ def check_event_manager() -> None:
     logger.info("Checking event manager...")
 
     event_manager = EventManager()
-    event_manager.add_event_handler(event="my_event", event_handler=EventHandler(print, ["Hello!"]))
-    event_manager.trigger_event("my_event")
-    assert event_manager.has_event_handler(
-        event="my_event", event_handler=EventHandler(print, ["Hello!"])
+    calls: list[str] = []
+    event_manager.add_event_handler(
+        event="my_event", event_handler=EventHandler(calls.append, ["Hello!"])
     )
+    event_manager.trigger_event("my_event")
+    assert calls == ["Hello!"]
+    assert "my_event" in event_manager
 
 
 def check_once() -> None:

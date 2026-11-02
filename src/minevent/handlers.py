@@ -8,28 +8,18 @@ import inspect
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
-from coola.equality import objects_are_equal
-
 if TYPE_CHECKING:
     from collections.abc import Callable, Mapping, Sequence
 
     from minevent.conditions import Condition
 
 
-class BaseEventHandler(ABC):  # noqa: PLW1641
+class BaseEventHandler(ABC):
     r"""Define the base class to implement an event handler.
 
-    A child class has to implement the following methods:
-
-        - ``handle``
-        - ``equal``
-
-    ``equal`` is the primary comparison API and ``==`` delegates to
-    it. Because equality is defined by ``equal`` (for example with
-    ``coola.objects_are_equal``, which supports arrays and tensors),
-    no consistent hash can be computed, so event handlers are
-    intentionally unhashable: they cannot be put in a ``set`` or used
-    as ``dict`` keys. Use the ``Subscription`` returned by
+    A child class has to implement the ``handle`` method. Event
+    handlers are compared by identity, so they can be put in a ``set``
+    or used as ``dict`` keys. Use the ``Subscription`` returned by
     ``EventManager.add_event_handler`` to identify a registration.
 
     Example:
@@ -46,40 +36,6 @@ class BaseEventHandler(ABC):  # noqa: PLW1641
 
         ```
     """
-
-    def __eq__(self, other: object) -> bool:
-        return self.equal(other)
-
-    @abstractmethod
-    def equal(self, other: object) -> bool:
-        r"""Compare two event handlers for equality.
-
-        This method should be implemented by child classes to define
-        how event handlers are compared. This is used by the event
-        manager to check for duplicate handlers.
-
-        Args:
-            other: The other object to compare with. Can be any type,
-                though typically an event handler.
-
-        Returns:
-            ``True`` if the two event handlers are considered equal,
-                otherwise ``False``.
-
-        Example:
-            ```pycon
-            >>> from minevent import EventHandler
-            >>> def hello_handler() -> None:
-            ...     print("Hello!")
-            ...
-            >>> handler = EventHandler(hello_handler)
-            >>> handler.equal(EventHandler(hello_handler))
-            True
-            >>> handler.equal(EventHandler(print, handler_args=["Hello!"]))
-            False
-
-            ```
-        """
 
     @abstractmethod
     def handle(self, /, **payload: object) -> None:
@@ -185,20 +141,7 @@ class EventHandler(BaseEventHandler):
 
     The handler is called as
     ``handler(*handler_args, **handler_kwargs, **payload)``, where
-    ``payload`` is the data given when the event is triggered. Two
-    event handlers are equal if they have the same class, handler,
-    arguments and condition.
-
-    Equality compares the handlers with ``coola.objects_are_equal``,
-    which falls back to ``==`` for functions. Module-level functions
-    compare equal to themselves, but lambdas and bound methods of
-    different instances (``obj.method != other.method``) do not, so
-    ``has_event_handler`` and ``remove_event_handler`` do not find a
-    handler built from a new lambda or from another instance. Keep a
-    reference to the function, or use the ``Subscription`` returned
-    by ``EventManager.add_event_handler``, which does not need
-    equality. Arrays and tensors in ``handler_args`` are compared by
-    value.
+    ``payload`` is the data given when the event is triggered.
 
     Args:
         handler: The callable function or method to be invoked when
@@ -379,26 +322,6 @@ class EventHandler(BaseEventHandler):
         return self._handler(
             *self._handler_args, **self._handler_kwargs, **self._select_payload(payload)
         )
-
-    def _key(self) -> tuple[Any, ...]:
-        r"""Return the values compared by ``equal``.
-
-        Returns:
-            The handler, the arguments, the condition and the payload
-                filter flag.
-        """
-        return (
-            self._handler,
-            self._handler_args,
-            self._handler_kwargs,
-            self._condition,
-            self._filter_payload,
-        )
-
-    def equal(self, other: object) -> bool:
-        if type(self) is not type(other):
-            return False
-        return objects_are_equal(self._key(), other._key())
 
     def handle(self, /, **payload: object) -> None:
         r"""Handle the event.

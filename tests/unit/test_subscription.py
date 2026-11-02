@@ -105,14 +105,6 @@ def test_subscription_inactive_after_reset() -> None:
     assert not subscription.active
 
 
-def test_subscription_inactive_after_remove_event_handler() -> None:
-    manager = EventManager()
-    handler = EventHandler(print)
-    subscription = manager.add_event_handler("my_event", handler)
-    manager.remove_event_handler("my_event", handler)
-    assert not subscription.active
-
-
 def test_subscription_enter_returns_subscription() -> None:
     subscription = EventManager().add_event_handler("my_event", EventHandler(print))
     with subscription as entered:
