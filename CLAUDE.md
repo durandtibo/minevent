@@ -40,14 +40,14 @@
 - Follow the current style of the repository in everything you add (source, tests, docs, commit
   messages, PR descriptions). Look at a few neighbouring files first, and do not introduce a new
   convention or reformat code you do not otherwise change.
-- Shared helpers belong in `coola.utils` as public functions (no leading underscore) with their
-  own tests, not as private functions imported across modules.
-- Validate an argument with `coola.validation`; do not write `raise ValueError` for a type, range
-  or membership check, and do not add a validator that is one `isinstance` or one comparison.
-- Prefer `LazySingleton` for lazily built process-wide objects, not `functools.cache`.
-- Keep new options keyword-only (`*`), as `hash_object` does.
-- Optional libraries (numpy, torch, pandas, polars, ...) are imported lazily; do not import them
-  at module level in `src`.
+- `minevent` has no runtime dependency: do not add one. Import the standard library only, and
+  import heavy modules lazily (see `__version__`).
+- Shared helpers are public functions (no leading underscore) with their own tests, not private
+  functions imported across modules.
+- Validate an argument in the function that receives it: a `TypeError` for a wrong type and a
+  `ValueError` for a wrong value, with a message that names the argument and the value. Do not add
+  a validator that is one `isinstance` or one comparison.
+- Keep new options keyword-only (`*`), as `EventHandler(..., condition=..., filter_payload=...)` does.
 - Every function, public or private (leading underscore), needs a docstring and its own unit
   tests. Private functions are not exempt. An override that adds nothing to the docstring of the
   method it overrides (same behaviour, arguments and exceptions) has no docstring: it inherits the
@@ -66,8 +66,7 @@
   behaviour goes in `tests/integration/`, using `run_threads` from `tests/integration/helpers.py`,
   a lock around the shared list, and a docstring starting with "Test that ...".
 - Do not use local imports inside tests (for example `import polars as pl` in a test body). Import
-  at the top of the module; use the `*_available` fixtures from `coola.testing.marks` for
-  optional libraries.
+  at the top of the module.
 - One behaviour per test: a test has one `assert` or one `pytest.raises`. Split a test that checks
   several things (equal, different, negative, ...) into several tests. Exception: a test of the state of one object (the properties of a constructed `EventHandler`,
   or the `call_count`, `args` and `kwargs` recorded by a traced handler) may have one `assert` per
