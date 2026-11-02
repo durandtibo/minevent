@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import subprocess
 import sys
 
 import minevent
@@ -86,6 +87,16 @@ def check_no_third_party_import() -> None:
     assert not third_party, f"third-party modules imported: {sorted(third_party)}"
 
 
+def check_lazy_imports() -> None:
+    logger.info("Checking that minevent does not import inspect or importlib.metadata...")
+    code = (
+        "import sys, minevent; "
+        "assert 'inspect' not in sys.modules; "
+        "assert 'importlib.metadata' not in sys.modules"
+    )
+    subprocess.run([sys.executable, "-c", code], check=True)  # noqa: S603
+
+
 def check_exports() -> None:
     logger.info("Checking exports...")
     for name in minevent.__all__:
@@ -99,6 +110,7 @@ def check_version() -> None:
 
 def main() -> None:
     check_no_third_party_import()
+    check_lazy_imports()
     check_exports()
     check_version()
     check_event_manager()

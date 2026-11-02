@@ -59,6 +59,10 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
 - `EventManager.add_event_handler` raises a `TypeError` for an `event_handler` that is not a
   `BaseEventHandler` (a bare function used to fail at the first trigger with an `AttributeError`).
   Wrap the function with `EventHandler(func)`, or use `EventManager.on`.
+- `inspect` is imported on first use (`filter_payload=True`), and the awaitable check of a handler
+  result uses `collections.abc`: `import minevent` is about 3.5 ms faster and each handler call about
+  0.2 µs faster. A legacy generator-based coroutine (`types.coroutine`) is no longer detected as an
+  awaitable.
 - The note of the exception of a handler names the event and the function of the handler, not the
   `repr` of the handler: a `repr` that raised used to replace the exception of the handler, and the
   arguments of the handler could make the note very long.

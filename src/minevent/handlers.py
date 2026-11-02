@@ -4,8 +4,8 @@ from __future__ import annotations
 
 __all__ = ["BaseEventHandler", "EventHandler"]
 
-import inspect
 from abc import ABC, abstractmethod
+from collections.abc import Awaitable, Coroutine
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -114,6 +114,8 @@ def _accepted_keywords(func: Callable[..., object]) -> frozenset[str] | None:
 
         ```
     """
+    import inspect  # noqa: PLC0415
+
     try:
         parameters = inspect.signature(func).parameters.values()
     except (TypeError, ValueError):
@@ -354,8 +356,8 @@ class EventHandler(BaseEventHandler):
             ```
         """
         result = self._call(payload)
-        if inspect.isawaitable(result):
-            if inspect.iscoroutine(result):
+        if result is not None and isinstance(result, Awaitable):
+            if isinstance(result, Coroutine):
                 result.close()
             msg = f"{self._handler!r} returned an awaitable; use ahandle or atrigger_event"
             raise TypeError(msg)
@@ -386,5 +388,5 @@ class EventHandler(BaseEventHandler):
             ```
         """
         result = self._call(payload)
-        if inspect.isawaitable(result):
+        if result is not None and isinstance(result, Awaitable):
             await result
