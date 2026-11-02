@@ -1,274 +1,214 @@
 # `minevent`: target state and the changes to reach it
 
-This document defines the properties of `minevent` and proposes the smallest design that has all of
-them. The package is small, and the proposal is to make it smaller: one registration record
-(`Subscription`) that is both the identity and the state of a registration, plain callables for
-conditions, no equality protocol, no dependency. Breaking changes are accepted (the README says the
-API is unstable before 1.0), and most of the removed names have never been released (they are in
-`Unreleased`), so removing them is free.
+This document defines the properties of `minevent`, compares them with the code on `main`
+(`335e29b`, 2026-11-01), and proposes the smallest set of changes that makes every property true.
+It replaces the first version of this review: its eleven steps are merged (one registration record,
+conditions as callables, no equality protocol, no `coola`, merged guide, benchmark suite), so this
+version starts from the result and only looks at what is left. The package is now small (1,282
+lines, 276 statements, 0 dependencies), so the remaining work is short: **two defects, one
+inconsistency, three simplifications and the documents that drifted**. Breaking changes are accepted
+(the README says the API is unstable before 1.0), and every name removed below is in `Unreleased`,
+so removing it is free.
 
-It follows `review/suggestions.md`, whose items 1 to 3 are merged on `main`. This review starts from
-the code at `951a999` (412 unit and integration tests, 100% line and branch coverage, ruff and ty
-clean) and looks at what remains. The principles come from `docs/docs/architecture.md` (simplicity
-first, synchronous by design, explicit over implicit, composition, zero magic, the non-goals).
+Principles come from `docs/docs/architecture.md` (simplicity first, explicit over implicit,
+composition, zero magic, the non-goals) and from `CLAUDE.md` (no runtime dependency, heavy imports
+lazy, validation in the function that receives the argument, no cross-module private helpers).
 
-Items are tagged **[verified]** (reproduced with a script or a measurement on `main`) or
-**[reading]** (from the code or the documents). The prototype of section 6 is a throwaway; it is not
-committed.
+Items are tagged **[verified]** (reproduced with a script or a measurement on `main`, Python 3.13.3,
+scripts kept outside the repository) or **[reading]** (from the code or the documents). Nothing in
+`src`, `tests` or `docs` was changed by this review.
 
 ## Constraints
 
-1. **Simple and easy to maintain.** Fewer concepts, fewer classes, one way to do each thing.
+1. **Simple and easy to maintain.** Fewer concepts, fewer modules, one way to do each thing. A
+   change that adds code must remove a defect or a duplicate.
 2. **Breaking changes are accepted.** Migration notes go in `CHANGELOG.md`, with the PR number.
-3. **No slower than today.** Benchmark gate in section 8.
-4. **Documented guarantees are true.** Every property of section 1 has a test, and the
-   documentation says nothing the code does not do.
-5. **Optional and heavy imports stay lazy.** `__version__` stays lazy (D12).
+3. **No slower than today.** Benchmark gate in section 8: a row more than 10% slower needs a reason.
+4. **Documented guarantees are true.** Every property of section 1 has a test, and the documents say
+   nothing the code does not do.
+5. **No runtime dependency, heavy imports lazy.** Standard library only; `inspect` and
+   `importlib.metadata` are not imported until used.
 6. **Python `>=3.11`.** `BaseException.add_note` and `typing.Self` are used.
 
 ---
 
 ## 1. Properties of the sub-package
 
-| #   | Property                 | Statement                                                                                                                                                                                                                                   | Enforced by                                               |
-| --- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| P1  | Small surface            | Three concepts: _event_ (a `str`), _event handler_, _event manager_. Plus the `Subscription` returned by a registration and plain-callable _conditions_. Nothing else is public.                                                            | `__all__` reviewed in each PR; docs index lists the names |
-| P2  | Events are strings       | An event name is a case-sensitive `str`; any other type raises `TypeError`. The empty string is a valid name. Reading the manager never creates an event.                                                                                   | unit tests (exist)                                        |
-| P3  | Registration identity    | `add_event_handler` returns a new `Subscription` every time. The same handler can be registered several times. `Subscription.remove()` removes that registration only, once, and returns `True` the first time, then `False`.               | regression test for F1 (new)                              |
-| P4  | Registration order       | The handlers of an event run in the order they were registered, one after the other, in the calling thread.                                                                                                                                 | unit tests (exist)                                        |
-| P5  | Snapshot dispatch        | `trigger_event` runs the registrations that exist when it starts. A registration added or removed by a running handler takes effect at the next trigger.                                                                                    | unit tests (exist)                                        |
-| P6  | Fail-fast with context   | An exception of a handler propagates unchanged to the caller of `trigger_event`; the remaining handlers are skipped. The exception carries a note with the event name and the handler.                                                      | unit test (new)                                           |
-| P7  | `once` is at-most-once   | A `once` registration is removed **before** its handler is called, by an atomic claim: it runs at most once, whatever the number of threads, and it is consumed even if its condition is false or its handler raises.                       | barrier test (new, deterministic)                         |
-| P8  | Synchronous by default   | `trigger_event` never awaits. A handler that returns an awaitable is an error (`TypeError`). `atrigger_event` awaits the handlers one after the other; synchronous handlers run inline and block the loop.                                  | unit tests (exist)                                        |
-| P9  | Thread-safe registry     | The registry is protected by a reentrant lock. Handlers, conditions and `repr` of user objects run **outside** the lock, so a handler can use the manager.                                                                                  | threads integration tests (exist, extended)               |
-| P10 | No hidden state          | No global manager, no discovery, no registration side effect of a read. Zero runtime dependencies.                                                                                                                                          | `pyproject.toml`; `package_checks.py` imports the wheel   |
-| P11 | Payload is data          | `trigger_event(event, /, **payload)`: the payload is passed to every handler as keyword arguments, after `handler_kwargs`. Any key is allowed (`event`, `self`). With `filter_payload=True` only the keys the signature accepts are passed. | unit tests (exist)                                        |
-| P12 | Conditions are callables | A condition is a `Callable[[], bool]`, called once per trigger and per handler, before the handler. The built-in stateful conditions keep per-instance state; sharing an instance shares the state.                                         | unit tests (exist, simplified)                            |
-| P13 | Typed                    | Fully typed, `py.typed`, `ty check` clean, payload typed `object`.                                                                                                                                                                          | `ty` in CI (exists)                                       |
-| P14 | Fast                     | The trigger of one handler costs about 0.6 µs; adding a registration about 0.6 µs. Not slower than today.                                                                                                                                   | benchmark gate (new, section 8)                           |
+| #   | Property                 | Statement                                                                                                                                                                                                                                                                                          | Enforced by                                    |
+| --- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| P1  | Small surface            | Three concepts: _event_ (a `str`), _event handler_, _event manager_. Plus the `Subscription` returned by a registration and plain-callable _conditions_. Seven exported names and `__version__`.                                                                                                    | `__all__` reviewed in each PR                  |
+| P2  | Events are strings       | An event name is a case-sensitive `str`; any other type raises `TypeError`. The empty string is valid. Reading the manager never creates an event.                                                                                                                                                 | unit tests (exist)                             |
+| P3  | Validated at the door    | A wrong type raises `TypeError` **in the call that receives it**, not later in the dispatch: the event, the handler of `add_event_handler`, the callable and the arguments of `EventHandler`, the condition.                                                                                        | unit tests (handler check is new, **F2**)      |
+| P4  | Registration identity    | `add_event_handler` returns a new `Subscription` every time; the same handler can be registered several times. `remove()` removes that registration only, once: `True` the first time, then `False`.                                                                                                | unit tests (exist)                             |
+| P5  | Registration order       | The handlers of an event run in the order they were registered, one after the other, in the calling thread.                                                                                                                                                                                        | unit tests (exist)                             |
+| P6  | Snapshot dispatch        | `trigger_event` runs the registrations that exist when it starts. A registration added or removed by a running handler takes effect at the next trigger.                                                                                                                                           | unit tests (exist)                             |
+| P7  | Fail-fast with context   | An exception of a handler propagates **unchanged** (same object, same type) to the caller; the remaining handlers are skipped. It carries a note with the event and the handler callable. Building the note never runs the `repr` of user data (arguments, keyword arguments, payload).             | unit tests (exist; the `repr` clause is new, **F1**) |
+| P8  | `once` is at-most-once   | A `once` registration is removed **before** its handler is called, by an atomic claim: it runs at most once whatever the number of threads, and it is consumed even if its condition is false or its handler raises.                                                                                 | barrier test (exists)                          |
+| P9  | Synchronous by default   | `trigger_event` never awaits; a handler that returns an awaitable raises `TypeError`. `atrigger_event` awaits the handlers one after the other; synchronous handlers run inline and block the loop.                                                                                                | unit tests (exist)                             |
+| P10 | Thread-safe registry     | The registry is protected by a reentrant lock. Handlers, conditions and the `repr` of user objects run **outside** the lock, so a handler can use the manager.                                                                                                                                     | threads integration tests (exist)              |
+| P11 | No hidden state          | No global manager, no discovery, no registration side effect of a read. Zero runtime dependencies, and `import minevent` does not import `inspect` or `importlib.metadata`.                                                                                                                       | `package_checks.py` (the import clause is new, **F4**) |
+| P12 | Payload is data          | `trigger_event(event, /, **payload)` passes the payload to every handler as keyword arguments, after `handler_kwargs`. Any key is allowed (`event`, `self`). With `filter_payload=True` only the keys the signature accepts are passed.                                                             | unit tests (exist)                             |
+| P13 | Conditions are callables | A condition is a `Callable[[], bool]`, called once per trigger and per handler, before the handler. The built-in conditions keep per-instance state; sharing an instance shares the state. There is **one** way to run a handler once (`once=True`).                                               | unit tests (exist; the last clause is new, **F6**) |
+| P14 | Typed                    | Fully typed, `py.typed`, `ty check` clean, payload typed `object`.                                                                                                                                                                                                                                 | `ty` in CI (exists)                            |
+| P15 | Fast                     | A trigger of one handler costs about 0.7 µs, a registration plus its removal about 0.65 µs, an import about 10 ms. Not slower than today.                                                                                                                                                          | benchmark gate (section 8)                     |
 
 ### Not guaranteed, and documented as such
 
 - **Order across threads.** Two threads that trigger the same event run the handlers concurrently,
   in no defined interleaving. A handler that shares state must protect it.
-- **State of conditions under threads.** `PeriodicCondition`, `AfterNCondition` and `OnceCondition`
-  update a counter without a lock (D8).
-- **A handler removed while a trigger is running** still runs in that trigger (P5), as in a
-  snapshot. After `remove()` returns, the next trigger does not run it.
-- **Recursion.** A handler that triggers its own event recurses until `RecursionError`. Guard it
-  with a condition or a flag.
+- **State of conditions under threads.** `PeriodicCondition` and `AfterNCondition` update a counter
+  without a lock (D8 of the first review, unchanged).
+- **A handler removed while a trigger is running** still runs in that trigger (P6). After `remove()`
+  returns, the next trigger does not run it.
+- **Recursion.** A handler that triggers its own event recurses until `RecursionError`.
 - **Blocking.** A synchronous handler in `atrigger_event` blocks the event loop.
+- **Copy and pickle.** An `EventManager` holds a lock: `copy.deepcopy` and `pickle` raise `TypeError`
+  **[verified]**. Create a new manager instead.
 
 ---
 
 ## 2. What differs today
 
-| #   | Finding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Status     |
-| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| F1  | **P3 is false.** The docstring says a `Subscription` "removes exactly the registration that created it", but removal is by handler identity. With `h = EventHandler(print)` registered twice, `s1.remove()` returns `True` and `s1.remove()` again returns `True` and removes the registration of `s2`; `s2.active` is then `False`. Same for two `once` registrations of one handler.                                                                                                                                                                                                                               | [verified] |
-| F2  | **The `once` wrapper leaks into the registry.** `_OnceEventHandler` is stored instead of the user handler, so `_unwrap` is needed in `get_event_handlers`, `has_event_handler` and `remove_event_handler`; its `equal` is asymmetric (`wrapper == handler` is `True`, `handler == wrapper` is `False`); `subscription` is a public mutable attribute set after construction; `Subscription` needs two callbacks (`remove_func`, `is_active_func`) and `active` is an O(n) scan.                                                                                                                                      | [verified] |
-| F3  | **Equality-based lookup is the weakest part of the API.** `equal` / `__eq__` on handlers and conditions (two abstract `equal`, two `# noqa: PLW1641`, unhashable by design), `has_event_handler` and `remove_event_handler`-by-handler cannot find lambdas, closures or bound methods of another instance. `Subscription` already covers every use. The quickstart teaches it in 10 places and the troubleshooting page in 7.                                                                                                                                                                                        | [verified] |
-| F4  | **`coola` is the only dependency and 88% of the import time.** `import minevent` takes 35.5 ms, of which `coola.equality` (which imports `coola`) takes 31 ms; the prototype without it imports in 10 ms (mostly `inspect` and `typing`). It is used for `objects_are_equal` and three `str_*` formatters. It drives five workflows, `dev/generate_versions.py`, `dev/config/package_versions.json` and the README version table.                                                                                                                                                                                    | [verified] |
-| F5  | **Conditions are 30% of `src` for what is a `Callable[[], bool]`.** `BaseCondition` (two abstract methods), `CallableCondition`, `as_condition`, `AlwaysCondition` (`condition=None` already means always), `NotCondition`, `AndCondition`, `OrCondition` (with a private base class, and a "no short-circuit" trade-off to document). 590 lines of 2,002. All of them are in `Unreleased`.                                                                                                                                                                                                                          | [reading]  |
-| F6  | **`last_triggered_event` has no use.** It is informational, racy under threads (documented), read by nothing in the library, written under the lock on every trigger, shown in `repr` and cleared by `reset`. It appears 17 times in the quickstart.                                                                                                                                                                                                                                                                                                                                                                 | [reading]  |
-| F7  | **`repr` is more complex than the feature.** Multi-line `repr` built with three `coola` formatters; `EventManager.__repr__` copies the registry under the lock so that user `repr` runs outside it (review 1.7), and `_format_event_handlers` exists only for that.                                                                                                                                                                                                                                                                                                                                                  | [reading]  |
-| F8  | **`EventHandler.handle` and `ahandle` repeat the same four lines** (condition check, payload selection, call), one awaiting and one rejecting the awaitable.                                                                                                                                                                                                                                                                                                                                                                                                                                                         | [reading]  |
-| F9  | **A failing handler does not say which one.** With five handlers on `batch_end`, the traceback shows the handler frame and `EventManager.trigger_event`, not the event name or the registration. `add_note` (3.11) adds it without changing the exception type.                                                                                                                                                                                                                                                                                                                                                      | [verified] |
-| F10 | **Several documented properties are false.** `architecture.md` says "No reflection" (`filter_payload` uses `inspect.signature`, the awaitable check uses `inspect`), "No threading complexity" and "Synchronous only" (there is a lock and `atrigger_event`), "Conditional handlers combine handlers and conditions" (there is no such class), and shows `_event_handlers["event"].append(...)`. `architecture.md:244` and `faq.md:167` define `def handle(self) -> None`, which raises `TypeError` as soon as a payload is given. The "Custom Event Manager" sketch has no payload, no `atrigger_event`, no `once`. | [verified] |
-| F11 | **The guide pages do not know the API.** `best_practices.md` and `faq.md` never mention `Subscription`, `once=True`, `missing_ok`, `filter_payload` or `atrigger_event`; the README "Features" list has no payload, `once`, subscription, async or thread safety and says "Only depends on `coola`". `faq.md`, `troubleshooting.md` and `best_practices.md` are 1,123 lines for three classes and repeat each other.                                                                                                                                                                                                 | [verified] |
-| F12 | **(Withdrawn.)** I first wrote that the Markdown pages are not executed. `inv test.doctest` runs `doctest_src` and `doctest_markdown`, which runs `python -m doctest -o NORMALIZE_WHITESPACE -o ELLIPSIS` on every `.md` file, and it passes. The drift of F10 and F11 was in the plain `python` blocks, which no tool runs.                                                                                                                                                                                                                                                                                         | [verified] |
-| F13 | **Packaging claims what is not true.** Empty `[project.optional-dependencies]` with the `autoextras` hook and `lib-get-package-extras.yaml` (an empty `all` extra); `min` CI job identical to `all` (`--no-optional-deps` with none); classifiers "4 - Beta" against the README warning, and Linux and macOS only for pure Python; `--color yes` in `addopts`; no `concurrency` group on `ci.yaml`; no tag against version check in `release-pypi.yaml`.                                                                                                                                                             | [reading]  |
-| F14 | **The tests are 7.4 lines per statement.** 3,251 lines of tests for 438 statements. `tests/unit/utils.py` (`Tracer`, 67 lines) re-implements `unittest.mock.Mock(wraps=...)` and has its own `test_utils.py` (86 lines). `CLAUDE.md` tells contributors to use `coola.utils`, `coola.validation`, `LazySingleton` and `coola.testing.marks`, which a package without `coola` does not have.                                                                                                                                                                                                                          | [reading]  |
-| F15 | **Stateful conditions are not thread-safe** and CI runs free-threaded builds (`ci-test.yaml`). On the GIL build four threads on a `PeriodicCondition(2)` counted exactly 200,000 `True` in 400,000 calls; the guarantee is not documented as a limit of the free-threaded build.                                                                                                                                                                                                                                                                                                                                     | [verified] |
+| #   | Finding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Status         |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| F1  | **P7 is false: the error note can replace the handler's exception.** `_add_error_note` puts `repr(event_handler)` in the note, and `EventHandler.__repr__` prints `handler_args`, `handler_kwargs` and the condition. With `EventHandler(h, [BadRepr()])`, where `h` raises `ValueError("handler failed")` and `BadRepr.__repr__` raises, the caller receives `RuntimeError: repr boom`, not the `ValueError`. With a 100,000-element list as argument the note is **689,053 characters** long (it lands in every traceback and log).                                          | **[verified]** |
+| F2  | **P3 is false for the handler.** The event is checked at registration; the handler is not. `manager.add_event_handler("e", print)` succeeds, and the error comes at the first trigger, possibly hours into a run: `AttributeError: 'builtin_function_or_method' object has no attribute 'handle'`.                                                                                                                                                                                                                                                                                  | **[verified]** |
+| F3  | **The documents drifted.** The docstring of `trigger_event` still says "The last triggered event name is updated regardless of whether any handlers are registered" (the property was removed). `architecture.md` shows the registry as lists of handlers and states "`O(n)` handler lookup (n = total handlers)" (it stores `Subscription`s and has no lookup). `README.md` keeps a `coola` column in the version table of a package that has no dependency. Its "Properties" list is a shorter copy of section 1 with different wording.                                              | **[verified]** |
+| F4  | **`inspect` is imported by every user and called on every handler call.** `import minevent` takes 13.2 ms, and `inspect` shows 6.8 ms of it (cumulative); moving it out saves 3.6 ms measured. It is used by `_accepted_keywords` (only for `filter_payload=True`) and, on the hot path, by `inspect.isawaitable(result)` after **every** handler call (about 200 ns more than `result is not None and isinstance(result, collections.abc.Awaitable)`, which is 33 ns for the usual `None`, `timeit`). `CLAUDE.md` asks for lazy heavy imports, as `__version__` already does.                                                                                              | **[verified]** |
+| F5  | **Two modules share private state.** `manager.py` writes `subscription._active` (in `_remove`, `clear_event` and `reset`) and reads `_once` and `_event_handler`; `subscription.py` calls `manager._remove` and imports the manager under `TYPE_CHECKING` (a cycle). `CLAUDE.md` forbids private helpers imported across modules. The record and its registry are one concept in two files (146 + 466 lines), tested in two files.                                                                                                                                                  | **[reading]**  |
+| F6  | **`OnceCondition` duplicates `once=True` and is weaker.** The quickstart says so itself ("`add_event_handler(..., once=True)` and `OnceCondition` are two ways to run a handler once", `quickstart.md:182`). `once=True` is claimed atomically under the lock; `OnceCondition` is an unlocked flag that two threads can both read as unset, and it leaves a dead registration in `len(manager)`. It is in `Unreleased`, mentioned in 6 documents and in the benchmarks.                                                                                                              | **[reading]**  |
+| F7  | **`_snapshot` duplicates `get_subscriptions`.** Both check the event and copy the list under the lock; `_snapshot` adds one `logger.debug`. It exists only to share that line between `trigger_event` and `atrigger_event`, and has its own tests.                                                                                                                                                                                                                                                                                                                                   | **[reading]**  |
+| F8  | **Two benchmark mechanisms.** `dev/benchmark.py` (82 lines, `timeit`) measures seven rows, every one of which is also in `tests/benchmarks/` (419 lines, `pytest-benchmark`, run by `inv test.benchmark` and the nightly workflow). Nothing in `CONTRIBUTING.md`, the README or the guide refers to the script; the gate of the first review points at it.                                                                                                                                                                                                                                              | **[reading]**  |
+
+### Measured and kept
+
+- **Debug logging.** A disabled `logger.debug` costs 83 ns, so the line in each trigger is about 12%
+  of a one-handler trigger (706 ns). It is what tells a user "my handler does not run" that the
+  event was fired at all (`guide.md`, Debug). Kept (D6).
+- **Exceptions of conditions** (`once` consumed, note added): works as P7 and P8 say **[verified]**.
+- **Subclasses of `str` as events**, and unhashable events in `in`: a `str` subclass is accepted
+  and found; `[] in manager` raises the `TypeError` of `dict` **[verified]**. Not changed.
 
 ### What already works and must not regress
 
-- Snapshot dispatch with the handlers outside the lock (P5, P9), and `RLock` so a handler can use
-  the manager.
-- `once` is claimed atomically (review 1.1, 1.2): 0 failures in 200 rounds of 8 threads.
-- `event` and `self` as payload keys (positional-only parameters), the awaitable check in `handle`,
-  `filter_payload`, `handler_kwargs` copied, `str` `handler_args` rejected.
-- `TypeError` for a non-`str` event, `ValueError` plus `missing_ok` for removal (the removal API is
-  reduced in D1, but the error contract of what remains is the same).
-- Fail-fast and the documented non-goals (event objects, priorities, weak references, collecting
-  errors).
-- 100% line and branch coverage and a `filterwarnings = error` test suite.
+- Snapshot dispatch with the handlers outside the lock (P6, P10), `RLock` so a handler can use the
+  manager, and `once` claimed atomically (0 failures in 200 rounds of 8 threads in the first review).
+- `event` and `self` as payload keys (`event` is positional-only), the awaitable check in `handle`
+  (a coroutine is closed, so no `RuntimeWarning`), `filter_payload`, `handler_kwargs` copied,
+  `str` and `bytes` `handler_args` rejected.
+- `Subscription` identity by default: `list.remove(sub)` removes that record.
+- Fail-fast and the non-goals (event objects, priorities, weak references, collecting errors).
+- 295 tests, 100% line and branch coverage, `ruff` and `ty` clean, `filterwarnings = error`.
 
 ---
 
 ## 3. Architecture
 
 ```text
-EventManager ──registry──▶ {event: [Subscription, ...]}      (insertion order = run order)
-     │                          │  event, event_handler, once, active
+EventManager ──registry──▶ {event: [Subscription, ...]}      insertion order = run order
+     │                          event, event_handler, once, active
      │ trigger_event(event, /, **payload)
      ▼
-for sub in snapshot(event):                  # under the lock, a tuple copy
-    if sub.once and not manager._remove(sub):  # atomic claim, P7
+for sub in get_subscriptions(event):        # a tuple copy, under the lock
+    if sub.once and not _remove(sub):       # atomic claim (P8)
         continue
-    sub.event_handler.handle(**payload)       # outside the lock
+    sub.event_handler.handle(**payload)     # outside the lock
          │
          ▼
 EventHandler.handle ──▶ condition() ──▶ filter payload ──▶ handler(*args, **kwargs, **payload)
 ```
 
-One record, `Subscription`, is the registry entry, the identity returned to the user, and the unit of
-removal. There is no wrapper handler and no second list.
+The design of the first review is kept; it is already the smallest that has all the properties.
+Three modules after the change instead of four:
 
-### 3.1 `Subscription`
+| Module          | Contains                                                                  |
+| --------------- | ------------------------------------------------------------------------- |
+| `conditions.py` | `Condition` protocol, `PeriodicCondition`, `AfterNCondition`              |
+| `handlers.py`   | `BaseEventHandler`, `EventHandler`                                        |
+| `manager.py`    | `EventManager`, `Subscription`                                            |
 
-```python
-class Subscription:
-    __slots__ = ("_manager", "_event", "_event_handler", "_once", "_active")
+### 3.1 Registration and the record (F2, F5, F7)
 
-    event: str  # read-only properties
-    event_handler: BaseEventHandler
-    once: bool
-    active: bool
+`Subscription` moves into `manager.py`, next to the only code that creates it and changes its state.
+Reading and writing `_active` and `_once` inside one module is ordinary; the cycle and the
+`TYPE_CHECKING` import disappear. `from minevent import Subscription` is unchanged; the module
+`minevent.subscription` is removed (it was never released).
 
-    def remove(self) -> bool:
-        """Return True the first time, False after (also after clear_event or reset)."""
-        return self._manager._remove(self)
-
-    def __enter__(self) -> Self: ...
-    def __exit__(self, *exc) -> None: ...  # remove()
-```
-
-- `_active` is set to `False` under the manager lock by `_remove`, `clear_event` and `reset`.
-  `active` reads it: no scan, no callback. This is the fix of F1: a second `remove()` sees
-  `_active == False` and returns `False`, whatever the handler is.
-- Equality and hash are the default (identity). `list.remove(sub)` therefore removes that record.
-- The constructor is not part of the public API. The manager builds it; the class docstring says so.
-  It takes the manager instead of two callbacks, which removes `remove_func`, `is_active_func`
-  and their tests.
-
-### 3.2 Event handlers
-
-```python
-class BaseEventHandler(ABC):
-    @abstractmethod
-    def handle(self, /, **payload: object) -> None: ...
-
-    async def ahandle(self, /, **payload: object) -> None:
-        self.handle(**payload)  # default: works for synchronous handlers
-```
-
-- No `equal`, no `__eq__`. Handlers are hashable by identity again, so they can go in a `set` or be
-  `dict` keys (the long unhashability paragraph of the docstring is deleted).
-- `EventHandler(handler, handler_args=None, handler_kwargs=None, *, condition=None, filter_payload=False)`
-  keeps its signature (D6). `condition` is any `Callable[[], bool]`; it is no longer wrapped.
-- One private method does the shared work, so `handle` and `ahandle` differ only in what they do
-  with an awaitable (F8):
-
-```python
-def _call(self, payload: dict[str, object]) -> object:
-    """Return the result of the handler, or None if the condition is false."""
-    if self._condition is not None and not self._condition():
-        return None
-    if self._payload_keys is not None:
-        payload = {k: v for k, v in payload.items() if k in self._payload_keys}
-    return self._handler(*self._handler_args, **self._handler_kwargs, **payload)
-```
-
-- `handle` raises `TypeError` for an awaitable result (after closing a coroutine); `ahandle`
-  awaits it.
-- If `handler_kwargs` and the payload share a key, Python raises its own `TypeError` ("multiple
-  values for keyword argument"). That is documented in the class docstring and is not special-cased.
-- `repr` is one line: `EventHandler(handler=<function f at 0x...>, args=(), kwargs={}, condition=None)`.
-  Fields that equal their default are shown anyway; no formatter is needed.
-
-### 3.3 Conditions
-
-```python
-class Condition(Protocol):
-    def __call__(self) -> bool: ...
-```
-
-| Name                | Role                                                                                                                                                        | Today                                           |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| `Condition`         | Protocol: any `Callable[[], bool]` (a lambda, a method, a built-in below).                                                                                  | `BaseCondition` ABC with `evaluate` and `equal` |
-| `PeriodicCondition` | `True` on the first call and then every `freq` calls (`skip_first`, `reset()`).                                                                             | kept, `evaluate` becomes `__call__`             |
-| `AfterNCondition`   | `False` for the first `n` calls.                                                                                                                            | kept, `evaluate` becomes `__call__`             |
-| `OnceCondition`     | `True` on the first call only (the handler stays registered; `once=True` unregisters it).                                                                   | kept, `evaluate` becomes `__call__`             |
-| removed             | `AlwaysCondition` (use `condition=None`), `CallableCondition` and `as_condition` (a callable is a condition), `NotCondition`, `AndCondition`, `OrCondition` |                                                 |
-
-- Combining conditions is a lambda, and the user chooses the evaluation rule that the library
-  imposed today (no short-circuit, with a trade-off to explain). Both forms are documented:
-
-```python
-EventHandler(save, condition=lambda: periodic() and has_improved())  # short-circuit
-EventHandler(save, condition=lambda: all([periodic(), has_improved()]))  # both advance
-```
-
-- Stateful conditions are documented as per-instance state; the docs show a factory
-  (`lambda: PeriodicCondition(5)`) for a condition used by several handlers.
-- Validation stays as today (`TypeError` for a non-`int` or `bool`, `ValueError` below the bound).
-  `EventHandler` raises `TypeError` for a non-callable `condition`.
-
-### 3.4 `EventManager`
-
-State: `_subs: dict[str, list[Subscription]]` and an `RLock`. Nothing else.
+`add_event_handler` validates its two arguments, like `EventHandler` validates its own:
 
 ```python
 def add_event_handler(self, event, event_handler, *, once=False) -> Subscription:
     _check_event(event)
-    sub = Subscription(self, event, event_handler, once)
-    with self._lock:
-        self._subs.setdefault(event, []).append(sub)
-    return sub
-
-
-def _remove(self, sub) -> bool:
-    with self._lock:
-        if not sub._active:
-            return False
-        sub._active = False
-        subs = self._subs[sub._event]
-        subs.remove(sub)
-        if not subs:
-            del self._subs[sub._event]
-        return True
-
-
-def trigger_event(self, event, /, **payload) -> None:
-    for sub in self._snapshot(event):  # checks the type, takes a tuple under the lock
-        if sub._once and not self._remove(sub):
-            continue
-        try:
-            sub._event_handler.handle(**payload)
-        except Exception as exc:
-            exc.add_note(f"raised by {sub._event_handler!r} while handling event {event!r}")
-            raise
+    if not isinstance(event_handler, BaseEventHandler):
+        msg = (
+            "event_handler must be a BaseEventHandler, but got "
+            f"{type(event_handler).__qualname__}: wrap a function with EventHandler(func)"
+        )
+        raise TypeError(msg)
+    ...
 ```
 
-`atrigger_event` is the same loop with `await ...ahandle(...)`. The two loops share `_snapshot` and
-`_claim` (the `once` check); the `try`/`except` is small enough to repeat (D5).
+`trigger_event` and `atrigger_event` call `self.get_subscriptions(event)`; `_snapshot` is deleted.
+Each loop keeps its own `logger.debug("Firing %s event", event)` (one line, no helper).
 
-Methods after the change:
+### 3.2 The error note (F1)
 
-| Method                                       | Behaviour                                                                          |
-| -------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `add_event_handler(event, handler, *, once)` | Registers, returns the `Subscription`.                                             |
-| `on(event, *, once)`                         | Decorator: `EventHandler(func)` registered, `func` returned unchanged.             |
-| `trigger_event`, `atrigger_event`            | Dispatch (P4 to P8, P11).                                                          |
-| `get_subscriptions(event)`                   | Tuple snapshot of the subscriptions, in run order. Replaces `get_event_handlers`.  |
-| `events`, `__contains__`, `__len__`          | Events with a handler, membership, number of registrations.                        |
-| `clear_event(event)`, `reset()`              | Remove all registrations of an event, or all. Their subscriptions become inactive. |
+```python
+def _describe(event_handler: BaseEventHandler) -> str:
+    """Name a handler without calling the repr of its data."""
+    target = event_handler.handler if isinstance(event_handler, EventHandler) else event_handler
+    return getattr(target, "__qualname__", type(target).__qualname__)
 
-`repr` is `EventManager(events={'epoch_end': 2, 'batch_end': 1})`: counts per event, no user `repr`
-runs, so no copy outside the lock is needed (F7).
 
-### 3.5 What gets removed
+def _add_error_note(exc, event, event_handler) -> None:
+    exc.add_note(f"raised by {_describe(event_handler)} while handling the event {event!r}")
+```
 
-| Removed                                                                                                                | Replaced by                                                    |
-| ---------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| `BaseEventHandler.equal`, `BaseCondition.equal`, `__eq__` of both                                                      | identity                                                       |
-| `EventManager.has_event_handler`, `EventManager.remove_event_handler`                                                  | keep the `Subscription`; `get_subscriptions(event)` to inspect |
-| `EventManager.last_triggered_event`                                                                                    | nothing (the caller knows which event it triggered)            |
-| `EventManager.get_event_handlers`                                                                                      | `get_subscriptions` (never released)                           |
-| `_OnceEventHandler`, `_unwrap`, `Subscription(remove_func, is_active_func)`                                            | the registration record                                        |
-| `BaseCondition`, `CallableCondition`, `as_condition`, `AlwaysCondition`, `NotCondition`, `AndCondition`, `OrCondition` | `Condition` protocol and lambdas                               |
-| `coola` dependency                                                                                                     | stdlib                                                         |
+The note names the event (a `str`, so safe) and the **callable**: `hello_handler`,
+`Trainer.on_epoch_end`, `partial` (a `functools.partial`) or the class of a callable instance, or the
+class of a custom `BaseEventHandler`. It is a few dozen characters whatever the arguments. The full
+`repr` stays available in the debug log and in the debugger. `EventHandler.__repr__` is unchanged.
+
+### 3.3 Awaitable check without `inspect` (F4)
+
+```python
+from collections.abc import Awaitable, Coroutine
+
+# EventHandler.handle
+result = self._call(payload)
+if result is not None and isinstance(result, Awaitable):
+    if isinstance(result, Coroutine):
+        result.close()
+    raise TypeError(f"{self._handler!r} returned an awaitable; use ahandle or atrigger_event")
+
+# EventHandler.ahandle
+if result is not None and isinstance(result, Awaitable):
+    await result
+```
+
+`inspect` is imported inside `_accepted_keywords`, the only other user, so a user who never sets
+`filter_payload=True` never pays for it. The one behaviour difference: `inspect.isawaitable` also
+accepts a legacy generator-based coroutine (`types.coroutine`); `Awaitable` does not. Such an object
+is not produced by `async def`; it is documented and not handled.
+
+### 3.4 Conditions (F6)
+
+`OnceCondition` is deleted. `once=True` is the one way to run a handler once. The rest of
+`conditions.py` is unchanged. For "run on the first call where my own predicate is true", write it:
+
+```python
+done = False
+
+
+def first_improvement() -> bool:
+    global done
+    if done or not has_improved():
+        return False
+    done = True
+    return True
+```
+
+(or a class with `__call__`, as the guide shows for custom conditions).
 
 ---
 
@@ -282,165 +222,119 @@ __all__ = [
     "Condition",
     "EventHandler",
     "EventManager",
-    "OnceCondition",
     "PeriodicCondition",
     "Subscription",
     "__version__",
 ]
-
-class BaseEventHandler(ABC):
-    def handle(self, /, **payload: object) -> None: ...        # abstract
-    async def ahandle(self, /, **payload: object) -> None: ... # default: calls handle
-
-class EventHandler(BaseEventHandler):
-    def __init__(self, handler: Callable[..., object], handler_args: Sequence[Any] | None = None,
-                 handler_kwargs: Mapping[str, Any] | None = None, *,
-                 condition: Condition | None = None, filter_payload: bool = False) -> None: ...
-    # properties: handler, handler_args, handler_kwargs, condition, filter_payload
-
-class Subscription:
-    event: str; event_handler: BaseEventHandler; once: bool; active: bool
-    def remove(self) -> bool: ...
-    def __enter__(self) -> Self: ...; def __exit__(self, *exc) -> None: ...
-
-class EventManager:
-    events: list[str]
-    def add_event_handler(self, event: str, event_handler: BaseEventHandler, *, once: bool = False) -> Subscription: ...
-    def on(self, event: str, *, once: bool = False) -> Callable[[F], F]: ...
-    def trigger_event(self, event: str, /, **payload: object) -> None: ...
-    async def atrigger_event(self, event: str, /, **payload: object) -> None: ...
-    def get_subscriptions(self, event: str) -> tuple[Subscription, ...]: ...
-    def clear_event(self, event: str) -> None: ...
-    def reset(self) -> None: ...
-    def __contains__(self, event: object) -> bool: ...
-    def __len__(self) -> int: ...
 ```
 
-The package goes from 18 exported names to 9, and `EventManager` from 14 public members to 9.
+Signatures are unchanged, except that `add_event_handler` raises `TypeError` for a handler that is
+not a `BaseEventHandler`. The package goes from 8 exported names plus `__version__` to 7 plus
+`__version__`; `EventManager` keeps its 9 public members.
 
-### Migration from `Unreleased` and from `0.5.0`
+### Migration
 
-| Code                                                              | After                                                                                         |
-| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `manager.has_event_handler(EventHandler(f), "e")`                 | `any(s.event_handler is h for s in manager.get_subscriptions("e"))`, or keep the subscription |
-| `manager.remove_event_handler("e", EventHandler(f))`              | `subscription.remove()` (the value returned by `add_event_handler`)                           |
-| `manager.remove_event_handler("e", h, missing_ok=True)`           | `subscription.remove()` returns `False` instead of raising                                    |
-| `class C(BaseCondition): def evaluate(self): ...; def equal(...)` | `class C: def __call__(self) -> bool: ...`                                                    |
-| `AndCondition(a, b)` / `OrCondition(a, b)` / `NotCondition(a)`    | `lambda: a() and b()` / `lambda: a() or b()` / `lambda: not a()`                              |
-| `AlwaysCondition()` / `CallableCondition(f)` / `as_condition(f)`  | `None` / `f` / `f`                                                                            |
-| `condition.evaluate()`                                            | `condition()`                                                                                 |
-| `manager.last_triggered_event`                                    | removed                                                                                       |
-| `handler.equal(other)`, `handler == other`                        | `handler is other`                                                                            |
-| `get_event_handlers("e")`                                         | `[s.event_handler for s in get_subscriptions("e")]`                                           |
-| `import coola` indirectly                                         | no dependency; `pip install minevent` installs one package                                    |
+| Code                                               | After                                                                        |
+| -------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `OnceCondition()`                                  | `add_event_handler(..., once=True)`, or a function with a flag               |
+| `from minevent.subscription import Subscription`   | `from minevent import Subscription`                                          |
+| `manager.add_event_handler("e", func)`             | `manager.add_event_handler("e", EventHandler(func))` (was a late `AttributeError`) |
+| `"raised by EventHandler(handler=..., ...)"` note  | `"raised by <callable name> while handling the event 'e'"`                   |
 
 ---
 
 ## 5. Dependents
 
-| Place                                               | Change                                                                                                                                                                                                |
-| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `docs/docs/architecture.md`                         | Starts with the properties of section 1. Fix F10: reflection, "synchronous only", "no threading", conditional handlers, registration flow, `handle(**payload)`, custom manager sketch (delete it).    |
-| `docs/docs/quickstart.md`                           | Delete "Event handler comparison", "Check the presence of an event handler", the equality removal examples, `last_triggered_event` (17 mentions). Add "Subscriptions" and "Conditions are callables". |
-| `faq.md`, `troubleshooting.md`, `best_practices.md` | Merge into one `guide.md` plus a short FAQ of one-line answers that link into it (F11). Remove the equality workflows.                                                                                |
-| `README.md`, `docs/docs/index.md`                   | Features list: payload, `once`, subscriptions, async, thread safety, zero dependencies. Replace the 14-row version table by the last three rows and a link to the changelog.                          |
-| `CHANGELOG.md`                                      | Rewrite the _Unreleased_ migration section from section 4; only `0.5.0` to `main` matters since the removed names were never released.                                                                |
-| `CLAUDE.md`                                         | Replace the `coola.*` rules (D11).                                                                                                                                                                    |
-| `tests/`                                            | Section 8.                                                                                                                                                                                            |
-| Packaging and CI                                    | Section 7, step 9.                                                                                                                                                                                    |
+| Place                                    | Change                                                                                                                                                                  |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docs/docs/architecture.md`              | Replace its "Properties" list by the table of section 1 (same ids). Fix the internal structure (`Subscription`s), delete "O(n) handler lookup". Update the note example. |
+| `docs/docs/quickstart.md`, `guide.md`    | Remove `OnceCondition` (6 places, including the "two ways to run a handler once" paragraph and the `once` pitfall). Show the `TypeError` of a bare function.             |
+| `README.md`                              | Drop `OnceCondition` from the features. Replace the version table (its `coola` column is always "none" now) by the `python` column and a link to the changelog.        |
+| `src/minevent/manager.py` docstrings     | Delete the "last triggered event name" sentence of `trigger_event` (F3). Add the `TypeError` to `add_event_handler` and the shape of the note to `trigger_event`.       |
+| `CHANGELOG.md`                           | Under _Unreleased_: removal of `OnceCondition` and of the `minevent.subscription` module, the `TypeError`, the new note text, the lazy `inspect`. PR numbers.            |
+| `tests/`, `dev/`, `.github/workflows/`   | Section 8. `dev/benchmark.py` is deleted; no workflow refers to it.                                                                                                      |
 
 ---
 
-## 6. Evidence: a prototype of the core
+## 6. Evidence
 
-I wrote the target `Subscription`, `EventHandler` (with `_call`) and `EventManager` of section 3 in
-one file of 190 lines with minimal docstrings, and ran it next to `main` on the same machine
-(Python 3.13.3, `timeit`, minimum of 5 repeats).
+All on `main` at `335e29b`, Python 3.13.3, Apple laptop, minimum of repeated `timeit` runs, scripts
+in the session scratchpad (not committed).
 
 **Behaviour**
 
-| Probe                                                                                   | `main`                           | Prototype          |
-| --------------------------------------------------------------------------------------- | -------------------------------- | ------------------ |
-| F1: one handler registered twice, `s1.remove()` called twice, then `len(manager)`       | `True`, `True`, 0 (both removed) | `True`, `False`, 1 |
-| `once`, 8 threads released by a `Barrier`, 200 rounds, rounds where the handler ran ≠ 1 | 0                                | 0                  |
-| Two `once` registrations of one handler, two triggers, handler calls                    | 2                                | 2                  |
-| `wrapper == handler` / `handler == wrapper` (F2)                                        | `True` / `False`                 | no wrapper         |
-| `import` time                                                                           | 35.5 ms (`coola.equality` 31 ms) | 9.9 ms             |
-| `exc.add_note(...)` then `raise` keeps the type and the traceback                       | n/a                              | yes                |
+| Probe                                                                                      | `main`                                         | Target                    |
+| ------------------------------------------------------------------------------------------ | ---------------------------------------------- | ------------------------- |
+| F1: handler raises `ValueError`, one argument has a raising `repr`; exception received     | `RuntimeError: repr boom`                      | `ValueError` with a note  |
+| F1: length of the note, handler with a 100,000-element list argument                        | 689,053 characters                             | under 100 characters      |
+| F2: `add_event_handler("e", print)` then `trigger_event("e")`                               | accepted, `AttributeError` at the trigger      | `TypeError` at the add    |
+| `once` consumed by a false condition, by a raising condition (note kept)                    | consumed (`active` is `False`)                 | unchanged                 |
+| `copy.deepcopy(EventManager())`                                                             | `TypeError: cannot pickle '_thread.RLock'`     | unchanged, documented     |
 
-**Speed** (ns per call, lower is better)
+**Speed** (prototype: only `handlers.py` changed as in section 3.3, in a copy of the package)
 
-| Benchmark                             | `main` | Prototype | Change |
-| ------------------------------------- | -----: | --------: | -----: |
-| trigger, no handler                   |    287 |       189 |   -34% |
-| trigger, 1 handler                    |    677 |       593 |   -12% |
-| trigger, 1 handler, payload of 2 keys |    831 |       748 |   -10% |
-| trigger, `filter_payload`, 3 keys     |  1,018 |       954 |    -6% |
-| trigger, 10 handlers                  |  3,738 |     3,884 |    +4% |
-| `add_event_handler` + `remove`        |  1,208 |       648 |   -46% |
+| Benchmark                                                         | `main`  | Prototype | Note                                           |
+| ----------------------------------------------------------------- | ------: | --------: | ---------------------------------------------- |
+| awaitable check on `None`, alone                                   | 232 ns  |     33 ns | `timeit`, both include the call of a lambda    |
+| `trigger_event`, no handler                                        | 293 ns  |  not run  | unchanged by the change                        |
+| `trigger_event`, 1 handler                                         | 706 ns  |    463 ns | one session; run-to-run spread is about 40 ns  |
+| `import minevent` (`-X importtime`, cumulative)                    | 13.2 ms |   9.6 ms  | 3 runs each, cold first run discarded          |
+| disabled `logger.debug` call                                       |  83 ns  |    83 ns  | kept (D6)                                      |
 
-The 10-handler case is within the noise of a laptop; the gate of section 8 allows +10%. The
-prototype does not yet have the `try`/`except` of D5 in the loop; a `try` block is free when no
-exception is raised in CPython 3.11+, and the gate re-measures it.
+The 243 ns gain of the end-to-end row is larger than the 199 ns of the micro-benchmark, which is
+within the noise of a laptop; the gate of section 8 re-measures on the real change. The other
+findings are code removal or a new check at registration (one `isinstance`, outside the trigger).
 
 ---
 
 ## 7. Changes to reach the target state
 
-One branch and one PR per row, stacked in this order (each branch from the previous one, as
-`CLAUDE.md` asks). Every PR updates the changelog with its number and has its tests.
+One branch and one PR per row, branched from `main` (the rows are independent unless stated; rows 5
+and 6 touch the same files as row 2 and 3, so merge them in this order). Every PR updates the
+changelog with its number, has its tests, and keeps `ruff`, `ty` and 100% coverage.
 
-| Step | Change                                                                                                                                                                                                                                                                                                                                                                                                                                        | Breaking                                                        |
-| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| 1    | **Documents tell the truth** (F10, no code): fix the contradictions in `architecture.md`, `handle(**payload)` in `faq.md` and `architecture.md`, delete the custom-manager sketch, add the properties.                                                                                                                                                                                                                                        | no                                                              |
-| 2    | **Registration record** (F1, F2): `Subscription` owns `_manager` and `_active`; delete `_OnceEventHandler`, `_unwrap`, `remove_func`, `is_active_func`. Regression test of F1, then the barrier test of P7 moves to the new claim.                                                                                                                                                                                                            | no (`Subscription.__init__` is internal)                        |
-| 3    | **Error context** (F9): `add_note` in both trigger loops.                                                                                                                                                                                                                                                                                                                                                                                     | no                                                              |
-| 4    | **`EventHandler._call`** (F8): one private method behind `handle` and `ahandle`.                                                                                                                                                                                                                                                                                                                                                              | no                                                              |
-| 5    | **Conditions are callables** (F5): `Condition` protocol, `__call__` on the three stateful conditions, delete the other five classes and `as_condition`, `EventHandler` calls `condition()`.                                                                                                                                                                                                                                                   | yes (never released except `evaluate`/`BaseCondition` of 0.5.0) |
-| 6    | **Remove `last_triggered_event`** (F6) and **one-line `repr`s** (F7). `get_event_handlers` becomes `get_subscriptions`.                                                                                                                                                                                                                                                                                                                       | yes                                                             |
-| 7    | **Remove the equality API** (F3): `equal`, `__eq__`, `has_event_handler`, `remove_event_handler` on handlers, conditions and manager. Handlers are hashable again.                                                                                                                                                                                                                                                                            | yes                                                             |
-| 8    | **Remove `coola`** (F4): `dependencies = []`; delete `dev/generate_versions.py`, `dev/config/package_versions.json`, `ci-test-deps`, `ci-test-code-dep`, `nightly-test-package-dep`, `lib-get-package-versions`, `bot-generate-package-versions`; the README table shrinks.                                                                                                                                                                   | yes (install and import)                                        |
-| 9    | **Packaging and CI** (F13): drop `[project.optional-dependencies]`, the `autoextras` hook and `lib-get-package-extras.yaml`; `Development Status :: 3 - Alpha` and `Operating System :: OS Independent`; remove `--color yes`; delete the `min` job; add a `concurrency` group to `ci.yaml`; add a tag against `uv version --short` check to `release-pypi.yaml`; set the version in the release PR and move _Unreleased_ to a dated heading. | no                                                              |
-| 10   | **Docs rewrite** (F11): `guide.md` replaces `best_practices.md` and `troubleshooting.md`, the FAQ becomes short answers that link into it, the README lists the features of the current API. The Markdown `pycon` blocks are already run by `inv test.doctest` (F12).                                                                                                                                                                         | no                                                              |
-| 11   | **Tests** (F14): replace `Tracer` with `Mock`, delete `tests/unit/utils.py` and `test_utils.py`, rewrite `CLAUDE.md` (D11), drop the tests of removed code.                                                                                                                                                                                                                                                                                   | no                                                              |
+| Step | Change                                                                                                                                                                                                                              | Breaking                                      |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| 1    | **Documents tell the truth** (F3, no code except docstrings): `trigger_event` docstring, `architecture.md` structure and complexity, README version table, properties table of section 1 copied into `architecture.md`.            | no                                            |
+| 2    | **Error note** (F1): `_describe`, `_add_error_note` uses it. Regression tests first (raising `repr`, huge argument), check they fail on `main` with `git stash push src`.                                                           | note text                                     |
+| 3    | **Validate the handler** (F2): `TypeError` in `add_event_handler`. Regression test fails on `main`.                                                                                                                                  | yes (duck-typed objects are rejected)         |
+| 4    | **Lazy `inspect`** (F4): `Awaitable`/`Coroutine` check, `import inspect` in `_accepted_keywords`. Package check: after `import minevent`, `inspect` is not in `sys.modules`.                                                         | no                                            |
+| 5    | **One module for the registration** (F5, F7): move `Subscription` into `manager.py`, delete `subscription.py` and `_snapshot`, merge `test_subscription.py` into `test_manager.py`, drop the `TYPE_CHECKING` import.                 | yes (`minevent.subscription`, never released) |
+| 6    | **Remove `OnceCondition`** (F6): class, export, tests, benchmark row, six documentation places, changelog.                                                                                                                          | yes (never released)                          |
+| 7    | **One benchmark mechanism** (F8): delete `dev/benchmark.py`; `CONTRIBUTING.md` says `inv test.benchmark`.                                                                                                                           | no                                            |
 
-Steps 1 to 4 are safe to merge on their own. Steps 5 to 8 can be merged in one release; step 7 is
-the one with the largest migration, so it comes after the others have shown that `Subscription` is
-enough.
+Steps 1 and 4 to 7 are safe to merge alone. Steps 2 and 3 change visible behaviour and go in the
+same release as 5 and 6 so that the migration table of section 4 is written once.
 
 ---
 
 ## 8. Tests and gates
 
-- **Registration identity (P3).** Same handler registered twice: each subscription removes its own
-  record once; `remove()` twice returns `True` then `False`; `active` after `clear_event`, `reset`
-  and `once`. Must fail on `main` (`git stash push src`).
-- **`once` (P7).** Deterministic barrier test between the snapshot and the claim (N threads, one
-  call); `once` consumed by a false condition and by a raising handler; two `once` registrations of
-  one handler run twice.
-- **Dispatch (P4, P5).** Order; handler added or removed by a handler takes effect next trigger;
-  a snapshot cannot be mutated through `get_subscriptions`.
-- **Errors (P6).** The exception is the same object, `__notes__` has the event and the handler, the
-  remaining handlers did not run.
-- **Async (P8).** Mixed sync and async handlers in order; `handle` on a coroutine function raises
-  `TypeError` and closes the coroutine (no `RuntimeWarning` under `filterwarnings = error`).
-- **Conditions (P12).** The three built-ins against a closed form; `reset`; validation errors with
-  `match`; a lambda as `condition`; a non-callable raises `TypeError`.
-- **Payload (P11).** `event` and `self` as keys; `filter_payload` with `**kwargs`, with a
-  non-introspectable callable, with a `functools.partial`; a clash with `handler_kwargs`.
-- **Whole-output tests** for `repr` of the manager, the handler and the subscription (exact string),
-  and for `get_subscriptions` (exact tuple).
-- **Threads** (`tests/integration/`): add, remove, trigger and `clear_event` concurrently; a
-  handler that registers and removes on the same manager; no exception and a consistent `len`.
-- **Package checks** (`tests/package_checks.py`, run on the built wheel): `import minevent` imports
-  no third-party package (`sys.modules` check), plus the existing `once`, payload, subscription and
-  `atrigger_event` checks.
-- **Doctests.** Source docstrings and the Markdown pages (`inv test.doctest`, exist).
-- **Benchmark gate.** The table of section 6 is the `pytest-benchmark` suite `tests/benchmarks/`
-  (`inv test.benchmark`, skipped by the other test runs). Run it before and after a change of the
-  manager, the handler or the subscription; a PR that is more than 10% slower on a row explains why.
-  The nightly workflow `ci-benchmark.yaml` saves the results and fails if a median is 50% slower
-  than in the previous run.
+New or changed tests (the other tests of the first review stay):
+
+- **Note (P7, F1).** The exception is the same object; `__notes__` has the event and the callable
+  name for a function, a bound method, a `functools.partial`, a callable instance and a custom
+  `BaseEventHandler`; a handler argument with a raising `repr` still surfaces the original
+  exception; a 100,000-element argument gives a short note. `_describe` is tested on its own, as
+  `CLAUDE.md` asks for private functions. Whole-note assertion on the exact string.
+- **Validation (P3, F2).** A function, `None`, a string and a class (not an instance) raise
+  `TypeError` with `match`; the message names the type; a custom `BaseEventHandler` is accepted.
+  For the same call in `atrigger_event` nothing changes.
+- **Import (P11, F4).** `tests/package_checks.py`: `inspect` and `importlib.metadata` are not in
+  `sys.modules` after `import minevent` (run in a subprocess on the built wheel). `filter_payload=True`
+  still works (it imports `inspect` on first use).
+- **Awaitable.** A coroutine function raises `TypeError` in `handle` and is closed (no
+  `RuntimeWarning`); an `asyncio.Future`/object with `__await__` raises `TypeError`; `None` and
+  ordinary values are fine; `ahandle` awaits all of them.
+- **Subscription after the merge (P4).** The tests of `test_subscription.py` move unchanged; the
+  regression test of the duplicate registration stays.
+- **Whole-output tests.** `repr` of the manager, the handler and the subscription (exact strings),
+  `get_subscriptions` (exact tuple).
+- **Threads** (`tests/integration/`): unchanged; they must pass after step 5 with no edit but the
+  import.
+- **Doctests.** Source docstrings and the Markdown pages (`inv test.doctest`) after steps 1 and 6.
+- **Benchmark gate.** `inv test.benchmark` before and after steps 2 to 5; a row more than 10% slower
+  is explained in the PR. The nightly workflow fails at 50% on a median.
 - **Coverage.** 100% line and branch on `src/minevent`, no `# pragma: no cover`.
 - **Lint and types.** `ruff check`, `ruff format --check`, `ty check` on `src` and `tests`.
 
@@ -448,61 +342,57 @@ enough.
 
 ## 9. Decisions for the maintainers
 
-| #   | Question                                                                             | Recommendation                                                                                                                                                                                                                                                                                                      |
-| --- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D1  | Drop the equality protocol, `has_event_handler`, `remove_event_handler` and `coola`? | **Yes.** `Subscription` is the identity (P3); equality cannot find lambdas, closures or bound methods and needs 31 ms of imports. Alternative if users need dedupe by value: keep both methods with `==` (no `coola`) and add ≈40 lines and the docs; arrays in `handler_args` then raise on ambiguous truth value. |
-| D2  | Conditions: callables, or keep the classes?                                          | **Callables.** Keep only the three stateful classes. The five removed classes are unreleased, and a lambda gives the user the choice of short-circuit that `AndCondition` fixed.                                                                                                                                    |
-| D3  | Remove `last_triggered_event`?                                                       | **Yes.** Racy, unused, costs a lock write per trigger. A user who wants it registers a handler that records it.                                                                                                                                                                                                     |
-| D4  | Run a handler that was removed during the current trigger?                           | **Yes (keep the snapshot).** Symmetric with additions, simple, and a check of `active` before the call would still race with another thread. Teardown code that must not be called after `remove()` can test `subscription.active` itself.                                                                          |
-| D5  | Add a note to exceptions of handlers?                                                | **Yes.** Three lines per loop, no new type, no change of fail-fast. Alternative: do nothing, and accept that the traceback does not name the event.                                                                                                                                                                 |
-| D6  | Keep `handler_args` and `handler_kwargs` although `functools.partial` does it?       | **Keep.** They show up in `repr`, are the documented entry point of every example, and removing them breaks every user for no gain in the core.                                                                                                                                                                     |
-| D7  | Run async handlers concurrently (`asyncio.gather`)?                                  | **No.** Sequential, in registration order (P4, P8). Concurrency is a handler choice (`gather` inside a handler).                                                                                                                                                                                                    |
-| D8  | Lock the state of the stateful conditions?                                           | **No, and document it** (F15). A lock per condition costs more than the three lines it protects and does not make a periodic counter meaningful across threads. Revisit if a user reports a free-threaded failure.                                                                                                  |
-| D9  | One-line `repr`s without `coola` formatters?                                         | **Yes.** `repr` is for debugging; the counts of the manager repr avoid running user `repr` under or around the lock.                                                                                                                                                                                                |
-| D10 | `once` consumed even if the condition is false or the handler raises?                | **Keep.** It is the only rule that is atomic without the handler reporting a result (P7). Use a `OnceCondition` to wait for the first `True`.                                                                                                                                                                       |
-| D11 | What replaces the `coola.*` rules in `CLAUDE.md`?                                    | Remove the rules about `coola.utils`, `coola.validation`, `LazySingleton` and `coola.testing.marks`. Keep the rest. Validation stays a `TypeError`/`ValueError` with a message in the function that has the argument, as in the current code (`_check_event` is the only shared helper).                            |
-| D12 | Keep `__version__` lazy?                                                             | **Yes.** `importlib.metadata` alone is 17.5 ms to import; without `coola` nothing else pays it, so the lazy attribute now saves most of the remaining import time.                                                                                                                                                  |
-| D13 | `get_event_handlers` or `get_subscriptions`?                                         | **`get_subscriptions`.** After D1, a user who did not keep the subscription needs it to remove a registration; `.event_handler` gives the handler.                                                                                                                                                                  |
+Decisions of the first review (snapshot dispatch, `once` consumed on a false condition or a raising
+handler, sequential async, no lock in conditions, keep `handler_args`/`handler_kwargs`, one-line
+`repr`s, lazy `__version__`, `get_subscriptions`) are settled and not reopened.
+
+| #   | Question                                                                       | Recommendation                                                                                                                                                                                                                                                                         |
+| --- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1  | What does the error note contain?                                              | **Event and callable name.** A note that can raise or fill a log defeats the purpose of fail-fast. Alternative: keep `repr(handler)` and guard it with `try`/`except` and a length cap (more code, still noisy).                                                                       |
+| D2  | A bare function in `add_event_handler`: reject, or wrap it in `EventHandler`?  | **Reject (`TypeError`).** Two accepted types are two ways to do one thing, and `EventHandler(func)` is short. `manager.on(event)` already covers the bare-function case. Alternative: wrap automatically; then `add_event_handler("e", print)` works and `Subscription.event_handler` is always an `EventHandler`. |
+| D3  | Merge `Subscription` into `manager.py`?                                        | **Yes.** One concept, one file, no cross-module private access, no cycle. Alternative: keep two files and give `Subscription` a method the manager calls (`_deactivate`), which is still a private call across modules.                                                                |
+| D4  | Remove `OnceCondition`?                                                        | **Yes.** `once=True` is atomic and removes the dead registration; `OnceCondition` is neither, and the docs already apologise for having both.                                                                                                                                         |
+| D5  | Lazy `inspect` and the `Awaitable` check?                                      | **Yes.** About 3.6 ms of import and 200 ns per handler call for a rule that `CLAUDE.md` already states. The only difference is the legacy generator-based coroutine (section 3.3).                                                                                                    |
+| D6  | Keep the `logger.debug` calls, including the one in each trigger (12%)?         | **Keep.** It is the only way to see that an event with no handler fired, and it is the documented debugging tool. Alternative: remove the trigger line and keep the three on the cold paths (registration, removal, clear).                                                              |
+| D7  | Delete `dev/benchmark.py`; keep `dev/benchmark_trend.py` (131 lines + 108 of tests)? | **Delete the script, keep the trend.** The suite covers every row of the script. The trend page is what makes the nightly artifact readable and prunes it; replacing it needs a retention rule in the workflow, which is as much code. Revisit if nobody reads the nightly summary.        |
 
 ---
 
 ## 10. Not covered
 
 - **Priorities, wildcards, hierarchical events, event objects.** Non-goals of the architecture page.
-- **Typed payloads** (a `TypedDict` per event, generics on `EventManager`). Worth a separate design if
-  users ask; it does not change the runtime.
-- **Weak references / auto-unsubscribe.** Non-goal; `with subscription:` and `remove()` cover the
-  lifetime.
-- **Collecting errors** (`ExceptionGroup`). Non-goal, kept as is.
-- **Cross-process or persistent events**, and **offloading blocking handlers** from `atrigger_event`
-  to a thread (`asyncio.to_thread` in the handler).
-- **Free-threaded safety of conditions** (D8).
-- **A plugin entry-point group** for handlers.
+- **Typed payloads** (a `TypedDict` per event, generics on `EventManager`). Worth a separate design
+  if users ask; it does not change the runtime.
+- **Weak references / auto-unsubscribe, collecting errors (`ExceptionGroup`), cross-process or
+  persistent events, offloading blocking handlers to a thread.** Non-goals, unchanged.
+- **Free-threaded safety of conditions.** Documented limit (first review, D8).
+- **`Subscription` built by hand.** `Subscription(manager, ...)` then `remove()` raises `KeyError`
+  **[verified]**; the constructor is documented as internal, and Python cannot make it private.
+- **Copy and pickle of the manager.** Documented limit, section 1.
+- **Repository tooling.** 26 workflows, the shared `.make/` directory and two task runners
+  (`invoke` and `make`) are large for a 1,300-line package. They are shared with other projects, so
+  they are outside this review; the only item taken is the duplicate benchmark script (F8).
+- **The `Tracer` test helper.** The first review proposed `unittest.mock`; the maintainers kept the
+  helper and `CLAUDE.md` now describes it ("traced handler"). Not reopened.
 
 ---
 
 ## Appendix: effect on the size of the package
 
-Lines include docstrings. "Measured" is the state of `main` after steps 1 to 11 and the benchmark
-suite (`wc -l`, and `coverage` for the statements); "Expected" is the estimate I wrote before.
+Lines include docstrings (`wc -l`); "Expected" is an estimate, the gate is the behaviour of
+sections 1 and 8, not the size.
 
-| Module                                       |            Lines today | Expected after |               Measured |
-| -------------------------------------------- | ---------------------: | -------------: | ---------------------: |
-| `conditions.py`                              |                    590 |            180 |                    231 |
-| `handlers.py`                                |                    477 |            320 |                    390 |
-| `manager.py`                                 |                    735 |            450 |                    466 |
-| `subscription.py`                            |                    139 |            110 |                    146 |
-| `__init__.py`                                |                     61 |             52 |                     49 |
-| **`src`**                                    |              **2,002** |     **~1,110** |              **1,282** |
-| `src` statements                             |                    438 |           ~270 |                    276 |
-| `tests/` (unit, integration, package checks) |                  3,251 |         ~1,900 |                  2,661 |
-| `tests/benchmarks/`                          |                      0 |              - |                    419 |
-| `docs/docs` (without `refs/`)                |                  2,492 |         ~1,300 |                  1,505 |
-| Workflows (`.github/workflows`)              | 31 files / 1,668 lines |      ~25 files | 26 files / 1,332 lines |
-| Runtime dependencies                         |                      1 |              0 |                      0 |
-
-The statements (276) and the dependency count match the estimate. The line counts are higher
-because I kept the docstrings of the properties and the `Raises:` sections, and the tests are higher
-because I kept the `Tracer` helper and added tests for each private method (`_call`, `_remove`,
-`_snapshot`, `_add_error_note`). Import time went from 35.5 ms to about 13 ms, and the trigger of
-one handler stayed at about 0.7 µs.
+| Module                                       | Lines today | Expected after | Why                                                                          |
+| -------------------------------------------- | ----------: | -------------: | ---------------------------------------------------------------------------- |
+| `conditions.py`                              |         231 |            ~185 | `OnceCondition` (class, docstring, doctest)                                   |
+| `handlers.py`                                |         390 |            ~395 | `Awaitable` check and a local import: same size                               |
+| `manager.py` + `subscription.py`             |    466 + 146 |           ~590 | `_snapshot` gone, one header and imports, `_describe` and the handler check added |
+| `__init__.py`                                |          49 |             ~46 | one export fewer                                                              |
+| **`src`**                                    |   **1,282** |         **~1,215** |                                                                            |
+| `src` statements                             |         276 |           ~268 |                                                                               |
+| `tests/` (unit, integration, package checks) |       2,661 |          ~2,600 | `OnceCondition` and `_snapshot` tests out, note, validation and import tests in |
+| `tests/benchmarks/`                          |         419 |            ~410 | `OnceCondition` row                                                           |
+| `dev/`                                       |         213 |            ~131 | `benchmark.py` out                                                            |
+| `docs/docs` (without `refs/`)                |       1,505 |          ~1,470 | `OnceCondition` paragraphs, duplicated properties                             |
+| Runtime dependencies                         |           0 |               0 |                                                                               |
+| `import minevent`                            |     13.2 ms |         ~9.6 ms | lazy `inspect`                                                                |
