@@ -163,14 +163,14 @@ BaseEventHandler (abstract)
 
 ### Event Manager
 
-**Design**: Central coordinator using a dictionary to map events to handler lists.
+**Design**: Central coordinator using a dictionary to map events to lists of subscriptions.
 
 **Internal Structure**:
 
 ```python
 {
-    "event1": [handler1, handler2, handler3],
-    "event2": [handler4, handler5],
+    "event1": [subscription1, subscription2, subscription3],
+    "event2": [subscription4, subscription5],
     # ...
 }
 ```
@@ -185,7 +185,7 @@ BaseEventHandler (abstract)
 
 - `O(1)` handler registration
 - `O(n)` event triggering (n = number of handlers)
-- `O(n)` handler lookup (n = total handlers)
+- `O(n)` removal of a registration (n = handlers of its event)
 
 ## Conditional Execution
 
