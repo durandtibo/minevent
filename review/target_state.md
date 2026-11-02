@@ -436,8 +436,11 @@ enough.
   no third-party package (`sys.modules` check), plus the existing `once`, payload, subscription and
   `atrigger_event` checks.
 - **Doctests.** Source docstrings and the Markdown pages (`inv test.doctest`, exist).
-- **Benchmark gate.** The table of section 6 is a script in `dev/` (not in the package) run before and
-  after steps 2, 3 and 5; a PR that is more than 10% slower on any row explains why.
+- **Benchmark gate.** The table of section 6 is the `pytest-benchmark` suite `tests/benchmarks/`
+  (`inv test.benchmark`, skipped by the other test runs). Run it before and after a change of the
+  manager, the handler or the subscription; a PR that is more than 10% slower on a row explains why.
+  The nightly workflow `ci-benchmark.yaml` saves the results and fails if a median is 50% slower
+  than in the previous run.
 - **Coverage.** 100% line and branch on `src/minevent`, no `# pragma: no cover`.
 - **Lint and types.** `ruff check`, `ruff format --check`, `ty check` on `src` and `tests`.
 
