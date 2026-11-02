@@ -4,6 +4,7 @@ from __future__ import annotations
 
 __all__ = ["BaseEventHandler", "EventHandler"]
 
+import inspect
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Coroutine
 from typing import TYPE_CHECKING, Any
@@ -114,8 +115,6 @@ def _accepted_keywords(func: Callable[..., object]) -> frozenset[str] | None:
 
         ```
     """
-    import inspect  # noqa: PLC0415
-
     try:
         parameters = inspect.signature(func).parameters.values()
     except (TypeError, ValueError):
