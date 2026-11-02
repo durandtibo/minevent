@@ -7,14 +7,13 @@ import logging
 from collections.abc import Sequence
 from types import MappingProxyType
 from typing import Any
+from unittest.mock import Mock
 
 import pytest
 
 from minevent import (
     AfterNCondition,
-    AndCondition,
     BaseEventHandler,
-    CallableCondition,
     EventHandler,
     PeriodicCondition,
 )
@@ -240,8 +239,15 @@ def test_event_handler_condition_str() -> None:
     )
 
 
-def test_event_handler_condition_equal_true() -> None:
-    assert EventHandler(hello_handler, condition=PeriodicCondition(3)).equal(
+def test_event_handler_condition_equal_true_same_condition() -> None:
+    condition = PeriodicCondition(3)
+    assert EventHandler(hello_handler, condition=condition).equal(
+        EventHandler(hello_handler, condition=condition)
+    )
+
+
+def test_event_handler_condition_equal_false_equivalent_conditions() -> None:
+    assert not EventHandler(hello_handler, condition=PeriodicCondition(3)).equal(
         EventHandler(hello_handler, condition=PeriodicCondition(3))
     )
 
@@ -270,14 +276,9 @@ def test_event_handler_condition_equal_false_different_classes() -> None:
     )
 
 
-def test_event_handler_condition_callable_condition() -> None:
-    event_handler = EventHandler(hello_handler, condition=PeriodicCondition(3))
-    assert (
-        event_handler.handler,
-        event_handler.handler_args,
-        event_handler.handler_kwargs,
-        event_handler.condition,
-    ) == (hello_handler, (), {}, PeriodicCondition(3))
+def test_event_handler_condition_property() -> None:
+    condition = PeriodicCondition(3)
+    assert EventHandler(hello_handler, condition=condition).condition is condition
 
 
 def test_event_handler_condition_handle_1() -> None:
@@ -462,10 +463,8 @@ def test_event_handler_key_without_condition() -> None:
 ##########################################################
 
 
-def test_event_handler_callable_condition_wrapped() -> None:
-    assert EventHandler(hello_handler, condition=always_true).condition == CallableCondition(
-        always_true
-    )
+def test_event_handler_callable_condition_not_wrapped() -> None:
+    assert EventHandler(hello_handler, condition=always_true).condition is always_true
 
 
 def test_event_handler_callable_condition_true() -> None:
@@ -492,18 +491,31 @@ def test_event_handler_callable_condition_equal_false() -> None:
 
 def test_event_handler_condition_incorrect_type() -> None:
     bad: Any = "meow"
-    with pytest.raises(TypeError, match=r"condition must be a BaseCondition or a callable"):
+    with pytest.raises(TypeError, match=r"condition is not callable: meow"):
         EventHandler(hello_handler, condition=bad)
 
 
-def test_event_handler_condition_combinator() -> None:
+def test_event_handler_condition_combinator_short_circuit() -> None:
+    after_one = AfterNCondition(1)
+    periodic = PeriodicCondition(2)
     handle_n_times(
-        EventHandler(
-            hello_handler, condition=AndCondition(AfterNCondition(1), PeriodicCondition(2))
-        ),
+        EventHandler(hello_handler, condition=lambda: after_one() and periodic()),
         5,
     )
     assert hello_handler.call_count == 2
+
+
+def test_event_handler_condition_combinator_short_circuit_skips_second_condition() -> None:
+    periodic = PeriodicCondition(2)
+    first = Mock(return_value=False)
+    handle_n_times(EventHandler(hello_handler, condition=lambda: first() and periodic()), 3)
+    assert periodic._step == 0
+
+
+def test_event_handler_condition_combinator_evaluates_all() -> None:
+    periodic = PeriodicCondition(2)
+    handle_n_times(EventHandler(hello_handler, condition=lambda: all([False, periodic()])), 3)
+    assert periodic._step == 3
 
 
 ########################################

@@ -1,136 +1,68 @@
-r"""Implement some conditions that can be used in the event system."""
+r"""Implement some conditions that can be used in the event system.
+
+A condition is any function without argument that returns a boolean,
+see the ``Condition`` protocol. The conditions of this module keep a
+state between calls.
+"""
 
 from __future__ import annotations
 
-__all__ = [
-    "AfterNCondition",
-    "AlwaysCondition",
-    "AndCondition",
-    "BaseCondition",
-    "CallableCondition",
-    "NotCondition",
-    "OnceCondition",
-    "OrCondition",
-    "PeriodicCondition",
-    "as_condition",
-]
+__all__ = ["AfterNCondition", "Condition", "OnceCondition", "PeriodicCondition"]
 
-from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
-
-from coola.equality import objects_are_equal
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
+from typing import Protocol
 
 
-class BaseCondition(ABC):  # noqa: PLW1641
-    r"""Define the base class to implement a condition for
-    ``EventHandler``.
+class Condition(Protocol):
+    r"""Define the protocol of a condition for ``EventHandler``.
 
-    A child class has to implement the following methods:
+    A condition is any function without argument that returns a
+    boolean: a lambda, a method, or an object with a ``__call__``
+    method like the conditions of this module. It is called each time
+    the event is triggered, before the handler, and the handler is
+    executed only if it returns ``True``. A condition can keep a state
+    between calls.
 
-        - ``evaluate``
-        - ``equal``
-
-    ``equal`` is the primary comparison API and ``==`` delegates to
-    it. Conditions are intentionally unhashable, like the event
-    handlers.
+    To combine conditions, write a function. The function decides
+    which conditions are evaluated: ``lambda: a() and b()`` skips ``b``
+    when ``a`` is ``False``, while ``lambda: all([a(), b()])``
+    evaluates both, so stateful conditions advance together.
 
     Example:
         ```pycon
-        >>> from minevent import PeriodicCondition
+        >>> from minevent import EventHandler, PeriodicCondition
         >>> condition = PeriodicCondition(freq=3)
-        >>> condition.evaluate()
-        True
-        >>> condition.evaluate()
-        False
-        >>> condition.evaluate()
-        False
-        >>> condition.evaluate()
-        True
-        >>> condition.evaluate()
-        False
-        >>> condition.evaluate()
-        False
-        >>> condition.evaluate()
-        True
+        >>> handler = EventHandler(print, ["Hello!"], condition=condition)
+        >>> handler.handle()
+        Hello!
+        >>> handler.handle()
+        >>> handler = EventHandler(print, ["Bye!"], condition=lambda: False)
+        >>> handler.handle()
 
         ```
     """
 
-    def __eq__(self, other: object) -> bool:
-        return self.equal(other)
-
-    @abstractmethod
-    def equal(self, other: object) -> bool:
-        r"""Compare two conditions for equality.
-
-        This method should be implemented by child classes to define
-        how conditions are compared. This is used when comparing
-        conditional event handlers.
-
-        Args:
-            other: The other object to compare with. Can be any type,
-                though typically a condition.
-
-        Returns:
-            ``True`` if the two conditions are considered equal,
-                otherwise ``False``.
-
-        Example:
-            ```pycon
-            >>> from minevent import PeriodicCondition
-            >>> condition = PeriodicCondition(freq=3)
-            >>> condition.equal(PeriodicCondition(freq=3))
-            True
-            >>> condition.equal(PeriodicCondition(freq=2))
-            False
-
-            ```
-        """
-
-    @abstractmethod
-    def evaluate(self) -> bool:
+    def __call__(self) -> bool:
         r"""Evaluate the condition given the current state.
 
-        This method should be implemented by child classes to define
-        the logic for determining whether a conditional event handler
-        should be executed. The method is called without arguments and
-        may maintain internal state between calls.
-
         Returns:
-            ``True`` if the condition is satisfied and the event
-                handler logic should be executed, otherwise ``False``.
-
-        Example:
-            ```pycon
-            >>> from minevent import PeriodicCondition
-            >>> condition = PeriodicCondition(freq=2)
-            >>> condition.evaluate()
-            True
-            >>> condition.evaluate()
-            False
-
-            ```
+            ``True`` if the event handler should be executed,
+                otherwise ``False``.
         """
 
 
-class PeriodicCondition(BaseCondition):
+class PeriodicCondition:
     r"""Implement a periodic condition.
 
-    This condition evaluates to ``True`` on the first call and then every ``freq`` calls to the
-    ``evaluate`` method. It maintains an internal counter that
-    increments with each evaluation. The condition is ``True`` when
+    This condition evaluates to ``True`` on the first call and then every ``freq`` calls. It
+    maintains an internal counter that increments with each call. The condition is ``True`` when
     the counter modulo ``freq`` equals zero.
 
-    Note that ``evaluate`` is not idempotent: each call advances the
+    Note that a call is not idempotent: each call advances the
     counter, so the condition is stateful. Do not share one instance
     between several handlers, because they would advance the same
-    counter. Use ``reset`` to restart the counter. Two conditions are
-    equal if they have the same ``freq`` and ``skip_first``; the
-    current progress is ignored, so duplicate handlers are detected
-    whatever their progress.
+    counter. Use ``reset`` to restart the counter. The counter is not
+    protected by a lock, so a condition should be called from one
+    thread.
 
     Args:
         freq: The frequency (interval) at which the condition
@@ -147,27 +79,11 @@ class PeriodicCondition(BaseCondition):
         ```pycon
         >>> from minevent import PeriodicCondition
         >>> condition = PeriodicCondition(freq=3)
-        >>> condition.evaluate()
-        True
-        >>> condition.evaluate()
-        False
-        >>> condition.evaluate()
-        False
-        >>> condition.evaluate()
-        True
-        >>> condition.evaluate()
-        False
-        >>> condition.evaluate()
-        False
-        >>> condition.evaluate()
-        True
+        >>> [condition() for _ in range(7)]
+        [True, False, False, True, False, False, True]
         >>> condition = PeriodicCondition(freq=2, skip_first=True)
-        >>> condition.evaluate()
-        False
-        >>> condition.evaluate()
-        False
-        >>> condition.evaluate()
-        True
+        >>> [condition() for _ in range(3)]
+        [False, False, True]
 
         ```
     """
@@ -189,36 +105,30 @@ class PeriodicCondition(BaseCondition):
             f"skip_first={self._skip_first}, step={self._step:,})"
         )
 
+    def __call__(self) -> bool:
+        condition = self._step % self._freq == 0 and not (self._skip_first and self._step == 0)
+        self._step += 1
+        return condition
+
     @property
     def freq(self) -> int:
         r"""Get the frequency of the periodic condition.
 
         Returns:
-            The number of evaluations between each ``True`` result.
-                The condition evaluates to ``True`` every ``freq``
-                calls.
+            The number of calls between each ``True`` result. The
+                condition evaluates to ``True`` every ``freq`` calls.
         """
         return self._freq
 
     @property
     def skip_first(self) -> bool:
-        r"""Indicate if the first evaluation is skipped.
+        r"""Indicate if the first call is skipped.
 
         Returns:
-            ``True`` if the first call to ``evaluate`` returns
-                ``False``, otherwise ``False``.
+            ``True`` if the first call returns ``False``, otherwise
+                ``False``.
         """
         return self._skip_first
-
-    def equal(self, other: object) -> bool:
-        if isinstance(other, PeriodicCondition):
-            return self.freq == other.freq and self.skip_first == other.skip_first
-        return False
-
-    def evaluate(self) -> bool:
-        condition = self._step % self._freq == 0 and not (self._skip_first and self._step == 0)
-        self._step += 1
-        return condition
 
     def reset(self) -> None:
         r"""Reset the internal counter, as if the condition was just
@@ -228,12 +138,10 @@ class PeriodicCondition(BaseCondition):
             ```pycon
             >>> from minevent import PeriodicCondition
             >>> condition = PeriodicCondition(freq=2)
-            >>> condition.evaluate()
-            True
-            >>> condition.evaluate()
-            False
+            >>> condition(), condition()
+            (True, False)
             >>> condition.reset()
-            >>> condition.evaluate()
+            >>> condition()
             True
 
             ```
@@ -241,126 +149,20 @@ class PeriodicCondition(BaseCondition):
         self._step = 0
 
 
-class CallableCondition(BaseCondition):
-    r"""Wrap a function without argument that returns a boolean as a
-    condition.
-
-    Two callable conditions are equal if their functions are equal.
-
-    Args:
-        func: The function called by ``evaluate``. It takes no
-            argument and returns a boolean.
-
-    Raises:
-        TypeError: if ``func`` is not callable.
-
-    Example:
-        ```pycon
-        >>> from minevent import CallableCondition
-        >>> condition = CallableCondition(lambda: True)
-        >>> condition.evaluate()
-        True
-
-        ```
-    """
-
-    def __init__(self, func: Callable[[], bool]) -> None:
-        if not callable(func):
-            msg = f"func is not callable: {func}"
-            raise TypeError(msg)
-        self._func = func
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__qualname__}(func={self._func!r})"
-
-    @property
-    def func(self) -> Callable[[], bool]:
-        r"""Get the wrapped function.
-
-        Returns:
-            The function called by ``evaluate``.
-        """
-        return self._func
-
-    def equal(self, other: object) -> bool:
-        if isinstance(other, CallableCondition):
-            return objects_are_equal(self._func, other.func)
-        return False
-
-    def evaluate(self) -> bool:
-        return bool(self._func())
-
-
-def as_condition(condition: BaseCondition | Callable[[], bool]) -> BaseCondition:
-    r"""Convert a condition or a function to a condition.
-
-    Args:
-        condition: A condition, or a function without argument that
-            returns a boolean.
-
-    Returns:
-        ``condition`` if it is a ``BaseCondition``, otherwise a
-            ``CallableCondition`` that wraps it.
-
-    Raises:
-        TypeError: if ``condition`` is neither a ``BaseCondition``
-            nor callable.
-
-    Example:
-        ```pycon
-        >>> from minevent import PeriodicCondition, as_condition
-        >>> as_condition(PeriodicCondition(2))
-        PeriodicCondition(freq=2, skip_first=False, step=0)
-        >>> as_condition(lambda: True).evaluate()
-        True
-
-        ```
-    """
-    if isinstance(condition, BaseCondition):
-        return condition
-    if callable(condition):
-        return CallableCondition(condition)
-    msg = f"condition must be a BaseCondition or a callable, got {type(condition).__qualname__}"
-    raise TypeError(msg)
-
-
-class AlwaysCondition(BaseCondition):
-    r"""Implement a condition that is always ``True``.
-
-    Example:
-        ```pycon
-        >>> from minevent import AlwaysCondition
-        >>> condition = AlwaysCondition()
-        >>> condition.evaluate()
-        True
-
-        ```
-    """
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__qualname__}()"
-
-    def equal(self, other: object) -> bool:
-        return isinstance(other, AlwaysCondition)
-
-    def evaluate(self) -> bool:
-        return True
-
-
-class OnceCondition(BaseCondition):
+class OnceCondition:
     r"""Implement a condition that is ``True`` only on the first call.
 
-    The condition is stateful, like ``PeriodicCondition``: the
-    progress is ignored by ``equal``.
+    The handler stays registered and is skipped afterwards. Use
+    ``once=True`` in ``EventManager.add_event_handler`` to remove the
+    registration instead. The condition is stateful, like
+    ``PeriodicCondition``.
 
     Example:
         ```pycon
         >>> from minevent import OnceCondition
         >>> condition = OnceCondition()
-        >>> condition.evaluate()
-        True
-        >>> condition.evaluate()
-        False
+        >>> condition(), condition()
+        (True, False)
 
         ```
     """
@@ -371,21 +173,17 @@ class OnceCondition(BaseCondition):
     def __repr__(self) -> str:
         return f"{self.__class__.__qualname__}(done={self._done})"
 
-    def equal(self, other: object) -> bool:
-        return isinstance(other, OnceCondition)
-
-    def evaluate(self) -> bool:
+    def __call__(self) -> bool:
         condition = not self._done
         self._done = True
         return condition
 
 
-class AfterNCondition(BaseCondition):
+class AfterNCondition:
     r"""Implement a condition that is ``False`` for the first ``n``
     calls and ``True`` afterwards.
 
-    The condition is stateful, like ``PeriodicCondition``: the
-    progress is ignored by ``equal``.
+    The condition is stateful, like ``PeriodicCondition``.
 
     Args:
         n: The number of calls to skip. Must be a non-negative
@@ -399,14 +197,8 @@ class AfterNCondition(BaseCondition):
         ```pycon
         >>> from minevent import AfterNCondition
         >>> condition = AfterNCondition(2)
-        >>> condition.evaluate()
-        False
-        >>> condition.evaluate()
-        False
-        >>> condition.evaluate()
-        True
-        >>> condition.evaluate()
-        True
+        >>> [condition() for _ in range(4)]
+        [False, False, True, True]
 
         ```
     """
@@ -424,6 +216,11 @@ class AfterNCondition(BaseCondition):
     def __repr__(self) -> str:
         return f"{self.__class__.__qualname__}(n={self._n:,}, step={self._step:,})"
 
+    def __call__(self) -> bool:
+        condition = self._step >= self._n
+        self._step += 1
+        return condition
+
     @property
     def n(self) -> int:
         r"""Get the number of skipped calls.
@@ -432,159 +229,3 @@ class AfterNCondition(BaseCondition):
             The number of calls that evaluate to ``False``.
         """
         return self._n
-
-    def equal(self, other: object) -> bool:
-        if isinstance(other, AfterNCondition):
-            return self._n == other.n
-        return False
-
-    def evaluate(self) -> bool:
-        condition = self._step >= self._n
-        self._step += 1
-        return condition
-
-
-class _CombinedCondition(BaseCondition):
-    r"""Define the base class of the conditions that combine other
-    conditions.
-
-    All the conditions are evaluated at each call, with no
-    short-circuit, so stateful conditions advance consistently. The
-    trade-off is that a costly operand is always evaluated.
-
-    Args:
-        *conditions: The conditions to combine. Functions without
-            argument that return a boolean are accepted.
-
-    Raises:
-        ValueError: if no condition is given.
-        TypeError: if a condition is neither a ``BaseCondition`` nor
-            callable.
-    """
-
-    def __init__(self, *conditions: BaseCondition | Callable[[], bool]) -> None:
-        if not conditions:
-            msg = f"{self.__class__.__qualname__} requires at least one condition"
-            raise ValueError(msg)
-        self._conditions = tuple(as_condition(condition) for condition in conditions)
-
-    def __repr__(self) -> str:
-        args = ", ".join(repr(condition) for condition in self._conditions)
-        return f"{self.__class__.__qualname__}({args})"
-
-    @property
-    def conditions(self) -> tuple[BaseCondition, ...]:
-        r"""Get the combined conditions.
-
-        Returns:
-            The conditions, in the order they were given.
-        """
-        return self._conditions
-
-    def equal(self, other: object) -> bool:
-        if type(self) is not type(other):
-            return False
-        return objects_are_equal(self._conditions, other.conditions)
-
-
-class AndCondition(_CombinedCondition):
-    r"""Implement a condition that is ``True`` if all the conditions
-    are ``True``.
-
-    Args:
-        *conditions: The conditions to combine. Functions without
-            argument that return a boolean are accepted.
-
-    Raises:
-        ValueError: if no condition is given.
-        TypeError: if a condition is neither a ``BaseCondition`` nor
-            callable.
-
-    Example:
-        ```pycon
-        >>> from minevent import AndCondition, AfterNCondition, PeriodicCondition
-        >>> condition = AndCondition(AfterNCondition(1), PeriodicCondition(2))
-        >>> [condition.evaluate() for _ in range(5)]
-        [False, False, True, False, True]
-
-        ```
-    """
-
-    def evaluate(self) -> bool:
-        results = [condition.evaluate() for condition in self._conditions]
-        return all(results)
-
-
-class OrCondition(_CombinedCondition):
-    r"""Implement a condition that is ``True`` if at least one
-    condition is ``True``.
-
-    Args:
-        *conditions: The conditions to combine. Functions without
-            argument that return a boolean are accepted.
-
-    Raises:
-        ValueError: if no condition is given.
-        TypeError: if a condition is neither a ``BaseCondition`` nor
-            callable.
-
-    Example:
-        ```pycon
-        >>> from minevent import OrCondition, OnceCondition, PeriodicCondition
-        >>> condition = OrCondition(OnceCondition(), PeriodicCondition(3))
-        >>> [condition.evaluate() for _ in range(4)]
-        [True, False, False, True]
-
-        ```
-    """
-
-    def evaluate(self) -> bool:
-        results = [condition.evaluate() for condition in self._conditions]
-        return any(results)
-
-
-class NotCondition(BaseCondition):
-    r"""Implement a condition that negates another condition.
-
-    Args:
-        condition: The condition to negate. A function without
-            argument that returns a boolean is accepted.
-
-    Raises:
-        TypeError: if ``condition`` is neither a ``BaseCondition``
-            nor callable.
-
-    Example:
-        ```pycon
-        >>> from minevent import NotCondition, OnceCondition
-        >>> condition = NotCondition(OnceCondition())
-        >>> condition.evaluate()
-        False
-        >>> condition.evaluate()
-        True
-
-        ```
-    """
-
-    def __init__(self, condition: BaseCondition | Callable[[], bool]) -> None:
-        self._condition = as_condition(condition)
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__qualname__}({self._condition!r})"
-
-    @property
-    def condition(self) -> BaseCondition:
-        r"""Get the negated condition.
-
-        Returns:
-            The condition.
-        """
-        return self._condition
-
-    def equal(self, other: object) -> bool:
-        if isinstance(other, NotCondition):
-            return objects_are_equal(self._condition, other.condition)
-        return False
-
-    def evaluate(self) -> bool:
-        return not self._condition.evaluate()

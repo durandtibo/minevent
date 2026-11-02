@@ -10,7 +10,6 @@ from unittest.mock import Mock
 import pytest
 
 from minevent import (
-    BaseCondition,
     BaseEventHandler,
     EventHandler,
     EventManager,
@@ -524,16 +523,13 @@ def test_event_manager_trigger_event_payload_not_accepted_by_handler() -> None:
 ##########################################
 
 
-class CustomCondition(BaseCondition):
+class CustomCondition:
     r"""Implements a condition that is true for odd calls."""
 
     def __init__(self) -> None:
         self._count = 0
 
-    def equal(self, other: object) -> bool:
-        return isinstance(other, CustomCondition)
-
-    def evaluate(self) -> bool:
+    def __call__(self) -> bool:
         self._count += 1
         return self._count % 2 == 1
 
@@ -570,11 +566,10 @@ def test_event_manager_trigger_event_conditional_handler() -> None:
 
 def test_event_manager_has_event_handler_conditional_handler_true() -> None:
     event_manager = EventManager()
-    event_manager.add_event_handler(
-        "my_event", EventHandler(hello_handler, condition=PeriodicCondition(2))
-    )
+    condition = PeriodicCondition(2)
+    event_manager.add_event_handler("my_event", EventHandler(hello_handler, condition=condition))
     assert event_manager.has_event_handler(
-        EventHandler(hello_handler, condition=PeriodicCondition(2)), "my_event"
+        EventHandler(hello_handler, condition=condition), "my_event"
     )
 
 

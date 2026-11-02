@@ -140,19 +140,17 @@ as `PeriodicCondition` is not protected. See [Thread Safety](architecture.md#thr
 
 ### Can I create custom conditions?
 
-Yes! Implement the `BaseCondition` class:
+Yes! A condition is any function without argument that returns a boolean, so a lambda works. For
+a condition with a state, write a class with a `__call__` method:
 
 ```python
-from minevent.conditions import BaseCondition
-
-
-class MyCondition(BaseCondition):
-    def evaluate(self) -> bool:
+class MyCondition:
+    def __call__(self) -> bool:
         # Your custom logic here
         return some_condition
 
-    def equal(self, other) -> bool:
-        return isinstance(other, MyCondition)
+
+handler = EventHandler(my_function, condition=MyCondition())
 ```
 
 ### Can I create custom event handlers?

@@ -103,9 +103,9 @@ Extend functionality by composing handlers and conditions:
 handler = EventHandler(my_function, condition=PeriodicCondition(freq=5))
 
 
-# Custom conditions by implementing BaseCondition
-class MyCondition(BaseCondition):
-    def evaluate(self) -> bool:
+# Custom conditions: any function without argument that returns a bool
+class MyCondition:
+    def __call__(self) -> bool:
         return custom_logic()
 ```
 
@@ -196,7 +196,7 @@ BaseEventHandler (abstract)
 ```
 EventHandler(condition=...)
     ├── Handler (callable)
-    └── Condition (BaseCondition)
+    └── Condition (callable that returns a bool)
 ```
 
 **Execution Flow**:
@@ -256,7 +256,7 @@ Without condition:
     handler(*handler_args, **handler_kwargs, **payload)
 
 With a condition:
-    if condition.evaluate():
+    if condition():
         handler(*handler_args, **handler_kwargs, **payload)
 ```
 
@@ -285,18 +285,18 @@ class MyEventHandler(BaseEventHandler):
 
 ### Custom Conditions
 
-Implement `BaseCondition`:
+A condition is any function without argument that returns a boolean (the `Condition` protocol).
+Implement `__call__` in a class when the condition has a state:
 
 ```python
-class MyCondition(BaseCondition):
-    def evaluate(self) -> bool:
+class MyCondition:
+    def __call__(self) -> bool:
         # Custom logic
         return some_condition
-
-    def equal(self, other: Any) -> bool:
-        # Custom comparison
-        return isinstance(other, MyCondition)
 ```
+
+To combine conditions, write a function: `lambda: a() and b()` skips `b` when `a` is `False`, and
+`lambda: all([a(), b()])` evaluates both.
 
 **Use Cases**:
 

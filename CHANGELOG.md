@@ -22,6 +22,11 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
 - `EventHandler` copies `handler_kwargs`, rejects a `str` or `bytes` `handler_args`, and accepts a
   `condition` argument. `ConditionalEventHandler` is removed: use
   `EventHandler(handler, condition=condition)`.
+- `BaseCondition` (with `evaluate` and `equal`) is removed. A condition is a function without
+  argument that returns a boolean: implement `__call__` instead of `evaluate`, and call `condition()`
+  instead of `condition.evaluate()`. Combine conditions with a function, for example
+  `lambda: a() and b()`. Conditions have no `equal`, so two handlers with separately created
+  conditions are different.
 - `PeriodicCondition` validates `freq` and has a `skip_first` option and a `reset` method.
 - `__repr__` of `EventManager` is simpler.
 
@@ -31,9 +36,8 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
 - `trigger_event(event, **payload)` passes the keyword arguments to the handlers.
 - `add_event_handler` returns a `Subscription` and has a `once` option.
 - `atrigger_event` and `EventHandler.ahandle` to await coroutine handlers.
-- Built-in conditions (`AlwaysCondition`, `OnceCondition`, `AfterNCondition`, `AndCondition`,
-  `OrCondition`, `NotCondition`, `CallableCondition`); a function without argument that returns a
-  boolean is accepted as a condition.
+- Built-in conditions `OnceCondition` and `AfterNCondition`. A condition is any function without
+  argument that returns a boolean (the `Condition` protocol), so a lambda is a condition.
 - The `EventManager` registry is thread-safe.
 - `EventManager.get_event_handlers`, `__len__` and the `on` decorator.
 - `has_event_handler` and `remove_event_handler` accept a `Subscription`.

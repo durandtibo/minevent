@@ -141,18 +141,19 @@ Hello!
 
 ```
 
-`minevent` also provides `AlwaysCondition`, `OnceCondition` (first call only),
-`AfterNCondition` (skip the first `n` calls), `PeriodicCondition(freq, skip_first=...)` and the
-combinators `AndCondition`, `OrCondition` and `NotCondition`. The combinators evaluate all their
-conditions at each call, so stateful conditions advance consistently.
+A condition is any function without argument that returns a boolean (the `Condition` protocol).
+`minevent` provides the stateful conditions `OnceCondition` (first call only),
+`AfterNCondition` (skip the first `n` calls) and `PeriodicCondition(freq, skip_first=...)`. A class
+with a `__call__` method is a condition too.
+
+To combine conditions, write a function. You choose which conditions are evaluated:
 
 ```pycon
->>> from minevent import AfterNCondition, AndCondition, EventHandler, PeriodicCondition
+>>> from minevent import AfterNCondition, EventHandler, PeriodicCondition
 >>> def hello_handler() -> None:
 ...     print("Hello!")
->>> handler = EventHandler(
-...     hello_handler, condition=AndCondition(AfterNCondition(1), PeriodicCondition(2))
-... )
+>>> after_one, periodic = AfterNCondition(1), PeriodicCondition(2)
+>>> handler = EventHandler(hello_handler, condition=lambda: all([after_one(), periodic()]))
 >>> for _ in range(5):
 ...     handler.handle()
 Hello!
@@ -160,10 +161,9 @@ Hello!
 
 ```
 
-The combinators do not short-circuit on purpose: `AndCondition(cheap, expensive)` always calls
-`expensive`, because a stateful operand (such as `PeriodicCondition`) must see every call to count
-correctly. If an operand is costly and stateless, put the check in a plain function and combine it
-yourself, for example `lambda: cheap.evaluate() and expensive()`.
+`all([a(), b()])` evaluates every condition at each call, so stateful conditions advance together.
+`a() and b()` skips `b` when `a` is `False`: use it when `b` is costly and stateless, because a
+stateful `b` would not count the calls skipped by `a`.
 
 Stateful conditions (`PeriodicCondition`, `OnceCondition`, `AfterNCondition`) keep their counter in
 the instance. A condition instance given to two handlers is shared, so the two handlers advance the
@@ -183,7 +183,7 @@ second
 
 `add_event_handler(..., once=True)` and `OnceCondition` are two ways to run a handler once. Prefer
 `once=True` to run a handler on the next trigger of an event (the registration is removed). Use
-`OnceCondition` when the handler stays registered, for example inside an `AndCondition`.
+`OnceCondition` when the handler stays registered, for example inside a function that combines several conditions.
 
 ### Event handler comparison
 
@@ -203,16 +203,18 @@ False
 ```
 
 Two `EventHandler`s are equal if they have the same handler, the same arguments and the same
-condition:
+condition. Conditions are compared by identity, so two conditions created separately are different,
+even with the same options:
 
 ```pycon
 >>> from minevent import EventHandler, PeriodicCondition
 >>> def hello_handler() -> None:
 ...     print("Hello!")
->>> handler = EventHandler(hello_handler, condition=PeriodicCondition(freq=3))
->>> handler.equal(EventHandler(hello_handler, condition=PeriodicCondition(freq=3)))
+>>> condition = PeriodicCondition(freq=3)
+>>> handler = EventHandler(hello_handler, condition=condition)
+>>> handler.equal(EventHandler(hello_handler, condition=condition))
 True
->>> handler.equal(EventHandler(hello_handler, condition=PeriodicCondition(freq=2)))
+>>> handler.equal(EventHandler(hello_handler, condition=PeriodicCondition(freq=3)))
 False
 
 ```
