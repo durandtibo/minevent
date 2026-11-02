@@ -56,6 +56,9 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
 - `minevent.__version__` is resolved lazily from the package metadata.
 - The package has no `all` extra (it had no optional dependency). The classifiers are
   `Development Status :: 3 - Alpha` and `Operating System :: OS Independent`.
+- `EventManager.add_event_handler` raises a `TypeError` for an `event_handler` that is not a
+  `BaseEventHandler` (a bare function used to fail at the first trigger with an `AttributeError`).
+  Wrap the function with `EventHandler(func)`, or use `EventManager.on`.
 - The note of the exception of a handler names the event and the function of the handler, not the
   `repr` of the handler: a `repr` that raised used to replace the exception of the handler, and the
   arguments of the handler could make the note very long.
