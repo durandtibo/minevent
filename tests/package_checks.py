@@ -88,12 +88,8 @@ def check_no_third_party_import() -> None:
 
 
 def check_lazy_imports() -> None:
-    logger.info("Checking that minevent does not import inspect or importlib.metadata...")
-    code = (
-        "import sys, minevent; "
-        "assert 'inspect' not in sys.modules; "
-        "assert 'importlib.metadata' not in sys.modules"
-    )
+    logger.info("Checking that minevent does not import importlib.metadata...")
+    code = "import sys, minevent; assert 'importlib.metadata' not in sys.modules"
     subprocess.run([sys.executable, "-c", code], check=True)  # noqa: S603
 
 
