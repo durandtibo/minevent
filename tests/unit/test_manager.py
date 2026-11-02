@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import functools
 import logging
 import threading
 from typing import Any
@@ -16,6 +17,7 @@ from minevent import (
     PeriodicCondition,
     Subscription,
 )
+from minevent.manager import _add_error_note, _describe
 from tests.unit.utils import trace
 
 logger = logging.getLogger(__name__)
@@ -174,9 +176,7 @@ def test_event_manager_trigger_event_handler_raises_adds_note() -> None:
     event_manager.add_event_handler("my_event", handler)
     with pytest.raises(ValueError, match=r"boom") as exc_info:
         event_manager.trigger_event("my_event")
-    assert exc_info.value.__notes__ == [
-        f"raised by {handler!r} while handling the event 'my_event'"
-    ]
+    assert exc_info.value.__notes__ == ["raised by fail while handling the event 'my_event'"]
 
 
 def test_event_manager_trigger_event_handler_raises_same_exception_type_and_object() -> None:
@@ -625,3 +625,75 @@ def test_event_manager_get_subscriptions_event_handler() -> None:
     handler = EventHandler(hello_handler)
     manager.add_event_handler("my_event", handler, once=True)
     assert manager.get_subscriptions("my_event")[0].event_handler is handler
+
+
+def fail_with_arguments(*args: object) -> None:
+    r"""Implements a handler with arguments that raises a ``ValueError``."""
+    msg = f"boom {len(args)}"
+    raise ValueError(msg)
+
+
+def test_event_manager_trigger_event_note_ignores_repr_of_arguments() -> None:
+    class BadRepr:
+        def __repr__(self) -> str:
+            msg = "repr failed"
+            raise RuntimeError(msg)
+
+    manager = EventManager()
+    manager.add_event_handler("my_event", EventHandler(fail_with_arguments, [BadRepr()]))
+    with pytest.raises(ValueError, match=r"boom"):
+        manager.trigger_event("my_event")
+
+
+def test_event_manager_trigger_event_note_is_short_for_large_arguments() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", EventHandler(fail_with_arguments, [list(range(10_000))]))
+    with pytest.raises(ValueError, match=r"boom") as exc_info:
+        manager.trigger_event("my_event")
+    assert len(exc_info.value.__notes__[0]) < 100
+
+
+###############################
+#     Tests for _describe     #
+###############################
+
+
+class CallableObject:
+    def __call__(self) -> None:
+        r"""Implement a callable without a name."""
+
+
+class CustomEventHandler(BaseEventHandler):
+    def handle(self, /, **payload: object) -> None:
+        r"""Implement a custom event handler."""
+
+
+def test_describe_function() -> None:
+    assert _describe(EventHandler(fail)) == "fail"
+
+
+def test_describe_method() -> None:
+    assert _describe(EventHandler(CustomEventHandler().handle)) == "CustomEventHandler.handle"
+
+
+def test_describe_partial() -> None:
+    assert _describe(EventHandler(functools.partial(fail))) == "partial"
+
+
+def test_describe_callable_object() -> None:
+    assert _describe(EventHandler(CallableObject())) == "CallableObject"
+
+
+def test_describe_custom_event_handler() -> None:
+    assert _describe(CustomEventHandler()) == "CustomEventHandler"
+
+
+#####################################
+#     Tests for _add_error_note     #
+#####################################
+
+
+def test_add_error_note() -> None:
+    error = ValueError("boom")
+    _add_error_note(error, "my_event", EventHandler(fail))
+    assert error.__notes__ == ["raised by fail while handling the event 'my_event'"]

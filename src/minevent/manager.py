@@ -30,15 +30,46 @@ def _check_event(event: object) -> None:
         raise TypeError(msg)
 
 
+def _describe(event_handler: BaseEventHandler) -> str:
+    r"""Name an event handler without calling the ``repr`` of its data.
+
+    The ``repr`` of an event handler contains its arguments, which can
+    be large or raise, so it is not used in the note of an exception.
+
+    Args:
+        event_handler: The event handler to name.
+
+    Returns:
+        The qualified name of the function of an ``EventHandler``, or
+            the name of the class of the callable if it has no name
+            (for example a ``functools.partial``), or the name of the
+            class of any other event handler.
+
+    Example:
+        ```pycon
+        >>> from minevent import EventHandler
+        >>> from minevent.manager import _describe
+        >>> _describe(EventHandler(print))
+        'print'
+
+        ```
+    """
+    target = event_handler.handler if isinstance(event_handler, EventHandler) else event_handler
+    return getattr(target, "__qualname__", type(target).__qualname__)
+
+
 def _add_error_note(exc: Exception, event: str, event_handler: BaseEventHandler) -> None:
     r"""Add a note to the exception raised by an event handler.
+
+    The note names the event and the function of the handler, never
+    its arguments.
 
     Args:
         exc: The exception raised by the event handler.
         event: The event that was triggered.
         event_handler: The event handler that raised the exception.
     """
-    exc.add_note(f"raised by {event_handler!r} while handling the event {event!r}")
+    exc.add_note(f"raised by {_describe(event_handler)} while handling the event {event!r}")
 
 
 class EventManager:
@@ -284,7 +315,7 @@ class EventManager:
         Handlers are executed fail-fast: if a handler raises, the
         exception propagates and the remaining handlers are skipped.
         The exception is not wrapped: it has a note (``__notes__``)
-        with the event and the handler that raised it.
+        with the event and the function of the handler that raised it.
 
         The handlers are read from a snapshot taken when the event is
         triggered. Handlers added or removed by a running handler
