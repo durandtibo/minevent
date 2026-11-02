@@ -69,3 +69,8 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
   arguments of the handler could make the note very long.
 - Documentation: the `trigger_event` docstring, and the internal structure of `architecture.md`
   describe the current code.
+- Documentation: the docstrings of `EventManager`, `Subscription`, `trigger_event`,
+  `atrigger_event`, `clear_event` and `AfterNCondition` describe the `once` registrations, the
+  notes of the exceptions, the `TypeError` for an awaitable and the thread safety. The quickstart
+  and architecture pages no longer mention a synchronous-only system or `last_triggered_event`, and
+  the architecture flows show the payload, the subscriptions and `ahandle`.

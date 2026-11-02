@@ -647,7 +647,8 @@ def test_event_manager_get_subscriptions_event_handler() -> None:
 
 
 def fail_with_arguments(*args: object) -> None:
-    r"""Implements a handler with arguments that raises a ``ValueError``."""
+    r"""Implements a handler with arguments that raises a
+    ``ValueError``."""
     msg = f"boom {len(args)}"
     raise ValueError(msg)
 

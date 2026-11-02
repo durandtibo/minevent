@@ -22,6 +22,9 @@ logger: logging.Logger = logging.getLogger(__name__)
 def _check_event(event: object) -> None:
     r"""Check that an event name is a string.
 
+    Args:
+        event: The event name to check.
+
     Raises:
         TypeError: if ``event`` is not a ``str``.
     """
@@ -79,8 +82,8 @@ class Subscription:
     It is the registration itself: the manager stores it, and it
     removes exactly the registration that created it. The handler does
     not need to be re-created to be unsubscribed, other registrations
-    of the same handler are not removed, and registering the same handler twice creates two
-    independent subscriptions.
+    of the same handler are not removed, and registering the same
+    handler twice creates two independent subscriptions.
 
     A subscription is a context manager: the registration is removed
     when the ``with`` block exits.
@@ -186,7 +189,8 @@ class Subscription:
         Returns:
             ``True`` if the event handler is still registered,
                 ``False`` if it was removed (by this subscription, by
-                ``clear_event``, ``reset`` or because it was a ``once`` handler that ran).
+                ``clear_event`` or ``reset``, or because it was a
+                ``once`` registration consumed by a trigger).
         """
         return self._active
 
@@ -194,8 +198,10 @@ class Subscription:
         r"""Remove the registration.
 
         Only this registration is removed, even if the same handler is
-        registered several times to the same event. Calling this method again, or
-        after the handler was removed by another way, does nothing.
+        registered several times to the same event. Calling this
+        method again, or after the registration was removed another
+        way (``clear_event``, ``reset``, a ``once`` trigger), does
+        nothing.
 
         Returns:
             ``True`` if the registration was removed, ``False`` if it
@@ -212,9 +218,18 @@ class EventManager:
     event can have multiple handlers attached, and all handlers are
     executed in the order they were added when the event is triggered.
 
+    ``add_event_handler`` (or the ``on`` decorator) registers an event
+    handler and returns a ``Subscription`` that removes that
+    registration. ``trigger_event`` runs the handlers synchronously,
+    and ``atrigger_event`` awaits the coroutine handlers. The manager
+    has no global state: create one instance and pass it where it is
+    needed. Registrations and triggers are logged at the ``DEBUG``
+    level by the ``minevent.manager`` logger.
+
     Error policy: handlers run fail-fast. If a handler raises, the
-    exception propagates to the caller of ``trigger_event`` and the
-    remaining handlers of that event are not executed.
+    exception propagates to the caller of ``trigger_event`` (or
+    ``atrigger_event``) and the remaining handlers of that event are
+    not executed.
 
     Thread safety: the registration, removal and inspection of
     handlers are protected by a reentrant lock, and ``trigger_event``
@@ -459,7 +474,8 @@ class EventManager:
 
         The handlers are read from a snapshot taken when the event is
         triggered. Handlers added or removed by a running handler
-        take effect on the next trigger, not the current one.
+        take effect on the next trigger, not the current one. A
+        ``once`` registration is removed just before its handler runs.
 
         A handler can trigger events, including the event it handles,
         but nothing stops the recursion: a handler that always
@@ -479,7 +495,10 @@ class EventManager:
                 arguments.
 
         Raises:
-            TypeError: if ``event`` is not a string.
+            TypeError: if ``event`` is not a string, or if a handler
+                returns an awaitable (use ``atrigger_event`` for
+                coroutine handlers). Any exception raised by a
+                handler also propagates.
 
         Example:
             ```pycon
@@ -521,7 +540,12 @@ class EventManager:
         coroutine functions (or return an awaitable) are awaited.
         Synchronous handlers can be mixed with coroutine handlers.
         The handlers run one after the other, in the order they were
-        added, and they are fail-fast like in ``trigger_event``.
+        added, and they are fail-fast like in ``trigger_event``: the
+        exception is not wrapped and has a note with the event and the
+        handler. The snapshot of the handlers, the ``once``
+        registrations and the payload follow the rules of
+        ``trigger_event``. Synchronous handlers block the event loop
+        while they run.
 
         Args:
             event: The event name (case-sensitive string) to trigger.
@@ -529,7 +553,8 @@ class EventManager:
                 arguments.
 
         Raises:
-            TypeError: if ``event`` is not a string.
+            TypeError: if ``event`` is not a string. Any exception
+                raised by a handler also propagates.
 
         Example:
             ```pycon
@@ -559,7 +584,8 @@ class EventManager:
     def clear_event(self, event: str) -> None:
         r"""Remove all the event handlers of a given event.
 
-        Nothing happens if the event has no registered handler.
+        Nothing happens if the event has no registered handler. The
+        subscriptions of the removed handlers become inactive.
 
         Args:
             event: The event name (case-sensitive string) to clear.

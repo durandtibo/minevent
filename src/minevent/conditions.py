@@ -153,7 +153,10 @@ class AfterNCondition:
     r"""Implement a condition that is ``False`` for the first ``n``
     calls and ``True`` afterwards.
 
-    The condition is stateful, like ``PeriodicCondition``.
+    The condition is stateful, like ``PeriodicCondition``: each call
+    advances the counter, so do not share one instance between
+    several handlers, and call it from one thread because the counter
+    is not protected by a lock.
 
     Args:
         n: The number of calls to skip. Must be a non-negative

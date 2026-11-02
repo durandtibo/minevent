@@ -1,4 +1,13 @@
-r"""Contain the main features of the ``minevent`` package."""
+r"""Contain the main features of the ``minevent`` package.
+
+``minevent`` is a minimal event system with three concepts: an event (a
+case-sensitive string), an event handler (``BaseEventHandler``,
+``EventHandler``) and an event manager (``EventManager``) that stores
+the handlers and triggers the events. ``add_event_handler`` returns a
+``Subscription`` that identifies a registration, and the conditions
+(``Condition``, ``PeriodicCondition``, ``AfterNCondition``) control when
+a handler runs. The package has no dependency.
+"""
 
 from __future__ import annotations
 

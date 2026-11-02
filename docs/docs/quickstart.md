@@ -8,7 +8,9 @@ The `minevent` event system is composed of three main components:
 - an event handler
 - an event manager
 
-It is a synchronous system i.e. only one event and event handler are executed at the same time.
+`trigger_event` is synchronous: the handlers of an event run one after the other, in the order they
+were registered, in the calling thread. Coroutine handlers are supported by `atrigger_event` (see
+[Fire an event with coroutine handlers](#fire-an-event-with-coroutine-handlers)).
 This page presents the design used in `minevent`, but other designs exist.
 The proposed design was not designed to work in all the scenarios, so it is highly recommended to
 read the documentation to understand if it fits your needs/requirements before to use it.
@@ -28,8 +30,9 @@ my_event = "training completed"
 
 In `minevent`, an event handler is a piece a code that is executed when an even happened.
 
-An event handler must have a `handle` method, which executes a piece of code when the event
-happens. Event handlers are compared by identity.
+An event handler is a `BaseEventHandler`: it must have a `handle(self, /, **payload)` method, which
+executes a piece of code when the event happens (`ahandle` is its asynchronous counterpart). Event
+handlers are compared by identity.
 
 `minevent` provides `EventHandler`, which wraps a callable. It can take an optional `condition`
 to execute the logic only when the condition is true.
@@ -37,7 +40,7 @@ to execute the logic only when the condition is true.
 ### Basic event handler
 
 Let's assume we want to create an event handler to say hello when an event is fired.
-It is possible to implement this scenario as follow by using `minvent.EventHandler`.
+It is possible to implement this scenario as follow by using `minevent.EventHandler`.
 
 ```pycon
 >>> from minevent import EventHandler
@@ -212,9 +215,11 @@ False
 As explained by its name, the goal of the event manager is to manage event handlers.
 The event manager supports the following functionalities:
 
-- adding an event handler
-- firing all the event handlers associated to an event.
-- removing an event handler from an event
+- adding an event handler, which returns a `Subscription` (`add_event_handler`, `on`)
+- firing all the event handlers associated to an event, with an optional payload
+  (`trigger_event`, `atrigger_event`)
+- inspecting the registrations (`events`, `get_subscriptions`, `len(manager)`)
+- removing an event handler from an event (`Subscription.remove`, `clear_event`, `reset`)
 
 ### Create an event manager
 
@@ -233,7 +238,8 @@ EventManager(events={})
 ```
 
 The representation of the event manager shows the number of event handlers of each event.
-The event manager is empty, so it shows there is no event handler.
+The event manager is empty, so it shows there is no event handler. `manager.events` lists the
+events that have at least one handler, and `"my_event" in manager` tests one.
 
 ### Add an event handler
 
@@ -272,9 +278,9 @@ EventManager(events={'my_event': 2})
 
 ```
 
-For a given event, the event handlers are ordered by using the order of addition.
-The event handler `(0)` was added before the event handler `(1)`.
-Internally, each event uses a list to store the registered event handlers.
+For a given event, the event handlers run in the order of addition: here, the handler of
+John Smith runs before the handler of Jane Doe.
+Internally, each event uses a list to store the registrations.
 It is possible to add the same event handler multiple times:
 
 ```pycon
@@ -356,6 +362,7 @@ register it without `once` and write a condition that remembers it:
 >>> class FirstTrue:
 ...     def __init__(self, condition):
 ...         self._condition, self._done = condition, False
+...
 ...     def __call__(self):
 ...         if self._done or not self._condition():
 ...             return False
@@ -363,7 +370,9 @@ register it without `once` and write a condition that remembers it:
 ...         return True
 >>> ready = [False]
 >>> manager = EventManager()
->>> _ = manager.add_event_handler("step", EventHandler(print, ["ready!"], condition=FirstTrue(lambda: ready[0])))
+>>> _ = manager.add_event_handler(
+...     "step", EventHandler(print, ["ready!"], condition=FirstTrue(lambda: ready[0]))
+... )
 >>> manager.trigger_event("step")
 >>> ready[0] = True
 >>> manager.trigger_event("step")
@@ -414,9 +423,9 @@ EventManager(events={'my_event': 1})
 
 ```
 
-You can note that the last fired event name has been updated.
-The current last fired event name is `'my_event'`.
-The event manager uses the arguments that were given when the event handler was added.
+Triggering an event does not change the manager: the representation above is the same before and
+after. The event manager uses the arguments that were given when the event handler was added, and
+the payload given to `trigger_event` (see below).
 
 ```pycon
 >>> from minevent import EventHandler, EventManager

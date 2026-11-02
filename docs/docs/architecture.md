@@ -152,8 +152,10 @@ BaseEventHandler (abstract)
 
 **Key Methods**:
 
-- `handle()`: Execute the handler logic
-- `ahandle()`: Execute the handler logic in a coroutine (calls `handle()` by default)
+- `handle(**payload)`: Execute the handler logic. `EventHandler.handle` raises a `TypeError` if
+  the handler returns an awaitable.
+- `ahandle(**payload)`: Execute the handler logic in a coroutine. `BaseEventHandler.ahandle` calls
+  `handle()`; `EventHandler.ahandle` awaits the awaitable returned by the handler.
 
 **Rationale**:
 
@@ -223,13 +225,13 @@ trigger_event()
 
 ```
 1. User creates EventHandler
-   EventHandler(function, args, kwargs)
+   EventHandler(function, args, kwargs, condition=..., filter_payload=...)
 
 2. User registers handler
-   manager.add_event_handler("event", handler)
+   subscription = manager.add_event_handler("event", handler, once=...)
 
-3. Manager stores handler
-   the handler is appended to the list of the event
+3. Manager stores the registration
+   a Subscription is appended to the list of the event and returned
 ```
 
 ### Triggering Flow
@@ -238,12 +240,14 @@ trigger_event()
 1. User triggers event
    manager.trigger_event("event")
 
-2. Manager gets handlers
-   handlers = a snapshot of the list of the event
+2. Manager gets the registrations
+   subscriptions = a snapshot of the list of the event
 
 3. Manager executes each handler
-   for handler in handlers:
-       handler.handle()
+   for subscription in subscriptions:
+       if subscription is once and was already removed: skip it
+       handler.handle(**payload)   # or `await handler.ahandle(**payload)`
+       # an exception gets a note (event, handler function) and propagates
 ```
 
 ### Handler Execution
@@ -255,6 +259,8 @@ Without condition:
 With a condition:
     if condition():
         handler(*handler_args, **handler_kwargs, **payload)
+
+With filter_payload=True, `payload` only keeps the keys the handler accepts.
 ```
 
 ## Extension Points
