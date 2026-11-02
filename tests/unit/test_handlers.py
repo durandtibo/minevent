@@ -477,6 +477,18 @@ def test_event_handler_ahandle_coroutine_awaited() -> None:
     assert awaited == [1]
 
 
+def test_event_handler_ahandle_awaits_object_with_await() -> None:
+    awaited = []
+
+    class Awaitable:
+        def __await__(self) -> Any:
+            awaited.append(1)
+            yield
+
+    asyncio.run(EventHandler(Awaitable).ahandle())
+    assert awaited == [1]
+
+
 def test_event_handler_ahandle_sync_handler() -> None:
     asyncio.run(EventHandler(hello_handler).ahandle())
     assert hello_handler.call_count == 1
