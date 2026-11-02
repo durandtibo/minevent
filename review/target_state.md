@@ -315,8 +315,10 @@ changelog with its number, has its tests, and keeps `ruff`, `ty` and 100% covera
 | 6    | #751 |
 | 7    | #752 |
 
-Step 4 measured with the former `dev/benchmark.py` before it was deleted: trigger of one handler
-721 to 455 ns, ten handlers 3,994 to 1,874 ns, import about 13 to 9.5 ms.
+Step 4 (#749) changed only the awaitable check: `inspect` stays imported at module level by decision
+of the maintainer, so F4, P11 (the `inspect` clause), the lazy import of section 3.3 and the import
+rows of sections 6 and the appendix do not apply. Measured with the former `dev/benchmark.py` before
+it was deleted: trigger of one handler 721 to about 455 ns, ten handlers 3,994 to about 1,874 ns.
 
 Steps 1 and 4 to 7 are safe to merge alone. Steps 2 and 3 change visible behaviour and go in the
 same release as 5 and 6 so that the migration table of section 4 is written once.
