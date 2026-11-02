@@ -60,7 +60,7 @@ both `handler_kwargs` and the payload raises a `TypeError`.
 
 Handlers run fail-fast: if a handler raises, the exception reaches the caller of `trigger_event` and
 the next handlers of the event do not run. The exception is the original one, with a note that
-names the event and the handler:
+names the event and the function of the handler (never its arguments):
 
 ```pycon
 >>> from minevent import EventHandler, EventManager
@@ -71,8 +71,8 @@ names the event and the handler:
 >>> try:
 ...     manager.trigger_event("my_event")
 ... except ValueError as exc:
-...     print(exc.__notes__[0].replace(repr(fail), "fail"))
-raised by EventHandler(handler=fail, handler_args=(), handler_kwargs={}, condition=None, filter_payload=False) while handling the event 'my_event'
+...     print(exc.__notes__[0])
+raised by fail while handling the event 'my_event'
 
 ```
 

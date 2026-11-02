@@ -153,5 +153,5 @@ def test_event_manager_atrigger_event_handler_raises_adds_note() -> None:
     with pytest.raises(ValueError, match=r"boom") as exc_info:
         asyncio.run(manager.atrigger_event("my_event"))
     assert exc_info.value.__notes__ == [
-        f"raised by {handler!r} while handling the event 'my_event'"
+        "raised by failing_async_handler while handling the event 'my_event'"
     ]
