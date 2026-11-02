@@ -37,7 +37,7 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
 - `trigger_event(event, **payload)` passes the keyword arguments to the handlers.
 - `add_event_handler` returns a `Subscription` and has a `once` option.
 - `atrigger_event` and `EventHandler.ahandle` to await coroutine handlers.
-- Built-in conditions `OnceCondition` and `AfterNCondition`. A condition is any function without
+- Built-in condition `AfterNCondition`. A condition is any function without
   argument that returns a boolean (the `Condition` protocol), so a lambda is a condition.
 - The `EventManager` registry is thread-safe.
 - `EventManager.get_subscriptions`, `__len__` and the `on` decorator.

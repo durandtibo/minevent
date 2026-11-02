@@ -8,7 +8,6 @@ __all__ = [
     "Condition",
     "EventHandler",
     "EventManager",
-    "OnceCondition",
     "PeriodicCondition",
     "Subscription",
     "__version__",
@@ -17,7 +16,6 @@ __all__ = [
 from minevent.conditions import (
     AfterNCondition,
     Condition,
-    OnceCondition,
     PeriodicCondition,
 )
 from minevent.handlers import (

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from minevent import AfterNCondition, EventHandler, OnceCondition, PeriodicCondition
+from minevent import AfterNCondition, EventHandler, PeriodicCondition
 
 if TYPE_CHECKING:
     from pytest_benchmark.fixture import BenchmarkFixture
@@ -54,7 +54,3 @@ def test_periodic_condition_skip_first_call_benchmark(benchmark: BenchmarkFixtur
 
 def test_after_n_condition_call_benchmark(benchmark: BenchmarkFixture) -> None:
     benchmark(AfterNCondition(5))
-
-
-def test_once_condition_call_benchmark(benchmark: BenchmarkFixture) -> None:
-    benchmark(OnceCondition())

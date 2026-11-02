@@ -106,7 +106,7 @@ manager.add_event_handler(
 manager.add_event_handler("epoch_end", EventHandler(notify, condition=lambda: is_main_process))
 ```
 
-- `PeriodicCondition`, `AfterNCondition` and `OnceCondition` keep a counter. Do not share one
+- `PeriodicCondition` and `AfterNCondition` keep a counter. Do not share one
   instance between two handlers: they would advance the same counter. Create one per handler.
 - To combine conditions, write a function. `lambda: a() and b()` skips `b` when `a` is `False`;
   `lambda: all([a(), b()])` evaluates both, so stateful conditions advance together.
@@ -158,7 +158,7 @@ False
   and `subscription.event_handler` gives the handler.
 - `@manager.on("event")` registers a function as a handler and returns it unchanged.
 - `once=True` removes the registration at the next trigger of the event, even if the condition of the
-  handler is `False`. Use a `OnceCondition` to wait for the first time the condition is `True`.
+  handler is `False`. To wait for the first time the condition is `True`, see the quickstart.
 
 ### Avoid duplicates
 
