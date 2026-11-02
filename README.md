@@ -105,7 +105,7 @@ It allows you to customize the function `say_something` without changing its imp
 - **Subscriptions**: `add_event_handler` returns a `Subscription` to remove exactly that
   registration, and `once=True` runs a handler at most once
 - **Conditional Handlers**: Any function that returns a boolean is a condition, and
-  `PeriodicCondition`, `AfterNCondition` and `OnceCondition` are provided
+  `PeriodicCondition` and `AfterNCondition` are provided
 - **Async**: `atrigger_event` awaits coroutine handlers
 - **Thread-safe registry**: register handlers and trigger events from different threads
 - **Extensible**: Create custom event handlers and conditions for your specific needs

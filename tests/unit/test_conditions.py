@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from minevent import AfterNCondition, OnceCondition, PeriodicCondition
+from minevent import AfterNCondition, PeriodicCondition
 
 #######################################
 #     Tests for PeriodicCondition     #
@@ -117,26 +117,6 @@ def always_true() -> bool:
 
 def always_false() -> bool:
     return False
-
-
-###################################
-#     Tests for OnceCondition     #
-###################################
-
-
-def test_once_condition_repr() -> None:
-    assert repr(OnceCondition()) == "OnceCondition(done=False)"
-
-
-def test_once_condition_repr_after_call() -> None:
-    condition = OnceCondition()
-    condition()
-    assert repr(condition) == "OnceCondition(done=True)"
-
-
-def test_once_condition_call() -> None:
-    condition = OnceCondition()
-    assert [condition() for _ in range(3)] == [True, False, False]
 
 
 #####################################

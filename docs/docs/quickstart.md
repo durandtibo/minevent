@@ -140,9 +140,8 @@ Hello!
 ```
 
 A condition is any function without argument that returns a boolean (the `Condition` protocol).
-`minevent` provides the stateful conditions `OnceCondition` (first call only),
-`AfterNCondition` (skip the first `n` calls) and `PeriodicCondition(freq, skip_first=...)`. A class
-with a `__call__` method is a condition too.
+`minevent` provides the stateful conditions `AfterNCondition` (skip the first `n` calls) and
+`PeriodicCondition(freq, skip_first=...)`. A class with a `__call__` method is a condition too.
 
 To combine conditions, write a function. You choose which conditions are evaluated:
 
@@ -163,7 +162,7 @@ Hello!
 `a() and b()` skips `b` when `a` is `False`: use it when `b` is costly and stateless, because a
 stateful `b` would not count the calls skipped by `a`.
 
-Stateful conditions (`PeriodicCondition`, `OnceCondition`, `AfterNCondition`) keep their counter in
+Stateful conditions (`PeriodicCondition`, `AfterNCondition`) keep their counter in
 the instance. A condition instance given to two handlers is shared, so the two handlers advance the
 same counter. Create one instance per handler (a small factory function is enough):
 
@@ -179,9 +178,8 @@ second
 
 ```
 
-`add_event_handler(..., once=True)` and `OnceCondition` are two ways to run a handler once. Prefer
-`once=True` to run a handler on the next trigger of an event (the registration is removed). Use
-`OnceCondition` when the handler stays registered, for example inside a function that combines several conditions.
+To run a handler once, use `add_event_handler(..., once=True)`: the registration is removed on the
+next trigger of the event.
 
 ### Event handler identity
 
@@ -351,7 +349,28 @@ Hello!
 `once=True` means "the next trigger", not "the next time the handler runs": the registration is
 removed on the next trigger even if the condition of the `EventHandler` is `False` and the
 function is not called. If you need the handler to run the first time its condition is `True`,
-register it without `once` and use `OnceCondition` as the condition.
+register it without `once` and write a condition that remembers it:
+
+```pycon
+>>> from minevent import EventHandler, EventManager
+>>> class FirstTrue:
+...     def __init__(self, condition):
+...         self._condition, self._done = condition, False
+...     def __call__(self):
+...         if self._done or not self._condition():
+...             return False
+...         self._done = True
+...         return True
+>>> ready = [False]
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler("step", EventHandler(print, ["ready!"], condition=FirstTrue(lambda: ready[0])))
+>>> manager.trigger_event("step")
+>>> ready[0] = True
+>>> manager.trigger_event("step")
+ready!
+>>> manager.trigger_event("step")
+
+```
 
 A `Subscription` is a context manager that removes the registration when the block exits, and its
 `active` property tells if the handler is still registered. `EventManager.on` is a decorator that

@@ -7,7 +7,7 @@ between calls.
 
 from __future__ import annotations
 
-__all__ = ["AfterNCondition", "Condition", "OnceCondition", "PeriodicCondition"]
+__all__ = ["AfterNCondition", "Condition", "PeriodicCondition"]
 
 from typing import Protocol
 
@@ -147,36 +147,6 @@ class PeriodicCondition:
             ```
         """
         self._step = 0
-
-
-class OnceCondition:
-    r"""Implement a condition that is ``True`` only on the first call.
-
-    The handler stays registered and is skipped afterwards. Use
-    ``once=True`` in ``EventManager.add_event_handler`` to remove the
-    registration instead. The condition is stateful, like
-    ``PeriodicCondition``.
-
-    Example:
-        ```pycon
-        >>> from minevent import OnceCondition
-        >>> condition = OnceCondition()
-        >>> condition(), condition()
-        (True, False)
-
-        ```
-    """
-
-    def __init__(self) -> None:
-        self._done = False
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__qualname__}(done={self._done})"
-
-    def __call__(self) -> bool:
-        condition = not self._done
-        self._done = True
-        return condition
 
 
 class AfterNCondition:
