@@ -383,7 +383,8 @@ ready!
 
 A `Subscription` is a context manager that removes the registration when the block exits, and its
 `active` property tells if the handler is still registered. `EventManager.on` is a decorator that
-registers a function and returns it unchanged:
+registers a function and returns it unchanged. It takes the options `once`, `condition` and
+`filter_payload`:
 
 ```pycon
 >>> from minevent import EventHandler, EventManager
@@ -504,6 +505,9 @@ loss 0.5
 epoch 3
 
 ```
+
+The `on` decorator takes the same option, so the short form works for this case too:
+`@manager.on("epoch_end", filter_payload=True)`.
 
 ### Fire an event with coroutine handlers
 

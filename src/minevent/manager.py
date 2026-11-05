@@ -14,6 +14,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from types import TracebackType
 
+    from minevent.conditions import Condition
+
 _F = TypeVar("_F", bound="Callable[..., object]")
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -405,24 +407,39 @@ class EventManager:
         logger.debug("Added %s to event %s", event_handler, event)
         return subscription
 
-    def on(self, event: str, *, once: bool = False) -> Callable[[_F], _F]:
+    def on(
+        self,
+        event: str,
+        *,
+        once: bool = False,
+        condition: Condition | None = None,
+        filter_payload: bool = False,
+    ) -> Callable[[_F], _F]:
         r"""Create a decorator that registers a function as a handler.
 
         The decorated function is registered as
-        ``EventHandler(func)`` and returned unchanged. Use
-        ``add_event_handler`` if the handler needs arguments or a
-        condition, or if you need the ``Subscription``.
+        ``EventHandler(func, condition=condition,
+        filter_payload=filter_payload)`` and returned unchanged. The
+        function is called with the payload only: use
+        ``add_event_handler`` if the handler needs ``handler_args`` or
+        ``handler_kwargs``, or if you need the ``Subscription``.
 
         Args:
             event: The event name (case-sensitive string).
             once: If ``True``, the handler runs at most once. See
                 ``add_event_handler``. Default is ``False``.
+            condition: An optional condition evaluated before the
+                handler. See ``EventHandler``. Default is ``None``.
+            filter_payload: If ``True``, only the payload keys that
+                the function accepts are passed to it. See
+                ``EventHandler``. Default is ``False``.
 
         Returns:
             The decorator.
 
         Raises:
-            TypeError: if ``event`` is not a string.
+            TypeError: if ``event`` is not a string, or if
+                ``condition`` is not callable.
 
         Example:
             ```pycon
@@ -436,13 +453,20 @@ class EventManager:
             Hello Bob!
             >>> hello_handler("Alice")
             Hello Alice!
+            >>> @manager.on("epoch_end", filter_payload=True)
+            ... def log_epoch(epoch):
+            ...     print(f"epoch {epoch}")
+            ...
+            >>> manager.trigger_event("epoch_end", epoch=3, loss=0.5)
+            epoch 3
 
             ```
         """
         _check_event(event)
 
         def decorator(func: _F) -> _F:
-            self.add_event_handler(event, EventHandler(func), once=once)
+            handler = EventHandler(func, condition=condition, filter_payload=filter_payload)
+            self.add_event_handler(event, handler, once=once)
             return func
 
         return decorator

@@ -156,7 +156,10 @@ False
   convenient for a profiler or a progress bar that lives for one phase of the program.
 - `manager.get_subscriptions(event)` lists the registrations of an event if you did not keep them,
   and `subscription.event_handler` gives the handler.
-- `@manager.on("event")` registers a function as a handler and returns it unchanged.
+- `@manager.on("event")` registers a function as a handler and returns it unchanged. It takes
+  `once`, `condition` and `filter_payload`, as in `@manager.on("epoch_end", filter_payload=True)`.
+  Use `add_event_handler` if the handler needs `handler_args` or `handler_kwargs`, or if you need
+  the `Subscription`.
 - `once=True` removes the registration at the next trigger of the event, even if the condition of the
   handler is `False`. To wait for the first time the condition is `True`, see the quickstart.
 
