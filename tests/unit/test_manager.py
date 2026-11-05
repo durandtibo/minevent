@@ -777,6 +777,55 @@ def test_subscription_remove_removes_from_manager() -> None:
     assert len(manager) == 0
 
 
+def test_subscription_remove_middle_keeps_order() -> None:
+    manager = EventManager()
+    first = manager.add_event_handler("my_event", EventHandler(print))
+    second = manager.add_event_handler("my_event", EventHandler(print))
+    third = manager.add_event_handler("my_event", EventHandler(print))
+    second.remove()
+    assert manager.get_subscriptions("my_event") == (first, third)
+
+
+def test_subscription_remove_first_and_last_keeps_middle() -> None:
+    manager = EventManager()
+    first = manager.add_event_handler("my_event", EventHandler(print))
+    second = manager.add_event_handler("my_event", EventHandler(print))
+    third = manager.add_event_handler("my_event", EventHandler(print))
+    first.remove()
+    third.remove()
+    assert manager.get_subscriptions("my_event") == (second,)
+
+
+def test_subscription_remove_same_handler_registered_three_times_removes_second() -> None:
+    manager = EventManager()
+    handler = EventHandler(print)
+    first = manager.add_event_handler("my_event", handler)
+    second = manager.add_event_handler("my_event", handler)
+    third = manager.add_event_handler("my_event", handler)
+    second.remove()
+    assert manager.get_subscriptions("my_event") == (first, third)
+
+
+def test_subscription_remove_not_registered_returns_false() -> None:
+    subscription = Subscription(EventManager(), "my_event", EventHandler(print))
+    assert not subscription.remove()
+
+
+def test_subscription_remove_not_registered_keeps_other_registration() -> None:
+    manager = EventManager()
+    registered = manager.add_event_handler("my_event", EventHandler(print))
+    Subscription(manager, "my_event", EventHandler(print)).remove()
+    assert manager.get_subscriptions("my_event") == (registered,)
+
+
+def test_subscription_is_hashable_by_identity() -> None:
+    manager = EventManager()
+    handler = EventHandler(print)
+    first = manager.add_event_handler("my_event", handler)
+    second = manager.add_event_handler("my_event", handler)
+    assert len({first, second}) == 2
+
+
 def test_subscription_remove_same_handler_registered_twice_keeps_other_registration() -> None:
     manager = EventManager()
     handler = EventHandler(print)

@@ -162,14 +162,14 @@ BaseEventHandler (abstract)
 
 ### Event Manager
 
-**Design**: Central coordinator using a dictionary to map events to lists of subscriptions.
+**Design**: Central coordinator using a dictionary to map events to ordered sets of subscriptions.
 
 **Internal Structure**:
 
 ```python
 {
-    "event1": [subscription1, subscription2, subscription3],
-    "event2": [subscription4, subscription5],
+    "event1": {subscription1: None, subscription2: None, subscription3: None},
+    "event2": {subscription4: None, subscription5: None},
     # ...
 }
 ```
@@ -184,7 +184,7 @@ BaseEventHandler (abstract)
 
 - `O(1)` handler registration
 - `O(n)` event triggering (n = number of handlers)
-- `O(n)` removal of a registration (n = handlers of its event)
+- `O(1)` removal of a registration
 
 ## Conditional Execution
 
@@ -228,7 +228,7 @@ trigger_event()
    subscription = manager.add_event_handler("event", handler, once=...)
 
 3. Manager stores the registration
-   a Subscription is appended to the list of the event and returned
+   a Subscription is added to the ordered set of the event and returned
 ```
 
 ### Triggering Flow
@@ -238,7 +238,7 @@ trigger_event()
    manager.trigger_event("event")
 
 2. Manager gets the registrations
-   subscriptions = a snapshot of the list of the event
+   subscriptions = a snapshot of the ordered set of the event
 
 3. Manager executes each handler
    for subscription in subscriptions:
