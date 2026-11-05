@@ -55,6 +55,19 @@ def test_subscription_remove_last_benchmark(benchmark: BenchmarkFixture, num_han
     benchmark(add_last_and_remove_it)
 
 
+def test_subscription_remove_many_lifo_benchmark(benchmark: BenchmarkFixture) -> None:
+    def add_many_and_remove_in_reverse_order() -> None:
+        # The order of nested ``with manager.add_event_handler(...)`` blocks. A list registry
+        # scans the whole list for each removal, so the total cost is quadratic.
+        manager = EventManager()
+        handler = EventHandler(no_argument)
+        subscriptions = [manager.add_event_handler("event_0", handler) for _ in range(10_000)]
+        for subscription in reversed(subscriptions):
+            subscription.remove()
+
+    benchmark.pedantic(add_many_and_remove_in_reverse_order, rounds=3, iterations=1)
+
+
 def test_event_handler_construct_benchmark(benchmark: BenchmarkFixture) -> None:
     benchmark(EventHandler, no_argument)
 
