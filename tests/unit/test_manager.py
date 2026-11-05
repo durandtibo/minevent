@@ -178,6 +178,46 @@ def test_event_manager_trigger_event_handler_raises_adds_note() -> None:
     assert exc_info.value.__notes__ == ["raised by fail while handling the event 'my_event'"]
 
 
+def test_event_manager_trigger_event_reused_exception_has_one_note() -> None:
+    error = ValueError("boom")
+    manager = EventManager()
+    manager.add_event_handler("my_event", EventHandler(Mock(side_effect=error, __qualname__="f")))
+    for _ in range(3):
+        with contextlib.suppress(ValueError):
+            manager.trigger_event("my_event")
+    assert len(error.__notes__) == 1
+
+
+def test_event_manager_trigger_event_retrigger_own_event_has_one_note() -> None:
+    manager = EventManager()
+
+    def retrigger() -> None:
+        manager.trigger_event("my_event")
+
+    manager.add_event_handler("my_event", EventHandler(retrigger))
+    with pytest.raises(RecursionError) as exc_info:
+        manager.trigger_event("my_event")
+    assert exc_info.value.__notes__ == [
+        f"raised by {retrigger.__qualname__} while handling the event 'my_event'"
+    ]
+
+
+def test_event_manager_trigger_event_nested_events_have_one_note_each() -> None:
+    manager = EventManager()
+
+    def trigger_b() -> None:
+        manager.trigger_event("b")
+
+    manager.add_event_handler("a", EventHandler(trigger_b))
+    manager.add_event_handler("b", EventHandler(fail))
+    with pytest.raises(ValueError, match=r"boom") as exc_info:
+        manager.trigger_event("a")
+    assert exc_info.value.__notes__ == [
+        "raised by fail while handling the event 'b'",
+        f"raised by {trigger_b.__qualname__} while handling the event 'a'",
+    ]
+
+
 def test_event_manager_trigger_event_handler_raises_same_exception_type_and_object() -> None:
     error = ValueError("boom")
     event_manager = EventManager()
@@ -716,6 +756,35 @@ def test_add_error_note() -> None:
     error = ValueError("boom")
     _add_error_note(error, "my_event", EventHandler(fail))
     assert error.__notes__ == ["raised by fail while handling the event 'my_event'"]
+
+
+def test_add_error_note_same_pair_twice_adds_one_note() -> None:
+    error = ValueError("boom")
+    handler = EventHandler(fail)
+    _add_error_note(error, "my_event", handler)
+    _add_error_note(error, "my_event", handler)
+    assert error.__notes__ == ["raised by fail while handling the event 'my_event'"]
+
+
+def test_add_error_note_other_event_adds_note() -> None:
+    error = ValueError("boom")
+    handler = EventHandler(fail)
+    _add_error_note(error, "my_event", handler)
+    _add_error_note(error, "my_other_event", handler)
+    assert error.__notes__ == [
+        "raised by fail while handling the event 'my_event'",
+        "raised by fail while handling the event 'my_other_event'",
+    ]
+
+
+def test_add_error_note_other_handler_adds_note() -> None:
+    error = ValueError("boom")
+    _add_error_note(error, "my_event", EventHandler(fail))
+    _add_error_note(error, "my_event", EventHandler(hello_handler))
+    assert error.__notes__ == [
+        "raised by fail while handling the event 'my_event'",
+        "raised by hello_handler while handling the event 'my_event'",
+    ]
 
 
 def failing_handler() -> None:

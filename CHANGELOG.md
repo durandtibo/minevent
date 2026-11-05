@@ -47,6 +47,9 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
 
 ### Fixed
 
+- The note added to the exception of a handler is added once per distinct event and handler: an
+  exception instance raised again, or a handler that triggers its own event, no longer accumulates
+  identical notes (#766).
 - `Subscription.remove` removes only its own registration: calling it twice no longer removes the
   registration of another subscription of the same handler.
 
