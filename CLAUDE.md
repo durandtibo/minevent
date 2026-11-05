@@ -8,6 +8,8 @@
   Fix the issues raised by ruff. Ignoring an issue (`noqa`, a changed rule set) is not fixing it.
 - Type check with `.venv/bin/ty check`. Fix the issues raised by ty. Ignoring an issue
   (`type: ignore`, `ty: ignore`, a cast that hides the problem) is not fixing it.
+- Run the invoke tasks with the virtual environment on the `PATH`, because they call `python`:
+  `PATH=.venv/bin:$PATH .venv/bin/inv test.doctest` (it also checks the markdown pages).
 - Run the unit tests of the packages you changed (for example `.venv/bin/pytest tests/unit/hashing -q`).
   Some tests fail on `main`; check with `git stash` before blaming your change.
 

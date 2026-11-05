@@ -84,7 +84,7 @@ condition is any function without argument that returns a boolean, or a class wi
 
 ### What is the overhead?
 
-About 0.7 µs per trigger with one trivial handler. See [performance](guide.md#performance).
+About 0.5 µs per trigger with one trivial handler. See [performance](guide.md#performance).
 
 ## Help
 
