@@ -348,14 +348,14 @@ its number, has its tests, and keeps `ruff`, `ty` and 100% coverage.
 | 3    | **One note per distinct pair** (F2): section 3.2. Regression tests first (reused instance, self-retrigger), check they fail on `main` with `git stash push src`.                                                                                       | notes of a reused exception |
 | 4    | **`on` options** (F4, D3): section 3.3, docstring example, guide and quickstart text. Skip this step if D3 is declined.                                                                                                                                | no                          |
 
-**Status.** Stacked PRs, each on the previous one: none opened yet.
+**Status.** Stacked PRs, each on the previous one: all four opened, not merged yet.
 
 | Step | PR  |
 | ---- | --- |
-| 1    |     |
-| 2    |     |
-| 3    |     |
-| 4    |     |
+| 1    | #764 |
+| 2    | #765 |
+| 3    | #766 |
+| 4    | #767 |
 
 All four steps are safe to merge alone and in any order. Steps 2 and 3 change no signature.
 
