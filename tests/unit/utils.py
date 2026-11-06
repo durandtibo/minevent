@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-__all__ = ["Tracer", "reset_traced", "trace"]
+__all__ = ["Tracer", "raised", "reset_traced", "trace"]
 
 from functools import update_wrapper
 from typing import TYPE_CHECKING, Any
+
+import pytest
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -65,3 +67,19 @@ def reset_traced() -> None:
     r"""Reset all the tracers created with ``trace``."""
     for tracer in _TRACED:
         tracer.reset()
+
+
+def raised(func: Callable[..., object], *args: object, **kwargs: object) -> BaseException:
+    r"""Return the exception raised by a call, and fail if it does not raise.
+
+    Args:
+        func: The function to call.
+        *args: The positional arguments of the call.
+        **kwargs: The keyword arguments of the call.
+
+    Returns:
+        The exception raised by ``func(*args, **kwargs)``.
+    """
+    with pytest.raises(BaseException, match=r"(?s).*") as exc_info:
+        func(*args, **kwargs)
+    return exc_info.value

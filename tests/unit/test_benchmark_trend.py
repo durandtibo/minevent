@@ -57,9 +57,14 @@ def test_load_runs_sorted_by_date(tmp_path: Path) -> None:
     assert [times for _, times in load_runs(tmp_path, days=10)] == [{"a": 1.0}, {"b": 2.0}]
 
 
-def test_load_runs_skips_old_results_and_keeps_the_file(tmp_path: Path) -> None:
+def test_load_runs_skips_old_results(tmp_path: Path) -> None:
     write_run(tmp_path / "old.json", datetime.now(tz=UTC) - timedelta(days=100), {"x": 1.0})
     assert load_runs(tmp_path, days=90) == []
+
+
+def test_load_runs_keeps_old_file_without_prune(tmp_path: Path) -> None:
+    write_run(tmp_path / "old.json", datetime.now(tz=UTC) - timedelta(days=100), {"x": 1.0})
+    load_runs(tmp_path, days=90)
     assert (tmp_path / "old.json").exists()
 
 

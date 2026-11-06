@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from tests.unit.utils import Tracer, reset_traced, trace
+from unittest.mock import Mock
+
+import pytest
+
+from tests.unit.utils import Tracer, raised, reset_traced, trace
 
 
 def add(a: int, b: int = 0) -> int:
@@ -84,3 +88,29 @@ def test_reset_traced_does_not_reset_unregistered_tracer() -> None:
     tracer(1)
     reset_traced()
     assert tracer.call_count == 1
+
+
+############################
+#     Tests for raised     #
+############################
+
+
+def raise_value_error(message: str = "boom") -> None:
+    raise ValueError(message)
+
+
+def test_raised_returns_exception() -> None:
+    assert isinstance(raised(raise_value_error), ValueError)
+
+
+def test_raised_passes_arguments() -> None:
+    assert str(raised(raise_value_error, message="custom")) == "custom"
+
+
+def test_raised_returns_base_exception() -> None:
+    assert isinstance(raised(Mock(side_effect=KeyboardInterrupt("stop"))), KeyboardInterrupt)
+
+
+def test_raised_fails_when_no_exception() -> None:
+    with pytest.raises(BaseException, match=r"DID NOT RAISE"):
+        raised(add, 1)
