@@ -201,7 +201,9 @@ class Subscription:
         registered several times to the same event. Calling this
         method again, or after the registration was removed another
         way (``clear_event``, ``reset``, a ``once`` trigger), does
-        nothing.
+        nothing. It never raises, even for a subscription that was
+        never registered in its manager. The cost does not depend on
+        the number of handlers of the event.
 
         Returns:
             ``True`` if the registration was removed, ``False`` if it
@@ -257,7 +259,8 @@ class EventManager:
 
     def __init__(self) -> None:
         # This variable is used to store the registrations of each event, in the order they run.
-        self._subscriptions: dict[str, list[Subscription]] = {}
+        # A dict is an ordered set: the keys keep the registration order and removing is O(1).
+        self._subscriptions: dict[str, dict[Subscription, None]] = {}
         # This lock protects the state above. It is reentrant, so a handler can use the manager.
         self._lock = threading.RLock()
 
@@ -393,7 +396,7 @@ class EventManager:
             raise TypeError(msg)
         subscription = Subscription(self, event, event_handler, once=once)
         with self._lock:
-            self._subscriptions.setdefault(event, []).append(subscription)
+            self._subscriptions.setdefault(event, {})[subscription] = None
         logger.debug("Added %s to event %s", event_handler, event)
         return subscription
 
@@ -450,11 +453,11 @@ class EventManager:
                 was already removed.
         """
         with self._lock:
-            if not subscription.active:
+            subs = self._subscriptions.get(subscription.event)
+            if subs is None or subscription not in subs:
                 return False
             subscription._active = False
-            subs = self._subscriptions[subscription.event]
-            subs.remove(subscription)
+            del subs[subscription]
             if not subs:
                 del self._subscriptions[subscription.event]
         logger.debug("Removed %s in '%s' event", subscription.event_handler, subscription.event)

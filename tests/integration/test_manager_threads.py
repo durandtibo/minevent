@@ -149,3 +149,25 @@ def test_run_threads_propagates_exception() -> None:
 
     with pytest.raises(RuntimeError, match=r"raised an exception: ValueError\('boom'\)"):
         run_threads(work, 2)
+
+
+def test_remove_from_threads_registrations_added_by_other_threads() -> None:
+    """Test that the registrations added by some threads can be removed
+    by other threads, each exactly once."""
+    manager = EventManager()
+    subscriptions = [
+        manager.add_event_handler("my_event", EventHandler(print))
+        for _ in range(NUM_THREADS * NUM_ITERATIONS)
+    ]
+    results: list[bool] = []
+    lock = threading.Lock()
+
+    def work(index: int) -> None:
+        for subscription in subscriptions[index::NUM_THREADS]:
+            removed = subscription.remove()
+            with lock:
+                results.append(removed)
+
+    run_threads(work, NUM_THREADS)
+    assert results.count(True) == len(subscriptions)
+    assert len(manager) == 0

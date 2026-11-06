@@ -48,11 +48,23 @@ def test_subscription_remove_last_benchmark(benchmark: BenchmarkFixture, num_han
     handler = EventHandler(no_argument)
 
     def add_last_and_remove_it() -> bool:
-        # remove() searches the list of the event from the start, so removing the last
-        # registration costs the most and grows with the number of handlers
+        # The cost of remove() does not depend on the number of handlers of the event
         return manager.add_event_handler("event_0", handler).remove()
 
     benchmark(add_last_and_remove_it)
+
+
+def test_subscription_remove_many_lifo_benchmark(benchmark: BenchmarkFixture) -> None:
+    def add_many_and_remove_in_reverse_order() -> None:
+        # The order of nested ``with manager.add_event_handler(...)`` blocks. The total cost
+        # must be linear in the number of registrations.
+        manager = EventManager()
+        handler = EventHandler(no_argument)
+        subscriptions = [manager.add_event_handler("event_0", handler) for _ in range(10_000)]
+        for subscription in reversed(subscriptions):
+            subscription.remove()
+
+    benchmark.pedantic(add_many_and_remove_in_reverse_order, rounds=3, iterations=1)
 
 
 def test_event_handler_construct_benchmark(benchmark: BenchmarkFixture) -> None:
