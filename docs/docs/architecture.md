@@ -6,23 +6,24 @@ This document describes the architecture and design principles of `minevent`.
 
 These properties hold for every release and each one is covered by tests.
 
-| #   | Property                 | Statement                                                                                                                                                                                                                                             |
-| --- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P1  | Small surface            | Three concepts and plain callables. Seven exported names and `__version__`. `EventManager` has 9 public members.                                                                                                                                      |
-| P2  | Events are strings       | An event name is a case-sensitive `str`; any other type raises `TypeError`. The empty string is valid. Reading the manager never creates an event.                                                                                                    |
-| P3  | Validated at the door    | A wrong type raises `TypeError` in the call that receives it: the event, the handler of `add_event_handler`, the callable, the arguments and the condition of `EventHandler`.                                                                         |
-| P4  | Registration identity    | `add_event_handler` returns a new `Subscription` every time; the same handler can be registered several times. `remove()` removes that registration only, once: `True` the first time, then `False`.                                                  |
-| P5  | Registration order       | The handlers of an event run in the order they were registered, one after the other, in the calling thread.                                                                                                                                           |
-| P6  | Snapshot dispatch        | `trigger_event` runs the registrations that exist when it starts. A registration added or removed by a running handler takes effect at the next trigger.                                                                                              |
-| P7  | Fail-fast with context   | An exception of a handler propagates unchanged (same object, same type); the remaining handlers are skipped. It carries a note with the event and the handler callable, once per distinct pair. Building the note never runs the `repr` of user data. |
-| P8  | `once` is at-most-once   | A `once` registration is removed before its handler is called, by an atomic claim: it runs at most once whatever the number of threads, and it is consumed even if its condition is false or its handler raises.                                      |
-| P9  | Synchronous by default   | `trigger_event` never awaits; a handler that returns an awaitable raises `TypeError` and the coroutine is closed. `atrigger_event` awaits the handlers one after the other; synchronous handlers run inline and block the loop.                       |
-| P10 | Thread-safe registry     | The registry is protected by a reentrant lock. Handlers, conditions and the `repr` of user objects run outside the lock, so a handler can use the manager.                                                                                            |
-| P11 | No hidden state          | No global manager, no discovery, no side effect of a read. Zero runtime dependencies. `import minevent` does not import `importlib.metadata`.                                                                                                         |
-| P12 | Payload is data          | `trigger_event(event, /, **payload)` passes the payload to every handler as keyword arguments, after `handler_kwargs`. Any key is allowed (`event`, `self`). With `filter_payload=True` only the keys the signature accepts are passed.               |
-| P13 | Conditions are callables | A condition is a `Callable[[], bool]`, called once per trigger and per handler, before the handler. The built-in conditions keep per-instance state; sharing an instance shares the state. There is one way to run a handler once (`once=True`).      |
-| P14 | Typed                    | Fully typed, `py.typed`, `ty check` clean, payload typed `object`.                                                                                                                                                                                    |
-| P15 | Fast and linear          | A trigger of one handler costs about 0.5 µs and each extra handler about 0.15 µs. Registering _k_ handlers and removing them in any order costs O(_k_) in total.                                                                                      |
+| # | Property | Statement |
+| --- | --- | --- |
+| P1 | Small surface | Three concepts and plain callables. Seven exported names and `__version__`. `EventManager` has 8 public members (`events`, `get_subscriptions`, `add_event_handler`, `on`, `trigger_event`, `atrigger_event`, `clear_event`, `reset`) and `__len__`, `__contains__`. |
+| P2 | Events are strings | An event name is a case-sensitive `str`; any other type raises `TypeError`. The empty string is valid. Reading the manager never creates an event. |
+| P3 | Validated at the door | A wrong type or value raises `TypeError` in the call that receives it, with a message that names the argument and the value: the event, the handler of `add_event_handler`, the callable, `handler_args`, `handler_kwargs` (a mapping with `str` keys) and the condition of `EventHandler`. |
+| P4 | Registration identity | `add_event_handler` returns a new `Subscription` every time; the same handler can be registered several times. `remove()` removes that registration only, once: `True` the first time, then `False`. `active` is `True` if and only if the registration is in the manager. |
+| P5 | Registration order | The handlers of an event run in the order they were registered, one after the other, in the calling thread. |
+| P6 | Snapshot dispatch | `trigger_event` runs the registrations that exist when it starts. A registration added or removed by a running handler takes effect at the next trigger. |
+| P7 | Fail-fast with context | An exception of a handler propagates unchanged (same object, same type); the remaining handlers are skipped. It carries a note with the event and the handler callable, once per distinct pair. Building the note never runs the `repr` of user data. |
+| P8 | `once` is at-most-once | A `once` registration is removed before its handler is called, by an atomic claim: it runs at most once whatever the number of threads, and it is consumed even if its condition is false or its handler raises. |
+| P9 | Synchronous by default | `trigger_event` never awaits; a handler that returns an awaitable raises `TypeError` and the coroutine is closed. `atrigger_event` awaits the handlers one after the other; synchronous handlers run inline and block the loop. |
+| P10 | Thread-safe registry | The registry is protected by a reentrant lock. Handlers, conditions and the `repr` of user objects run outside the lock, so a handler can use the manager. |
+| P11 | No hidden state | No global manager, no discovery, no side effect of a read. Zero runtime dependencies. `import minevent` does not import `importlib.metadata`. A manager cannot be copied or pickled (`copy.copy`, `copy.deepcopy` and `pickle` raise the same `TypeError`): it owns a lock and a registry, so create a new one. |
+| P12 | Payload is data | `trigger_event(event, /, payload)` passes the payload to every handler as keyword arguments, after `handler_kwargs`. Any key is allowed (`event`, `self`). With `filter_payload=True` only the keys the signature accepts are passed. |
+| P13 | Conditions are callables | A condition is a `Callable[[], bool]`, called once per trigger and per handler, before the handler. The built-in conditions keep per-instance state and both have `reset()`; sharing an instance shares the state. There is one way to run a handler once (`once=True`). |
+| P14 | Typed | Fully typed, `py.typed`, `ty check` clean, payload typed `object`. |
+| P15 | Fast and linear | A trigger of one handler costs about 0.5 µs, each extra handler about 0.15 µs, a registration plus its removal about 0.9 µs. Registering _k_ handlers and removing them in any order costs O(_k_) in total. Not slower than today. |
+| P16 | A manager is a service | `bool(manager)` is always `True`, empty or not, so `manager or default` and `if manager:` mean "is there a manager". `len(manager)` is the number of registrations. |
 
 ## Overview
 
@@ -331,72 +332,3 @@ inspecting handlers, and triggering events, can be done from several threads.
   run every handler and report all the failures, wrap the handler in a `try`/`except` (an
   `ExceptionGroup` option such as `on_error="collect"` was considered and declined to keep
   `trigger_event` minimal).
-
-## Design Decisions
-
-### Why Strings for Events?
-
-**Alternatives Considered**:
-
-- Enum types
-- Custom Event classes
-- Integer IDs
-
-**Chosen**: Strings
-
-**Reasons**:
-
-- Universal and simple
-- Easy to understand
-- No import dependencies
-- Flexible naming
-- Human-readable
-
-### Why Synchronous by Default?
-
-**Alternatives Considered**:
-
-- Async/await support
-- Threading
-- Multiprocessing
-
-**Chosen**: Synchronous `trigger_event`, with `atrigger_event` for coroutine handlers
-
-**Reasons**:
-
-- Simpler to understand
-- Easier to debug
-- Deterministic execution
-- Sufficient for ML workflows
-- Coroutine handlers are opt-in with `atrigger_event`; `trigger_event` stays synchronous
-
-### Why Explicit Event Manager?
-
-**Alternatives Considered**:
-
-- Global event bus
-- Singleton manager
-- Module-level functions
-
-**Chosen**: Explicit manager instance
-
-**Reasons**:
-
-- No hidden global state
-- Easier to test
-- Multiple managers possible
-- Clear ownership
-- Explicit is better than implicit
-
-## Conclusion
-
-`minevent` is designed to be:
-
-- **Simple**: Easy to learn and use
-- **Explicit**: No surprises or magic
-- **Extensible**: Customize through composition
-- **Focused**: Does one thing well
-- **Reliable**: Well-tested and documented
-
-The architecture supports these goals while remaining flexible enough for diverse use cases in
-machine learning and beyond.

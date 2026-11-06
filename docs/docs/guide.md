@@ -307,6 +307,8 @@ The registration is already removed. This is not an error: `remove()` is idempot
   logging.getLogger("minevent").setLevel(logging.DEBUG)
   ```
 
+  `DEBUG` logs use the `repr` of the handler, arguments included.
+
 - Register a handler that prints the payload while you investigate:
 
   ```python

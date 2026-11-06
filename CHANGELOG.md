@@ -81,3 +81,6 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
   notes of the exceptions, the `TypeError` for an awaitable and the thread safety. The quickstart
   and architecture pages no longer mention a synchronous-only system or `last_triggered_event`, and
   the architecture flows show the payload, the subscriptions and `ahandle`.
+- Documentation: the properties table of `architecture.md` lists the 8 public members of
+  `EventManager`, "Design Decisions" and "Conclusion" are removed, `CONTRIBUTING.md` uses the invoke
+  tasks, and `review/suggestions.md` is deleted (#770).
