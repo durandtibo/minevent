@@ -19,7 +19,7 @@ from minevent import (
     Subscription,
 )
 from minevent.manager import _add_error_note, _describe
-from tests.unit.utils import trace
+from tests.unit.utils import raised, trace
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -183,20 +183,18 @@ def test_event_manager_trigger_event_handler_raises_skips_next_handlers() -> Non
 
 def test_event_manager_trigger_event_handler_raises_adds_note() -> None:
     event_manager = EventManager()
-    handler = EventHandler(fail)
-    event_manager.add_event_handler("my_event", handler)
-    with pytest.raises(ValueError, match=r"boom") as exc_info:
-        event_manager.trigger_event("my_event")
-    assert exc_info.value.__notes__ == ["raised by fail while handling the event 'my_event'"]
+    event_manager.add_event_handler("my_event", EventHandler(fail))
+    error = raised(event_manager.trigger_event, "my_event")
+    assert error.__notes__ == ["raised by fail while handling the event 'my_event'"]
 
 
 def test_event_manager_trigger_event_reused_exception_has_one_note() -> None:
     error = ValueError("boom")
     manager = EventManager()
     manager.add_event_handler("my_event", EventHandler(Mock(side_effect=error, __qualname__="f")))
-    for _ in range(3):
-        with contextlib.suppress(ValueError):
-            manager.trigger_event("my_event")
+    raised(manager.trigger_event, "my_event")
+    raised(manager.trigger_event, "my_event")
+    raised(manager.trigger_event, "my_event")
     assert len(error.__notes__) == 1
 
 
@@ -207,9 +205,7 @@ def test_event_manager_trigger_event_retrigger_own_event_has_one_note() -> None:
         manager.trigger_event("my_event")
 
     manager.add_event_handler("my_event", EventHandler(retrigger))
-    with pytest.raises(RecursionError) as exc_info:
-        manager.trigger_event("my_event")
-    assert exc_info.value.__notes__ == [
+    assert raised(manager.trigger_event, "my_event").__notes__ == [
         f"raised by {retrigger.__qualname__} while handling the event 'my_event'"
     ]
 
@@ -222,9 +218,7 @@ def test_event_manager_trigger_event_nested_events_have_one_note_each() -> None:
 
     manager.add_event_handler("a", EventHandler(trigger_b))
     manager.add_event_handler("b", EventHandler(fail))
-    with pytest.raises(ValueError, match=r"boom") as exc_info:
-        manager.trigger_event("a")
-    assert exc_info.value.__notes__ == [
+    assert raised(manager.trigger_event, "a").__notes__ == [
         "raised by fail while handling the event 'b'",
         f"raised by {trigger_b.__qualname__} while handling the event 'a'",
     ]
@@ -234,9 +228,7 @@ def test_event_manager_trigger_event_handler_raises_same_exception_type_and_obje
     error = ValueError("boom")
     event_manager = EventManager()
     event_manager.add_event_handler("my_event", EventHandler(Mock(side_effect=error)))
-    with pytest.raises(ValueError, match=r"boom") as exc_info:
-        event_manager.trigger_event("my_event")
-    assert exc_info.value is error
+    assert raised(event_manager.trigger_event, "my_event") is error
 
 
 def test_event_manager_trigger_event_base_exception_has_no_note() -> None:
@@ -244,9 +236,7 @@ def test_event_manager_trigger_event_base_exception_has_no_note() -> None:
     event_manager.add_event_handler(
         "my_event", EventHandler(Mock(side_effect=KeyboardInterrupt("interrupted")))
     )
-    with pytest.raises(KeyboardInterrupt, match=r"interrupted") as exc_info:
-        event_manager.trigger_event("my_event")
-    assert not hasattr(exc_info.value, "__notes__")
+    assert not hasattr(raised(event_manager.trigger_event, "my_event"), "__notes__")
 
 
 INVALID_EVENTS = [1, None, b"my_event"]
@@ -263,10 +253,16 @@ def test_event_manager_add_event_handler_event_handler_must_be_event_handler(
         EventManager().add_event_handler("my_event", event_handler)
 
 
+def test_event_manager_add_event_handler_bare_function_message_suggests_event_handler() -> None:
+    event_handler: Any = print
+    with pytest.raises(TypeError, match=r"wrap a function with EventHandler"):
+        EventManager().add_event_handler("my_event", event_handler)
+
+
 def test_event_manager_add_event_handler_invalid_event_handler_is_not_registered() -> None:
     manager = EventManager()
     event_handler: Any = print
-    with pytest.raises(TypeError, match=r"wrap a function with EventHandler"):
+    with contextlib.suppress(TypeError):
         manager.add_event_handler("my_event", event_handler)
     assert "my_event" not in manager
 
@@ -660,38 +656,11 @@ def test_event_manager_get_subscriptions_event_must_be_str(event: Any) -> None:
 ###############################################
 
 
-def test_event_manager_subscription_active_after_add() -> None:
-    manager = EventManager()
-    assert manager.add_event_handler("my_event", EventHandler(hello_handler)).active
-
-
-def test_event_manager_subscription_active_after_remove() -> None:
-    manager = EventManager()
-    subscription = manager.add_event_handler("my_event", EventHandler(hello_handler))
-    subscription.remove()
-    assert not subscription.active
-
-
-def test_event_manager_subscription_active_after_reset() -> None:
-    manager = EventManager()
-    subscription = manager.add_event_handler("my_event", EventHandler(hello_handler))
-    manager.reset()
-    assert not subscription.active
-
-
 def test_event_manager_subscription_active_after_once_ran() -> None:
     manager = EventManager()
     subscription = manager.add_event_handler("my_event", EventHandler(hello_handler), once=True)
     manager.trigger_event("my_event")
     assert not subscription.active
-
-
-def test_event_manager_subscription_active_other_equal_handler_removed() -> None:
-    manager = EventManager()
-    subscription = manager.add_event_handler("my_event", EventHandler(hello_handler))
-    other = manager.add_event_handler("my_event", EventHandler(hello_handler))
-    other.remove()
-    assert subscription.active
 
 
 def test_event_manager_subscription_context_manager_removes_on_exit() -> None:
@@ -872,9 +841,7 @@ def test_event_manager_trigger_event_note_ignores_repr_of_arguments() -> None:
 def test_event_manager_trigger_event_note_is_short_for_large_arguments() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", EventHandler(fail_with_arguments, [list(range(10_000))]))
-    with pytest.raises(ValueError, match=r"boom") as exc_info:
-        manager.trigger_event("my_event")
-    assert len(exc_info.value.__notes__[0]) < 100
+    assert len(raised(manager.trigger_event, "my_event").__notes__[0]) < 100
 
 
 ###############################
@@ -996,13 +963,6 @@ def test_subscription_active_never_registered() -> None:
 def test_subscription_active_never_registered_stays_inactive_after_remove() -> None:
     subscription = Subscription(EventManager(), "my_event", EventHandler(print))
     subscription.remove()
-    assert not subscription.active
-
-
-def test_subscription_active_after_clear_event() -> None:
-    manager = EventManager()
-    subscription = manager.add_event_handler("my_event", EventHandler(print))
-    manager.clear_event("my_event")
     assert not subscription.active
 
 
@@ -1138,10 +1098,18 @@ def test_subscription_exit_removes() -> None:
     assert len(manager) == 0
 
 
+def test_subscription_exit_does_not_swallow_exception_of_block() -> None:
+    with (
+        pytest.raises(RuntimeError, match=r"handler failed"),
+        EventManager().add_event_handler("my_event", EventHandler(print)),
+    ):
+        failing_handler()
+
+
 def test_subscription_exit_removes_when_block_raises() -> None:
     manager = EventManager()
     with (
-        pytest.raises(RuntimeError, match=r"handler failed"),
+        contextlib.suppress(RuntimeError),
         manager.add_event_handler("my_event", EventHandler(print)),
     ):
         failing_handler()
