@@ -56,6 +56,10 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
 
 ### Changed
 
+- `bool(EventManager())` is always `True` (it was `False` for an empty manager), so
+  `manager or default` is safe; use `len(manager) == 0` to test that a manager has no handler.
+  `copy.copy`, `copy.deepcopy` and `pickle` of an `EventManager` raise a `TypeError` (`copy.copy`
+  used to share the registry silently): create a new manager (#771).
 - Removing a registration is O(1) instead of O(n): the registry of an event is an ordered `dict`
   (#765). `Subscription.remove()` returns `False`, and no longer raises `KeyError`, for a
   subscription that was never registered in its manager.

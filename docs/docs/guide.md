@@ -131,6 +131,10 @@ def setup_handlers(manager: EventManager) -> None:
     manager.add_event_handler("training_end", EventHandler(log_summary))
 ```
 
+A manager is always truthy, even when it is empty, so `manager or EventManager()` keeps the manager
+you pass; use `len(manager)` for the number of registrations. A manager cannot be copied or pickled
+(`copy.copy`, `copy.deepcopy` and `pickle` raise a `TypeError`): create a new one.
+
 ### Keep the subscription
 
 `add_event_handler` returns a `Subscription`, the registration of the handler. It is the only way to
