@@ -108,6 +108,7 @@ manager.add_event_handler("epoch_end", EventHandler(notify, condition=lambda: is
 
 - `PeriodicCondition` and `AfterNCondition` keep a counter. Do not share one
   instance between two handlers: they would advance the same counter. Create one per handler.
+  Call `reset()` to restart the counter.
 - To combine conditions, write a function. `lambda: a() and b()` skips `b` when `a` is `False`;
   `lambda: all([a(), b()])` evaluates both, so stateful conditions advance together.
 - A stateful condition is not protected by a lock: call it from one thread.

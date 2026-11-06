@@ -156,7 +156,7 @@ class AfterNCondition:
     The condition is stateful, like ``PeriodicCondition``: each call
     advances the counter, so do not share one instance between
     several handlers, and call it from one thread because the counter
-    is not protected by a lock.
+    is not protected by a lock. Use ``reset`` to restart the counter.
 
     Args:
         n: The number of calls to skip. Must be a non-negative
@@ -193,6 +193,24 @@ class AfterNCondition:
         condition = self._step >= self._n
         self._step += 1
         return condition
+
+    def reset(self) -> None:
+        r"""Reset the internal counter, as if the condition was just
+        created.
+
+        Example:
+            ```pycon
+            >>> from minevent import AfterNCondition
+            >>> condition = AfterNCondition(1)
+            >>> condition(), condition()
+            (False, True)
+            >>> condition.reset()
+            >>> condition()
+            False
+
+            ```
+        """
+        self._step = 0
 
     @property
     def n(self) -> int:

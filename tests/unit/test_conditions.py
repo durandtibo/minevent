@@ -142,6 +142,29 @@ def test_after_n_condition_call_n_0() -> None:
     assert [condition() for _ in range(2)] == [True, True]
 
 
+def test_after_n_condition_reset() -> None:
+    condition = AfterNCondition(2)
+    condition()
+    condition()
+    condition.reset()
+    assert [condition() for _ in range(3)] == [False, False, True]
+
+
+def test_after_n_condition_reset_restores_initial_state() -> None:
+    condition = AfterNCondition(2)
+    condition()
+    condition()
+    condition()
+    condition.reset()
+    assert repr(condition) == "AfterNCondition(n=2, step=0)"
+
+
+def test_after_n_condition_reset_before_first_call() -> None:
+    condition = AfterNCondition(1)
+    condition.reset()
+    assert [condition() for _ in range(2)] == [False, True]
+
+
 def test_after_n_condition_negative() -> None:
     with pytest.raises(ValueError, match=r"n must be greater than or equal to 0"):
         AfterNCondition(-1)
