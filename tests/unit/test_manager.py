@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import contextlib
+import copy
 import functools
 import logging
+import pickle
 import threading
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from unittest.mock import Mock
 
 import pytest
@@ -18,6 +20,9 @@ from minevent import (
 )
 from minevent.manager import _add_error_note, _describe
 from tests.unit.utils import trace
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -507,6 +512,40 @@ def test_event_manager_trigger_event_handler_retriggering_its_event_raises_recur
     manager.add_event_handler("my_event", EventHandler(lambda: manager.trigger_event("my_event")))
     with pytest.raises(RecursionError, match=r"maximum recursion depth exceeded"):
         manager.trigger_event("my_event")
+
+
+#################################################
+#     Tests for truthiness, copy and pickle     #
+#################################################
+
+
+def test_event_manager_bool_empty() -> None:
+    assert bool(EventManager()) is True
+
+
+def test_event_manager_bool_with_registration() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", EventHandler(hello_handler))
+    assert bool(manager) is True
+
+
+def test_event_manager_empty_manager_or_default_keeps_manager() -> None:
+    manager = EventManager()
+    assert (manager or EventManager()) is manager
+
+
+@pytest.mark.parametrize("func", [copy.copy, copy.deepcopy, pickle.dumps])
+def test_event_manager_copy_and_pickle_raise_type_error(func: Callable[[object], object]) -> None:
+    with pytest.raises(TypeError, match=r"EventManager cannot be copied or pickled"):
+        func(EventManager())
+
+
+def test_event_manager_copy_subclass_names_subclass() -> None:
+    class MyManager(EventManager):
+        pass
+
+    with pytest.raises(TypeError, match=r"MyManager cannot be copied or pickled"):
+        copy.copy(MyManager())
 
 
 ###############################################

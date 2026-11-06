@@ -6,7 +6,7 @@ __all__ = ["EventManager", "Subscription"]
 
 import logging
 import threading
-from typing import TYPE_CHECKING, Self, TypeVar
+from typing import TYPE_CHECKING, NoReturn, Self, TypeVar
 
 from minevent.handlers import BaseEventHandler, EventHandler
 
@@ -250,6 +250,13 @@ class EventManager:
     thread-safe. The mutable state of a condition, such as the
     counter of ``PeriodicCondition``, is not protected.
 
+    A manager is a service, not a collection: ``bool(manager)`` is
+    always ``True``, even when it has no handler, so ``manager or
+    default`` means "is there a manager". Use ``len(manager)`` for the
+    number of registrations. A manager owns a lock and a registry, so
+    it cannot be copied or pickled (``copy.copy``, ``copy.deepcopy`` and
+    ``pickle`` raise a ``TypeError``): create a new one.
+
     Example:
         ```pycon
         >>> from minevent import EventHandler, EventManager
@@ -257,6 +264,8 @@ class EventManager:
         ...     print("Hello!")
         ...
         >>> manager = EventManager()
+        >>> bool(manager)
+        True
         >>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
         >>> manager.trigger_event("my_event")
         Hello!
@@ -283,6 +292,13 @@ class EventManager:
     def __len__(self) -> int:
         with self._lock:
             return sum(len(subs) for subs in self._subscriptions.values())
+
+    def __bool__(self) -> bool:
+        return True
+
+    def __reduce__(self) -> NoReturn:
+        msg = f"{type(self).__qualname__} cannot be copied or pickled: create a new one"
+        raise TypeError(msg)
 
     @property
     def events(self) -> list[str]:
