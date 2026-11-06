@@ -136,16 +136,17 @@ pip install minevent
 
 `minevent` has no dependency, so no optional dependencies or extras are required.
 
-Please check the [get started page](https://durandtibo.github.io/minevent/get_started) to see how to
-install only some specific dependencies or other alternatives to install the library.
-The following is the corresponding `minevent` versions and supported dependencies. The older
-versions are listed on the [releases page](https://github.com/durandtibo/minevent/releases).
+Please check the [get started page](https://durandtibo.github.io/minevent/get_started) for other
+alternatives to install the library.
+The following is the corresponding `minevent` versions and supported Python versions. The older
+versions are listed on the [releases page](https://github.com/durandtibo/minevent/releases) and
+the changes are listed in the [changelog](CHANGELOG.md).
 
-| `minevent` | `coola`       | `python` |
-| ---------- | ------------- | -------- |
-| `main`     | none          | `>=3.11` |
-| `0.5.0`    | `>=1.0,<2.0`  | `>=3.10` |
-| `0.4.0`    | `>=0.10,<1.0` | `>=3.10` |
+| `minevent` | `python` |
+| ---------- | -------- |
+| `main`     | `>=3.11` |
+| `0.5.0`    | `>=3.10` |
+| `0.4.0`    | `>=3.10` |
 
 ## Contributing
 
