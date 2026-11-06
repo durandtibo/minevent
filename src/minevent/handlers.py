@@ -171,8 +171,10 @@ class EventHandler(BaseEventHandler):
     Raises:
         TypeError: if ``handler`` is not callable, if
             ``handler_args`` is a ``str`` or ``bytes`` (which would
-            be split into characters), or if ``condition`` is
-            neither ``None`` nor callable.
+            be split into characters) or is not iterable, if
+            ``handler_kwargs`` is not a mapping or has a key that is
+            not a ``str``, or if ``condition`` is neither ``None``
+            nor callable.
 
     Example:
         ```pycon
@@ -225,9 +227,22 @@ class EventHandler(BaseEventHandler):
         if condition is not None and not callable(condition):
             msg = f"condition is not callable: {condition}"
             raise TypeError(msg)
+        try:
+            args = () if handler_args is None else tuple(handler_args)
+        except TypeError:
+            msg = f"handler_args must be a sequence of arguments, but got {handler_args!r}"
+            raise TypeError(msg) from None
+        try:
+            kwargs = {} if handler_kwargs is None else dict(handler_kwargs)
+        except (TypeError, ValueError):
+            msg = f"handler_kwargs must be a mapping, but got {handler_kwargs!r}"
+            raise TypeError(msg) from None
+        if not all(isinstance(key, str) for key in kwargs):
+            msg = f"the keys of handler_kwargs must be str, but got {list(kwargs)!r}"
+            raise TypeError(msg)
         self._handler = handler
-        self._handler_args = () if handler_args is None else tuple(handler_args)
-        self._handler_kwargs = {} if handler_kwargs is None else dict(handler_kwargs)
+        self._handler_args = args
+        self._handler_kwargs = kwargs
         self._condition = condition
         self._filter_payload = filter_payload
         self._payload_keys = _accepted_keywords(handler) if filter_payload else None

@@ -179,6 +179,40 @@ def test_event_handler_incorrect_handler_args(handler_args: str | bytes) -> None
         EventHandler(print, handler_args=handler_args)
 
 
+def test_event_handler_handler_args_not_iterable() -> None:
+    handler_args: Any = 5
+    with pytest.raises(TypeError, match=r"handler_args must be a sequence of arguments, but got 5"):
+        EventHandler(print, handler_args)
+
+
+@pytest.mark.parametrize("handler_kwargs", [5, [1], "ab"])
+def test_event_handler_incorrect_handler_kwargs(handler_kwargs: Any) -> None:
+    with pytest.raises(TypeError, match=r"handler_kwargs must be a mapping, but got"):
+        EventHandler(print, handler_kwargs=handler_kwargs)
+
+
+def test_event_handler_handler_kwargs_message_names_value() -> None:
+    handler_kwargs: Any = 5
+    with pytest.raises(TypeError, match=r"handler_kwargs must be a mapping, but got 5"):
+        EventHandler(print, handler_kwargs=handler_kwargs)
+
+
+@pytest.mark.parametrize("handler_kwargs", [{1: 2}, {"a": 1, 2: 3}])
+def test_event_handler_handler_kwargs_non_str_keys(handler_kwargs: dict[Any, Any]) -> None:
+    with pytest.raises(TypeError, match=r"the keys of handler_kwargs must be str, but got"):
+        EventHandler(print, handler_kwargs=handler_kwargs)
+
+
+def test_event_handler_handler_kwargs_non_str_keys_message_lists_keys() -> None:
+    handler_kwargs: Any = {"a": 1, 2: 3}
+    with pytest.raises(TypeError, match=r"but got \['a', 2\]"):
+        EventHandler(print, handler_kwargs=handler_kwargs)
+
+
+def test_event_handler_handler_kwargs_empty() -> None:
+    assert EventHandler(print, handler_kwargs={}).handler_kwargs == {}
+
+
 def test_event_handler_handler_kwargs_mapping() -> None:
     assert EventHandler(print, handler_kwargs=MappingProxyType({"a": 1})).handler_kwargs == {"a": 1}
 
