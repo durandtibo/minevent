@@ -40,6 +40,7 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
 - Built-in condition `AfterNCondition`. A condition is any function without
   argument that returns a boolean (the `Condition` protocol), so a lambda is a condition.
 - The `EventManager` registry is thread-safe.
+- `AfterNCondition.reset` restarts the counter, like `PeriodicCondition.reset` (#775).
 - `EventManager.get_subscriptions`, `__len__` and the `on` decorator.
 - `Subscription` is a context manager and has an `active` property.
 - `EventManager.on(event, *, once, condition, filter_payload)` forwards the options of the handler (#767).
