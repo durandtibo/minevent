@@ -54,6 +54,11 @@ def test_subscription_remove_last_benchmark(benchmark: BenchmarkFixture, num_han
     benchmark(add_last_and_remove_it)
 
 
+def test_subscription_active_benchmark(benchmark: BenchmarkFixture) -> None:
+    subscription = EventManager().add_event_handler("event_0", EventHandler(no_argument))
+    benchmark(lambda: subscription.active)
+
+
 def test_subscription_remove_many_lifo_benchmark(benchmark: BenchmarkFixture) -> None:
     def add_many_and_remove_in_reverse_order() -> None:
         # The order of nested ``with manager.add_event_handler(...)`` blocks. The total cost

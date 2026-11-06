@@ -144,7 +144,6 @@ class Subscription:
         self._event = event
         self._event_handler = event_handler
         self._once = once
-        self._active = True
 
     def __enter__(self) -> Self:
         return self
@@ -197,9 +196,11 @@ class Subscription:
             ``True`` if the event handler is still registered,
                 ``False`` if it was removed (by this subscription, by
                 ``clear_event`` or ``reset``, or because it was a
-                ``once`` registration consumed by a trigger).
+                ``once`` registration consumed by a trigger), or if
+                it was never registered in its manager. The answer
+                is read from the registry of the manager.
         """
-        return self._active
+        return self._manager._is_registered(self)
 
     def remove(self) -> bool:
         r"""Remove the registration.
@@ -487,6 +488,19 @@ class EventManager:
 
         return decorator
 
+    def _is_registered(self, subscription: Subscription) -> bool:
+        r"""Indicate if a registration is in the registry.
+
+        Args:
+            subscription: The registration to look for.
+
+        Returns:
+            ``True`` if the registration is registered for its event
+                in this manager, ``False`` otherwise.
+        """
+        with self._lock:
+            return subscription in self._subscriptions.get(subscription.event, ())
+
     def _remove(self, subscription: Subscription) -> bool:
         r"""Remove one registration.
 
@@ -501,7 +515,6 @@ class EventManager:
             subs = self._subscriptions.get(subscription.event)
             if subs is None or subscription not in subs:
                 return False
-            subscription._active = False
             del subs[subscription]
             if not subs:
                 del self._subscriptions[subscription.event]
@@ -655,8 +668,6 @@ class EventManager:
         _check_event(event)
         with self._lock:
             removed = self._subscriptions.pop(event, None)
-            for sub in removed or ():
-                sub._active = False
         if removed is not None:
             logger.debug("Cleared all the event handlers of '%s' event", event)
 
@@ -691,7 +702,4 @@ class EventManager:
             ```
         """
         with self._lock:
-            for subs in self._subscriptions.values():
-                for sub in subs:
-                    sub._active = False
             self._subscriptions.clear()

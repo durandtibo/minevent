@@ -548,6 +548,46 @@ def test_event_manager_copy_subclass_names_subclass() -> None:
         copy.copy(MyManager())
 
 
+####################################
+#     Tests for _is_registered     #
+####################################
+
+
+def test_event_manager_is_registered_true() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", EventHandler(print))
+    assert manager._is_registered(subscription)
+
+
+def test_event_manager_is_registered_false_after_remove() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", EventHandler(print))
+    subscription.remove()
+    assert not manager._is_registered(subscription)
+
+
+def test_event_manager_is_registered_false_never_registered() -> None:
+    manager = EventManager()
+    assert not manager._is_registered(Subscription(manager, "my_event", EventHandler(print)))
+
+
+def test_event_manager_is_registered_false_for_other_manager() -> None:
+    subscription = EventManager().add_event_handler("my_event", EventHandler(print))
+    assert not EventManager()._is_registered(subscription)
+
+
+def test_event_manager_is_registered_false_when_other_event_has_registrations() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_other_event", EventHandler(print))
+    assert not manager._is_registered(Subscription(manager, "my_event", EventHandler(print)))
+
+
+def test_event_manager_is_registered_does_not_create_event() -> None:
+    manager = EventManager()
+    manager._is_registered(Subscription(manager, "my_event", EventHandler(print)))
+    assert "my_event" not in manager
+
+
 ###############################################
 #     Tests for get_subscriptions and len     #
 ###############################################
@@ -947,6 +987,30 @@ def test_subscription_once_true() -> None:
 
 def test_subscription_active_after_add() -> None:
     assert EventManager().add_event_handler("my_event", EventHandler(print)).active
+
+
+def test_subscription_active_never_registered() -> None:
+    assert not Subscription(EventManager(), "my_event", EventHandler(print)).active
+
+
+def test_subscription_active_never_registered_stays_inactive_after_remove() -> None:
+    subscription = Subscription(EventManager(), "my_event", EventHandler(print))
+    subscription.remove()
+    assert not subscription.active
+
+
+def test_subscription_active_after_clear_event() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", EventHandler(print))
+    manager.clear_event("my_event")
+    assert not subscription.active
+
+
+def test_subscription_active_other_event_cleared() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", EventHandler(print))
+    manager.clear_event("my_other_event")
+    assert subscription.active
 
 
 def test_subscription_remove_returns_true() -> None:
