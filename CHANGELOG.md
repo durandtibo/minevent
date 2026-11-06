@@ -62,7 +62,7 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
   used to share the registry silently): create a new manager (#771).
 - `EventHandler` validates `handler_args` and `handler_kwargs` at construction: a `TypeError` that
   names the argument and the value, and non-`str` keys of `handler_kwargs` are rejected (they used
-  to fail at every trigger) (#773).
+  to fail at every trigger) (#774).
 - `Subscription.active` reads the registry of the manager instead of a copy of the state, so it is
   `False` for a subscription that was never registered (it was `True`). `reset` and `clear_event` no
   longer walk the registrations to flip a flag (#772).
