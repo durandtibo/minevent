@@ -142,3 +142,22 @@ async def test_event_manager_atrigger_event_handler_raises_adds_note() -> None:
     assert exc_info.value.__notes__ == [
         "raised by failing_async_handler while handling the event 'my_event'"
     ]
+
+
+async def test_event_manager_atrigger_event_on_filter_payload() -> None:
+    manager = EventManager()
+    epochs: list[int] = []
+
+    @manager.on("my_event", filter_payload=True)
+    async def log_epoch(epoch: int) -> None:
+        epochs.append(epoch)
+
+    await manager.atrigger_event("my_event", epoch=3, loss=0.5)
+    assert epochs == [3]
+
+
+async def test_event_manager_atrigger_event_on_condition_false() -> None:
+    manager = EventManager()
+    manager.on("my_event", condition=lambda: False)(async_handler)
+    await manager.atrigger_event("my_event")
+    assert async_handler.call_count == 0

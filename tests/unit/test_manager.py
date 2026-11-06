@@ -30,6 +30,13 @@ def fail() -> None:
     raise ValueError(msg)
 
 
+def registered_handler(manager: EventManager) -> EventHandler:
+    r"""Return the first ``EventHandler`` registered to ``my_event``."""
+    handler = manager.get_subscriptions("my_event")[0].event_handler
+    assert isinstance(handler, EventHandler)
+    return handler
+
+
 def add_hello_handler_when_triggered(manager: EventManager) -> None:
     r"""Register a handler that adds ``hello_handler`` to
     ``my_event``."""
@@ -655,6 +662,85 @@ def test_event_manager_on_event_registered() -> None:
     manager = EventManager()
     manager.on("my_event")(hello_handler)
     assert manager.events == ["my_event"]
+
+
+def test_event_manager_on_filter_payload_passes_accepted_keys_only() -> None:
+    manager = EventManager()
+    epochs: list[int] = []
+
+    @manager.on("my_event", filter_payload=True)
+    def log_epoch(epoch: int) -> None:
+        epochs.append(epoch)
+
+    manager.trigger_event("my_event", epoch=3, loss=0.5)
+    assert epochs == [3]
+
+
+def test_event_manager_on_filter_payload_default_is_false() -> None:
+    manager = EventManager()
+    manager.on("my_event")(hello_handler)
+    assert not registered_handler(manager).filter_payload
+
+
+def test_event_manager_on_filter_payload_reaches_event_handler() -> None:
+    manager = EventManager()
+    manager.on("my_event", filter_payload=True)(hello_handler)
+    assert registered_handler(manager).filter_payload
+
+
+def test_event_manager_on_condition_reaches_event_handler() -> None:
+    manager = EventManager()
+    manager.on("my_event", condition=PeriodicCondition(freq=2))(hello_handler)
+    assert isinstance(registered_handler(manager).condition, PeriodicCondition)
+
+
+def test_event_manager_on_condition_false_does_not_run_handler() -> None:
+    manager = EventManager()
+    manager.on("my_event", condition=lambda: False)(hello_handler)
+    manager.trigger_event("my_event")
+    assert hello_handler.call_count == 0
+
+
+def test_event_manager_on_condition_true_runs_handler() -> None:
+    manager = EventManager()
+    manager.on("my_event", condition=lambda: True)(hello_handler)
+    manager.trigger_event("my_event")
+    assert hello_handler.call_count == 1
+
+
+def test_event_manager_on_condition_evaluated_before_handler() -> None:
+    manager = EventManager()
+    calls: list[str] = []
+
+    def condition() -> bool:
+        calls.append("condition")
+        return True
+
+    @manager.on("my_event", condition=condition)
+    def handler() -> None:
+        calls.append("handler")
+
+    manager.trigger_event("my_event")
+    assert calls == ["condition", "handler"]
+
+
+def test_event_manager_on_condition_returns_function_unchanged() -> None:
+    manager = EventManager()
+    assert manager.on("my_event", condition=lambda: True)(hello_handler) is hello_handler
+
+
+def test_event_manager_on_once_with_options() -> None:
+    manager = EventManager()
+    manager.on("my_event", once=True, condition=lambda: True, filter_payload=True)(hello_handler)
+    manager.trigger_event("my_event")
+    manager.trigger_event("my_event")
+    assert hello_handler.call_count == 1
+
+
+def test_event_manager_on_condition_not_callable() -> None:
+    condition: Any = 1
+    with pytest.raises(TypeError, match=r"condition is not callable"):
+        EventManager().on("my_event", condition=condition)(hello_handler)
 
 
 @pytest.mark.parametrize("event", INVALID_EVENTS)

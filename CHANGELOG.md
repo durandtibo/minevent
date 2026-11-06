@@ -42,6 +42,7 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
 - The `EventManager` registry is thread-safe.
 - `EventManager.get_subscriptions`, `__len__` and the `on` decorator.
 - `Subscription` is a context manager and has an `active` property.
+- `EventManager.on(event, *, once, condition, filter_payload)` forwards the options of the handler (#767).
 - `EventHandler(..., filter_payload=True)` passes only the payload keys the handler accepts.
 - The exception of a handler has a note (`__notes__`) with the event and the handler that raised it.
 
