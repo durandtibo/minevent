@@ -65,14 +65,19 @@ def _add_error_note(exc: Exception, event: str, event_handler: BaseEventHandler)
     r"""Add a note to the exception raised by an event handler.
 
     The note names the event and the function of the handler, never
-    its arguments.
+    its arguments. The note is not added if the exception already has
+    it, so an exception instance that is raised again (or a handler
+    that triggers its own event) has one note per distinct pair of
+    event and handler.
 
     Args:
         exc: The exception raised by the event handler.
         event: The event that was triggered.
         event_handler: The event handler that raised the exception.
     """
-    exc.add_note(f"raised by {_describe(event_handler)} while handling the event {event!r}")
+    note = f"raised by {_describe(event_handler)} while handling the event {event!r}"
+    if note not in getattr(exc, "__notes__", ()):
+        exc.add_note(note)
 
 
 class Subscription:
