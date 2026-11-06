@@ -21,11 +21,15 @@ We actively welcome your pull requests.
 3. If you've changed APIs, update the documentation.
 4. Ensure the test suite passes. You can use the following command to run the tests:
    ```shell
-   make unit-test-cov
+   source .venv/bin/activate && inv test.unit --cov
+   source .venv/bin/activate && inv test.doctest
    ```
 5. Make sure your code lints. The following commands can help you to format the code:
    ```shell
    pre-commit run --all-files
+   ruff check src tests
+   ruff format src tests
+   ty check
    ```
 
 ## Issues

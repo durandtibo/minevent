@@ -2,15 +2,15 @@
 
 ## Environment
 
-- Use the virtual environment in `.venv`: `.venv/bin/python`, `.venv/bin/pytest`, `.venv/bin/ruff`.
-  There is no `python` on the `PATH`.
-- Lint and format before committing: `.venv/bin/ruff check src tests` and `.venv/bin/ruff format src tests`.
+- Activate the virtual environment in `.venv` (`source .venv/bin/activate`) and call `python`, `pytest`, `ruff`, `ty` and `inv` by name.
+  There is no `python` on the `PATH` until it is activated.
+- Lint and format before committing: `ruff check src tests` and `ruff format src tests`.
   Fix the issues raised by ruff. Ignoring an issue (`noqa`, a changed rule set) is not fixing it.
-- Type check with `.venv/bin/ty check`. Fix the issues raised by ty. Ignoring an issue
+- Type check with `ty check`. Fix the issues raised by ty. Ignoring an issue
   (`type: ignore`, `ty: ignore`, a cast that hides the problem) is not fixing it.
-- Run the invoke tasks with the virtual environment on the `PATH`, because they call `python`:
-  `PATH=.venv/bin:$PATH .venv/bin/inv test.doctest` (it also checks the markdown pages).
-- Run the unit tests of the packages you changed (for example `.venv/bin/pytest tests/unit/hashing -q`).
+- Run the invoke tasks with the virtual environment activated, because they call `python`:
+  `source .venv/bin/activate && inv test.doctest` (it also checks the markdown pages).
+- Run the unit tests of the packages you changed (for example `pytest tests/unit/hashing -q`).
   Some tests fail on `main`; check with `git stash` before blaming your change.
 
 ## Workflow
@@ -78,7 +78,7 @@
   and no logic (loops, branches) in the test body. Anything slow or concurrent belongs in
   `tests/integration/`.
 - Add the missing tests to get 100% coverage of the code you add or change
-  (`.venv/bin/pytest <tests> --cov=minevent --cov-report=term-missing`). Do not use
+  (`pytest <tests> --cov=minevent --cov-report=term-missing`). Do not use
   `# pragma: no cover` to skip a line that can be tested.
 - Use `pytest.mark.parametrize` for the same check on several values.
 - Every `pytest.raises` (and `pytest.warns`) must define `match` with a regular expression for the
