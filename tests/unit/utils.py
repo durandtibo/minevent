@@ -70,7 +70,8 @@ def reset_traced() -> None:
 
 
 def raised(func: Callable[..., object], *args: object, **kwargs: object) -> BaseException:
-    r"""Return the exception raised by a call, and fail if it does not raise.
+    r"""Return the exception raised by a call, and fail if it does not
+    raise.
 
     Args:
         func: The function to call.
