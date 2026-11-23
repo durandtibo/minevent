@@ -205,8 +205,8 @@ second
 
 ```
 
-To run a handler once, use `add_event_handler(..., once=True)`: the registration is removed on the
-next trigger of the event.
+To run a handler once, use `add_event_handler(..., once=True)`: the registration is removed just
+before its handler runs, on the next trigger of the event whose condition is `True`.
 
 ### Event handler identity
 
@@ -365,7 +365,7 @@ check the registrations:
 
 ```
 
-To run a handler only on the next trigger, use `once=True`:
+To run a handler only once, use `once=True`:
 
 ```pycon
 >>> from minevent import EventManager
@@ -379,33 +379,22 @@ Hello!
 
 ```
 
-`once=True` means "the next trigger", not "the next time the handler runs": the registration is
-removed on the next trigger even if the condition of the handler is `False` and the
-function is not called. If you need the handler to run the first time its condition is `True`,
-register it without `once` and write a condition that remembers it:
+`once=True` means "the first time the handler runs": a condition that is `False` does not consume
+the registration, which waits for the first trigger where the condition is `True`:
 
 ```pycon
->>> import functools
->>> from minevent import EventManager
->>> class FirstTrue:
-...     def __init__(self, condition):
-...         self._condition, self._done = condition, False
-...
-...     def __call__(self):
-...         if self._done or not self._condition():
-...             return False
-...         self._done = True
-...         return True
->>> ready = [False]
+>>> from minevent import AfterNCondition, EventManager
+>>> def hello_handler() -> None:
+...     print("Hello!")
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler(
-...     "step", functools.partial(print, "ready!"), condition=FirstTrue(lambda: ready[0])
+...     "my_event", hello_handler, once=True, condition=AfterNCondition(2)
 ... )
->>> manager.trigger_event("step")
->>> ready[0] = True
->>> manager.trigger_event("step")
-ready!
->>> manager.trigger_event("step")
+>>> manager.trigger_event("my_event")
+>>> manager.trigger_event("my_event")
+>>> manager.trigger_event("my_event")
+Hello!
+>>> manager.trigger_event("my_event")
 
 ```
 

@@ -120,6 +120,26 @@ def test_once_handler_runs_once_from_threads() -> None:
     assert len(calls) == 1
 
 
+def test_once_with_condition_runs_at_most_once_from_threads() -> None:
+    """Test that a ``once`` handler with a true condition runs exactly
+    once even if several threads trigger the event."""
+    manager = EventManager()
+    calls: list[int] = []
+    lock = threading.Lock()
+
+    def handler() -> None:
+        with lock:
+            calls.append(1)
+
+    manager.add_event_handler("my_event", handler, once=True, condition=lambda: True)
+
+    def work(_index: int) -> None:
+        manager.trigger_event("my_event")
+
+    run_threads(work, NUM_THREADS)
+    assert len(calls) == 1
+
+
 def test_once_handler_runs_once_when_snapshots_taken_before_dispatch() -> None:
     """Test that a ``once`` handler runs once even if every thread took
     its snapshot before any thread dispatched."""
