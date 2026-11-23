@@ -51,7 +51,7 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
 - `add_event_handler` returns a `Subscription` and has a `once` option.
 - `atrigger_event` to await coroutine handlers.
 - Built-in condition `AfterNCondition`. A condition is any function without
-  argument that returns a boolean (the `Condition` protocol), so a lambda is a condition.
+  argument that returns a boolean (`Condition` is `Callable[[], bool]`), so a lambda is a condition.
 - The `EventManager` registry is thread-safe.
 - `AfterNCondition.reset` restarts the counter, like `PeriodicCondition.reset` (#775).
 - `EventManager.get_subscriptions`, `__len__` and the `on` decorator.
@@ -96,6 +96,12 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
   `logging`, `inspect`, `asyncio` or `importlib.metadata` (it loaded 40 modules in 16 ms, and it
   loads about a third of them in about 6 ms, Python 3.14). To trace a registration, read
   `manager.get_subscriptions(event)` or wrap the handler (#810).
+- **Breaking** (small): `Condition` is the type alias `Callable[[], bool]` instead of a `Protocol`
+  class, and `Self`, `NoReturn` and the `TypeVar` of `on` are read under `TYPE_CHECKING`, so
+  `import minevent` creates no `typing` object. A class that subclassed the protocol
+  (`class C(Condition)`) must drop the base class: a class with `__call__(self) -> bool` is a
+  condition. `import minevent` goes from 26 to 22 loaded modules and from 6.1 ms to 4.0 ms
+  (Python 3.14, median of 7).
 - The package has no `all` extra (it had no optional dependency). The classifiers are
   `Development Status :: 3 - Alpha` and `Operating System :: OS Independent`.
 - `EventManager.add_event_handler` accepts any callable, and has the keyword-only options

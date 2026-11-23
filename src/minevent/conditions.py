@@ -1,55 +1,41 @@
 r"""Implement some conditions that can be used in the event system.
 
-A condition is any function without argument that returns a boolean, see
-the ``Condition`` protocol. The conditions of this module keep a state
-between calls.
+A condition is any function without argument that returns a boolean:
+a lambda, a method, or an object with a ``__call__(self) -> bool``
+method like the conditions of this module. ``Condition`` is the type
+alias ``Callable[[], bool]``. A condition is called each time the event
+is triggered, before the handler, and the handler is executed only if
+it returns ``True``. A condition can keep a state between calls.
+
+To combine conditions, write a function. The function decides which
+conditions are evaluated: ``lambda: a() and b()`` skips ``b`` when
+``a`` is ``False``, while ``lambda: all([a(), b()])`` evaluates both,
+so stateful conditions advance together.
+
+Example:
+    ```pycon
+    >>> from minevent import EventManager, PeriodicCondition
+    >>> manager = EventManager()
+    >>> _ = manager.add_event_handler(
+    ...     "hello", lambda: print("Hello!"), condition=PeriodicCondition(freq=3)
+    ... )
+    >>> manager.trigger_event("hello")
+    Hello!
+    >>> manager.trigger_event("hello")
+    >>> _ = manager.add_event_handler("bye", lambda: print("Bye!"), condition=lambda: False)
+    >>> manager.trigger_event("bye")
+
+    ```
 """
 
 from __future__ import annotations
 
 __all__ = ["AfterNCondition", "Condition", "PeriodicCondition"]
 
-from typing import Protocol
+from collections.abc import Callable
 
-
-class Condition(Protocol):
-    r"""Define the protocol of a condition of a registration.
-
-    A condition is any function without argument that returns a
-    boolean: a lambda, a method, or an object with a ``__call__``
-    method like the conditions of this module. It is called each time
-    the event is triggered, before the handler, and the handler is
-    executed only if it returns ``True``. A condition can keep a state
-    between calls.
-
-    To combine conditions, write a function. The function decides
-    which conditions are evaluated: ``lambda: a() and b()`` skips ``b``
-    when ``a`` is ``False``, while ``lambda: all([a(), b()])``
-    evaluates both, so stateful conditions advance together.
-
-    Example:
-        ```pycon
-        >>> from minevent import EventManager, PeriodicCondition
-        >>> manager = EventManager()
-        >>> _ = manager.add_event_handler(
-        ...     "hello", lambda: print("Hello!"), condition=PeriodicCondition(freq=3)
-        ... )
-        >>> manager.trigger_event("hello")
-        Hello!
-        >>> manager.trigger_event("hello")
-        >>> _ = manager.add_event_handler("bye", lambda: print("Bye!"), condition=lambda: False)
-        >>> manager.trigger_event("bye")
-
-        ```
-    """
-
-    def __call__(self) -> bool:
-        r"""Evaluate the condition given the current state.
-
-        Returns:
-            ``True`` if the event handler should be executed,
-                otherwise ``False``.
-        """
+Condition = Callable[[], bool]
+"""A condition: any function without argument that returns a boolean."""
 
 
 class PeriodicCondition:
