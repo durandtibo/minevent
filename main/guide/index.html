@@ -1633,9 +1633,10 @@ a different <code>Subscription</code>.</p>
     <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">handler</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="clean-up">Clean up<a class="headerlink" href="#clean-up" title="Permanent link">&para;</a></h3>
-<p>A registered handler lives as long as the manager: <code>obj.method</code> keeps <code>obj</code> alive, and
-so do the arguments bound by a <code>functools.partial</code> and closures. <code>minevent</code> uses no weak reference. Remove the subscriptions of
-the objects you no longer need, use a <code>with</code> block, or call <code>clear_event</code> / <code>reset</code>:</p>
+<p>A registered handler lives as long as the manager: <code>obj.method</code> keeps <code>obj</code> alive, and so do the
+arguments bound by a <code>functools.partial</code> and closures. <code>minevent</code> uses no weak reference. Remove the
+subscriptions of the objects you no longer need, use a <code>with</code> block, or call <code>clear_event</code> /
+<code>reset</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="k">try</span><span class="p">:</span>
     <span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">manager</span><span class="p">)</span>
 <span class="k">finally</span><span class="p">:</span>
@@ -1728,7 +1729,8 @@ must not wait.</p>
 <h3 id="typeerror-got-an-unexpected-keyword-argument"><code>TypeError: ... got an unexpected keyword argument</code><a class="headerlink" href="#typeerror-got-an-unexpected-keyword-argument" title="Permanent link">&para;</a></h3>
 <p>The payload is given to every handler. Accept <code>**kwargs</code> or use <code>filter_payload=True</code>.</p>
 <h3 id="typeerror-returned-an-awaitable-use-atrigger_event"><code>TypeError: ... returned an awaitable; use atrigger_event</code><a class="headerlink" href="#typeerror-returned-an-awaitable-use-atrigger_event" title="Permanent link">&para;</a></h3>
-<p>The handler is a coroutine function (a coroutine object is closed, so Python does not warn that it was never awaited). Call <code>await manager.atrigger_event(...)</code>.</p>
+<p>The handler is a coroutine function (a coroutine object is closed, so Python does not warn that it
+was never awaited). Call <code>await manager.atrigger_event(...)</code>.</p>
 <h3 id="subscriptionremove-returns-false"><code>subscription.remove()</code> returns <code>False</code><a class="headerlink" href="#subscriptionremove-returns-false" title="Permanent link">&para;</a></h3>
 <p>The registration is already removed. This is not an error: <code>remove()</code> is idempotent.</p>
 <h3 id="debug">Debug<a class="headerlink" href="#debug" title="Permanent link">&para;</a></h3>
