@@ -23,7 +23,6 @@ from minevent.manager import (
     _add_error_note,
     _check_not_awaitable,
     _describe,
-    _Options,
 )
 from tests.unit.utils import raised, trace
 
@@ -1116,7 +1115,7 @@ def test_subscription_once_default() -> None:
 
 
 def test_subscription_once_true() -> None:
-    assert Subscription(EventManager(), "my_event", print, _Options(once=True)).once
+    assert Subscription(EventManager(), "my_event", print, once=True).once
 
 
 def test_subscription_condition_default() -> None:
@@ -1125,9 +1124,9 @@ def test_subscription_condition_default() -> None:
 
 def test_subscription_condition() -> None:
     condition = PeriodicCondition(freq=2)
-    assert Subscription(
-        EventManager(), "my_event", print, _Options(condition=condition)
-    ).condition is (condition)
+    assert Subscription(EventManager(), "my_event", print, condition=condition).condition is (
+        condition
+    )
 
 
 def test_subscription_filter_payload_default() -> None:
@@ -1135,9 +1134,7 @@ def test_subscription_filter_payload_default() -> None:
 
 
 def test_subscription_filter_payload_true() -> None:
-    assert Subscription(
-        EventManager(), "my_event", print, _Options(filter_payload=True)
-    ).filter_payload
+    assert Subscription(EventManager(), "my_event", print, filter_payload=True).filter_payload
 
 
 def test_subscription_call_returns_handler_result() -> None:
@@ -1147,31 +1144,66 @@ def test_subscription_call_returns_handler_result() -> None:
 
 
 def test_subscription_call_condition_false_returns_none() -> None:
-    subscription = Subscription(
-        EventManager(), "my_event", lambda: 1, _Options(condition=lambda: False)
-    )
+    subscription = Subscription(EventManager(), "my_event", lambda: 1, condition=lambda: False)
     assert subscription._call({}) is None
 
 
 def test_subscription_call_condition_false_does_not_call_handler() -> None:
-    subscription = Subscription(
-        EventManager(), "my_event", hello_handler, _Options(condition=lambda: False)
-    )
+    subscription = Subscription(EventManager(), "my_event", hello_handler, condition=lambda: False)
     subscription._call({})
     assert hello_handler.call_count == 0
 
 
 def test_subscription_call_condition_true_calls_handler() -> None:
-    subscription = Subscription(
-        EventManager(), "my_event", lambda: 1, _Options(condition=lambda: True)
-    )
+    subscription = Subscription(EventManager(), "my_event", lambda: 1, condition=lambda: True)
     assert subscription._call({}) == 1
 
 
 def test_subscription_call_condition_is_called_once() -> None:
     condition = Mock(return_value=True)
-    Subscription(EventManager(), "my_event", hello_handler, _Options(condition=condition))._call({})
+    Subscription(EventManager(), "my_event", hello_handler, condition=condition)._call({})
     assert condition.call_count == 1
+
+
+def test_subscription_options_are_keyword_only() -> None:
+    args: list[Any] = [EventManager(), "my_event", print, True]
+    with pytest.raises(TypeError, match=r"positional arguments"):
+        Subscription(*args)
+
+
+def test_subscription_call_once_removes_registration() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", hello_handler, once=True)
+    subscription._call({})
+    assert not subscription.active
+
+
+def test_subscription_call_once_calls_handler() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", lambda: 1, once=True)
+    assert manager.get_subscriptions("my_event")[0]._call({}) == 1
+
+
+def test_subscription_call_once_already_removed_returns_none() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", lambda: 1, once=True)
+    subscription.remove()
+    assert subscription._call({}) is None
+
+
+def test_subscription_call_once_already_removed_does_not_call_handler() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", hello_handler, once=True)
+    subscription.remove()
+    subscription._call({})
+    assert hello_handler.call_count == 0
+
+
+def test_subscription_call_not_once_keeps_registration() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", hello_handler)
+    subscription._call({})
+    assert subscription.active
 
 
 def test_subscription_call_does_not_filter_by_default() -> None:
@@ -1183,21 +1215,19 @@ def test_subscription_call_filters_payload() -> None:
     def handler(a: int) -> int:
         return a
 
-    subscription = Subscription(EventManager(), "my_event", handler, _Options(filter_payload=True))
+    subscription = Subscription(EventManager(), "my_event", handler, filter_payload=True)
     assert subscription._call({"a": 1, "b": 2}) == 1
 
 
 def test_subscription_call_filter_does_not_mutate_payload() -> None:
     payload: dict[str, object] = {"a": 1, "b": 2}
-    Subscription(EventManager(), "my_event", lambda a: a, _Options(filter_payload=True))._call(
-        payload
-    )
+    Subscription(EventManager(), "my_event", lambda a: a, filter_payload=True)._call(payload)
     assert payload == {"a": 1, "b": 2}
 
 
 def test_subscription_call_filter_keeps_all_keys_for_var_keyword() -> None:
     subscription = Subscription(
-        EventManager(), "my_event", lambda **payload: payload, _Options(filter_payload=True)
+        EventManager(), "my_event", lambda **payload: payload, filter_payload=True
     )
     assert subscription._call({"a": 1, "b": 2}) == {"a": 1, "b": 2}
 
@@ -1205,9 +1235,7 @@ def test_subscription_call_filter_keeps_all_keys_for_var_keyword() -> None:
 def test_subscription_call_filter_keeps_all_keys_for_uninspectable_handler() -> None:
     calls: list[dict[str, Any]] = []
     handler = UninspectableCallable(calls)
-    Subscription(EventManager(), "my_event", handler, _Options(filter_payload=True))._call(
-        {"a": 1, "b": 2}
-    )
+    Subscription(EventManager(), "my_event", handler, filter_payload=True)._call({"a": 1, "b": 2})
     assert calls == [{"a": 1, "b": 2}]
 
 
@@ -1218,7 +1246,7 @@ def test_subscription_call_condition_combinator_short_circuit() -> None:
         EventManager(),
         "my_event",
         hello_handler,
-        _Options(condition=lambda: first() and periodic()),
+        condition=lambda: first() and periodic(),
     )
     for _ in range(3):
         subscription._call({})
@@ -1231,7 +1259,7 @@ def test_subscription_call_condition_combinator_evaluates_all() -> None:
         EventManager(),
         "my_event",
         hello_handler,
-        _Options(condition=lambda: all([False, periodic()])),
+        condition=lambda: all([False, periodic()]),
     )
     for _ in range(3):
         subscription._call({})
@@ -1562,21 +1590,3 @@ def test_check_not_awaitable_future_raises() -> None:
     future: Any = Mock(spec=Awaitable)
     with pytest.raises(TypeError, match=r"returned an awaitable"):
         _check_not_awaitable(future, print)
-
-
-#############################
-#     Tests for _Options    #
-#############################
-
-
-def test_options_default() -> None:
-    assert _Options() == (False, None, False)
-
-
-def test_options_given() -> None:
-    condition = PeriodicCondition(freq=2)
-    assert _Options(once=True, condition=condition, filter_payload=True) == (
-        True,
-        condition,
-        True,
-    )

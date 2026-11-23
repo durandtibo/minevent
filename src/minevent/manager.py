@@ -7,7 +7,7 @@ __all__ = ["EventManager", "Subscription"]
 import functools
 import threading
 from collections.abc import Awaitable, Coroutine
-from typing import TYPE_CHECKING, NamedTuple, NoReturn, Self, TypeVar
+from typing import TYPE_CHECKING, NoReturn, Self, TypeVar
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -30,23 +30,6 @@ def _check_event(event: object) -> None:
     if not isinstance(event, str):
         msg = f"event must be a str, but got {type(event).__qualname__}"
         raise TypeError(msg)
-
-
-class _Options(NamedTuple):
-    r"""Store the options of a registration.
-
-    Attributes:
-        once: If ``True``, the registration is removed before its
-            first execution.
-        condition: The condition evaluated before the handler, or
-            ``None`` if the handler always runs.
-        filter_payload: If ``True``, only the payload keys that the
-            handler accepts are passed to it.
-    """
-
-    once: bool = False
-    condition: Condition | None = None
-    filter_payload: bool = False
 
 
 def _accepted_keywords(func: Callable[..., object]) -> frozenset[str] | None:
@@ -180,9 +163,12 @@ class Subscription:
         manager: The event manager that stores the registration.
         event: The event name of the registration.
         handler: The registered handler: any callable.
-        options: The options of the registration (``once``,
-            ``condition`` and ``filter_payload``). ``None`` means the
-            default options.
+        once: If ``True``, the registration is removed before its
+            first execution.
+        condition: The condition evaluated before the handler, or
+            ``None`` if the handler always runs.
+        filter_payload: If ``True``, only the payload keys that the
+            handler accepts are passed to it.
 
     Example:
         ```pycon
@@ -218,17 +204,19 @@ class Subscription:
         manager: EventManager,
         event: str,
         handler: Callable[..., object],
-        options: _Options | None = None,
+        *,
+        once: bool = False,
+        condition: Condition | None = None,
+        filter_payload: bool = False,
     ) -> None:
-        options = _Options() if options is None else options
         self._manager = manager
         self._event = event
         self._handler = handler
-        self._once = options.once
-        self._condition = options.condition
-        self._filter_payload = options.filter_payload
+        self._once = once
+        self._condition = condition
+        self._filter_payload = filter_payload
         # The accepted keys are computed once, at registration.
-        self._payload_keys = _accepted_keywords(handler) if options.filter_payload else None
+        self._payload_keys = _accepted_keywords(handler) if filter_payload else None
 
     def __enter__(self) -> Self:
         return self
@@ -308,7 +296,12 @@ class Subscription:
         return self._manager._is_registered(self)
 
     def _call(self, payload: dict[str, object]) -> object:
-        r"""Call the handler if the condition is ``True``.
+        r"""Run the registration: once claim, condition, payload filter
+        and handler.
+
+        A ``once`` registration is removed by an atomic claim before
+        anything else, so it runs at most once whatever the number of
+        threads.
 
         Args:
             payload: The payload given to ``trigger_event`` or
@@ -316,9 +309,12 @@ class Subscription:
 
         Returns:
             The value returned by the handler, or ``None`` if the
-                condition is ``False``. It is awaitable if the handler
-                is a coroutine function.
+                registration lost the claim (it was already removed)
+                or if the condition is ``False``. It is awaitable if
+                the handler is a coroutine function.
         """
+        if self._once and not self.remove():
+            return None
         if self._condition is not None and not self._condition():
             return None
         if self._payload_keys is not None:
@@ -586,8 +582,9 @@ class EventManager:
         if condition is not None and not callable(condition):
             msg = f"condition must be callable, but got {condition!r}"
             raise TypeError(msg)
-        options = _Options(once=once, condition=condition, filter_payload=filter_payload)
-        subscription = Subscription(self, event, handler, options)
+        subscription = Subscription(
+            self, event, handler, once=once, condition=condition, filter_payload=filter_payload
+        )
         with self._lock:
             self._subscriptions.setdefault(event, {})[subscription] = None
         return subscription
@@ -749,8 +746,6 @@ class EventManager:
         """
         subscriptions = self.get_subscriptions(event)
         for subscription in subscriptions:
-            if subscription._once and not self._remove(subscription):
-                continue
             try:
                 _check_not_awaitable(subscription._call(payload), subscription.handler)
             except Exception as exc:
@@ -798,8 +793,6 @@ class EventManager:
         """
         subscriptions = self.get_subscriptions(event)
         for subscription in subscriptions:
-            if subscription._once and not self._remove(subscription):
-                continue
             try:
                 result = subscription._call(payload)
                 if result is not None and isinstance(result, Awaitable):
