@@ -408,6 +408,10 @@ after 2 is merged). Every PR updates the changelog with its number, has its test
 | 4    | **Rewrite the documents** (section 4.5): architecture, README, guide, quickstart, FAQ, mkdocs. Can be merged with step 3 if the reviewers prefer one PR for the break; kept apart so the code PR stays small.                                                                                                                                               | no                                   |
 | 5    | **Cheap import** (F7, P2): section 4.6, a new import test, the guide and docstring. Independent of steps 2 to 4 (it touches `manager.py` and `handlers.py`; after step 3 only `manager.py`).                                                                                                                                                                | DEBUG logs removed                   |
 
+**Status** (pull requests): step 1 #806, step 2 #807, step 3 #808 (stacked on #807), step 4 #809
+(stacked on #808), step 5 #810 (stacked on #809). The prose of this document describes the state
+before these pull requests.
+
 Step 1 is safe alone. Steps 2 to 4 are the only API-breaking ones and ship in the same release. Step 5 is independent and
 can go first: it makes the import benchmark a baseline for the others.
 
