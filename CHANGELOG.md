@@ -76,6 +76,11 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
   subscription that was never registered in its manager.
 - Stricter type hints (`Callable[..., object]`, payload typed `object`).
 - `minevent.__version__` is resolved lazily from the package metadata.
+- `import minevent` is cheap: the `DEBUG` logs of the `minevent.manager` logger are removed and
+  `inspect` is imported when `filter_payload=True` is used, so `import minevent` no longer imports
+  `logging`, `inspect`, `asyncio` or `importlib.metadata` (it loaded 40 modules in 16 ms, and it
+  loads about a third of them in about 6 ms, Python 3.14). To trace a registration, read
+  `manager.get_subscriptions(event)` or wrap the handler (#810).
 - The package has no `all` extra (it had no optional dependency). The classifiers are
   `Development Status :: 3 - Alpha` and `Operating System :: OS Independent`.
 - `EventManager.add_event_handler` accepts any callable, and has the

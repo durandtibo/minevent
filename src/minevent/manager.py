@@ -5,8 +5,6 @@ from __future__ import annotations
 __all__ = ["EventManager", "Subscription"]
 
 import functools
-import inspect
-import logging
 import threading
 from collections.abc import Awaitable, Coroutine
 from typing import TYPE_CHECKING, NamedTuple, NoReturn, Self, TypeVar
@@ -18,8 +16,6 @@ if TYPE_CHECKING:
     from minevent.conditions import Condition
 
 _F = TypeVar("_F", bound="Callable[..., object]")
-
-logger: logging.Logger = logging.getLogger(__name__)
 
 
 def _check_event(event: object) -> None:
@@ -78,6 +74,8 @@ def _accepted_keywords(func: Callable[..., object]) -> frozenset[str] | None:
 
         ```
     """
+    import inspect  # noqa: PLC0415
+
     try:
         parameters = inspect.signature(func).parameters.values()
     except (TypeError, ValueError):
@@ -358,8 +356,8 @@ class EventManager:
     registration. ``trigger_event`` runs the handlers synchronously,
     and ``atrigger_event`` awaits the coroutine handlers. The manager
     has no global state: create one instance and pass it where it is
-    needed. Registrations and triggers are logged at the ``DEBUG``
-    level by the ``minevent.manager`` logger.
+    needed. Nothing is logged: to trace the registrations, read
+    ``get_subscriptions(event)``, or wrap the handler.
 
     A handler is any callable, called as ``handler(**payload)``. The
     options of a registration (``once``, ``condition`` and
@@ -592,7 +590,6 @@ class EventManager:
         subscription = Subscription(self, event, handler, options)
         with self._lock:
             self._subscriptions.setdefault(event, {})[subscription] = None
-        logger.debug("Added %s to event %s", handler, event)
         return subscription
 
     def on(
@@ -688,7 +685,6 @@ class EventManager:
             del subs[subscription]
             if not subs:
                 del self._subscriptions[subscription.event]
-        logger.debug("Removed %s in '%s' event", subscription.handler, subscription.event)
         return True
 
     def trigger_event(self, event: str, /, **payload: object) -> None:
@@ -752,7 +748,6 @@ class EventManager:
             ```
         """
         subscriptions = self.get_subscriptions(event)
-        logger.debug("Firing %s event", event)
         for subscription in subscriptions:
             if subscription._once and not self._remove(subscription):
                 continue
@@ -802,7 +797,6 @@ class EventManager:
             ```
         """
         subscriptions = self.get_subscriptions(event)
-        logger.debug("Firing %s event", event)
         for subscription in subscriptions:
             if subscription._once and not self._remove(subscription):
                 continue
@@ -839,9 +833,7 @@ class EventManager:
         """
         _check_event(event)
         with self._lock:
-            removed = self._subscriptions.pop(event, None)
-        if removed is not None:
-            logger.debug("Cleared all the event handlers of '%s' event", event)
+            self._subscriptions.pop(event, None)
 
     def reset(self) -> None:
         r"""Reset the event manager.
