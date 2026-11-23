@@ -24,7 +24,7 @@ jobs:
         with:
           install-args: "--groups dev,docs"
 
-      # Type-check the source code and the tests with ty (see pyproject.toml)
+      # Type-check the source code and the tests with ty
       - name: Check types
         run: |
-          ty check src tests
+          inv types.check

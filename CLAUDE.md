@@ -168,7 +168,7 @@ and keep it up to date when you add, rename or remove a workflow.
 - The file name starts with a prefix that gives the role of the workflow:
   - `ci-`: quality and test checks of the repository source. Most are reusable workflows
     (`workflow_call`, plus `workflow_dispatch` to run one alone) called from `ci.yaml`.
-    `ci-benchmark.yaml` (scheduled) and `ci-verify-workflows.yaml` (every PR) are standalone
+    `ci-benchmark*.yaml` (scheduled) and `ci-verify-workflows.yaml` (every PR) are standalone
     and not called from `ci.yaml`.
   - `lib-`: reusable helpers that compute an output for other workflows (test matrix, package
     metadata).
