@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import contextlib
 import copy
 import functools
 import inspect
@@ -21,6 +20,7 @@ from minevent import (
 from minevent.manager import (
     _accepted_keywords,
     _add_error_note,
+    _check_event,
     _check_not_awaitable,
     _describe,
 )
@@ -193,7 +193,7 @@ def test_event_manager_trigger_event_handler_raises_skips_next_handlers() -> Non
     event_manager = EventManager()
     event_manager.add_event_handler("my_event", fail)
     event_manager.add_event_handler("my_event", hello_handler)
-    with contextlib.suppress(ValueError):
+    with pytest.raises(ValueError, match=r"boom"):
         event_manager.trigger_event("my_event")
     assert hello_handler.call_count == 0
 
@@ -269,7 +269,7 @@ def test_event_manager_add_event_handler_handler_must_be_callable(handler: Any) 
 @pytest.mark.parametrize("handler", INVALID_HANDLERS)
 def test_event_manager_add_event_handler_invalid_handler_is_not_registered(handler: Any) -> None:
     manager = EventManager()
-    with contextlib.suppress(TypeError):
+    with pytest.raises(TypeError, match=r"handler must be callable"):
         manager.add_event_handler("my_event", handler)
     assert len(manager) == 0
 
@@ -283,7 +283,7 @@ def test_event_manager_on_handler_must_be_callable(handler: Any) -> None:
 def test_event_manager_on_invalid_handler_is_not_registered() -> None:
     manager = EventManager()
     handler: Any = 5
-    with contextlib.suppress(TypeError):
+    with pytest.raises(TypeError, match=r"handler must be callable"):
         manager.on("my_event")(handler)
     assert len(manager) == 0
 
@@ -297,7 +297,7 @@ def test_event_manager_add_event_handler_condition_must_be_callable() -> None:
 def test_event_manager_add_event_handler_invalid_condition_is_not_registered() -> None:
     manager = EventManager()
     condition: Any = 5
-    with contextlib.suppress(TypeError):
+    with pytest.raises(TypeError, match=r"condition must be callable"):
         manager.add_event_handler("my_event", hello_handler, condition=condition)
     assert len(manager) == 0
 
@@ -516,7 +516,9 @@ def test_event_manager_clear_event_handlers_do_not_run() -> None:
 
 
 def test_event_manager_clear_event_missing() -> None:
-    EventManager().clear_event("my_event")
+    manager = EventManager()
+    manager.clear_event("my_event")
+    assert manager.events == []
 
 
 def test_event_manager_clear_event_must_be_str() -> None:
@@ -1273,6 +1275,27 @@ def test_subscription_call_filter_keeps_all_keys_for_uninspectable_handler() -> 
     assert calls == [{"a": 1, "b": 2}]
 
 
+##################################
+#     Tests for _check_event     #
+##################################
+
+
+@pytest.mark.parametrize("event", ["my_event", ""])
+def test_check_event_accepts_str(event: str) -> None:
+    assert _check_event(event) is None
+
+
+@pytest.mark.parametrize("event", [1, None, b"e"])
+def test_check_event_rejects_non_str(event: object) -> None:
+    with pytest.raises(TypeError, match=r"event must be a str, but got"):
+        _check_event(event)
+
+
+def test_check_event_error_names_the_type() -> None:
+    with pytest.raises(TypeError, match=r"but got bytes"):
+        _check_event(b"e")
+
+
 ########################################
 #     Tests for _accepted_keywords     #
 ########################################
@@ -1555,7 +1578,7 @@ def test_subscription_exit_does_not_swallow_exception_of_block() -> None:
 def test_subscription_exit_removes_when_block_raises() -> None:
     manager = EventManager()
     with (
-        contextlib.suppress(RuntimeError),
+        pytest.raises(RuntimeError, match=r"handler failed"),
         manager.add_event_handler("my_event", print),
     ):
         failing_handler()
