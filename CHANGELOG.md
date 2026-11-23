@@ -74,9 +74,15 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
 - `minevent.__version__` is resolved lazily from the package metadata.
 - The package has no `all` extra (it had no optional dependency). The classifiers are
   `Development Status :: 3 - Alpha` and `Operating System :: OS Independent`.
-- `EventManager.add_event_handler` raises a `TypeError` for an `event_handler` that is not a
-  `BaseEventHandler` (a bare function used to fail at the first trigger with an `AttributeError`).
-  Wrap the function with `EventHandler(func)`, or use `EventManager.on`.
+- `EventManager.add_event_handler` accepts any callable (and still an `EventHandler`), and has the
+  keyword-only options `condition` and `filter_payload` next to `once`. It raises a `TypeError` for a
+  `handler` that is not callable or a `condition` that is neither `None` nor callable (a bare
+  function used to fail at the first trigger with an `AttributeError`). `EventManager.on` is the
+  decorator form of `add_event_handler` (#807).
+- `Subscription.event_handler` is renamed `Subscription.handler`, and `Subscription` has the read-only
+  properties `condition` and `filter_payload` (#807).
+- The note of the exception of a handler names the function under a `functools.partial` (it was
+  `partial`) (#807).
 - The awaitable check of a handler result uses `collections.abc` instead of `inspect`: each handler
   call is about 0.2 µs faster. A legacy generator-based coroutine (`types.coroutine`) is no longer
   detected as an awaitable.

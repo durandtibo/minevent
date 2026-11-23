@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import functools
 import logging
 from typing import Any
 
@@ -161,3 +162,125 @@ async def test_event_manager_atrigger_event_on_condition_false() -> None:
     manager.on("my_event", condition=lambda: False)(async_handler)
     await manager.atrigger_event("my_event")
     assert async_handler.call_count == 0
+
+
+####################################################
+#     Tests for plain callables as handlers        #
+####################################################
+
+
+class AsyncCallable:
+    r"""Implements a callable object with an ``async def __call__``."""
+
+    def __init__(self, calls: list[dict[str, Any]]) -> None:
+        self._calls = calls
+
+    async def __call__(self, **payload: Any) -> None:
+        self._calls.append(payload)
+
+
+class SyncCallable:
+    r"""Implements a callable object with a synchronous ``__call__``."""
+
+    def __init__(self, calls: list[dict[str, Any]]) -> None:
+        self._calls = calls
+
+    def __call__(self, **payload: Any) -> None:
+        self._calls.append(payload)
+
+
+async def test_event_manager_atrigger_event_awaits_plain_coroutine_function() -> None:
+    manager = EventManager()
+    values: list[str] = []
+    manager.add_event_handler("my_event", functools.partial(append_async, values, "a"))
+    await manager.atrigger_event("my_event")
+    assert values == ["a"]
+
+
+async def test_event_manager_atrigger_event_awaits_async_callable_object() -> None:
+    manager = EventManager()
+    calls: list[dict[str, Any]] = []
+    manager.add_event_handler("my_event", AsyncCallable(calls))
+    await manager.atrigger_event("my_event", epoch=3)
+    assert calls == [{"epoch": 3}]
+
+
+async def test_event_manager_atrigger_event_sync_callable_object() -> None:
+    manager = EventManager()
+    calls: list[dict[str, Any]] = []
+    manager.add_event_handler("my_event", SyncCallable(calls))
+    await manager.atrigger_event("my_event", epoch=3)
+    assert calls == [{"epoch": 3}]
+
+
+def test_event_manager_trigger_event_sync_callable_object() -> None:
+    manager = EventManager()
+    calls: list[dict[str, Any]] = []
+    manager.add_event_handler("my_event", SyncCallable(calls))
+    manager.trigger_event("my_event", epoch=3)
+    assert calls == [{"epoch": 3}]
+
+
+def test_event_manager_trigger_event_async_callable_object_raises() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", AsyncCallable([]))
+    with pytest.raises(TypeError, match=r"returned an awaitable; use atrigger_event"):
+        manager.trigger_event("my_event")
+
+
+def test_event_manager_trigger_event_async_callable_object_is_not_called_twice() -> None:
+    manager = EventManager()
+    calls: list[dict[str, Any]] = []
+    manager.add_event_handler("my_event", AsyncCallable(calls))
+    with contextlib.suppress(TypeError):
+        manager.trigger_event("my_event")
+    assert calls == []
+
+
+def test_event_manager_trigger_event_plain_coroutine_function_raises() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", async_handler)
+    with pytest.raises(TypeError, match=r"returned an awaitable; use atrigger_event"):
+        manager.trigger_event("my_event")
+
+
+def test_event_manager_trigger_event_awaitable_error_has_note() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", async_handler)
+    with pytest.raises(TypeError, match=r"returned an awaitable") as exc_info:
+        manager.trigger_event("my_event")
+    assert exc_info.value.__notes__ == [
+        "raised by async_handler while handling the event 'my_event'"
+    ]
+
+
+async def test_event_manager_atrigger_event_partial_error_note_names_function() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", functools.partial(failing_async_handler))
+    with pytest.raises(ValueError, match=r"boom") as exc_info:
+        await manager.atrigger_event("my_event")
+    assert exc_info.value.__notes__ == [
+        "raised by failing_async_handler while handling the event 'my_event'"
+    ]
+
+
+async def test_event_manager_atrigger_event_condition_and_filter_payload() -> None:
+    manager = EventManager()
+    values: list[str] = []
+
+    async def record(value: str) -> None:
+        values.append(value)
+
+    manager.add_event_handler("my_event", record, condition=lambda: True, filter_payload=True)
+    await manager.atrigger_event("my_event", value="a", other=1)
+    assert values == ["a"]
+
+
+async def test_event_manager_atrigger_event_condition_false_skips_coroutine() -> None:
+    manager = EventManager()
+    values: list[str] = []
+    manager.add_event_handler(
+        "my_event", functools.partial(append_async, values, "a"), condition=lambda: False
+    )
+    await manager.atrigger_event("my_event")
+    assert values == []

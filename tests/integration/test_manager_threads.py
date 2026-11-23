@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import functools
 import threading
 
 import pytest
 
-from minevent import EventHandler, EventManager
+from minevent import AfterNCondition, EventHandler, EventManager, PeriodicCondition
 from tests.integration.helpers import run_threads
 
 NUM_THREADS = 8
@@ -127,14 +128,14 @@ def test_once_handler_runs_once_when_snapshots_taken_before_dispatch() -> None:
         with lock:
             calls.append(1)
 
-    manager.add_event_handler("my_event", EventHandler(handler), once=True)
+    manager.add_event_handler("my_event", handler, once=True)
 
     def work(_index: int) -> None:
         subscriptions = manager.get_subscriptions("my_event")
         barrier.wait()
         for subscription in subscriptions:
             if not subscription.once or subscription.remove():
-                subscription.event_handler.handle()
+                handler()
 
     run_threads(work, NUM_THREADS)
     assert len(calls) == 1
@@ -171,3 +172,36 @@ def test_remove_from_threads_registrations_added_by_other_threads() -> None:
     run_threads(work, NUM_THREADS)
     assert results.count(True) == len(subscriptions)
     assert len(manager) == 0
+
+
+def test_add_event_handler_options_from_threads() -> None:
+    """Test that registrations with a stateful condition, a payload
+    filter and a partial, added from several threads, all run with the
+    right arguments."""
+    manager = EventManager()
+    calls: list[tuple[int, int]] = []
+    lock = threading.Lock()
+
+    def record(index: int, epoch: int) -> None:
+        with lock:
+            calls.append((index, epoch))
+
+    def work(index: int) -> None:
+        manager.add_event_handler(
+            "my_event",
+            functools.partial(record, index),
+            condition=PeriodicCondition(freq=1),
+            filter_payload=True,
+        )
+        manager.add_event_handler(
+            "my_event",
+            functools.partial(record, index),
+            once=True,
+            condition=AfterNCondition(n=0),
+            filter_payload=True,
+        )
+
+    run_threads(work, NUM_THREADS)
+    manager.trigger_event("my_event", epoch=3, loss=0.5)
+    assert sorted(calls) == sorted([(i, 3) for i in range(NUM_THREADS)] * 2)
+    assert len(manager) == NUM_THREADS

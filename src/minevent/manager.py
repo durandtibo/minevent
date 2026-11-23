@@ -4,11 +4,13 @@ from __future__ import annotations
 
 __all__ = ["EventManager", "Subscription"]
 
+import functools
 import logging
 import threading
-from typing import TYPE_CHECKING, NoReturn, Self, TypeVar
+from collections.abc import Awaitable, Coroutine
+from typing import TYPE_CHECKING, NamedTuple, NoReturn, Self, TypeVar
 
-from minevent.handlers import BaseEventHandler, EventHandler
+from minevent.handlers import BaseEventHandler, EventHandler, _accepted_keywords
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -35,35 +37,80 @@ def _check_event(event: object) -> None:
         raise TypeError(msg)
 
 
-def _describe(event_handler: BaseEventHandler) -> str:
-    r"""Name an event handler without calling the ``repr`` of its data.
+class _Options(NamedTuple):
+    r"""Store the options of a registration.
 
-    The ``repr`` of an event handler contains its arguments, which can
-    be large or raise, so it is not used in the note of an exception.
+    Attributes:
+        once: If ``True``, the registration is removed before its
+            first execution.
+        condition: The condition evaluated before the handler, or
+            ``None`` if the handler always runs.
+        filter_payload: If ``True``, only the payload keys that the
+            handler accepts are passed to it.
+    """
+
+    once: bool = False
+    condition: Condition | None = None
+    filter_payload: bool = False
+
+
+def _check_not_awaitable(result: object, handler: Callable[..., object] | BaseEventHandler) -> None:
+    r"""Check that a handler did not return an awaitable.
+
+    A coroutine is closed, so it does not emit a ``RuntimeWarning``
+    because it was never awaited.
 
     Args:
-        event_handler: The event handler to name.
+        result: The value returned by the handler.
+        handler: The handler that returned ``result``.
+
+    Raises:
+        TypeError: if ``result`` is an awaitable.
+    """
+    if result is not None and isinstance(result, Awaitable):
+        if isinstance(result, Coroutine):
+            result.close()
+        msg = f"{handler!r} returned an awaitable; use atrigger_event"
+        raise TypeError(msg)
+
+
+def _describe(handler: Callable[..., object] | BaseEventHandler) -> str:
+    r"""Name a handler without calling the ``repr`` of its data.
+
+    The ``repr`` of a handler can contain its arguments, which can be
+    large or raise, so it is not used in the note of an exception.
+
+    Args:
+        handler: The handler to name: a callable, or an event handler.
 
     Returns:
-        The qualified name of the function of an ``EventHandler``, or
-            the name of the class of the callable if it has no name
-            (for example a ``functools.partial``), or the name of the
-            class of any other event handler.
+        The qualified name of the function of an ``EventHandler`` or
+            of a ``functools.partial`` (nested wrappers are
+            unwrapped), or the qualified name of the class of the
+            handler if it has no name (for example a callable
+            object).
 
     Example:
         ```pycon
-        >>> from minevent import EventHandler
+        >>> import functools
         >>> from minevent.manager import _describe
-        >>> _describe(EventHandler(print))
+        >>> _describe(print)
+        'print'
+        >>> _describe(functools.partial(print, "Hello!"))
         'print'
 
         ```
     """
-    target = event_handler.handler if isinstance(event_handler, EventHandler) else event_handler
-    return getattr(target, "__qualname__", type(target).__qualname__)
+    if isinstance(handler, EventHandler):
+        handler = handler.handler
+    while isinstance(handler, functools.partial):
+        handler = handler.func
+    return getattr(handler, "__qualname__", type(handler).__qualname__)
 
 
-def _add_error_note(exc: Exception, event: str, event_handler: BaseEventHandler) -> None:
+def _add_error_note(
+    exc: Exception, event: str, handler: Callable[..., object] | BaseEventHandler
+) -> None:
     r"""Add a note to the exception raised by an event handler.
 
     The note names the event and the function of the handler, never
@@ -75,19 +122,20 @@ def _add_error_note(exc: Exception, event: str, event_handler: BaseEventHandler)
     Args:
         exc: The exception raised by the event handler.
         event: The event that was triggered.
-        event_handler: The event handler that raised the exception.
+        handler: The handler that raised the exception.
     """
-    note = f"raised by {_describe(event_handler)} while handling the event {event!r}"
+    note = f"raised by {_describe(handler)} while handling the event {event!r}"
     if note not in getattr(exc, "__notes__", ()):
         exc.add_note(note)
 
 
 class Subscription:
-    r"""Represent the registration of an event handler to an event.
+    r"""Represent the registration of a handler to an event.
 
     A subscription is returned by ``EventManager.add_event_handler``.
-    It is the registration itself: the manager stores it, and it
-    removes exactly the registration that created it. The handler does
+    It is the registration itself: the manager stores it with the
+    options of the registration, and it removes exactly the
+    registration that created it. The handler does
     not need to be re-created to be unsubscribed, other registrations
     of the same handler are not removed, and registering the same
     handler twice creates two independent subscriptions.
@@ -101,17 +149,21 @@ class Subscription:
     Args:
         manager: The event manager that stores the registration.
         event: The event name of the registration.
-        event_handler: The registered event handler.
-        once: If ``True``, the registration is removed before its
-            first execution. Default is ``False``.
+        handler: The registered handler: a callable (or an event
+            handler).
+        options: The options of the registration (``once``,
+            ``condition`` and ``filter_payload``). ``None`` means the
+            default options.
 
     Example:
         ```pycon
-        >>> from minevent import EventHandler, EventManager
+        >>> from minevent import EventManager
         >>> manager = EventManager()
-        >>> subscription = manager.add_event_handler("my_event", EventHandler(print))
+        >>> subscription = manager.add_event_handler("my_event", print)
         >>> subscription.event
         'my_event'
+        >>> subscription.handler is print
+        True
         >>> subscription.active
         True
         >>> subscription.remove()
@@ -122,7 +174,7 @@ class Subscription:
         False
         >>> manager.events
         []
-        >>> with manager.add_event_handler("my_event", EventHandler(print)):
+        >>> with manager.add_event_handler("my_event", print):
         ...     manager.events
         ...
         ['my_event']
@@ -136,14 +188,20 @@ class Subscription:
         self,
         manager: EventManager,
         event: str,
-        event_handler: BaseEventHandler,
-        *,
-        once: bool = False,
+        handler: Callable[..., object] | BaseEventHandler,
+        options: _Options | None = None,
     ) -> None:
+        options = _Options() if options is None else options
         self._manager = manager
         self._event = event
-        self._event_handler = event_handler
-        self._once = once
+        self._handler = handler
+        self._once = options.once
+        self._condition = options.condition
+        self._filter_payload = options.filter_payload
+        # The accepted keys are computed once, at registration.
+        self._payload_keys = None
+        if options.filter_payload and not isinstance(handler, BaseEventHandler):
+            self._payload_keys = _accepted_keywords(handler)
 
     def __enter__(self) -> Self:
         return self
@@ -169,13 +227,13 @@ class Subscription:
         return self._event
 
     @property
-    def event_handler(self) -> BaseEventHandler:
-        r"""Get the registered event handler.
+    def handler(self) -> Callable[..., object] | BaseEventHandler:
+        r"""Get the registered handler.
 
         Returns:
-            The event handler.
+            The handler given to ``add_event_handler``.
         """
-        return self._event_handler
+        return self._handler
 
     @property
     def once(self) -> bool:
@@ -187,6 +245,26 @@ class Subscription:
                 ``False``.
         """
         return self._once
+
+    @property
+    def condition(self) -> Condition | None:
+        r"""Get the condition evaluated before the handler.
+
+        Returns:
+            The condition, or ``None`` if the handler always runs.
+        """
+        return self._condition
+
+    @property
+    def filter_payload(self) -> bool:
+        r"""Indicate if the payload is filtered by the signature of the
+        handler.
+
+        Returns:
+            ``True`` if only the payload keys accepted by the handler
+                are passed to it, otherwise ``False``.
+        """
+        return self._filter_payload
 
     @property
     def active(self) -> bool:
@@ -201,6 +279,32 @@ class Subscription:
                 is read from the registry of the manager.
         """
         return self._manager._is_registered(self)
+
+    def _call(self, payload: dict[str, object], *, asynchronous: bool = False) -> object:
+        r"""Call the handler if the condition is ``True``.
+
+        Args:
+            payload: The payload given to ``trigger_event`` or
+                ``atrigger_event``.
+            asynchronous: If ``True``, an event handler is called with
+                ``ahandle`` instead of ``handle``. It has no effect on
+                a callable. Default is ``False``.
+
+        Returns:
+            The value returned by the handler, or ``None`` if the
+                condition is ``False``. It is awaitable if the handler
+                is a coroutine function or if ``asynchronous`` is
+                ``True`` and the handler is an event handler.
+        """
+        if self._condition is not None and not self._condition():
+            return None
+        if self._payload_keys is not None:
+            payload = {key: value for key, value in payload.items() if key in self._payload_keys}
+        if isinstance(self._handler, BaseEventHandler):
+            if asynchronous:
+                return self._handler.ahandle(**payload)
+            return self._handler.handle(**payload)
+        return self._handler(**payload)
 
     def remove(self) -> bool:
         r"""Remove the registration.
@@ -236,6 +340,12 @@ class EventManager:
     needed. Registrations and triggers are logged at the ``DEBUG``
     level by the ``minevent.manager`` logger.
 
+    A handler is any callable, called as ``handler(**payload)``. The
+    options of a registration (``once``, ``condition`` and
+    ``filter_payload``) are the keyword-only arguments of
+    ``add_event_handler`` and ``on``. Use ``functools.partial`` to bind
+    other arguments.
+
     Error policy: handlers run fail-fast. If a handler raises, the
     exception propagates to the caller of ``trigger_event`` (or
     ``atrigger_event``) and the remaining handlers of that event are
@@ -260,14 +370,14 @@ class EventManager:
 
     Example:
         ```pycon
-        >>> from minevent import EventHandler, EventManager
+        >>> from minevent import EventManager
         >>> def hello_handler():
         ...     print("Hello!")
         ...
         >>> manager = EventManager()
         >>> bool(manager)
         True
-        >>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
+        >>> _ = manager.add_event_handler("my_event", hello_handler)
         >>> manager.trigger_event("my_event")
         Hello!
 
@@ -310,11 +420,11 @@ class EventManager:
 
         Example:
             ```pycon
-            >>> from minevent import EventHandler, EventManager
+            >>> from minevent import EventManager
             >>> manager = EventManager()
             >>> manager.events
             []
-            >>> _ = manager.add_event_handler("my_event", EventHandler(print))
+            >>> _ = manager.add_event_handler("my_event", print)
             >>> manager.events
             ['my_event']
             >>> "my_event" in manager
@@ -334,7 +444,7 @@ class EventManager:
         Returns:
             A snapshot of the subscriptions, in the order the handlers
                 run. It is empty if no handler is registered. Use the
-                ``event_handler`` property of a subscription to get its
+                ``handler`` property of a subscription to get its
                 handler. Changing the manager does not change the
                 returned tuple.
 
@@ -343,15 +453,15 @@ class EventManager:
 
         Example:
             ```pycon
-            >>> from minevent import EventHandler, EventManager
+            >>> from minevent import EventManager
             >>> manager = EventManager()
             >>> manager.get_subscriptions("my_event")
             ()
-            >>> handler = EventHandler(print)
+            >>> handler = print
             >>> subscription = manager.add_event_handler("my_event", handler)
             >>> manager.get_subscriptions("my_event") == (subscription,)
             True
-            >>> subscription.event_handler is handler
+            >>> subscription.handler is handler
             True
             >>> len(manager)
             1
@@ -363,65 +473,106 @@ class EventManager:
             return tuple(self._subscriptions.get(event, ()))
 
     def add_event_handler(
-        self, event: str, event_handler: BaseEventHandler, *, once: bool = False
+        self,
+        event: str,
+        handler: Callable[..., object] | BaseEventHandler,
+        *,
+        once: bool = False,
+        condition: Condition | None = None,
+        filter_payload: bool = False,
     ) -> Subscription:
-        r"""Add an event handler to an event.
+        r"""Add a handler to an event.
 
-        The event handler will be called every time the specified event
-        is triggered. Multiple handlers can be registered to the same
-        event, and they will be executed in the order they were added.
+        The handler will be called every time the specified event is
+        triggered, as ``handler(**payload)``. Multiple handlers can be
+        registered to the same event, and they will be executed in the
+        order they were added. Use ``functools.partial`` to bind
+        other arguments.
 
         Args:
             event: The event name (case-sensitive string) to which
-                the event handler should be attached.
-            event_handler: The event handler instance to attach to the
-                event.
+                the handler should be attached.
+            handler: The callable to attach to the event. An
+                ``EventHandler`` is also accepted.
             once: If ``True``, the handler is removed before its first
                 execution, so it runs at most once. The registration
                 is removed by the next trigger even if the condition
-                of the handler is ``False`` and the handler function is
-                not called. Default is ``False``.
+                of the handler is ``False`` and the handler is not
+                called. Default is ``False``.
+            condition: An optional condition: a function without
+                argument that returns a boolean. It is called each
+                time the event is triggered, before the handler, and
+                the handler runs only if it returns ``True``. If
+                ``None``, the handler always runs. Default is
+                ``None``.
+            filter_payload: If ``True``, only the payload keys that
+                the signature of the handler accepts are passed to
+                it, so handlers with different needs can share an
+                event without ``**kwargs``. The accepted keys are
+                computed once, at registration. A handler with a
+                ``**kwargs`` parameter, or whose signature cannot be
+                inspected, receives the whole payload. The signature
+                of a ``functools.partial`` does not contain the
+                positional arguments that it binds. Default is
+                ``False``.
 
         Returns:
             A subscription whose ``remove`` method removes this
                 registration only.
 
         Raises:
-            TypeError: if ``event`` is not a string, or if
-                ``event_handler`` is not a ``BaseEventHandler``. Wrap a
-                function with ``EventHandler``.
+            TypeError: if ``event`` is not a string, if ``handler``
+                is not callable, or if ``condition`` is neither
+                ``None`` nor callable. The manager is unchanged.
 
         Example:
             ```pycon
-            >>> from minevent import EventManager, EventHandler
+            >>> import functools
+            >>> from minevent import EventManager, PeriodicCondition
             >>> def hello_handler():
             ...     print("Hello!")
             ...
             >>> manager = EventManager()
-            >>> subscription = manager.add_event_handler("my_event", EventHandler(hello_handler))
+            >>> subscription = manager.add_event_handler("my_event", hello_handler)
             >>> manager.trigger_event("my_event")
             Hello!
             >>> subscription.remove()
             True
             >>> manager.trigger_event("my_event")
-            >>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler), once=True)
+            >>> _ = manager.add_event_handler("my_event", hello_handler, once=True)
             >>> manager.trigger_event("my_event")
             Hello!
             >>> manager.trigger_event("my_event")
+            >>> _ = manager.add_event_handler("greet", functools.partial(print, "Hello!"))
+            >>> manager.trigger_event("greet")
+            Hello!
+            >>> _ = manager.add_event_handler(
+            ...     "tick", hello_handler, condition=PeriodicCondition(freq=2)
+            ... )
+            >>> manager.trigger_event("tick")
+            Hello!
+            >>> manager.trigger_event("tick")
+            >>> def epoch_handler(epoch):
+            ...     print(f"epoch {epoch}")
+            ...
+            >>> _ = manager.add_event_handler("epoch_end", epoch_handler, filter_payload=True)
+            >>> manager.trigger_event("epoch_end", epoch=3, loss=0.5)
+            epoch 3
 
             ```
         """
         _check_event(event)
-        if not isinstance(event_handler, BaseEventHandler):
-            msg = (
-                "event_handler must be a BaseEventHandler, but got "
-                f"{type(event_handler).__qualname__}: wrap a function with EventHandler(func)"
-            )
+        if not callable(handler) and not isinstance(handler, BaseEventHandler):
+            msg = f"handler must be callable, but got {handler!r}"
             raise TypeError(msg)
-        subscription = Subscription(self, event, event_handler, once=once)
+        if condition is not None and not callable(condition):
+            msg = f"condition must be callable, but got {condition!r}"
+            raise TypeError(msg)
+        options = _Options(once=once, condition=condition, filter_payload=filter_payload)
+        subscription = Subscription(self, event, handler, options)
         with self._lock:
             self._subscriptions.setdefault(event, {})[subscription] = None
-        logger.debug("Added %s to event %s", event_handler, event)
+        logger.debug("Added %s to event %s", handler, event)
         return subscription
 
     def on(
@@ -434,22 +585,20 @@ class EventManager:
     ) -> Callable[[_F], _F]:
         r"""Create a decorator that registers a function as a handler.
 
-        The decorated function is registered as
-        ``EventHandler(func, condition=condition,
-        filter_payload=filter_payload)`` and returned unchanged. The
-        function is called with the payload only: use
-        ``add_event_handler`` if the handler needs ``handler_args`` or
-        ``handler_kwargs``, or if you need the ``Subscription``.
+        The decorated function is registered with
+        ``add_event_handler(event, func, once=once, condition=condition,
+        filter_payload=filter_payload)`` and returned unchanged. Use
+        ``add_event_handler`` if you need the ``Subscription``.
 
         Args:
             event: The event name (case-sensitive string).
             once: If ``True``, the handler runs at most once. See
                 ``add_event_handler``. Default is ``False``.
             condition: An optional condition evaluated before the
-                handler. See ``EventHandler``. Default is ``None``.
+                handler. See ``add_event_handler``. Default is ``None``.
             filter_payload: If ``True``, only the payload keys that
                 the function accepts are passed to it. See
-                ``EventHandler``. Default is ``False``.
+                ``add_event_handler``. Default is ``False``.
 
         Returns:
             The decorator.
@@ -482,8 +631,9 @@ class EventManager:
         _check_event(event)
 
         def decorator(func: _F) -> _F:
-            handler = EventHandler(func, condition=condition, filter_payload=filter_payload)
-            self.add_event_handler(event, handler, once=once)
+            self.add_event_handler(
+                event, func, once=once, condition=condition, filter_payload=filter_payload
+            )
             return func
 
         return decorator
@@ -518,7 +668,7 @@ class EventManager:
             del subs[subscription]
             if not subs:
                 del self._subscriptions[subscription.event]
-        logger.debug("Removed %s in '%s' event", subscription.event_handler, subscription.event)
+        logger.debug("Removed %s in '%s' event", subscription.handler, subscription.event)
         return True
 
     def trigger_event(self, event: str, /, **payload: object) -> None:
@@ -563,19 +713,19 @@ class EventManager:
 
         Example:
             ```pycon
-            >>> from minevent import EventHandler, EventManager
+            >>> from minevent import EventManager
             >>> manager = EventManager()
             >>> manager.trigger_event("my_event")  # do nothing because there is no event handler
             >>> def hello_handler():
             ...     print("Hello!")
             ...
-            >>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
+            >>> _ = manager.add_event_handler("my_event", hello_handler)
             >>> manager.trigger_event("my_event")
             Hello!
             >>> def epoch_handler(epoch):
             ...     print(f"epoch {epoch}")
             ...
-            >>> _ = manager.add_event_handler("epoch_end", EventHandler(epoch_handler))
+            >>> _ = manager.add_event_handler("epoch_end", epoch_handler)
             >>> manager.trigger_event("epoch_end", epoch=3)
             epoch 3
 
@@ -587,18 +737,18 @@ class EventManager:
             if subscription._once and not self._remove(subscription):
                 continue
             try:
-                subscription._event_handler.handle(**payload)
+                _check_not_awaitable(subscription._call(payload), subscription.handler)
             except Exception as exc:
-                _add_error_note(exc, event, subscription._event_handler)
+                _add_error_note(exc, event, subscription.handler)
                 raise
 
     async def atrigger_event(self, event: str, /, **payload: object) -> None:
         r"""Trigger the handler(s) for the given event, awaiting the
         coroutine handlers.
 
-        This method behaves like ``trigger_event``, but it calls
-        ``ahandle`` on the event handlers, so handlers that are
-        coroutine functions (or return an awaitable) are awaited.
+        This method behaves like ``trigger_event``, but the handlers
+        that are coroutine functions (or return an awaitable) are
+        awaited.
         Synchronous handlers can be mixed with coroutine handlers.
         The handlers run one after the other, in the order they were
         added, and they are fail-fast like in ``trigger_event``: the
@@ -620,12 +770,12 @@ class EventManager:
         Example:
             ```pycon
             >>> import asyncio
-            >>> from minevent import EventHandler, EventManager
+            >>> from minevent import EventManager
             >>> manager = EventManager()
             >>> async def hello_handler(name):
             ...     print(f"Hello {name}!")
             ...
-            >>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
+            >>> _ = manager.add_event_handler("my_event", hello_handler)
             >>> asyncio.run(manager.atrigger_event("my_event", name="John"))
             Hello John!
 
@@ -637,9 +787,11 @@ class EventManager:
             if subscription._once and not self._remove(subscription):
                 continue
             try:
-                await subscription._event_handler.ahandle(**payload)
+                result = subscription._call(payload, asynchronous=True)
+                if result is not None and isinstance(result, Awaitable):
+                    await result
             except Exception as exc:
-                _add_error_note(exc, event, subscription._event_handler)
+                _add_error_note(exc, event, subscription.handler)
                 raise
 
     def clear_event(self, event: str) -> None:
@@ -656,9 +808,9 @@ class EventManager:
 
         Example:
             ```pycon
-            >>> from minevent import EventHandler, EventManager
+            >>> from minevent import EventManager
             >>> manager = EventManager()
-            >>> _ = manager.add_event_handler("my_event", EventHandler(print))
+            >>> _ = manager.add_event_handler("my_event", print)
             >>> manager.clear_event("my_event")
             >>> manager.events
             []
@@ -688,8 +840,7 @@ class EventManager:
             >>> def hello_handler():
             ...     print("Hello!")
             ...
-            >>> from minevent import EventHandler
-            >>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
+            >>> _ = manager.add_event_handler("my_event", hello_handler)
             >>> manager.trigger_event("my_event")
             Hello!
             >>> len(manager)
