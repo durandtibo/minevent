@@ -17,13 +17,10 @@ happens, so logging, checkpointing or monitoring is added without changing the l
 ...         loss = 1.0 / (epoch + 1)
 ...         manager.trigger_event("epoch_end", epoch=epoch, loss=loss)
 ...     manager.trigger_event("training_end")
-...
 >>> manager = EventManager()
 >>> train(manager, epochs=2)
 >>> _ = manager.add_event_handler("training_start", lambda: print("Training started"))
->>> _ = manager.add_event_handler(
-...     "epoch_end", lambda epoch, loss: print(f"epoch {epoch}: loss={loss}")
-... )
+>>> _ = manager.add_event_handler("epoch_end", lambda epoch, loss: print(f"epoch {epoch}: loss={loss}"))
 >>> _ = manager.add_event_handler("training_end", lambda: print("Training ended"))
 >>> train(manager, epochs=2)
 Training started
@@ -80,9 +77,9 @@ useful when the condition has a state or reads another object:
 >>> class Flag:
 ...     def __init__(self) -> None:
 ...         self.enabled = False
+...
 ...     def __call__(self) -> bool:
 ...         return self.enabled
-...
 >>> verbose = Flag()
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("batch_end", lambda: print("batch done"), condition=verbose)
@@ -105,9 +102,9 @@ collects the losses and is read after the training:
 >>> class LossHistory:
 ...     def __init__(self) -> None:
 ...         self.losses = []
+...
 ...     def __call__(self, loss: float, **kwargs) -> None:
 ...         self.losses.append(loss)
-...
 >>> history = LossHistory()
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("epoch_end", history)
@@ -130,10 +127,8 @@ handlers do not need `**kwargs`:
 >>> from minevent import EventManager
 >>> def log_loss(loss: float) -> None:
 ...     print(f"loss {loss}")
-...
 >>> def log_epoch(epoch: int) -> None:
 ...     print(f"epoch {epoch}")
-...
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("epoch_end", log_loss, filter_payload=True)
 >>> _ = manager.add_event_handler("epoch_end", log_epoch, filter_payload=True)
@@ -154,7 +149,6 @@ takes the same options as `add_event_handler`:
 >>> @manager.on("epoch_end", condition=PeriodicCondition(freq=2), filter_payload=True)
 ... def log_epoch(epoch: int) -> None:
 ...     print(f"epoch {epoch}")
-...
 >>> for epoch in range(3):
 ...     manager.trigger_event("epoch_end", epoch=epoch)
 epoch 0
@@ -173,7 +167,6 @@ Use `functools.partial` for the arguments that do not come from the payload:
 >>> from minevent import EventManager
 >>> def save(path: str, epoch: int) -> None:
 ...     print(f"save epoch {epoch} to {path}")
-...
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("epoch_end", functools.partial(save, "model.pt"))
 >>> manager.trigger_event("epoch_end", epoch=4)
@@ -234,14 +227,16 @@ it is torn down:
 ...             manager.add_event_handler("epoch_start", self.on_epoch_start),
 ...             manager.add_event_handler("epoch_end", self.on_epoch_end),
 ...         ]
+...
 ...     def teardown(self) -> None:
 ...         for subscription in self.subscriptions:
 ...             subscription.remove()
+...
 ...     def on_epoch_start(self, epoch: int) -> None:
 ...         print(f"start {epoch}")
+...
 ...     def on_epoch_end(self, epoch: int) -> None:
 ...         print(f"end {epoch}")
-...
 >>> manager = EventManager()
 >>> plugin = ProgressPlugin()
 >>> plugin.setup(manager)
@@ -266,7 +261,6 @@ other, in the registration order. `trigger_event` raises a `TypeError` for a cor
 >>> async def notify(epoch: int) -> None:
 ...     await asyncio.sleep(0)
 ...     print(f"notified epoch {epoch}")
-...
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("epoch_end", lambda epoch: print(f"epoch {epoch}"))
 >>> _ = manager.add_event_handler("epoch_end", notify)
@@ -290,10 +284,8 @@ one after the other, so the next step starts when every handler is done:
 ...         await asyncio.sleep(0)  # a real program awaits a request here
 ...         await manager.atrigger_event("fetch_done", url=url)
 ...     await manager.atrigger_event("fetch_end")
-...
 >>> async def log_done(url: str) -> None:
 ...     print(f"fetched {url}")
-...
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("fetch_start", lambda count: print(f"fetching {count} urls"))
 >>> _ = manager.add_event_handler("fetch_done", log_done)
@@ -319,11 +311,9 @@ handlers:
 ... async def upload(epoch: int) -> None:
 ...     await asyncio.sleep(0)
 ...     print(f"uploaded epoch {epoch}")
-...
 >>> async def main() -> None:
 ...     for epoch in range(3):
 ...         await manager.atrigger_event("epoch_end", epoch=epoch, loss=0.5)
-...
 >>> asyncio.run(main())
 uploaded epoch 0
 uploaded epoch 2
@@ -341,11 +331,9 @@ awaitables at the same time, use `asyncio.gather` inside one handler:
 >>> async def upload(name: str) -> str:
 ...     await asyncio.sleep(0)
 ...     return name
-...
 >>> async def upload_all(files: list[str]) -> None:
 ...     done = await asyncio.gather(*(upload(name) for name in files))
 ...     print(f"uploaded {done}")
-...
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("training_end", upload_all)
 >>> asyncio.run(manager.atrigger_event("training_end", files=["a.pt", "b.pt"]))
@@ -365,7 +353,6 @@ A synchronous handler blocks the event loop while it runs: hand a long computati
 >>> from minevent import EventManager
 >>> async def notify() -> None:
 ...     print("notified")
-...
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("my_event", notify)
 >>> try:
@@ -385,7 +372,6 @@ names the event and the handler:
 >>> from minevent import EventManager
 >>> def fail() -> None:
 ...     raise ValueError("boom")
-...
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("my_event", fail)
 >>> _ = manager.add_event_handler("my_event", lambda: print("not reached"))

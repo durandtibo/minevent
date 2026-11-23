@@ -107,9 +107,7 @@ For example, it is possible to implement the same logic by using directly `print
 >>> import functools
 >>> from minevent import EventManager
 >>> manager = EventManager()
->>> _ = manager.add_event_handler(
-...     "my_event", functools.partial(print, "Hello Bob! Happy Monday!")
-... )
+>>> _ = manager.add_event_handler("my_event", functools.partial(print, "Hello Bob! Happy Monday!"))
 >>> manager.trigger_event("my_event")
 Hello Bob! Happy Monday!
 
@@ -126,9 +124,7 @@ calls.
 >>> def hello_handler() -> None:
 ...     print("Hello!")
 >>> manager = EventManager()
->>> _ = manager.add_event_handler(
-...     "my_event", hello_handler, condition=PeriodicCondition(freq=3)
-... )
+>>> _ = manager.add_event_handler("my_event", hello_handler, condition=PeriodicCondition(freq=3))
 >>> manager.trigger_event("my_event")
 Hello!
 >>> manager.trigger_event("my_event")
@@ -386,9 +382,7 @@ the registration, which waits for the first trigger where the condition is `True
 >>> def hello_handler() -> None:
 ...     print("Hello!")
 >>> manager = EventManager()
->>> _ = manager.add_event_handler(
-...     "my_event", hello_handler, once=True, condition=AfterNCondition(2)
-... )
+>>> _ = manager.add_event_handler("my_event", hello_handler, once=True, condition=AfterNCondition(2))
 >>> manager.trigger_event("my_event")
 >>> manager.trigger_event("my_event")
 >>> manager.trigger_event("my_event")
@@ -470,9 +464,7 @@ The following shows how to execute the `hello_handler` every 3 `'my_event'` even
 >>> def hello_handler() -> None:
 ...     print("Hello!")
 >>> manager = EventManager()
->>> _ = manager.add_event_handler(
-...     "my_event", hello_handler, condition=PeriodicCondition(freq=3)
-... )
+>>> _ = manager.add_event_handler("my_event", hello_handler, condition=PeriodicCondition(freq=3))
 >>> manager
 EventManager(events={'my_event': 1})
 >>> for i in range(10):

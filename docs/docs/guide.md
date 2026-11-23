@@ -148,7 +148,6 @@ that do not come from the payload.
 Hello!
 >>> def log_epoch(epoch):
 ...     print(f"epoch {epoch}")
-...
 >>> _ = manager.add_event_handler(
 ...     "epoch_end", log_epoch, condition=PeriodicCondition(freq=2), filter_payload=True
 ... )
@@ -245,9 +244,7 @@ A plugin registers its own handlers, and keeps the subscriptions to unregister t
 ```python
 class LoggingPlugin:
     def setup(self, manager: EventManager) -> None:
-        self.subscription = manager.add_event_handler(
-            "training_end", self.log_training_complete
-        )
+        self.subscription = manager.add_event_handler("training_end", self.log_training_complete)
 
     def teardown(self) -> None:
         self.subscription.remove()

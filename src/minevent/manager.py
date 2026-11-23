@@ -265,8 +265,8 @@ class Subscription:
 
     @property
     def once(self) -> bool:
-        r"""Indicate if the registration is removed just before its
-        first execution.
+        r"""Indicate if the registration is removed just before its first
+        execution.
 
         Returns:
             ``True`` if the event handler runs at most once, otherwise
