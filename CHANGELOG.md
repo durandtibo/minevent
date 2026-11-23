@@ -143,3 +143,6 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
   `add_event_handler` and `Subscription` are up to date, the README has a usage example and lists
   the decorator, the payload filter and the debugging notes, and the quickstart no longer mentions a
   list of registrations or arguments given at registration.
+- Documentation: the new `examples.md` page shows how to use the package (training loop, conditions,
+  stateful handlers, `filter_payload`, `on`, `once`, subscriptions, plugins, coroutine handlers,
+  async code, errors and tests).
