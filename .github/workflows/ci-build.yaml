@@ -11,13 +11,21 @@ on:
         required: true
         type: string
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
+  # Read the package name from pyproject.toml.
+  get-metadata:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/lib-get-package-metadata.yaml
+
   # Build the sdist and the wheel on every supported Python version (including the free-threaded
   # builds) and run the package checks against the installed package.
   build:
+    permissions:
+      contents: read
+    needs: get-metadata
     runs-on: ubuntu-latest
     timeout-minutes: 5
     strategy:
@@ -39,7 +47,7 @@ jobs:
       - name: Verify Build
         uses: durandtibo/verify-uv-build-action@88da014d506b5f0b4f657d4ba8920061ab785620 # ratchet:durandtibo/verify-uv-build-action@v0.0.7
         with:
-          package-name: minevent
+          package-name: ${{ needs.get-metadata.outputs.name }}
           dist-type: ${{ matrix.dist-type }}
       - name: Run package checks
         run: |2
