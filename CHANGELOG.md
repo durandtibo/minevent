@@ -76,6 +76,10 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
   (#765). `Subscription.remove()` returns `False`, and no longer raises `KeyError`, for a
   subscription that was never registered in its manager.
 - Stricter type hints (`Callable[..., object]`, payload typed `object`).
+- The `Subscription` owns the options of its registration: its internal constructor takes
+  `once`, `condition` and `filter_payload` as keyword-only arguments (it took a private `_Options`
+  tuple, now removed), and the trigger no longer reads the `once` flag of a subscription. No
+  behaviour change.
 - `minevent.__version__` is resolved lazily from the package metadata.
 - `import minevent` is cheap: the `DEBUG` logs of the `minevent.manager` logger are removed and
   `inspect` is imported when `filter_payload=True` is used, so `import minevent` no longer imports
