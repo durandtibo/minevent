@@ -9,14 +9,14 @@ top-level ones that trigger on events.
 
 Every file is prefixed by what it does:
 
-| Prefix      | Purpose                                                                                                                                                              |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ci-`       | Quality/test checks, most of them reusable workflows called from `workflows/ci.yaml`.                                                                                |
+| Prefix      | Purpose                                                                                                                                                                               |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ci-`       | Quality/test checks, most of them reusable workflows called from `workflows/ci.yaml`.                                                                                                 |
 | `lib-`      | Reusable workflows with no event trigger of their own; they only expose `workflow_call` outputs (e.g. reading the test matrix or `pyproject.toml`) and are `needs:`-ed by other jobs. |
-| `bot-`      | Scheduled automation that pushes commits / opens PRs as the `ci-bot` GitHub App.                                                                                     |
-| `nightly-`  | Scheduled checks against the _published_ PyPI package (as opposed to `ci-*`, which checks the repo's source).                                                        |
-| `release-`  | Publishing: PyPI package, GitHub release assets, documentation.                                                                                                      |
-| `security-` | Supply-chain/security scanning (Scorecard, dependency review).                                                                                                       |
+| `bot-`      | Scheduled automation that pushes commits / opens PRs as the `ci-bot` GitHub App.                                                                                                      |
+| `nightly-`  | Scheduled checks against the _published_ PyPI package (as opposed to `ci-*`, which checks the repo's source).                                                                         |
+| `release-`  | Publishing: PyPI package, GitHub release assets, documentation.                                                                                                                       |
+| `security-` | Supply-chain/security scanning (Scorecard, dependency review).                                                                                                                        |
 
 `workflows/ci.yaml` is the entry point for pull requests/pushes to `main`; it fans out
 to the `ci-*.yaml` reusable workflows so each check can also be run/dispatched
@@ -36,35 +36,35 @@ than every PR/push.
 The trigger of a reusable workflow is `workflow_call`: it runs when another workflow calls it
 (`ci.yaml` for the `ci-*` ones, `nightly-package.yaml` for `nightly-test-package.yaml`).
 
-| Workflow                            | Trigger                                     | Purpose                                                                         |
-| ----------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------- |
-| `ci.yaml`                           | pull request, push to `main`, nightly       | Entry point: calls the `ci-*` checks below.                                     |
-| `ci-build.yaml`                     | called by `ci.yaml`                         | Build the package and check that the built package installs.                    |
-| `ci-cyclic-imports.yaml`            | called by `ci.yaml`, manual                 | Check that there is no circular import (`inv imports.check-cycles`).            |
-| `ci-doctest.yaml`                   | called by `ci.yaml`, manual                 | Run the doctests (`inv test.doctest`) and check that the documentation builds.  |
-| `ci-format.yaml`                    | called by `ci.yaml`, manual                 | Check the formatting and the linting of the Python and shell files.             |
-| `ci-pre-commit.yaml`                | called by `ci.yaml`, manual                 | Run all the pre-commit hooks.                                                   |
-| `ci-test.yaml`                      | called by `ci.yaml`                         | Unit tests on every supported Python version and operating system.              |
-| `ci-type-checking.yaml`             | called by `ci.yaml`, manual                 | Type check the package with `ty`.                                               |
-| `ci-benchmark.yaml`                 | nightly, manual                             | Run the benchmarks (not a merge gate).                                          |
-| `ci-verify-workflows.yaml`          | pull request or push changing the workflows | Lint the files of `.github/workflows`.                                          |
-| `lib-get-test-matrix.yaml`          | called by other workflows, manual           | Load the Python versions and the operating systems to test.                     |
-| `lib-get-package-metadata.yaml`     | called by other workflows, manual           | Read the name and the version of the package from `pyproject.toml`.             |
-| `nightly-package.yaml`              | nightly (10:30 UTC), manual                 | Test the package published on PyPI: calls `nightly-test-package.yaml`.          |
-| `nightly-test-package.yaml`         | called by `nightly-package.yaml`            | Run the tests against the installed PyPI package.                               |
-| `release-pypi.yaml`                 | version tag `v*.*.*`, manual                | Build and publish the package to PyPI.                                          |
-| `release-docs.yaml`                 | version tag `v*.*.*`, manual                | Deploy the documentation of the stable version (with `mike`).                   |
-| `release-docs-dev.yaml`             | push to `main`, manual                      | Deploy the documentation of the development version.                            |
-| `release-docs-publish.yaml`         | called by the two previous workflows        | Build and deploy the documentation (shared logic).                              |
-| `security-audit.yaml`               | scheduled, manual                           | Audit the dependencies for known vulnerabilities.                               |
-| `security-dependency-review.yaml`   | pull request                                | Review the dependencies added by the pull request.                              |
-| `security-scorecard.yaml`           | weekly, push, branch protection change      | OSSF Scorecard supply-chain analysis.                                           |
-| `bot-cancel-stale-queued-runs.yaml` | hourly                                      | Cancel the runs that have been queued for too long.                             |
-| `bot-format-files.yaml`             | weekly (Friday)                             | Format the YAML, Makefile, shell and Markdown files and open a pull request.    |
-| `bot-pin-action.yaml`               | weekly (Wednesday)                          | Pin the actions to a commit SHA (`ratchet`) and open a pull request.            |
-| `bot-pre-commit-autoupdate.yaml`    | weekly (Tuesday)                            | Update the pre-commit hooks and open a pull request.                            |
-| `bot-sync-shared-makefile.yaml`     | weekly (Wednesday)                          | Sync the shared Makefile subtree and open a pull request.                       |
-| `bot-update-deps.yaml`              | weekly (Saturday)                           | Update the dependencies (`uv.lock`) and open a pull request.                    |
+| Workflow                            | Trigger                                     | Purpose                                                                        |
+| ----------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------ |
+| `ci.yaml`                           | pull request, push to `main`, nightly       | Entry point: calls the `ci-*` checks below.                                    |
+| `ci-build.yaml`                     | called by `ci.yaml`                         | Build the package and check that the built package installs.                   |
+| `ci-cyclic-imports.yaml`            | called by `ci.yaml`, manual                 | Check that there is no circular import (`inv imports.check-cycles`).           |
+| `ci-doctest.yaml`                   | called by `ci.yaml`, manual                 | Run the doctests (`inv test.doctest`) and check that the documentation builds. |
+| `ci-format.yaml`                    | called by `ci.yaml`, manual                 | Check the formatting and the linting of the Python and shell files.            |
+| `ci-pre-commit.yaml`                | called by `ci.yaml`, manual                 | Run all the pre-commit hooks.                                                  |
+| `ci-test.yaml`                      | called by `ci.yaml`                         | Unit tests on every supported Python version and operating system.             |
+| `ci-type-checking.yaml`             | called by `ci.yaml`, manual                 | Type check the package with `ty`.                                              |
+| `ci-benchmark.yaml`                 | nightly, manual                             | Run the benchmarks (not a merge gate).                                         |
+| `ci-verify-workflows.yaml`          | pull request or push changing the workflows | Lint the files of `.github/workflows`.                                         |
+| `lib-get-test-matrix.yaml`          | called by other workflows, manual           | Load the Python versions and the operating systems to test.                    |
+| `lib-get-package-metadata.yaml`     | called by other workflows, manual           | Read the name and the version of the package from `pyproject.toml`.            |
+| `nightly-package.yaml`              | nightly (10:30 UTC), manual                 | Test the package published on PyPI: calls `nightly-test-package.yaml`.         |
+| `nightly-test-package.yaml`         | called by `nightly-package.yaml`            | Run the tests against the installed PyPI package.                              |
+| `release-pypi.yaml`                 | version tag `v*.*.*`, manual                | Build and publish the package to PyPI.                                         |
+| `release-docs.yaml`                 | version tag `v*.*.*`, manual                | Deploy the documentation of the stable version (with `mike`).                  |
+| `release-docs-dev.yaml`             | push to `main`, manual                      | Deploy the documentation of the development version.                           |
+| `release-docs-publish.yaml`         | called by the two previous workflows        | Build and deploy the documentation (shared logic).                             |
+| `security-audit.yaml`               | scheduled, manual                           | Audit the dependencies for known vulnerabilities.                              |
+| `security-dependency-review.yaml`   | pull request                                | Review the dependencies added by the pull request.                             |
+| `security-scorecard.yaml`           | weekly, push, branch protection change      | OSSF Scorecard supply-chain analysis.                                          |
+| `bot-cancel-stale-queued-runs.yaml` | hourly                                      | Cancel the runs that have been queued for too long.                            |
+| `bot-format-files.yaml`             | weekly (Friday)                             | Format the YAML, Makefile, shell and Markdown files and open a pull request.   |
+| `bot-pin-action.yaml`               | weekly (Wednesday)                          | Pin the actions to a commit SHA (`ratchet`) and open a pull request.           |
+| `bot-pre-commit-autoupdate.yaml`    | weekly (Tuesday)                            | Update the pre-commit hooks and open a pull request.                           |
+| `bot-sync-shared-makefile.yaml`     | weekly (Wednesday)                          | Sync the shared Makefile subtree and open a pull request.                      |
+| `bot-update-deps.yaml`              | weekly (Saturday)                           | Update the dependencies (`uv.lock`) and open a pull request.                   |
 
 All the workflows can also be triggered manually (`workflow_dispatch`), except the reusable ones
 that need inputs and the pull request security review.
