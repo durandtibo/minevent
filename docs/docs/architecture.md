@@ -286,8 +286,8 @@ class MyAsyncHandler:
 
 ### Custom Conditions
 
-A condition is any function without argument that returns a boolean (a `Condition`, that is a `Callable[[], bool]`).
-Implement `__call__` in a class when the condition has a state:
+A condition is any function without argument that returns a boolean (a `Condition`, that is a
+`Callable[[], bool]`). Implement `__call__` in a class when the condition has a state:
 
 ```python
 class MyCondition:
