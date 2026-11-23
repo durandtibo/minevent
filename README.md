@@ -40,12 +40,12 @@ fired.
 `minevent` is organized around three main concepts:
 
 - **event** which defines the thing that should happen.
-- **event handler** which is the piece of code to execute when the event happens
+- **event handler** which is any callable to execute when the event happens
 - **event manager** which is responsible to manage the events and event handlers.
 
 The library provides some implemented modules, but it is possible to extend it.
 It is possible to use all the components or just a subset based on the need.
-For example, an event handler can be used without the event manager.
+For example, a handler is a plain callable, so it can be tested without the event manager.
 
 - [Motivation](#motivation)
 - [Documentation](https://durandtibo.github.io/minevent/)
@@ -90,7 +90,7 @@ It allows you to customize the function `say_something` without changing its imp
   `PeriodicCondition` and `AfterNCondition` are provided
 - **Async**: `atrigger_event` awaits coroutine handlers
 - **Thread-safe registry**: register handlers and trigger events from different threads
-- **Extensible**: Create custom event handlers and conditions for your specific needs
+- **Extensible**: A handler is any callable and a condition is any function that returns a boolean, so there is no base class to extend
 - **Type Hints**: Full type hint support for better IDE integration and code quality
 - **Well Tested**: Comprehensive test suite ensuring reliability
 - **Well Documented**: Extensive documentation with examples and a user guide

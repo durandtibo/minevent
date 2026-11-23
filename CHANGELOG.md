@@ -30,6 +30,7 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
     `add_event_handler("e", f, condition=c, filter_payload=True)`.
   - `class H(BaseEventHandler): def handle(self, /, **payload)` becomes
     `class H: def __call__(self, **payload)`, and `async def ahandle` becomes `async def __call__`.
+
 - `BaseCondition` (with `evaluate` and `equal`) is removed. A condition is a function without
   argument that returns a boolean: implement `__call__` instead of `evaluate`, and call `condition()`
   instead of `condition.evaluate()`. Combine conditions with a function, for example
@@ -102,6 +103,9 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
   notes of the exceptions, the `TypeError` for an awaitable and the thread safety. The quickstart
   and architecture pages no longer mention a synchronous-only system or `last_triggered_event`, and
   the architecture flows show the payload and the subscriptions.
+- Documentation: `architecture.md` has the 18 properties of the package (P1 to P18), a list of the
+  behaviors that are not guaranteed, and describes handlers as callables and the options of a
+  registration (#809). The README, the guide, the quickstart and the FAQ use callables (#808).
 - Documentation: the properties table of `architecture.md` lists the 8 public members of
   `EventManager`, "Design Decisions" and "Conclusion" are removed, `CONTRIBUTING.md` uses the invoke
   tasks, and `review/suggestions.md` is deleted (#770).
