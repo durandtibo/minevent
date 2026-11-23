@@ -1,0 +1,53 @@
+name: Get Package Metadata
+
+# This reusable workflow wraps the extract-pyproject-metadata-action composite
+# action so the project metadata of pyproject.toml can be used from other jobs
+# (a `uses:` composite action alone can't be used from a job's `needs`, since it
+# produces a step output, not a job output). Reading the name and the version
+# from the file avoids hardcoding them in the workflows.
+#
+# Usage:
+#   jobs:
+#     get-metadata:
+#       uses: ./.github/workflows/lib-get-package-metadata.yaml
+#
+#     install:
+#       needs: get-metadata
+#       runs-on: ubuntu-latest
+#       steps:
+#         - run: uv pip install ${{ needs.get-metadata.outputs.normalized_name }}
+
+on:
+  workflow_call:
+    outputs:
+      name:
+        description: "Project name, as declared in [project].name of pyproject.toml"
+        value: ${{ jobs.get-metadata.outputs.name }}
+      normalized_name:
+        description: "Project name normalized per PEP 503, for an index URL or pip install"
+        value: ${{ jobs.get-metadata.outputs.normalized_name }}
+      version:
+        description: "Project version, as declared in [project].version of pyproject.toml"
+        value: ${{ jobs.get-metadata.outputs.version }}
+
+  workflow_dispatch: # Allows manual triggering for testing purposes
+
+permissions: {}
+
+jobs:
+  get-metadata:
+    permissions:
+      contents: read
+    runs-on: ubuntu-slim
+    timeout-minutes: 2
+    outputs:
+      name: ${{ steps.metadata.outputs.name }}
+      normalized_name: ${{ steps.metadata.outputs.normalized-name }}
+      version: ${{ steps.metadata.outputs.version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # ratchet:actions/checkout@v7
+
+      - name: Get package metadata
+        id: metadata
+        uses: durandtibo/extract-pyproject-metadata-action@aa5867876178387ad9d5da757d157c5febfaef5d # ratchet:durandtibo/extract-pyproject-metadata-action@v0.3.1

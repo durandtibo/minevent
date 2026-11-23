@@ -12,12 +12,13 @@ on:
         required: true
         type: string
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   # Test across multiple Python versions and operating systems
   test:
+    permissions:
+      contents: read
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10 # free-threaded and macOS cells are slow
     strategy:

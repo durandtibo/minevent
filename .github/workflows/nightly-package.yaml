@@ -4,26 +4,37 @@ on:
     - cron: "30 10 * * *" # run at 10:30 AM UTC
   workflow_dispatch: # to trigger manually
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
+  # Read the package name from pyproject.toml.
+  get-metadata:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/lib-get-package-metadata.yaml
+
   # Load the shared python-version/OS matrix from the default config of
   # durandtibo/workflow-config-action
   # once, and pass it down to every job below that needs it.
   get-matrix:
+    permissions:
+      contents: read
     uses: ./.github/workflows/lib-get-test-matrix.yaml
 
   stable:
-    needs: get-matrix
+    permissions:
+      contents: read
+    needs: [get-matrix, get-metadata]
     uses: ./.github/workflows/nightly-test-package.yaml
     with:
-      install-cmd: "uv pip install minevent"
+      install-cmd: "uv pip install ${{ needs.get-metadata.outputs.normalized_name }}"
       test-matrix: ${{ needs.get-matrix.outputs.test_matrix }}
 
   latest:
-    needs: get-matrix
+    permissions:
+      contents: read
+    needs: [get-matrix, get-metadata]
     uses: ./.github/workflows/nightly-test-package.yaml
     with:
-      install-cmd: "uv pip install --pre minevent"
+      install-cmd: "uv pip install --pre ${{ needs.get-metadata.outputs.normalized_name }}"
       test-matrix: ${{ needs.get-matrix.outputs.test_matrix }}
