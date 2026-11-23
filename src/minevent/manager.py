@@ -7,15 +7,16 @@ __all__ = ["EventManager", "Subscription"]
 import functools
 import threading
 from collections.abc import Awaitable, Coroutine
-from typing import TYPE_CHECKING, NoReturn, Self, TypeVar
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Callable
     from types import TracebackType
+    from typing import NoReturn, Self, TypeVar
 
     from minevent.conditions import Condition
 
-_F = TypeVar("_F", bound="Callable[..., object]")
+    _F = TypeVar("_F", bound=Callable[..., object])
 
 
 def _check_event(event: object) -> None:
