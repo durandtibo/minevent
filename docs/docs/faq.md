@@ -85,7 +85,7 @@ returns a boolean, or a class with `__call__`.
 
 ### What is the overhead?
 
-About 0.4 µs per trigger with one trivial handler. See [performance](guide.md#performance).
+About 0.35 µs per trigger with one trivial handler. See [performance](guide.md#performance).
 
 ## Help
 

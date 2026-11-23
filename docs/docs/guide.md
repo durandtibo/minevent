@@ -294,7 +294,7 @@ Use a new `EventManager` in each test, and `manager.reset()` if the manager is s
 `NamedTuple`, `TypeVar`). It takes a few milliseconds, so a script can import it without a
 measurable cost.
 
-The cost of `trigger_event` is the cost of the handlers: about 0.4 µs for a manager with one trivial
+The cost of `trigger_event` is the cost of the handlers: about 0.35 µs for a manager with one trivial
 handler, and about 0.1 µs for each additional handler on a laptop. A condition avoids the work of
 an expensive handler (`PeriodicCondition`). To find a slow handler, time it or wrap it (see [Debug](#debug)).
 
