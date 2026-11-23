@@ -156,7 +156,7 @@ def test_event_manager_trigger_event_handler_added_during_dispatch_runs_next_tim
     assert hello_handler.call_count == 1
 
 
-def test_event_manager_trigger_event_handler_removed_during_dispatch_still_runs() -> None:
+def test_event_manager_trigger_event_removed_registration_does_not_run() -> None:
     event_manager = EventManager()
     subscriptions: list[Subscription] = []
 
@@ -165,6 +165,31 @@ def test_event_manager_trigger_event_handler_removed_during_dispatch_still_runs(
 
     event_manager.add_event_handler("my_event", remove_hello)
     subscriptions.append(event_manager.add_event_handler("my_event", hello_handler))
+    event_manager.trigger_event("my_event")
+    assert hello_handler.call_count == 0
+
+
+def test_event_manager_trigger_event_removed_by_clear_event_does_not_run() -> None:
+    event_manager = EventManager()
+    event_manager.add_event_handler("my_event", lambda: event_manager.clear_event("my_event"))
+    event_manager.add_event_handler("my_event", hello_handler)
+    event_manager.trigger_event("my_event")
+    assert hello_handler.call_count == 0
+
+
+def test_event_manager_trigger_event_removed_by_reset_does_not_run() -> None:
+    event_manager = EventManager()
+    event_manager.add_event_handler("my_event", event_manager.reset)
+    event_manager.add_event_handler("my_event", hello_handler)
+    event_manager.trigger_event("my_event")
+    assert hello_handler.call_count == 0
+
+
+def test_event_manager_trigger_event_removed_by_clear_event_keeps_other_events() -> None:
+    event_manager = EventManager()
+    event_manager.add_event_handler("my_event", lambda: event_manager.clear_event("other_event"))
+    event_manager.add_event_handler("my_event", hello_handler)
+    event_manager.add_event_handler("other_event", print)
     event_manager.trigger_event("my_event")
     assert hello_handler.call_count == 1
 
@@ -719,46 +744,6 @@ def test_event_manager_copy_subclass_names_subclass() -> None:
         copy.copy(MyManager())
 
 
-####################################
-#     Tests for _is_registered     #
-####################################
-
-
-def test_event_manager_is_registered_true() -> None:
-    manager = EventManager()
-    subscription = manager.add_event_handler("my_event", print)
-    assert manager._is_registered(subscription)
-
-
-def test_event_manager_is_registered_false_after_remove() -> None:
-    manager = EventManager()
-    subscription = manager.add_event_handler("my_event", print)
-    subscription.remove()
-    assert not manager._is_registered(subscription)
-
-
-def test_event_manager_is_registered_false_never_registered() -> None:
-    manager = EventManager()
-    assert not manager._is_registered(Subscription(manager, "my_event", print))
-
-
-def test_event_manager_is_registered_false_for_other_manager() -> None:
-    subscription = EventManager().add_event_handler("my_event", print)
-    assert not EventManager()._is_registered(subscription)
-
-
-def test_event_manager_is_registered_false_when_other_event_has_registrations() -> None:
-    manager = EventManager()
-    manager.add_event_handler("my_other_event", print)
-    assert not manager._is_registered(Subscription(manager, "my_event", print))
-
-
-def test_event_manager_is_registered_does_not_create_event() -> None:
-    manager = EventManager()
-    manager._is_registered(Subscription(manager, "my_event", print))
-    assert "my_event" not in manager
-
-
 ###############################################
 #     Tests for get_subscriptions and len     #
 ###############################################
@@ -1179,6 +1164,27 @@ def test_subscription_call_returns_handler_result() -> None:
     }
 
 
+def test_subscription_call_removed_returns_none() -> None:
+    subscription = EventManager().add_event_handler("my_event", hello_handler)
+    subscription.remove()
+    assert subscription._call({}) is None
+
+
+def test_subscription_call_removed_does_not_call_handler() -> None:
+    subscription = EventManager().add_event_handler("my_event", hello_handler)
+    subscription.remove()
+    subscription._call({})
+    assert hello_handler.call_count == 0
+
+
+def test_subscription_call_removed_does_not_evaluate_condition() -> None:
+    condition = Mock(return_value=True)
+    subscription = EventManager().add_event_handler("my_event", hello_handler, condition=condition)
+    subscription.remove()
+    subscription._call({})
+    assert condition.call_count == 0
+
+
 def test_subscription_call_condition_false_returns_none() -> None:
     subscription = Subscription(EventManager(), "my_event", lambda: 1, condition=lambda: False)
     assert subscription._call({}) is None
@@ -1220,14 +1226,36 @@ def test_subscription_call_once_calls_handler() -> None:
     assert manager.get_subscriptions("my_event")[0]._call({}) == 1
 
 
-def test_subscription_call_once_already_removed_returns_none() -> None:
+def test_subscription_call_once_lost_claim_returns_none() -> None:
     manager = EventManager()
-    subscription = manager.add_event_handler("my_event", lambda: 1, once=True)
-    subscription.remove()
-    assert subscription._call({}) is None
+    subscriptions: list[Subscription] = []
+
+    def condition() -> bool:
+        subscriptions[0].remove()  # another thread wins the claim after the check
+        return True
+
+    subscriptions.append(
+        manager.add_event_handler("my_event", lambda: 1, condition=condition, once=True)
+    )
+    assert subscriptions[0]._call({}) is None
 
 
-def test_subscription_call_once_already_removed_does_not_call_handler() -> None:
+def test_subscription_call_once_lost_claim_does_not_call_handler() -> None:
+    manager = EventManager()
+    subscriptions: list[Subscription] = []
+
+    def condition() -> bool:
+        subscriptions[0].remove()
+        return True
+
+    subscriptions.append(
+        manager.add_event_handler("my_event", hello_handler, condition=condition, once=True)
+    )
+    subscriptions[0]._call({})
+    assert hello_handler.call_count == 0
+
+
+def test_subscription_call_once_removed_does_not_call_handler() -> None:
     manager = EventManager()
     subscription = manager.add_event_handler("my_event", hello_handler, once=True)
     subscription.remove()
@@ -1426,13 +1454,19 @@ def test_subscription_active_after_add() -> None:
 
 
 def test_subscription_active_never_registered() -> None:
-    assert not Subscription(EventManager(), "my_event", print).active
+    assert Subscription(EventManager(), "my_event", print).active
 
 
-def test_subscription_active_never_registered_stays_inactive_after_remove() -> None:
-    subscription = Subscription(EventManager(), "my_event", print)
+def test_subscription_active_false_after_remove() -> None:
+    subscription = EventManager().add_event_handler("my_event", print)
     subscription.remove()
     assert not subscription.active
+
+
+def test_subscription_active_other_subscription_removed() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", print).remove()
+    assert manager.add_event_handler("my_event", print).active
 
 
 def test_subscription_active_other_event_cleared() -> None:
@@ -1635,3 +1669,55 @@ def test_check_not_awaitable_future_raises() -> None:
     future: Any = Mock(spec=Awaitable)
     with pytest.raises(TypeError, match=r"returned an awaitable"):
         _check_not_awaitable(future, print)
+
+
+###############################################
+#     Tests for the flag and the registry     #
+###############################################
+
+
+def flag_and_registry(manager: EventManager, subscription: Subscription) -> tuple[bool, bool]:
+    r"""Gets the flag of a registration and its presence in the manager."""
+    return subscription.active, subscription in manager.get_subscriptions(subscription.event)
+
+
+def test_flag_and_registry_agree_before_removal() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", print)
+    assert flag_and_registry(manager, subscription) == (True, True)
+
+
+def test_flag_and_registry_agree_after_remove() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", print)
+    subscription.remove()
+    assert flag_and_registry(manager, subscription) == (False, False)
+
+
+def test_flag_and_registry_agree_after_exit() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", print)
+    with subscription:
+        pass
+    assert flag_and_registry(manager, subscription) == (False, False)
+
+
+def test_flag_and_registry_agree_after_clear_event() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", print)
+    manager.clear_event("my_event")
+    assert flag_and_registry(manager, subscription) == (False, False)
+
+
+def test_flag_and_registry_agree_after_reset() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", print)
+    manager.reset()
+    assert flag_and_registry(manager, subscription) == (False, False)
+
+
+def test_flag_and_registry_agree_after_clear_other_event() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", print)
+    manager.clear_event("other_event")
+    assert flag_and_registry(manager, subscription) == (True, True)

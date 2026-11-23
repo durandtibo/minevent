@@ -228,3 +228,37 @@ def test_add_event_handler_options_from_threads() -> None:
     manager.trigger_event("my_event", epoch=3, loss=0.5)
     assert sorted(calls) == sorted([(i, 3) for i in range(NUM_THREADS)] * 2)
     assert len(manager) == NUM_THREADS
+
+
+def test_remove_from_threads_while_triggering() -> None:
+    """Test that a handler runs at most once per registration when its
+    registration is removed in another thread, and never runs after the
+    removal is complete."""
+    manager = EventManager()
+    calls: list[int] = []
+    lock = threading.Lock()
+
+    def make_handler(value: int) -> Callable[[], None]:
+        def handler() -> None:
+            with lock:
+                calls.append(value)
+
+        return handler
+
+    subscriptions = [
+        manager.add_event_handler("my_event", make_handler(i)) for i in range(NUM_ITERATIONS)
+    ]
+
+    def work(index: int) -> None:
+        if index % 2 == 0:
+            manager.trigger_event("my_event")
+        else:
+            for subscription in subscriptions:
+                subscription.remove()
+
+    run_threads(work, NUM_THREADS)
+    n_calls = len(calls)
+    manager.trigger_event("my_event")
+    assert len(calls) == n_calls
+    assert len(set(calls)) == len(calls)
+    assert len(manager) == 0

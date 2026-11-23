@@ -220,6 +220,8 @@ class Subscription:
         self._filter_payload = filter_payload
         # The accepted keys are computed once, at registration.
         self._payload_keys = _accepted_keywords(handler) if filter_payload else None
+        # Set to False by the manager when the registration leaves its registry.
+        self._active = True
 
     def __enter__(self) -> Self:
         return self
@@ -295,17 +297,19 @@ class Subscription:
             ``True`` if the event handler is still registered,
                 ``False`` if it was removed (by this subscription, by
                 ``clear_event`` or ``reset``, or because it was a
-                ``once`` registration consumed by a trigger), or if
-                it was never registered in its manager. The answer
-                is read from the registry of the manager.
+                ``once`` registration consumed by a trigger). The
+                manager sets the flag when the registration leaves
+                its registry.
         """
-        return self._manager._is_registered(self)
+        return self._active
 
     def _call(self, payload: dict[str, object]) -> object:
-        r"""Run the registration: condition, once claim, payload filter
-        and handler.
+        r"""Run the registration: removal check, condition, once claim,
+        payload filter and handler.
 
-        The condition decides whether the handler would run, and the
+        A registration that was removed before its turn (by
+        ``remove``, ``clear_event``, ``reset`` or a ``once`` claim)
+        does not run. The condition decides whether the handler would run, and the
         claim of a ``once`` registration decides who runs it: the
         registration is removed by an atomic claim just before its
         handler, so it runs at most once whatever the number of
@@ -318,10 +322,12 @@ class Subscription:
 
         Returns:
             The value returned by the handler, or ``None`` if the
-                condition is ``False`` or if the registration lost the
-                claim (it was already removed). It is awaitable if the
-                handler is a coroutine function.
+                registration was removed, if the condition is
+                ``False`` or if the registration lost the claim. It is
+                awaitable if the handler is a coroutine function.
         """
+        if not self._active:
+            return None
         if self._condition is not None and not self._condition():
             return None
         if self._once and not self.remove():
@@ -338,7 +344,9 @@ class Subscription:
         method again, or after the registration was removed another
         way (``clear_event``, ``reset``, a ``once`` trigger), does
         nothing. It never raises, even for a subscription that was
-        never registered in its manager. The cost does not depend on
+        never registered in its manager. A registration that is
+        removed before its turn in a running trigger does not run.
+        The cost does not depend on
         the number of handlers of the event.
 
         Returns:
@@ -661,19 +669,6 @@ class EventManager:
 
         return decorator
 
-    def _is_registered(self, subscription: Subscription) -> bool:
-        r"""Indicate if a registration is in the registry.
-
-        Args:
-            subscription: The registration to look for.
-
-        Returns:
-            ``True`` if the registration is registered for its event
-                in this manager, ``False`` otherwise.
-        """
-        with self._lock:
-            return subscription in self._subscriptions.get(subscription.event, ())
-
     def _remove(self, subscription: Subscription) -> bool:
         r"""Remove one registration.
 
@@ -689,6 +684,7 @@ class EventManager:
             if subs is None or subscription not in subs:
                 return False
             del subs[subscription]
+            subscription._active = False
             if not subs:
                 del self._subscriptions[subscription.event]
         return True
@@ -706,9 +702,11 @@ class EventManager:
         with the event and the function of the handler that raised it.
 
         The handlers are read from a snapshot taken when the event is
-        triggered. Handlers added or removed by a running handler
-        take effect on the next trigger, not the current one. A
-        ``once`` registration is removed just before its handler runs.
+        triggered. A handler added by a running handler takes effect
+        on the next trigger. A registration removed before its turn
+        (by ``remove``, ``clear_event`` or ``reset``) does not run.
+        A ``once`` registration is removed just before its handler
+        runs.
 
         A handler can trigger events, including the event it handles,
         but nothing stops the recursion: a handler that always
@@ -835,7 +833,8 @@ class EventManager:
         """
         _check_event(event)
         with self._lock:
-            self._subscriptions.pop(event, None)
+            for subscription in self._subscriptions.pop(event, ()):
+                subscription._active = False
 
     def reset(self) -> None:
         r"""Reset the event manager.
@@ -867,4 +866,7 @@ class EventManager:
             ```
         """
         with self._lock:
+            for subs in self._subscriptions.values():
+                for subscription in subs:
+                    subscription._active = False
             self._subscriptions.clear()

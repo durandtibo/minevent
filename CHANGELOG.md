@@ -79,9 +79,13 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
   `manager or default` is safe; use `len(manager) == 0` to test that a manager has no handler.
   `copy.copy`, `copy.deepcopy` and `pickle` of an `EventManager` raise a `TypeError` (`copy.copy`
   used to share the registry silently): create a new manager (#771).
-- `Subscription.active` reads the registry of the manager instead of a copy of the state, so it is
-  `False` for a subscription that was never registered (it was `True`). `reset` and `clear_event` no
-  longer walk the registrations to flip a flag (#772).
+- `Subscription.active` is a flag that the manager sets when the registration is removed (by
+  `remove()`, `clear_event`, `reset` or a `once` claim). A `Subscription` built by hand and never
+  registered is `active`.
+- **Breaking**: a registration removed before its turn in a running trigger does not run. Before, it
+  still ran unless it was a `once` registration. If a program relied on a removed registration
+  running in the same trigger, move that work to the code that removes it. `clear_event` and `reset`
+  walk the registrations to clear the flag (O(registrations) instead of O(1)).
 - Removing a registration is O(1) instead of O(n): the registry of an event is an ordered `dict`
   (#765). `Subscription.remove()` returns `False`, and no longer raises `KeyError`, for a
   subscription that was never registered in its manager.
