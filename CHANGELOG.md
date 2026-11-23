@@ -83,11 +83,11 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
   `manager.get_subscriptions(event)` or wrap the handler (#810).
 - The package has no `all` extra (it had no optional dependency). The classifiers are
   `Development Status :: 3 - Alpha` and `Operating System :: OS Independent`.
-- `EventManager.add_event_handler` accepts any callable, and has the
-  keyword-only options `condition` and `filter_payload` next to `once`. It raises a `TypeError` for a
-  `handler` that is not callable or a `condition` that is neither `None` nor callable (a bare
-  function used to fail at the first trigger with an `AttributeError`). `EventManager.on` is the
-  decorator form of `add_event_handler` (#807).
+- `EventManager.add_event_handler` accepts any callable, and has the keyword-only options
+  `condition` and `filter_payload` next to `once`. It raises a `TypeError` for a `handler` that is
+  not callable or a `condition` that is neither `None` nor callable (a bare function used to fail at
+  the first trigger with an `AttributeError`). `EventManager.on` is the decorator form of
+  `add_event_handler` (#807).
 - `Subscription.event_handler` is renamed `Subscription.handler`, and `Subscription` has the read-only
   properties `condition` and `filter_payload` (#807).
 - The note of the exception of a handler names the function under a `functools.partial` (it was

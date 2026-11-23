@@ -90,7 +90,8 @@ It allows you to customize the function `say_something` without changing its imp
   `PeriodicCondition` and `AfterNCondition` are provided
 - **Async**: `atrigger_event` awaits coroutine handlers
 - **Thread-safe registry**: register handlers and trigger events from different threads
-- **Extensible**: A handler is any callable and a condition is any function that returns a boolean, so there is no base class to extend
+- **Extensible**: A handler is any callable and a condition is any function that returns a boolean,
+  so there is no base class to extend
 - **Type Hints**: Full type hint support for better IDE integration and code quality
 - **Well Tested**: Comprehensive test suite ensuring reliability
 - **Well Documented**: Extensive documentation with examples and a user guide
@@ -101,7 +102,8 @@ It allows you to customize the function `say_something` without changing its imp
   [https://durandtibo.github.io/minevent/](https://durandtibo.github.io/minevent/)
 - **Quickstart Guide**:
   [https://durandtibo.github.io/minevent/quickstart/](https://durandtibo.github.io/minevent/quickstart/)
-- **Examples**: See the [quickstart guide](https://durandtibo.github.io/minevent/quickstart/) for practical use cases
+- **Examples**: See the [quickstart guide](https://durandtibo.github.io/minevent/quickstart/) for
+  practical use cases
 - **FAQ**: [https://durandtibo.github.io/minevent/faq/](https://durandtibo.github.io/minevent/faq/)
 - **User guide**:
   [https://durandtibo.github.io/minevent/guide/](https://durandtibo.github.io/minevent/guide/)

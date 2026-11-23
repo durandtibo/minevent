@@ -189,14 +189,14 @@ No hidden behavior or surprising actions:
 
 **Architecture**:
 
-```
+```text
 add_event_handler(event, handler, *, once=False, condition=None, filter_payload=False)
     └── Subscription (event, handler, once, condition, filter_payload)
 ```
 
 **Execution Flow**:
 
-```
+```text
 trigger_event()
     ├── Get the subscriptions of the event
     └── For each subscription:
@@ -216,7 +216,7 @@ trigger_event()
 
 ### Registration Flow
 
-```
+```text
 1. User registers a callable
    subscription = manager.add_event_handler("event", handler, once=..., condition=..., filter_payload=...)
 
@@ -229,7 +229,7 @@ trigger_event()
 
 ### Triggering Flow
 
-```
+```text
 1. User triggers event
    manager.trigger_event("event", **payload)
 
@@ -246,7 +246,7 @@ trigger_event()
 
 ### Handler Execution
 
-```
+```text
 Without condition:
     handler(**payload)
 

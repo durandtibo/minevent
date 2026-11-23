@@ -2,8 +2,9 @@
 
 ## Environment
 
-- Activate the virtual environment in `.venv` (`source .venv/bin/activate`) and call `python`, `pytest`, `ruff`, `ty` and `inv` by name.
-  There is no `python` on the `PATH` until it is activated.
+- Activate the virtual environment in `.venv` (`source .venv/bin/activate`) and call `python`,
+  `pytest`, `ruff`, `ty` and `inv` by name. There is no `python` on the `PATH` until it is
+  activated.
 - Lint and format before committing: `ruff check src tests` and `ruff format src tests`.
   Fix the issues raised by ruff. Ignoring an issue (`noqa`, a changed rule set) is not fixing it.
 - Type check with `ty check`. Fix the issues raised by ty. Ignoring an issue
@@ -55,7 +56,8 @@
 - Validate an argument in the function that receives it: a `TypeError` for a wrong type and a
   `ValueError` for a wrong value, with a message that names the argument and the value. Do not add
   a validator that is one `isinstance` or one comparison.
-- Keep new options keyword-only (`*`), as `add_event_handler(..., once=..., condition=..., filter_payload=...)` does.
+- Keep new options keyword-only (`*`), as
+  `add_event_handler(..., once=..., condition=..., filter_payload=...)` does.
 - Every function, public or private (leading underscore), needs a docstring and its own unit
   tests. Private functions are not exempt. An override that adds nothing to the docstring of the
   method it overrides (same behaviour, arguments and exceptions) has no docstring: it inherits the
@@ -68,18 +70,19 @@
 
 ## Tests
 
-- Always write tests for the code in `src/`, including every private function. Unit tests must be fast and efficient; move big or
-  slow tests to `tests/integration/` if needed.
+- Always write tests for the code in `src/`, including every private function. Unit tests must be
+  fast and efficient; move big or slow tests to `tests/integration/` if needed.
 - Unit tests mirror the source tree (`tests/unit/<package>/test_<module>.py`). Cross-thread
   behaviour goes in `tests/integration/`, using `run_threads` from `tests/integration/helpers.py`,
   a lock around the shared list, and a docstring starting with "Test that ...".
 - Do not use local imports inside tests (for example `import polars as pl` in a test body). Import
   at the top of the module.
 - One behaviour per test: a test has one `assert` or one `pytest.raises`. Split a test that checks
-  several things (equal, different, negative, ...) into several tests. Exception: a test of the state of one object (the properties of a `Subscription`,
-  or the `call_count`, `args` and `kwargs` recorded by a traced handler) may have one `assert` per
-  attribute, which reads better than one assert on a tuple. Thread-safety tests may
-  assert the count and the uniqueness together, as the existing ones do.
+  several things (equal, different, negative, ...) into several tests. Exception: a test of the
+  state of one object (the properties of a `Subscription`, or the `call_count`, `args` and `kwargs`
+  recorded by a traced handler) may have one `assert` per attribute, which reads better than one
+  assert on a tuple. Thread-safety tests may assert the count and the uniqueness together, as the
+  existing ones do.
 - Keep the unit tests simple and fast: no sleeps, no large data, no real network or heavy I/O,
   and no logic (loops, branches) in the test body. Anything slow or concurrent belongs in
   `tests/integration/`.
