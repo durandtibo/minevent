@@ -39,18 +39,23 @@ It allows you to customize code by adding pieces of code that are executed when 
 fired.
 `minevent` is organized around three main concepts:
 
-- **event** which defines the thing that should happen.
-- **event handler** which is any callable to execute when the event happens
-- **event manager** which is responsible to manage the events and event handlers.
+- **event** which is a case-sensitive string that names something that happens.
+- **event handler** which is any callable to execute when the event happens.
+- **event manager** (`EventManager`) which stores the event handlers and triggers the events.
 
-The library provides some implemented modules, but it is possible to extend it.
+The library provides two built-in conditions (`PeriodicCondition` and `AfterNCondition`) to control
+when a handler runs, and it is easy to extend: a handler is any callable and a condition is any
+function without argument that returns a boolean, so there is no base class to extend.
 It is possible to use all the components or just a subset based on the need.
 For example, a handler is a plain callable, so it can be tested without the event manager.
 
 - [Motivation](#motivation)
+- [Features](#features)
+- [Usage](#usage)
 - [Documentation](https://durandtibo.github.io/minevent/)
 - [Installation](#installation)
 - [Contributing](#contributing)
+- [Community and support](#community-and-support)
 - [API stability](#api-stability)
 - [License](#license)
 
@@ -83,18 +88,51 @@ It allows you to customize the function `say_something` without changing its imp
 
 - **Minimal and Lightweight**: No dependency, keeping your project dependencies clean
 - **Simple API**: Easy to learn and use with intuitive event registration and triggering
-- **Payload**: `trigger_event("epoch_end", epoch=3)` passes keyword arguments to the handlers
+- **Payload**: `trigger_event("epoch_end", epoch=3)` passes keyword arguments to the handlers, and
+  `filter_payload=True` gives each handler only the keys of its signature
 - **Subscriptions**: `add_event_handler` returns a `Subscription` to remove exactly that
-  registration, and `once=True` runs a handler at most once
-- **Conditional Handlers**: Any function that returns a boolean is a condition, and
+  registration (it is also a context manager), and `once=True` runs a handler at most once
+- **Decorator**: `@manager.on("epoch_end")` registers a function as a handler
+- **Conditional Handlers**: Any function without argument that returns a boolean is a condition, and
   `PeriodicCondition` and `AfterNCondition` are provided
 - **Async**: `atrigger_event` awaits coroutine handlers
+- **Debuggable**: an exception of a handler has a note that names the event and the handler, and
+  `manager.get_subscriptions(event)` lists the registrations
 - **Thread-safe registry**: register handlers and trigger events from different threads
 - **Extensible**: A handler is any callable and a condition is any function that returns a boolean,
   so there is no base class to extend
 - **Type Hints**: Full type hint support for better IDE integration and code quality
 - **Well Tested**: Comprehensive test suite ensuring reliability
 - **Well Documented**: Extensive documentation with examples and a user guide
+
+## Usage
+
+The keyword arguments of `trigger_event` are the payload that is passed to the handlers, and the
+options of a registration (`once`, `condition`, `filter_payload`) are keyword-only arguments of
+`add_event_handler` and of its decorator form `on`:
+
+```pycon
+>>> from minevent import EventManager, PeriodicCondition
+>>> manager = EventManager()
+>>> @manager.on("epoch_end", condition=PeriodicCondition(freq=2), filter_payload=True)
+... def log_epoch(epoch: int) -> None:
+...     print(f"epoch {epoch}")
+...
+>>> for epoch in range(4):
+...     manager.trigger_event("epoch_end", epoch=epoch, loss=0.5)
+epoch 0
+epoch 2
+>>> subscription = manager.add_event_handler("epoch_end", print, once=True)
+>>> subscription.active
+True
+>>> subscription.remove()
+True
+
+```
+
+A handler that raises stops the dispatch: the exception reaches the caller of `trigger_event` with
+a note that names the event and the handler. Coroutine handlers need `atrigger_event`. See the
+[user guide](https://durandtibo.github.io/minevent/guide/) for the details.
 
 ## Quick Links
 

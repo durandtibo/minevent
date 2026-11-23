@@ -2,10 +2,31 @@ r"""Contain the main features of the ``minevent`` package.
 
 ``minevent`` is a minimal event system with three concepts: an event (a
 case-sensitive string), a handler (any callable) and an event manager
-(``EventManager``) that stores the handlers and triggers the events. ``add_event_handler`` returns a
-``Subscription`` that identifies a registration, and the conditions
-(``Condition``, ``PeriodicCondition``, ``AfterNCondition``) control when
-a handler runs. The package has no dependency.
+(``EventManager``) that stores the handlers and triggers the events.
+
+- ``EventManager.add_event_handler`` (or the ``on`` decorator) registers
+  a handler and returns a ``Subscription``, the registration itself,
+  that removes exactly that registration.
+- ``EventManager.trigger_event`` runs the handlers in the order they
+  were registered and passes its keyword arguments (the payload) to
+  them. ``EventManager.atrigger_event`` also awaits the coroutine
+  handlers.
+- A condition is any function without argument that returns a boolean
+  (``Condition``). ``PeriodicCondition`` and ``AfterNCondition`` are
+  provided, and they control when a handler runs.
+
+The package has no dependency, and ``__version__`` is the version of the
+installed package.
+
+Example:
+    ```pycon
+    >>> from minevent import EventManager
+    >>> manager = EventManager()
+    >>> _ = manager.add_event_handler("epoch_end", lambda epoch: print(f"epoch {epoch}"))
+    >>> manager.trigger_event("epoch_end", epoch=3)
+    epoch 3
+
+    ```
 """
 
 from __future__ import annotations

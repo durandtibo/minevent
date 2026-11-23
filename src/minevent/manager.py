@@ -1,4 +1,10 @@
-r"""Implement the event manager."""
+r"""Implement the event manager and the subscriptions.
+
+``EventManager`` stores the registrations of the handlers and triggers
+the events, and ``Subscription`` is the registration of one handler to
+one event. The conditions of a registration are in
+``minevent.conditions``.
+"""
 
 from __future__ import annotations
 
@@ -150,10 +156,10 @@ class Subscription:
     A subscription is returned by ``EventManager.add_event_handler``.
     It is the registration itself: the manager stores it with the
     options of the registration, and it removes exactly the
-    registration that created it. The handler does
-    not need to be re-created to be unsubscribed, other registrations
-    of the same handler are not removed, and registering the same
-    handler twice creates two independent subscriptions.
+    registration that created it. The handler does not need to be re-created to be unsubscribed,
+    other registrations of the same handler are not removed, and
+    registering the same handler twice creates two independent
+    subscriptions. Subscriptions are compared by identity.
 
     A subscription is a context manager: the registration is removed
     when the ``with`` block exits.
@@ -166,11 +172,11 @@ class Subscription:
         event: The event name of the registration.
         handler: The registered handler: any callable.
         once: If ``True``, the registration is removed just before
-            its first execution.
+            its first execution. Default is ``False``.
         condition: The condition evaluated before the handler, or
-            ``None`` if the handler always runs.
+            ``None`` if the handler always runs. Default is ``None``.
         filter_payload: If ``True``, only the payload keys that the
-            handler accepts are passed to it.
+            handler accepts are passed to it. Default is ``False``.
 
     Example:
         ```pycon
@@ -308,8 +314,9 @@ class Subscription:
 
         A registration that was removed before its turn (by
         ``remove``, ``clear_event``, ``reset`` or a ``once`` claim)
-        does not run. The condition decides whether the handler would run, and the
-        claim of a ``once`` registration decides who runs it: the
+        does not run. The condition decides whether the handler would
+        run, and the claim of a ``once`` registration decides who runs
+        it: the
         registration is removed by an atomic claim just before its
         handler, so it runs at most once whatever the number of
         threads. A condition that is ``False`` (or that raises) does
@@ -345,8 +352,8 @@ class Subscription:
         nothing. It never raises, even for a subscription that was
         never registered in its manager. A registration that is
         removed before its turn in a running trigger does not run.
-        The cost does not depend on
-        the number of handlers of the event.
+        The cost does not depend on the number of handlers of the
+        event.
 
         Returns:
             ``True`` if the registration was removed, ``False`` if it
@@ -369,7 +376,9 @@ class EventManager:
     and ``atrigger_event`` awaits the coroutine handlers. The manager
     has no global state: create one instance and pass it where it is
     needed. Nothing is logged: to trace the registrations, read
-    ``get_subscriptions(event)``, or wrap the handler.
+    ``get_subscriptions(event)``, or wrap the handler. ``events``,
+    ``event in manager`` and ``len(manager)`` inspect the registry, and
+    ``clear_event`` and ``reset`` empty it.
 
     A handler is any callable, called as ``handler(**payload)``. The
     options of a registration (``once``, ``condition`` and
@@ -526,15 +535,19 @@ class EventManager:
             handler: The callable to attach to the event.
             once: If ``True``, the handler is removed just before its
                 first execution, so it runs at most once, even when
-                several threads trigger the event. A condition that is ``False`` does
-                not consume the registration: it waits for the first
-                time the condition is ``True``. Default is ``False``.
+                several threads trigger the event. A condition that
+                is ``False`` does not consume the registration: it
+                waits for the first time the condition is ``True``.
+                Default is ``False``.
             condition: An optional condition: a function without
                 argument that returns a boolean. It is called each
                 time the event is triggered, before the handler, and
                 the handler runs only if it returns ``True``. If
-                ``None``, the handler always runs. Default is
-                ``None``.
+                ``None``, the handler always runs. An exception
+                raised by the condition propagates to the caller of
+                ``trigger_event``. A stateful condition, such as
+                ``PeriodicCondition``, must not be shared between
+                registrations. Default is ``None``.
             filter_payload: If ``True``, only the payload keys that
                 the signature of the handler accepts are passed to
                 it, so handlers with different needs can share an
@@ -634,8 +647,10 @@ class EventManager:
             The decorator.
 
         Raises:
-            TypeError: if ``event`` is not a string, or if
-                ``condition`` is not callable.
+            TypeError: if ``event`` is not a string, if ``condition``
+                is neither ``None`` nor callable, or, when the
+                decorator is applied, if the decorated object is not
+                callable.
 
         Example:
             ```pycon
@@ -713,11 +728,17 @@ class EventManager:
         recursive trigger with a condition or a flag.
 
         The keyword arguments ``payload`` are passed to every
-        handler as keyword arguments, after the arguments given at
-        registration. Without payload, handlers are called exactly as
-        before. A handler that does not accept the payload raises a
-        ``TypeError``. The payload can use any key, including
+        handler as ``handler(**payload)``. Without payload, handlers
+        are called without argument. A handler that does not accept
+        the payload raises a ``TypeError``, unless it was registered
+        with ``filter_payload=True``, which passes only the keys that
+        its signature accepts. The payload can use any key, including
         ``event`` and ``self``, because ``event`` is positional-only.
+        All the handlers receive the same payload objects.
+
+        Before its handler, a registration evaluates its condition
+        (the handler is skipped if it is ``False``), and a ``once``
+        registration is removed.
 
         Args:
             event: The event name (case-sensitive string) to trigger.
@@ -728,7 +749,9 @@ class EventManager:
             TypeError: if ``event`` is not a string, or if a handler
                 returns an awaitable (use ``atrigger_event`` for
                 coroutine handlers). Any exception raised by a
-                handler also propagates.
+                handler or a condition also propagates, including a
+                ``RecursionError`` if a handler always triggers its
+                own event.
 
         Example:
             ```pycon
@@ -764,9 +787,8 @@ class EventManager:
 
         This method behaves like ``trigger_event``, but the handlers
         that are coroutine functions (or return an awaitable) are
-        awaited.
-        Synchronous handlers can be mixed with coroutine handlers.
-        The handlers run one after the other, in the order they were
+        awaited. Synchronous handlers can be mixed with coroutine
+        handlers. The handlers run one after the other, in the order they were
         added, and they are fail-fast like in ``trigger_event``: the
         exception is not wrapped and has a note with the event and the
         handler. The snapshot of the handlers, the ``once``
@@ -781,7 +803,7 @@ class EventManager:
 
         Raises:
             TypeError: if ``event`` is not a string. Any exception
-                raised by a handler also propagates.
+                raised by a handler or a condition also propagates.
 
         Example:
             ```pycon
@@ -811,7 +833,9 @@ class EventManager:
         r"""Remove all the event handlers of a given event.
 
         Nothing happens if the event has no registered handler. The
-        subscriptions of the removed handlers become inactive.
+        subscriptions of the removed handlers become inactive, and a
+        removed registration that has not run yet in a running trigger
+        does not run.
 
         Args:
             event: The event name (case-sensitive string) to clear.
@@ -841,7 +865,8 @@ class EventManager:
         This method removes all registered event handlers from the
         event manager, so their subscriptions become inactive. After
         calling this method, the event manager returns to its initial
-        state.
+        state. A registration that has not run yet in a running
+        trigger does not run.
 
         Example:
             ```pycon
