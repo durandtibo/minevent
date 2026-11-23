@@ -1002,34 +1002,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../refs/handlers/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Handlers
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../refs/conditions/" class="md-nav__link">
         
   
@@ -1398,10 +1370,10 @@ handlers), handlers run in the registration order, and it has no dependency.</p>
 <h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">&para;</a></h2>
 <h3 id="how-do-i-pass-data-to-the-handlers">How do I pass data to the handlers?<a class="headerlink" href="#how-do-i-pass-data-to-the-handlers" title="Permanent link">&para;</a></h3>
 <p>As keyword arguments of <code>trigger_event</code>: <code>manager.trigger_event("epoch_end", epoch=3)</code>. See
-<a href="../guide/#pass-the-data-as-a-payload">the payload</a>. Use <code>handler_args</code> and <code>handler_kwargs</code> for the
+<a href="../guide/#pass-the-data-as-a-payload">the payload</a>. Use <code>functools.partial</code> for the
 arguments that are fixed at registration.</p>
 <h3 id="how-do-i-run-a-handler-only-sometimes">How do I run a handler only sometimes?<a class="headerlink" href="#how-do-i-run-a-handler-only-sometimes" title="Permanent link">&para;</a></h3>
-<p>Give the <code>EventHandler</code> a condition, for example <code>condition=PeriodicCondition(freq=5)</code>, or any
+<p>Give the registration a condition, for example <code>condition=PeriodicCondition(freq=5)</code>, or any
 function that returns a boolean. See <a href="../guide/#conditions">conditions</a>.</p>
 <h3 id="how-do-i-run-a-handler-only-once">How do I run a handler only once?<a class="headerlink" href="#how-do-i-run-a-handler-only-once" title="Permanent link">&para;</a></h3>
 <p><code>manager.add_event_handler("my_event", handler, once=True)</code>.</p>
@@ -1428,8 +1400,9 @@ handlers run in the triggering thread, concurrently if several threads trigger t
 the counter of a stateful condition is not protected. See
 <a href="../architecture/#thread-safety">Thread Safety</a>.</p>
 <h3 id="can-i-create-custom-handlers-and-conditions">Can I create custom handlers and conditions?<a class="headerlink" href="#can-i-create-custom-handlers-and-conditions" title="Permanent link">&para;</a></h3>
-<p>Yes. A handler is a <code>BaseEventHandler</code> subclass with a <code>handle(self, /, **payload)</code> method. A
-condition is any function without argument that returns a boolean, or a class with <code>__call__</code>.</p>
+<p>Yes. A handler is any callable: write a class with a <code>__call__(self, **payload)</code> method (or
+<code>async def __call__</code> for <code>atrigger_event</code>). A condition is any function without argument that
+returns a boolean, or a class with <code>__call__</code>.</p>
 <h3 id="what-is-the-overhead">What is the overhead?<a class="headerlink" href="#what-is-the-overhead" title="Permanent link">&para;</a></h3>
 <p>About 0.5 µs per trigger with one trivial handler. See <a href="../guide/#performance">performance</a>.</p>
 <h2 id="help">Help<a class="headerlink" href="#help" title="Permanent link">&para;</a></h2>

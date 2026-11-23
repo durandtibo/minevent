@@ -12,7 +12,7 @@
         <link rel="prev" href="../">
       
       
-        <link rel="next" href="../handlers/">
+        <link rel="next" href="../conditions/">
       
       
         
@@ -965,34 +965,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../handlers/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Handlers
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../conditions/" class="md-nav__link">
         
   
@@ -1502,7 +1474,7 @@ it cannot be copied or pickled (<code>copy.copy</code>, <code>copy.deepcopy</cod
 <a href="#minevent.manager.EventManager.add_event_handler" class="headerlink" title="Permanent link">&para;</a></h4>
 <div class="doc-signature highlight"><pre><span></span><code><span class="nf">add_event_handler</span><span class="p">(</span>
     <span class="n">event</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span>
-    <span class="n">handler</span><span class="p">:</span> <span class="n"><span title="collections.abc.Callable">Callable</span></span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n"><span title="object">object</span></span><span class="p">]</span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="minevent.handlers.BaseEventHandler" href="../handlers/#minevent.handlers.BaseEventHandler">BaseEventHandler</a></span><span class="p">,</span>
+    <span class="n">handler</span><span class="p">:</span> <span class="n"><span title="collections.abc.Callable">Callable</span></span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n"><span title="object">object</span></span><span class="p">],</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">once</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">condition</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="minevent.conditions.Condition" href="../conditions/#minevent.conditions.Condition">Condition</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1553,12 +1525,11 @@ the handler should be attached.</p>
                 <code>handler</code>
             </td>
             <td>
-                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="object">object</span>] | <a class="autorefs autorefs-internal" title="minevent.handlers.BaseEventHandler" href="../handlers/#minevent.handlers.BaseEventHandler">BaseEventHandler</a></code>
+                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="object">object</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The callable to attach to the event. An
-<code>EventHandler</code> is also accepted.</p>
+                <p>The callable to attach to the event.</p>
               </div>
             </td>
             <td>
@@ -2497,12 +2468,11 @@ event manager.</p>
                 <code>handler</code>
             </td>
             <td>
-                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="object">object</span>] | <a class="autorefs autorefs-internal" title="minevent.handlers.BaseEventHandler" href="../handlers/#minevent.handlers.BaseEventHandler">BaseEventHandler</a></code>
+                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="object">object</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The registered handler: a callable (or an event
-handler).</p>
+                <p>The registered handler: any callable.</p>
               </div>
             </td>
             <td>
@@ -2784,7 +2754,7 @@ are passed to it, otherwise <code>False</code>.</p>
   </span>
 
 <a href="#minevent.manager.Subscription.handler" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="n">handler</span><span class="p">:</span> <span class="n"><span title="collections.abc.Callable">Callable</span></span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n"><span title="object">object</span></span><span class="p">]</span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="minevent.handlers.BaseEventHandler" href="../handlers/#minevent.handlers.BaseEventHandler">BaseEventHandler</a></span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">handler</span><span class="p">:</span> <span class="n"><span title="collections.abc.Callable">Callable</span></span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n"><span title="object">object</span></span><span class="p">]</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2803,7 +2773,7 @@ are passed to it, otherwise <code>False</code>.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="object">object</span>] | <a class="autorefs autorefs-internal" title="minevent.handlers.BaseEventHandler" href="../handlers/#minevent.handlers.BaseEventHandler">BaseEventHandler</a></code>
+                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="object">object</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
