@@ -40,7 +40,7 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
 - `EventManager.last_triggered_event` is removed.
 - **Breaking**: `once=True` runs the handler the first time its condition is `True`. A condition
   that is `False` (or that raises) no longer consumes the registration: `once=True,
-  condition=AfterNCondition(2)` runs once, on the third trigger (it never ran). A program that
+condition=AfterNCondition(2)` runs once, on the third trigger (it never ran). A program that
   relied on "consumed by the first trigger whatever the condition" must call
   `subscription.remove()` itself.
 

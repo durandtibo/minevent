@@ -117,7 +117,6 @@ options of a registration (`once`, `condition`, `filter_payload`) are keyword-on
 >>> @manager.on("epoch_end", condition=PeriodicCondition(freq=2), filter_payload=True)
 ... def log_epoch(epoch: int) -> None:
 ...     print(f"epoch {epoch}")
-...
 >>> for epoch in range(4):
 ...     manager.trigger_event("epoch_end", epoch=epoch, loss=0.5)
 epoch 0

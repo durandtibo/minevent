@@ -53,27 +53,27 @@ below exists to make one of them true **by construction**. "Status" compares the
 `docs/docs/architecture.md` today: **same** (wording kept), **changed** (the statement changes) or
 **fixed** (the document was wrong). "Enforced by" names the mechanism and the test module.
 
-| #   | Property                     | Statement                                                                                                                                                                                                                                                                                                                                                | Status  | Enforced by                                                   |
-| --- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ------------------------------------------------------------- |
-| P1  | Small surface                | Events are strings, handlers are plain callables, the manager connects them. Five exported names and `__version__` (`EventManager`, `Subscription`, `Condition`, `PeriodicCondition`, `AfterNCondition`). `EventManager` has 8 public members (`events`, `get_subscriptions`, `add_event_handler`, `on`, `trigger_event`, `atrigger_event`, `clear_event`, `reset`) and `__len__`, `__contains__`. | same    | `test_init.py`                                                |
-| P2  | Cheap import                 | `import minevent` is cheap and has no side effect: standard library only; it imports not `logging`, `inspect`, `asyncio`, `importlib.metadata` or **`typing`**, and it creates no `typing` object. The annotations are strings and the names of `typing` are read under `TYPE_CHECKING` only. No thread, no file, no warning, no log.                       | changed | `test_import.py` (modules and `typing` names)                 |
-| P3  | Events are strings           | An event name is a case-sensitive `str`; any other type raises `TypeError`. The empty string is valid. Reading the manager never creates an event.                                                                                                                                                                                                       | same    | `test_manager.py`                                             |
-| P4  | Validated at the door        | A wrong type raises `TypeError` in the call that receives it, with a message that names the argument and the value: the event, the handler (must be callable) and the condition (`None` or callable) of `add_event_handler` and `on`. An invalid registration leaves the manager unchanged.                                                              | same    | `add_event_handler`, `on`, `test_manager.py`                  |
-| P5  | Registration identity        | `add_event_handler` returns a new `Subscription` every time; the same callable can be registered several times. `remove()` removes that registration only, once: `True` the first time, then `False`. `active` is `True` from the registration until the registration is removed, by whatever means.                                                       | changed | `Subscription`, `test_manager.py`                             |
-| P6  | Registration order           | The handlers of an event run in the order they were registered, one after the other, in the calling thread.                                                                                                                                                                                                                                              | same    | the ordered `dict`, `test_manager.py`                         |
-| P7  | Snapshot dispatch            | `trigger_event` visits the registrations that exist when it starts. A registration **added** by a running handler takes effect at the next trigger. A registration **removed** before its turn **does not run**, `once` or not: a removed registration never starts.                                                                                       | changed | `Subscription._call`, `test_manager.py`, `test_manager_once.py` |
-| P8  | Fail-fast with context       | An exception of a handler propagates unchanged (same object, same type); the remaining handlers are skipped. It carries a note with the event and the name of the handler (the function under a `functools.partial`), once per distinct pair. No message and no `repr` of the package runs the `repr` of user data: they name the function, never its arguments. | same    | `_describe`, `_add_error_note`, `test_manager.py`             |
-| P9  | `once` is at-most-once       | A `once` registration is removed by an atomic claim just before its handler runs, after its condition, so it runs at most once whatever the number of threads. A false or raising condition does not consume it; a handler that raises does.                                                                                                              | same    | `Subscription._call`, `test_manager_once.py`, `test_manager_threads.py` |
-| P10 | Synchronous by default       | `trigger_event` never awaits; a handler that returns an awaitable raises `TypeError` and the coroutine is closed. `atrigger_event` awaits the handlers one after the other; synchronous handlers run inline and block the loop. An object with `async def __call__` is a coroutine handler like a coroutine function.                                    | same    | `_check_not_awaitable`, `test_manager_async.py`               |
-| P11 | Thread-safe registry         | The registry is protected by a reentrant lock. Handlers, conditions and the `repr` of user objects run outside the lock, so a handler can use the manager.                                                                                                                                                                                               | same    | `EventManager._lock`, `test_manager_threads.py`               |
-| P12 | No hidden state              | No global manager, no discovery, no side effect of a read. Zero runtime dependencies. A manager cannot be copied or pickled (`copy.copy`, `copy.deepcopy` and `pickle` raise the same `TypeError`).                                                                                                                                                      | same    | `__reduce__`, `test_manager.py`                               |
-| P13 | Payload is data              | `trigger_event(event, /, **payload)` calls every handler as `handler(**payload)`. Any key is allowed (`event`, `self`). Arguments that do not come from the payload are bound with `functools.partial`. With `filter_payload=True` only the keys the signature accepts are passed.                                                                          | same    | `trigger_event`, `test_manager.py`                            |
-| P14 | Options are per registration | `once`, `condition` and `filter_payload` are keyword-only arguments of `add_event_handler` and `on` (and of the `Subscription` constructor), with the same names, defaults and meaning. A condition is a `Condition = Callable[[], bool]`, called once per trigger, before the handler. The built-in conditions keep per-instance state and have `reset()`.   | same    | signatures, `test_manager.py`, `test_conditions.py`           |
-| P15 | Typed                        | Fully typed, `py.typed`, `ty check` clean, payload typed `object`.                                                                                                                                                                                                                                                                                       | same    | `ty check` in CI                                              |
-| P16 | Fast and linear              | A trigger of one handler costs about 0.35 µs, each extra handler about 0.1 µs, a registration plus its removal about 0.65 µs (Python 3.14, laptop). Registering _k_ handlers and removing them in any order costs O(_k_) in total. Benchmarks guard it.                                                                                                   | changed | `tests/benchmarks/`                                           |
-| P17 | A manager is a service       | `bool(manager)` is always `True`, empty or not, so `manager or default` means "is there a manager". `len(manager)` is the number of registrations.                                                                                                                                                                                                       | same    | `__bool__`, `test_manager.py`                                 |
-| P18 | One way to do each thing     | One way to register (`add_event_handler`, with `on` as its decorator form), one way to bind arguments (`functools.partial`), one way to run a handler once (`once=True`), one way to extend (write a callable). No handler base class.                                                                                                                    | same    | the signatures                                                |
-| P19 | Debuggable without a logger  | `repr(subscription)` names the event and the handler function, `repr(manager)` counts the registrations per event. The library logs nothing: `get_subscriptions(event)` is the way to look.                                                                                                                                                                | same    | `__repr__`, `test_manager.py`                                 |
+| #   | Property                     | Statement                                                                                                                                                                                                                                                                                                                                                                                          | Status  | Enforced by                                                             |
+| --- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ----------------------------------------------------------------------- |
+| P1  | Small surface                | Events are strings, handlers are plain callables, the manager connects them. Five exported names and `__version__` (`EventManager`, `Subscription`, `Condition`, `PeriodicCondition`, `AfterNCondition`). `EventManager` has 8 public members (`events`, `get_subscriptions`, `add_event_handler`, `on`, `trigger_event`, `atrigger_event`, `clear_event`, `reset`) and `__len__`, `__contains__`. | same    | `test_init.py`                                                          |
+| P2  | Cheap import                 | `import minevent` is cheap and has no side effect: standard library only; it imports not `logging`, `inspect`, `asyncio`, `importlib.metadata` or **`typing`**, and it creates no `typing` object. The annotations are strings and the names of `typing` are read under `TYPE_CHECKING` only. No thread, no file, no warning, no log.                                                              | changed | `test_import.py` (modules and `typing` names)                           |
+| P3  | Events are strings           | An event name is a case-sensitive `str`; any other type raises `TypeError`. The empty string is valid. Reading the manager never creates an event.                                                                                                                                                                                                                                                 | same    | `test_manager.py`                                                       |
+| P4  | Validated at the door        | A wrong type raises `TypeError` in the call that receives it, with a message that names the argument and the value: the event, the handler (must be callable) and the condition (`None` or callable) of `add_event_handler` and `on`. An invalid registration leaves the manager unchanged.                                                                                                        | same    | `add_event_handler`, `on`, `test_manager.py`                            |
+| P5  | Registration identity        | `add_event_handler` returns a new `Subscription` every time; the same callable can be registered several times. `remove()` removes that registration only, once: `True` the first time, then `False`. `active` is `True` from the registration until the registration is removed, by whatever means.                                                                                               | changed | `Subscription`, `test_manager.py`                                       |
+| P6  | Registration order           | The handlers of an event run in the order they were registered, one after the other, in the calling thread.                                                                                                                                                                                                                                                                                        | same    | the ordered `dict`, `test_manager.py`                                   |
+| P7  | Snapshot dispatch            | `trigger_event` visits the registrations that exist when it starts. A registration **added** by a running handler takes effect at the next trigger. A registration **removed** before its turn **does not run**, `once` or not: a removed registration never starts.                                                                                                                               | changed | `Subscription._call`, `test_manager.py`, `test_manager_once.py`         |
+| P8  | Fail-fast with context       | An exception of a handler propagates unchanged (same object, same type); the remaining handlers are skipped. It carries a note with the event and the name of the handler (the function under a `functools.partial`), once per distinct pair. No message and no `repr` of the package runs the `repr` of user data: they name the function, never its arguments.                                   | same    | `_describe`, `_add_error_note`, `test_manager.py`                       |
+| P9  | `once` is at-most-once       | A `once` registration is removed by an atomic claim just before its handler runs, after its condition, so it runs at most once whatever the number of threads. A false or raising condition does not consume it; a handler that raises does.                                                                                                                                                       | same    | `Subscription._call`, `test_manager_once.py`, `test_manager_threads.py` |
+| P10 | Synchronous by default       | `trigger_event` never awaits; a handler that returns an awaitable raises `TypeError` and the coroutine is closed. `atrigger_event` awaits the handlers one after the other; synchronous handlers run inline and block the loop. An object with `async def __call__` is a coroutine handler like a coroutine function.                                                                              | same    | `_check_not_awaitable`, `test_manager_async.py`                         |
+| P11 | Thread-safe registry         | The registry is protected by a reentrant lock. Handlers, conditions and the `repr` of user objects run outside the lock, so a handler can use the manager.                                                                                                                                                                                                                                         | same    | `EventManager._lock`, `test_manager_threads.py`                         |
+| P12 | No hidden state              | No global manager, no discovery, no side effect of a read. Zero runtime dependencies. A manager cannot be copied or pickled (`copy.copy`, `copy.deepcopy` and `pickle` raise the same `TypeError`).                                                                                                                                                                                                | same    | `__reduce__`, `test_manager.py`                                         |
+| P13 | Payload is data              | `trigger_event(event, /, **payload)` calls every handler as `handler(**payload)`. Any key is allowed (`event`, `self`). Arguments that do not come from the payload are bound with `functools.partial`. With `filter_payload=True` only the keys the signature accepts are passed.                                                                                                                 | same    | `trigger_event`, `test_manager.py`                                      |
+| P14 | Options are per registration | `once`, `condition` and `filter_payload` are keyword-only arguments of `add_event_handler` and `on` (and of the `Subscription` constructor), with the same names, defaults and meaning. A condition is a `Condition = Callable[[], bool]`, called once per trigger, before the handler. The built-in conditions keep per-instance state and have `reset()`.                                        | same    | signatures, `test_manager.py`, `test_conditions.py`                     |
+| P15 | Typed                        | Fully typed, `py.typed`, `ty check` clean, payload typed `object`.                                                                                                                                                                                                                                                                                                                                 | same    | `ty check` in CI                                                        |
+| P16 | Fast and linear              | A trigger of one handler costs about 0.35 µs, each extra handler about 0.1 µs, a registration plus its removal about 0.65 µs (Python 3.14, laptop). Registering _k_ handlers and removing them in any order costs O(_k_) in total. Benchmarks guard it.                                                                                                                                            | changed | `tests/benchmarks/`                                                     |
+| P17 | A manager is a service       | `bool(manager)` is always `True`, empty or not, so `manager or default` means "is there a manager". `len(manager)` is the number of registrations.                                                                                                                                                                                                                                                 | same    | `__bool__`, `test_manager.py`                                           |
+| P18 | One way to do each thing     | One way to register (`add_event_handler`, with `on` as its decorator form), one way to bind arguments (`functools.partial`), one way to run a handler once (`once=True`), one way to extend (write a callable). No handler base class.                                                                                                                                                             | same    | the signatures                                                          |
+| P19 | Debuggable without a logger  | `repr(subscription)` names the event and the handler function, `repr(manager)` counts the registrations per event. The library logs nothing: `get_subscriptions(event)` is the way to look.                                                                                                                                                                                                        | same    | `__repr__`, `test_manager.py`                                           |
 
 Not guaranteed, and documented as such (listed so the target is complete; the first item of the
 previous version is **gone**, see 4.1):
@@ -113,13 +113,13 @@ previous version is **gone**, see 4.1):
 
 ## 3. What differs today
 
-| #   | Finding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| #   | Finding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | F1  | **A removed registration runs, except a `once` one.** Handler `h1` calls `subscription2.remove()` and then `h2` (the registration that was removed) runs: the output is `['h1', 'h2']`. If `h2` was registered with `once=True`, `_call` fails the claim and skips it [verified]. The cause is that "removed" is only visible in the registry, and only the `once` claim reads the registry. P7 states the exception ("except that a `once` registration removed by an earlier handler of the same trigger does not run"), the guide, the FAQ and `trigger_event` repeat it, and "a handler removed while a trigger is running still runs" is the first item of the "Not guaranteed" list. |
-| F2  | **The import loads `typing` for a constant.** `from typing import TYPE_CHECKING` is the only runtime use of `typing`. Without it the import loads 19 modules instead of 22 and costs 3.2 ms over a bare interpreter instead of 4.9 ms (-35%, median of 21 runs) [verified, prototype]. `ty check` passes with `TYPE_CHECKING = False`, and `ruff` reports only an import-block blank line.                                                                                                                                                                                                      |
-| F3  | **The unit tests do not follow `CLAUDE.md`** [verified by an AST audit and `grep`]: (a) seven `contextlib.suppress` stand in for `pytest.raises` (`test_manager.py` 196, 272, 286, 300; `test_manager_once.py` 157; `test_manager_async.py` 94, 234), so a test passes when nothing raises; (b) four tests of `test_manager_once.py` (lines 247, 255, 263, 271) loop in the body; (c) `_check_event` is a function with no test of its own (it is only reached through the public methods); (d) `test_event_manager_clear_event_missing` has no assertion.                                                              |
-| F4  | **The documents have three stale statements** [reading]: `quickstart.md:161` and `architecture.md:288` call `Condition` "the `Condition` protocol" (it is `Callable[[], bool]` since #821); the `add_event_handler` docstring (`manager.py:520`) cites "P9 of the architecture page", a number that changes when the table is renumbered and that mkdocs does not link; `architecture.md` P16 gives 0.4 µs and 0.1 µs where the measurement is 0.33 µs and 0.1 µs.                                                                                                                                      |
-| F5  | **`Subscription.active` and `Subscription._call` cannot see a removal without the manager.** `active` calls the private `EventManager._is_registered` (lock, `dict` lookup); `_remove` is the only place that knows the registration is gone. This is the cause of F1, and it is why a cheap check in `_call` does not exist today [reading].                                                                                                                                                                                  |
+| F2  | **The import loads `typing` for a constant.** `from typing import TYPE_CHECKING` is the only runtime use of `typing`. Without it the import loads 19 modules instead of 22 and costs 3.2 ms over a bare interpreter instead of 4.9 ms (-35%, median of 21 runs) [verified, prototype]. `ty check` passes with `TYPE_CHECKING = False`, and `ruff` reports only an import-block blank line.                                                                                                                                                                                                                                                                                                 |
+| F3  | **The unit tests do not follow `CLAUDE.md`** [verified by an AST audit and `grep`]: (a) seven `contextlib.suppress` stand in for `pytest.raises` (`test_manager.py` 196, 272, 286, 300; `test_manager_once.py` 157; `test_manager_async.py` 94, 234), so a test passes when nothing raises; (b) four tests of `test_manager_once.py` (lines 247, 255, 263, 271) loop in the body; (c) `_check_event` is a function with no test of its own (it is only reached through the public methods); (d) `test_event_manager_clear_event_missing` has no assertion.                                                                                                                                 |
+| F4  | **The documents have three stale statements** [reading]: `quickstart.md:161` and `architecture.md:288` call `Condition` "the `Condition` protocol" (it is `Callable[[], bool]` since #821); the `add_event_handler` docstring (`manager.py:520`) cites "P9 of the architecture page", a number that changes when the table is renumbered and that mkdocs does not link; `architecture.md` P16 gives 0.4 µs and 0.1 µs where the measurement is 0.33 µs and 0.1 µs.                                                                                                                                                                                                                         |
+| F5  | **`Subscription.active` and `Subscription._call` cannot see a removal without the manager.** `active` calls the private `EventManager._is_registered` (lock, `dict` lookup); `_remove` is the only place that knows the registration is gone. This is the cause of F1, and it is why a cheap check in `_call` does not exist today [reading].                                                                                                                                                                                                                                                                                                                                              |
 
 What is already right and must not regress: callables as handlers; the options as keyword-only
 arguments owned by the `Subscription`; the atomic claim under the lock; the note that names the
@@ -129,12 +129,12 @@ manager; 100% coverage.
 
 Measured and kept (P16, Python 3.14, best of 5 or 7, 200,000 to 500,000 triggers):
 
-| Case                       | Time per trigger |
-| -------------------------- | ---------------: |
-| no handler                 |         0.194 µs |
-| 1 handler                  |         0.331 µs |
-| 10 handlers                |         1.200 µs |
-| add + remove one handler   |         0.620 µs |
+| Case                     | Time per trigger |
+| ------------------------ | ---------------: |
+| no handler               |         0.194 µs |
+| 1 handler                |         0.331 µs |
+| 10 handlers              |         1.200 µs |
+| add + remove one handler |         0.620 µs |
 
 ## 4. Target design
 
@@ -147,7 +147,9 @@ that take a registration out of the registry:
 
 ```python
 class Subscription:
-    def __init__(self, manager, event, handler, *, once=False, condition=None, filter_payload=False):
+    def __init__(
+        self, manager, event, handler, *, once=False, condition=None, filter_payload=False
+    ):
         ...
         self._active = True  # set to False by the manager when the registration leaves the registry
 
@@ -190,13 +192,13 @@ class EventManager:
 
 What changes for a user:
 
-| Situation                                                        | Today                      | Target                                |
-| ---------------------------------------------------------------- | -------------------------- | ------------------------------------- |
-| `h1` calls `subscription2.remove()`, `h2` is that registration   | `h2` **runs**              | `h2` is skipped                       |
-| the same, `h2` registered with `once=True`                       | skipped (the claim fails)  | skipped (unchanged)                   |
-| `h1` calls `manager.clear_event(e)` or `manager.reset()`         | the rest of the snapshot **runs** | the rest is skipped            |
-| `h1` registers `h3` for the same event                           | `h3` runs at the next trigger | same                               |
-| a handler removes itself                                         | runs once more at most, then gone | same                           |
+| Situation                                                      | Today                             | Target              |
+| -------------------------------------------------------------- | --------------------------------- | ------------------- |
+| `h1` calls `subscription2.remove()`, `h2` is that registration | `h2` **runs**                     | `h2` is skipped     |
+| the same, `h2` registered with `once=True`                     | skipped (the claim fails)         | skipped (unchanged) |
+| `h1` calls `manager.clear_event(e)` or `manager.reset()`       | the rest of the snapshot **runs** | the rest is skipped |
+| `h1` registers `h3` for the same event                         | `h3` runs at the next trigger     | same                |
+| a handler removes itself                                       | runs once more at most, then gone | same                |
 
 Consequences, all deletions or simplifications:
 
@@ -247,24 +249,24 @@ imported, none of its objects is created).
 
 ### 4.3 The tests follow `CLAUDE.md` (F3)
 
-| Defect                              | Target                                                                                                                                                                                                                      |
-| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `contextlib.suppress(E)` then assert | `with pytest.raises(E, match=r"...")` then the assertion on the state, one test. The seven tests keep their name and assertion; the `match` is the message of the raised error.                                          |
-| loops in four `once` tests          | `@pytest.mark.parametrize("n_triggers", ...)` for the count, or a helper that triggers `n` times and returns the manager (a function, so the test body has no loop).                                                      |
-| `_check_event` has no test          | `test_check_event_accepts_str`, `test_check_event_rejects_non_str` (parametrized over `1`, `None`, `b"e"`, with `match=r"event must be a str, but got"`), and the message names the type.                                 |
-| `clear_event_missing`               | `assert manager.events == []` after the call: the behaviour is "nothing happens and no event appears".                                                                                                                     |
+| Defect                               | Target                                                                                                                                                                                    |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `contextlib.suppress(E)` then assert | `with pytest.raises(E, match=r"...")` then the assertion on the state, one test. The seven tests keep their name and assertion; the `match` is the message of the raised error.           |
+| loops in four `once` tests           | `@pytest.mark.parametrize("n_triggers", ...)` for the count, or a helper that triggers `n` times and returns the manager (a function, so the test body has no loop).                      |
+| `_check_event` has no test           | `test_check_event_accepts_str`, `test_check_event_rejects_non_str` (parametrized over `1`, `None`, `b"e"`, with `match=r"event must be a str, but got"`), and the message names the type. |
+| `clear_event_missing`                | `assert manager.events == []` after the call: the behaviour is "nothing happens and no event appears".                                                                                    |
 
 No source change. The `contextlib` imports of the three modules go away.
 
 ### 4.4 One home per fact in the documents (F4)
 
-| Fact                                   | Home                                           | Elsewhere                    |
-| -------------------------------------- | ---------------------------------------------- | ---------------------------- |
-| The rules (P1 to P19), the limits      | `architecture.md` (the table, "Enforced by")   | linked by name, never by number in `src` |
-| One recipe per task                    | `guide.md`                                     | no restatement of a rule     |
-| The tutorial, runnable examples        | `quickstart.md`                                | no restatement of a rule     |
-| Signature, arguments, `Raises`         | the docstrings                                 | rendered by `mkdocstrings`   |
-| What the package is, how to install    | `README.md`, `index.md`, `get_started.md`      | unchanged                    |
+| Fact                                | Home                                         | Elsewhere                                |
+| ----------------------------------- | -------------------------------------------- | ---------------------------------------- |
+| The rules (P1 to P19), the limits   | `architecture.md` (the table, "Enforced by") | linked by name, never by number in `src` |
+| One recipe per task                 | `guide.md`                                   | no restatement of a rule                 |
+| The tutorial, runnable examples     | `quickstart.md`                              | no restatement of a rule                 |
+| Signature, arguments, `Raises`      | the docstrings                               | rendered by `mkdocstrings`               |
+| What the package is, how to install | `README.md`, `index.md`, `get_started.md`    | unchanged                                |
 
 Concretely: "the `Condition` protocol" becomes "a `Condition`, that is a `Callable[[], bool]`"
 (quickstart, architecture); the `once` sentence of the `add_event_handler` docstring says "so it
@@ -317,13 +319,13 @@ run against them.
 
 **Behaviour** [verified, prototype of 4.1]:
 
-| Probe                                                               | `main`                   | Prototype                |
-| ------------------------------------------------------------------- | ------------------------ | ------------------------ |
-| `h1` removes the registration of `h2`, then triggers                | `['h1', 'h2']`           | `['h1']`                 |
-| same, `h2` registered with `once=True`                              | `['h1']`                 | `['h1']`                 |
-| `once=True` + `AfterNCondition(2)`, 3 triggers                      | 1 call                   | 1 call                   |
-| `subscription.active` after `reset()`                               | `False`                  | `False`                  |
-| thread tests of `once` (at most once under contention)              | pass                     | pass                     |
+| Probe                                                  | `main`         | Prototype |
+| ------------------------------------------------------ | -------------- | --------- |
+| `h1` removes the registration of `h2`, then triggers   | `['h1', 'h2']` | `['h1']`  |
+| same, `h2` registered with `once=True`                 | `['h1']`       | `['h1']`  |
+| `once=True` + `AfterNCondition(2)`, 3 triggers         | 1 call         | 1 call    |
+| `subscription.active` after `reset()`                  | `False`        | `False`   |
+| thread tests of `once` (at most once under contention) | pass           | pass      |
 
 **Suite against the prototype**: 355 tests pass and **3 fail, all 3 changed behaviours**
 (`test_event_manager_trigger_event_handler_removed_during_dispatch_still_runs` and the two tests
@@ -332,19 +334,19 @@ needs the repository root on the path and was run from the repository.
 
 **Import** [verified, prototype of 4.2]:
 
-| Measure                                      | `main` | Prototype |
-| -------------------------------------------- | -----: | --------: |
-| Modules loaded by the import                 |     22 |        19 |
-| Time of `python -c "import minevent"` (ms)   |   20.1 |      18.4 |
-| Bare interpreter (ms)                        |   15.2 |      15.2 |
-| Import over the bare interpreter (ms)        |    4.9 |       3.2 |
+| Measure                                    | `main` | Prototype |
+| ------------------------------------------ | -----: | --------: |
+| Modules loaded by the import               |     22 |        19 |
+| Time of `python -c "import minevent"` (ms) |   20.1 |      18.4 |
+| Bare interpreter (ms)                      |   15.2 |      15.2 |
+| Import over the bare interpreter (ms)      |    4.9 |       3.2 |
 
 **Speed** [verified, prototype of 4.1]:
 
-| Measure                          | `main` | Prototype |
-| -------------------------------- | -----: | --------: |
-| Trigger, 1 handler (µs)          |  0.335 |     0.338 |
-| Trigger, 10 handlers (µs)        |  1.200 |     1.246 |
+| Measure                   | `main` | Prototype |
+| ------------------------- | -----: | --------: |
+| Trigger, 1 handler (µs)   |  0.335 |     0.338 |
+| Trigger, 10 handlers (µs) |  1.200 |     1.246 |
 
 Within noise (the `once` claim is untouched; each handler pays one attribute read).
 
@@ -375,20 +377,20 @@ are the ones a reviewer can check mechanically.
 New and changed tests (one behaviour per test, `match` on every `pytest.raises`, no loop in a unit
 test, literals for the expected values):
 
-| Test (module)                                                                   | Behaviour                                                                  |
-| ------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `test_check_event_accepts_str` (`test_manager.py`)                               | returns `None` for `"e"` and for `""`                                      |
-| `test_check_event_rejects_non_str` (parametrized)                                | `TypeError`, `match=r"event must be a str, but got"`                       |
-| `test_event_manager_clear_event_missing`                                         | `manager.events == []` after clearing an unknown event                     |
-| `test_once_does_not_run_before_condition_is_true` and three more (`test_manager_once.py`) | the same behaviours, parametrized or with a helper, no loop in the body |
-| `test_trigger_event_removed_registration_does_not_run`                           | `h1` removes `h2`'s subscription: `h2.call_count == 0`                     |
-| `test_trigger_event_removed_by_clear_event_does_not_run`                         | `h1` calls `clear_event`: the next handler does not run                    |
-| `test_trigger_event_removed_by_reset_does_not_run`                               | `h1` calls `reset`: the next handler does not run                          |
-| `test_trigger_event_added_during_dispatch_runs_next_trigger`                     | kept from today                                                            |
-| `test_subscription_active_false_after_remove` / `..._clear_event` / `..._reset`  | the flag follows each of the three ways                                    |
-| `test_subscription_call_removed_returns_none`                                    | `_call` on a removed registration does not call the handler                |
-| `test_import_minevent_does_not_import_module[typing]` (integration)              | `typing` is not in `sys.modules` after the import                          |
-| `test_remove_from_threads_while_triggering` (integration, `run_threads`)         | the handler runs at most once per registration; after the join, none runs  |
+| Test (module)                                                                             | Behaviour                                                                 |
+| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `test_check_event_accepts_str` (`test_manager.py`)                                        | returns `None` for `"e"` and for `""`                                     |
+| `test_check_event_rejects_non_str` (parametrized)                                         | `TypeError`, `match=r"event must be a str, but got"`                      |
+| `test_event_manager_clear_event_missing`                                                  | `manager.events == []` after clearing an unknown event                    |
+| `test_once_does_not_run_before_condition_is_true` and three more (`test_manager_once.py`) | the same behaviours, parametrized or with a helper, no loop in the body   |
+| `test_trigger_event_removed_registration_does_not_run`                                    | `h1` removes `h2`'s subscription: `h2.call_count == 0`                    |
+| `test_trigger_event_removed_by_clear_event_does_not_run`                                  | `h1` calls `clear_event`: the next handler does not run                   |
+| `test_trigger_event_removed_by_reset_does_not_run`                                        | `h1` calls `reset`: the next handler does not run                         |
+| `test_trigger_event_added_during_dispatch_runs_next_trigger`                              | kept from today                                                           |
+| `test_subscription_active_false_after_remove` / `..._clear_event` / `..._reset`           | the flag follows each of the three ways                                   |
+| `test_subscription_call_removed_returns_none`                                             | `_call` on a removed registration does not call the handler               |
+| `test_import_minevent_does_not_import_module[typing]` (integration)                       | `typing` is not in `sys.modules` after the import                         |
+| `test_remove_from_threads_while_triggering` (integration, `run_threads`)                  | the handler runs at most once per registration; after the join, none runs |
 
 Removed: the two "never registered is inactive" tests, the tests of `_is_registered`, the five
 `typing`-name tests. A test that the flag and the registry agree (`active` is `True` if and only if
@@ -404,15 +406,15 @@ benchmark.
 
 ## 9. Decisions for the maintainers
 
-| #   | Question                                                                | Recommendation                                                                                                                                                                                                                                                                                                                       |
-| --- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| D1  | Skip a registration removed before its turn? (**reopens** P7)           | **Yes.** One rule for `once` and plain registrations, one limit less in four documents, `_is_registered` deleted, no measurable cost. The loss is the "snapshot is frozen" reading (Node's `EventEmitter`); the DOM and `blinker` skip removed listeners. Added registrations still wait for the next trigger, so the snapshot keeps its protection against endless loops. Alternative: keep P7 and accept the exception clause; nothing breaks, nothing is gained. |
-| D2  | `TYPE_CHECKING = False` instead of `from typing import TYPE_CHECKING`?  | **Yes.** -35% of the import for one line; recognised by `ty`. Alternative: keep the import (1.7 ms).                                                                                                                                                                                                                                  |
-| D3  | Break the manager/subscription cycle with a weak reference?             | **No.** It adds an import (`weakref`), a dead-manager branch in `remove` and `active`, and a rule to document, to free handlers a few milliseconds earlier than the collector. `reset()` is the documented way to release at a known point.                                                                                          |
-| D4  | Name the condition when it is the callable that raised?                 | **No** (kept, listed in "Not guaranteed"). It needs a second `try` around the condition on the hot path to rename one note. The registration is named, which is enough to find it.                                                                                                                                                    |
-| D5  | Lock around every handler call to make removal exact across threads?    | **No.** It contradicts P11 (handlers run outside the lock, so that a handler can use the manager) and costs a lock acquisition per handler. The documents state the bound (section 1).                                                                                                                                                 |
-| D6  | Make `Subscription` impossible to construct by hand?                    | **No.** Python cannot forbid it; the constructor is documented internal, and the tests of `_call` build subscriptions without a manager registry, which is what keeps them fast and simple.                                                                                                                                            |
-| D7  | Four PRs or fewer?                                                      | **Four** (section 7). Step 3 is the only one that changes a rule; the others change nothing a user can observe except the import time.                                                                                                                                                                                                |
+| #   | Question                                                               | Recommendation                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| --- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1  | Skip a registration removed before its turn? (**reopens** P7)          | **Yes.** One rule for `once` and plain registrations, one limit less in four documents, `_is_registered` deleted, no measurable cost. The loss is the "snapshot is frozen" reading (Node's `EventEmitter`); the DOM and `blinker` skip removed listeners. Added registrations still wait for the next trigger, so the snapshot keeps its protection against endless loops. Alternative: keep P7 and accept the exception clause; nothing breaks, nothing is gained. |
+| D2  | `TYPE_CHECKING = False` instead of `from typing import TYPE_CHECKING`? | **Yes.** -35% of the import for one line; recognised by `ty`. Alternative: keep the import (1.7 ms).                                                                                                                                                                                                                                                                                                                                                                |
+| D3  | Break the manager/subscription cycle with a weak reference?            | **No.** It adds an import (`weakref`), a dead-manager branch in `remove` and `active`, and a rule to document, to free handlers a few milliseconds earlier than the collector. `reset()` is the documented way to release at a known point.                                                                                                                                                                                                                         |
+| D4  | Name the condition when it is the callable that raised?                | **No** (kept, listed in "Not guaranteed"). It needs a second `try` around the condition on the hot path to rename one note. The registration is named, which is enough to find it.                                                                                                                                                                                                                                                                                  |
+| D5  | Lock around every handler call to make removal exact across threads?   | **No.** It contradicts P11 (handlers run outside the lock, so that a handler can use the manager) and costs a lock acquisition per handler. The documents state the bound (section 1).                                                                                                                                                                                                                                                                              |
+| D6  | Make `Subscription` impossible to construct by hand?                   | **No.** Python cannot forbid it; the constructor is documented internal, and the tests of `_call` build subscriptions without a manager registry, which is what keeps them fast and simple.                                                                                                                                                                                                                                                                         |
+| D7  | Four PRs or fewer?                                                     | **Four** (section 7). Step 3 is the only one that changes a rule; the others change nothing a user can observe except the import time.                                                                                                                                                                                                                                                                                                                              |
 
 ## 10. Not covered
 
@@ -444,14 +446,14 @@ benchmark.
 Lines include docstrings (`wc -l`); "Expected" is an estimate from the prototypes, the gate is the
 behaviour of sections 1 and 8, not the size.
 
-| Item                              |  Today | Expected after | Why                                                                                  |
-| --------------------------------- | -----: | -------------: | ------------------------------------------------------------------------------------ |
-| `src/minevent/conditions.py`      |    210 |            210 | unchanged                                                                            |
-| `src/minevent/manager.py`         |    869 |           ~865 | the flag and three writers in, `_is_registered` and its docstring out                |
-| `src/minevent/__init__.py`        |     48 |             48 | unchanged                                                                            |
-| **`src`**                         |  1,127 |         ~1,123 |                                                                                      |
-| `src` statements                  |    226 |           ~232 | one flag, three writers, one check, one loop in `reset`, minus `_is_registered`      |
-| `tests/unit`, `tests/integration` | 370 tests |   ~375 tests | out: 2 (never registered), `_is_registered`, 5 (`typing` names); in: about 14        |
-| `docs/docs`                       |  1,562 |         ~1,545 | the "removed while running" limit out of four documents                              |
-| Runtime dependencies              |      0 |              0 |                                                                                      |
-| `import minevent` over a bare interpreter | 4.9 ms | ~3.2 ms | no `typing` module                                                                   |
+| Item                                      |     Today | Expected after | Why                                                                             |
+| ----------------------------------------- | --------: | -------------: | ------------------------------------------------------------------------------- |
+| `src/minevent/conditions.py`              |       210 |            210 | unchanged                                                                       |
+| `src/minevent/manager.py`                 |       869 |           ~865 | the flag and three writers in, `_is_registered` and its docstring out           |
+| `src/minevent/__init__.py`                |        48 |             48 | unchanged                                                                       |
+| **`src`**                                 |     1,127 |         ~1,123 |                                                                                 |
+| `src` statements                          |       226 |           ~232 | one flag, three writers, one check, one loop in `reset`, minus `_is_registered` |
+| `tests/unit`, `tests/integration`         | 370 tests |     ~375 tests | out: 2 (never registered), `_is_registered`, 5 (`typing` names); in: about 14   |
+| `docs/docs`                               |     1,562 |         ~1,545 | the "removed while running" limit out of four documents                         |
+| Runtime dependencies                      |         0 |              0 |                                                                                 |
+| `import minevent` over a bare interpreter |    4.9 ms |        ~3.2 ms | no `typing` module                                                              |

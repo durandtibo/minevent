@@ -1635,7 +1635,6 @@ def test_check_not_awaitable_value() -> None:
 def test_check_not_awaitable_coroutine_raises() -> None:
     async def coroutine_handler() -> None:
         r"""Implement a coroutine handler."""
-
     with pytest.raises(TypeError, match=r"returned an awaitable; use atrigger_event"):
         _check_not_awaitable(coroutine_handler(), coroutine_handler)
 
@@ -1643,7 +1642,6 @@ def test_check_not_awaitable_coroutine_raises() -> None:
 def test_check_not_awaitable_closes_coroutine() -> None:
     async def coroutine_handler() -> None:
         r"""Implement a coroutine handler."""
-
     coroutine = coroutine_handler()
     with pytest.raises(TypeError, match=r"returned an awaitable"):
         _check_not_awaitable(coroutine, coroutine_handler)
@@ -1677,7 +1675,8 @@ def test_check_not_awaitable_future_raises() -> None:
 
 
 def flag_and_registry(manager: EventManager, subscription: Subscription) -> tuple[bool, bool]:
-    r"""Gets the flag of a registration and its presence in the manager."""
+    r"""Gets the flag of a registration and its presence in the
+    manager."""
     return subscription.active, subscription in manager.get_subscriptions(subscription.event)
 
 
