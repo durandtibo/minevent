@@ -338,7 +338,8 @@ The registration is already removed. This is not an error: `remove()` is idempot
 ### Debug
 
 - `print(manager)` shows the number of handlers of each event, and `manager.get_subscriptions(e)`
-  the registrations.
+  the registrations; each one prints its event and the name of its handler
+  (`Subscription(event='my_event', handler='print')`).
 - `minevent` does not log. Wrap a handler to trace it (the wrapper is a plain callable):
 
   ```python

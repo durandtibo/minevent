@@ -80,7 +80,8 @@ def _check_not_awaitable(result: object, handler: Callable[..., object]) -> None
 
     Args:
         result: The value returned by the handler.
-        handler: The handler that returned ``result``.
+        handler: The handler that returned ``result``. The error
+            names its function, never its arguments.
 
     Raises:
         TypeError: if ``result`` is an awaitable.
@@ -88,7 +89,7 @@ def _check_not_awaitable(result: object, handler: Callable[..., object]) -> None
     if result is not None and isinstance(result, Awaitable):
         if isinstance(result, Coroutine):
             result.close()
-        msg = f"{handler!r} returned an awaitable; use atrigger_event"
+        msg = f"{_describe(handler)} returned an awaitable; use atrigger_event"
         raise TypeError(msg)
 
 
@@ -230,7 +231,10 @@ class Subscription:
         self.remove()
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__qualname__}(event={self._event!r})"
+        return (
+            f"{self.__class__.__qualname__}"
+            f"(event={self._event!r}, handler={_describe(self._handler)!r})"
+        )
 
     @property
     def event(self) -> str:

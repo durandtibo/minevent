@@ -53,6 +53,21 @@ def add_hello_handler_when_triggered(manager: EventManager) -> None:
     )
 
 
+class BadReprCallable:
+    r"""Implement a handler whose ``repr`` raises."""
+
+    def __repr__(self) -> str:
+        msg = "repr failed"
+        raise RuntimeError(msg)
+
+    def __call__(self) -> None:
+        r"""Implement a handler."""
+
+
+async def async_handler_with_argument(secret: str) -> None:
+    r"""Implement a coroutine handler that has an argument."""
+
+
 @trace
 def hello_handler() -> None:
     r"""Implements a simple handler that prints hello."""
@@ -1097,7 +1112,33 @@ def failing_handler() -> None:
 
 def test_subscription_repr() -> None:
     assert repr(Subscription(EventManager(), "my_event", print)) == (
-        "Subscription(event='my_event')"
+        "Subscription(event='my_event', handler='print')"
+    )
+
+
+def test_subscription_repr_names_function_of_partial() -> None:
+    subscription = Subscription(EventManager(), "my_event", functools.partial(print, "secret"))
+    assert repr(subscription) == "Subscription(event='my_event', handler='print')"
+
+
+def test_subscription_repr_names_class_of_callable_object() -> None:
+    subscription = Subscription(EventManager(), "my_event", UninspectableCallable([]))
+    assert repr(subscription) == "Subscription(event='my_event', handler='UninspectableCallable')"
+
+
+def test_subscription_repr_ignores_repr_of_handler() -> None:
+    assert repr(Subscription(EventManager(), "my_event", BadReprCallable())) == (
+        "Subscription(event='my_event', handler='BadReprCallable')"
+    )
+
+
+def test_event_manager_get_subscriptions_repr_names_handlers() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", print)
+    manager.add_event_handler("my_event", hello_handler)
+    assert repr(manager.get_subscriptions("my_event")) == (
+        "(Subscription(event='my_event', handler='print'), "
+        "Subscription(event='my_event', handler='hello_handler'))"
     )
 
 
@@ -1581,9 +1622,24 @@ def test_check_not_awaitable_closes_coroutine() -> None:
         r"""Implement a coroutine handler."""
 
     coroutine = coroutine_handler()
-    with contextlib.suppress(TypeError):
+    with pytest.raises(TypeError, match=r"returned an awaitable"):
         _check_not_awaitable(coroutine, coroutine_handler)
     assert inspect.getcoroutinestate(coroutine) == "CORO_CLOSED"
+
+
+def test_check_not_awaitable_message_names_function() -> None:
+    handler = functools.partial(async_handler_with_argument, "secret")
+    with pytest.raises(
+        TypeError, match=r"^async_handler_with_argument returned an awaitable; use atrigger_event$"
+    ):
+        _check_not_awaitable(handler(), handler)
+
+
+def test_check_not_awaitable_ignores_repr_of_handler() -> None:
+    with pytest.raises(
+        TypeError, match=r"^BadReprCallable returned an awaitable; use atrigger_event$"
+    ):
+        _check_not_awaitable(Mock(spec=Awaitable), BadReprCallable())
 
 
 def test_check_not_awaitable_future_raises() -> None:
