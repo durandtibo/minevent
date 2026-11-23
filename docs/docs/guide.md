@@ -28,11 +28,11 @@ they were registered, so register them in the order they must run.
 The keyword arguments of `trigger_event` are passed to every handler:
 
 ```pycon
->>> from minevent import EventHandler, EventManager
+>>> from minevent import EventManager
 >>> def log_epoch(epoch: int, loss: float) -> None:
 ...     print(f"epoch {epoch}: {loss}")
 >>> manager = EventManager()
->>> _ = manager.add_event_handler("epoch_end", EventHandler(log_epoch))
+>>> _ = manager.add_event_handler("epoch_end", log_epoch)
 >>> manager.trigger_event("epoch_end", epoch=3, loss=0.5)
 epoch 3: 0.5
 
@@ -43,18 +43,18 @@ raises a `TypeError`. Use `filter_payload=True` to give each handler only the ke
 so handlers with different needs can share an event:
 
 ```pycon
->>> from minevent import EventHandler, EventManager
+>>> from minevent import EventManager
 >>> def log_epoch(epoch: int) -> None:
 ...     print(f"epoch {epoch}")
 >>> manager = EventManager()
->>> _ = manager.add_event_handler("epoch_end", EventHandler(log_epoch, filter_payload=True))
+>>> _ = manager.add_event_handler("epoch_end", log_epoch, filter_payload=True)
 >>> manager.trigger_event("epoch_end", epoch=3, loss=0.5)
 epoch 3
 
 ```
 
-`handler_args` and `handler_kwargs` are given to the handler before the payload. A key that is in
-both `handler_kwargs` and the payload raises a `TypeError`.
+Bind the arguments that do not come from the payload with `functools.partial`. A payload key that
+repeats a keyword bound by the partial overrides it, as it does for any call of a partial.
 
 ### Handle the exceptions
 
@@ -63,11 +63,11 @@ the next handlers of the event do not run. The exception is the original one, wi
 names the event and the function of the handler (never its arguments):
 
 ```pycon
->>> from minevent import EventHandler, EventManager
+>>> from minevent import EventManager
 >>> def fail() -> None:
 ...     raise ValueError("boom")
 >>> manager = EventManager()
->>> _ = manager.add_event_handler("my_event", EventHandler(fail))
+>>> _ = manager.add_event_handler("my_event", fail)
 >>> try:
 ...     manager.trigger_event("my_event")
 ... except ValueError as exc:
@@ -92,18 +92,14 @@ A condition is a function without argument that returns a boolean. It is called 
 is triggered, before the handler, and the handler runs only if it returns `True`:
 
 ```python
-from minevent import EventHandler, PeriodicCondition
+from minevent import PeriodicCondition
 
 # Save a checkpoint every 10 epochs, and log every 100 batches
-manager.add_event_handler(
-    "epoch_end", EventHandler(save_checkpoint, condition=PeriodicCondition(freq=10))
-)
-manager.add_event_handler(
-    "batch_end", EventHandler(log_batch, condition=PeriodicCondition(freq=100))
-)
+manager.add_event_handler("epoch_end", save_checkpoint, condition=PeriodicCondition(freq=10))
+manager.add_event_handler("batch_end", log_batch, condition=PeriodicCondition(freq=100))
 
 # Any function works as a condition
-manager.add_event_handler("epoch_end", EventHandler(notify, condition=lambda: is_main_process))
+manager.add_event_handler("epoch_end", notify, condition=lambda: is_main_process)
 ```
 
 - `PeriodicCondition` and `AfterNCondition` keep a counter. Do not share one
@@ -128,8 +124,8 @@ def main():
 
 
 def setup_handlers(manager: EventManager) -> None:
-    manager.add_event_handler("epoch_end", EventHandler(save_checkpoint))
-    manager.add_event_handler("training_end", EventHandler(log_summary))
+    manager.add_event_handler("epoch_end", save_checkpoint)
+    manager.add_event_handler("training_end", log_summary)
 ```
 
 A manager is always truthy, even when it is empty, so `manager or EventManager()` keeps the manager
@@ -169,13 +165,13 @@ keyword bound by the partial overrides it.
 ### Keep the subscription
 
 `add_event_handler` returns a `Subscription`, the registration of the handler. It is the only way to
-identify a registration: event handlers are compared by identity, so a new `EventHandler` built with
-the same arguments is a different object.
+identify a registration: the same callable can be registered several times, and each registration is
+a different `Subscription`.
 
 ```pycon
->>> from minevent import EventHandler, EventManager
+>>> from minevent import EventManager
 >>> manager = EventManager()
->>> subscription = manager.add_event_handler("my_event", EventHandler(print))
+>>> subscription = manager.add_event_handler("my_event", print)
 >>> subscription.active
 True
 >>> subscription.remove()
@@ -209,8 +205,8 @@ if not any(sub.handler is handler for sub in manager.get_subscriptions("my_event
 
 ### Clean up
 
-A registered handler lives as long as the manager: `EventHandler(obj.method)` keeps `obj` alive, and
-so do `handler_args` and closures. `minevent` uses no weak reference. Remove the subscriptions of
+A registered handler lives as long as the manager: `obj.method` keeps `obj` alive, and
+so do the arguments bound by a `functools.partial` and closures. `minevent` uses no weak reference. Remove the subscriptions of
 the objects you no longer need, use a `with` block, or call `clear_event` / `reset`:
 
 ```python
@@ -249,7 +245,7 @@ A plugin registers its own handlers, and keeps the subscriptions to unregister t
 class LoggingPlugin:
     def setup(self, manager: EventManager) -> None:
         self.subscription = manager.add_event_handler(
-            "training_end", EventHandler(self.log_training_complete)
+            "training_end", self.log_training_complete
         )
 
     def teardown(self) -> None:
@@ -261,8 +257,9 @@ class LoggingPlugin:
 
 ### Custom handlers and conditions
 
-Implement `BaseEventHandler.handle(self, /, **payload)` for a handler with its own state (override
-`ahandle` for a coroutine). A condition is any class with a `__call__(self) -> bool` method.
+Write a class with a `__call__(self, **payload)` method for a handler with its own state (use
+`async def __call__` for a coroutine). A condition is any class with a `__call__(self) -> bool`
+method.
 
 ## Testing
 
@@ -275,13 +272,14 @@ from unittest.mock import Mock
 def test_epoch_end_calls_handler():
     manager = EventManager()
     mock = Mock()
-    manager.add_event_handler("epoch_end", EventHandler(mock))
+    manager.add_event_handler("epoch_end", mock)
     manager.trigger_event("epoch_end", epoch=1)
     mock.assert_called_once_with(epoch=1)
 
 
 def test_handler_directly():
-    EventHandler(print, handler_args=("test",)).handle()
+    handler = functools.partial(print, "test")
+    handler()
 ```
 
 Use a new `EventManager` in each test, and `manager.reset()` if the manager is shared.
@@ -323,7 +321,7 @@ The payload is given to every handler. Accept `**kwargs` or use `filter_payload=
 
 ### `TypeError: ... returned an awaitable; use atrigger_event`
 
-The handler is a coroutine function (a message that ends with `use ahandle or atrigger_event` comes from an `EventHandler`). Call `await manager.atrigger_event(...)`.
+The handler is a coroutine function (a coroutine object is closed, so Python does not warn that it was never awaited). Call `await manager.atrigger_event(...)`.
 
 ### `subscription.remove()` returns `False`
 
@@ -347,5 +345,5 @@ The registration is already removed. This is not an error: `remove()` is idempot
 - Register a handler that prints the payload while you investigate:
 
   ```python
-  manager.add_event_handler("batch_end", EventHandler(lambda **payload: print(payload)))
+  manager.add_event_handler("batch_end", lambda **payload: print(payload))
   ```

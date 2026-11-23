@@ -32,7 +32,7 @@ When using `minevent`, please follow these security best practices:
 Always validate inputs to event handlers to prevent injection attacks or unexpected behavior:
 
 ```python
-from minevent import EventHandler, EventManager
+from minevent import EventManager
 
 
 def safe_handler(user_input: str) -> None:
@@ -44,7 +44,7 @@ def safe_handler(user_input: str) -> None:
 
 
 manager = EventManager()
-manager.add_event_handler("user_action", EventHandler(safe_handler))
+manager.add_event_handler("user_action", safe_handler)
 ```
 
 ### 2. Be Cautious with Dynamic Handler Creation
@@ -54,7 +54,7 @@ Avoid creating event handlers from untrusted sources or user input:
 ```python
 # DON'T DO THIS
 user_function_name = input("Enter function name: ")
-handler = EventHandler(eval(user_function_name))  # DANGEROUS!
+handler = eval(user_function_name)  # DANGEROUS!
 
 # DO THIS INSTEAD
 allowed_handlers = {
@@ -63,7 +63,7 @@ allowed_handlers = {
 }
 user_choice = input("Choose handler (handler1/handler2): ")
 if user_choice in allowed_handlers:
-    handler = EventHandler(allowed_handlers[user_choice])
+    handler = allowed_handlers[user_choice]
 ```
 
 ### 3. Keep Dependencies Updated

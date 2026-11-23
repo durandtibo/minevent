@@ -2,11 +2,15 @@ from __future__ import annotations
 
 import functools
 import threading
+from typing import TYPE_CHECKING
 
 import pytest
 
-from minevent import AfterNCondition, EventHandler, EventManager, PeriodicCondition
+from minevent import AfterNCondition, EventManager, PeriodicCondition
 from tests.integration.helpers import run_threads
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 NUM_THREADS = 8
 NUM_ITERATIONS = 200
@@ -19,12 +23,12 @@ def test_add_event_handler_from_threads() -> None:
     calls: list[int] = []
     lock = threading.Lock()
 
-    def make_handler(value: int) -> EventHandler:
+    def make_handler(value: int) -> Callable[[], None]:
         def handler() -> None:
             with lock:
                 calls.append(value)
 
-        return EventHandler(handler)
+        return handler
 
     def work(index: int) -> None:
         for i in range(NUM_ITERATIONS):
@@ -47,7 +51,7 @@ def test_trigger_event_from_threads() -> None:
         with lock:
             calls.append(index)
 
-    manager.add_event_handler("my_event", EventHandler(handler, handler_args=(0,)))
+    manager.add_event_handler("my_event", functools.partial(handler, 0))
 
     def work(_index: int) -> None:
         for _ in range(NUM_ITERATIONS):
@@ -65,7 +69,7 @@ def test_add_and_trigger_from_threads() -> None:
     def work(index: int) -> None:
         for _ in range(NUM_ITERATIONS):
             if index % 2:
-                manager.add_event_handler("my_event", EventHandler(len, handler_args=([],)))
+                manager.add_event_handler("my_event", functools.partial(len, []))
             else:
                 manager.trigger_event("my_event")
 
@@ -79,7 +83,7 @@ def test_subscription_remove_from_threads() -> None:
     threads remove them."""
     manager = EventManager()
     subscriptions = [
-        manager.add_event_handler("my_event", EventHandler(len, handler_args=([],)))
+        manager.add_event_handler("my_event", functools.partial(len, []))
         for _ in range(NUM_THREADS * NUM_ITERATIONS)
     ]
     removed: list[bool] = []
@@ -107,7 +111,7 @@ def test_once_handler_runs_once_from_threads() -> None:
         with lock:
             calls.append(1)
 
-    manager.add_event_handler("my_event", EventHandler(handler), once=True)
+    manager.add_event_handler("my_event", handler, once=True)
 
     def work(_index: int) -> None:
         manager.trigger_event("my_event")
@@ -157,8 +161,7 @@ def test_remove_from_threads_registrations_added_by_other_threads() -> None:
     by other threads, each exactly once."""
     manager = EventManager()
     subscriptions = [
-        manager.add_event_handler("my_event", EventHandler(print))
-        for _ in range(NUM_THREADS * NUM_ITERATIONS)
+        manager.add_event_handler("my_event", print) for _ in range(NUM_THREADS * NUM_ITERATIONS)
     ]
     results: list[bool] = []
     lock = threading.Lock()
