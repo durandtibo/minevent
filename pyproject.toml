@@ -32,6 +32,7 @@ classifiers = [
   "Programming Language :: Python :: 3.15",
   "Topic :: Scientific/Engineering",
   "Topic :: Software Development :: Libraries",
+  "Typing :: Typed",
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 
@@ -41,9 +42,10 @@ dependencies = []
 [dependency-groups]
 dev = [
   "anyio>=4.0,<5.0",
+  "codespell>=2.4,<3.0",
   "coverage[toml]>=7.11,<8.0",
   "docformatter>=1.7.8,<2.0",
-  "invoke-tasklib>=0.0.8,<1.0",
+  "invoke-tasklib>=0.1.0a0,<1.0",
   "invoke>=3.0,<4.0",
   "pre-commit>=4.6,<5.0",
   "pygments>=2.20,<3.0",
@@ -71,7 +73,7 @@ Changelog = "https://github.com/durandtibo/minevent/releases"
 Issues = "https://github.com/durandtibo/minevent/issues"
 
 [tool.codespell]
-skip = "*.lock,./.git,./htmlcov,coverage.xml"
+skip = "*.lock,./.git,./htmlcov,./docs/site,coverage.xml"
 
 [tool.coverage.paths]
 source = ["src", "*/site-packages"]
@@ -93,7 +95,15 @@ exclude_lines = [
 minversion = "9.0"
 testpaths = ["tests/"]
 log_format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
-addopts = ["--durations", "10", "-rf", "--strict-markers", "--strict-config"]
+addopts = [
+  "--color",
+  "yes",
+  "--durations",
+  "10",
+  "-rf",
+  "--strict-markers",
+  "--strict-config",
+]
 xfail_strict = true
 timeout = 300
 anyio_mode = "auto"
