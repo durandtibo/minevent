@@ -145,4 +145,4 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
   list of registrations or arguments given at registration.
 - Documentation: the new `examples.md` page shows how to use the package (training loop, conditions,
   stateful handlers, `filter_payload`, `on`, `once`, subscriptions, plugins, coroutine handlers,
-  errors and tests).
+  async code, errors and tests).

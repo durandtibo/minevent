@@ -276,6 +276,106 @@ notified epoch 1
 
 ```
 
+## Trigger events from an async function
+
+In an async program, `await` the trigger inside your coroutines. The handlers of an event still run
+one after the other, so the next step starts when every handler is done:
+
+```pycon
+>>> import asyncio
+>>> from minevent import EventManager
+>>> async def fetch_all(manager: EventManager, urls: list[str]) -> None:
+...     await manager.atrigger_event("fetch_start", count=len(urls))
+...     for url in urls:
+...         await asyncio.sleep(0)  # a real program awaits a request here
+...         await manager.atrigger_event("fetch_done", url=url)
+...     await manager.atrigger_event("fetch_end")
+...
+>>> async def log_done(url: str) -> None:
+...     print(f"fetched {url}")
+...
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler("fetch_start", lambda count: print(f"fetching {count} urls"))
+>>> _ = manager.add_event_handler("fetch_done", log_done)
+>>> _ = manager.add_event_handler("fetch_end", lambda: print("done"))
+>>> asyncio.run(fetch_all(manager, ["a.com", "b.com"]))
+fetching 2 urls
+fetched a.com
+fetched b.com
+done
+
+```
+
+## Use options with coroutine handlers
+
+`once`, `condition`, `filter_payload` and the `on` decorator work the same way with coroutine
+handlers:
+
+```pycon
+>>> import asyncio
+>>> from minevent import EventManager, PeriodicCondition
+>>> manager = EventManager()
+>>> @manager.on("epoch_end", condition=PeriodicCondition(freq=2), filter_payload=True)
+... async def upload(epoch: int) -> None:
+...     await asyncio.sleep(0)
+...     print(f"uploaded epoch {epoch}")
+...
+>>> async def main() -> None:
+...     for epoch in range(3):
+...         await manager.atrigger_event("epoch_end", epoch=epoch, loss=0.5)
+...
+>>> asyncio.run(main())
+uploaded epoch 0
+uploaded epoch 2
+
+```
+
+## Run the work of a handler concurrently
+
+The handlers of an event run sequentially, so a slow handler delays the next ones. To run several
+awaitables at the same time, use `asyncio.gather` inside one handler:
+
+```pycon
+>>> import asyncio
+>>> from minevent import EventManager
+>>> async def upload(name: str) -> str:
+...     await asyncio.sleep(0)
+...     return name
+...
+>>> async def upload_all(files: list[str]) -> None:
+...     done = await asyncio.gather(*(upload(name) for name in files))
+...     print(f"uploaded {done}")
+...
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler("training_end", upload_all)
+>>> asyncio.run(manager.atrigger_event("training_end", files=["a.pt", "b.pt"]))
+uploaded ['a.pt', 'b.pt']
+
+```
+
+A synchronous handler blocks the event loop while it runs: hand a long computation to an executor
+(`await loop.run_in_executor(...)` or `asyncio.to_thread`) from a coroutine handler.
+
+## Handle an async handler used with trigger_event
+
+`trigger_event` is synchronous, so it cannot await a coroutine. It closes the coroutine and raises a
+`TypeError` that names the handler, instead of silently dropping it:
+
+```pycon
+>>> from minevent import EventManager
+>>> async def notify() -> None:
+...     print("notified")
+...
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler("my_event", notify)
+>>> try:
+...     manager.trigger_event("my_event")
+... except TypeError as exc:
+...     print(exc)
+notify returned an awaitable; use atrigger_event
+
+```
+
 ## Handle the errors of a handler
 
 A handler that raises stops the dispatch, and the exception reaches the caller with a note that
@@ -315,4 +415,21 @@ def test_epoch_end_calls_the_handler():
     manager.add_event_handler("epoch_end", handler)
     manager.trigger_event("epoch_end", epoch=1)
     handler.assert_called_once_with(epoch=1)
+```
+
+An async handler is tested with `asyncio.run` (or the async support of your test framework):
+
+```python
+import asyncio
+from unittest.mock import AsyncMock
+
+from minevent import EventManager
+
+
+def test_epoch_end_awaits_the_handler():
+    manager = EventManager()
+    handler = AsyncMock()
+    manager.add_event_handler("epoch_end", handler)
+    asyncio.run(manager.atrigger_event("epoch_end", epoch=1))
+    handler.assert_awaited_once_with(epoch=1)
 ```
