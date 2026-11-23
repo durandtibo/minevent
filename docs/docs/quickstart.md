@@ -158,7 +158,7 @@ Hello!
 
 ```
 
-A condition is any function without argument that returns a boolean (the `Condition` protocol).
+A condition is any function without argument that returns a boolean (a `Condition`, that is a `Callable[[], bool]`).
 `minevent` provides the stateful conditions `AfterNCondition` (skip the first `n` calls) and
 `PeriodicCondition(freq, skip_first=...)`. A class with a `__call__` method is a condition too.
 

@@ -526,8 +526,8 @@ class EventManager:
                 the handler should be attached.
             handler: The callable to attach to the event.
             once: If ``True``, the handler is removed just before its
-                first execution, so it runs at most once (P9 of the
-                architecture page). A condition that is ``False`` does
+                first execution, so it runs at most once, even when
+                several threads trigger the event. A condition that is ``False`` does
                 not consume the registration: it waits for the first
                 time the condition is ``True``. Default is ``False``.
             condition: An optional condition: a function without
