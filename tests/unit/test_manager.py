@@ -1635,6 +1635,8 @@ def test_check_not_awaitable_value() -> None:
 def test_check_not_awaitable_coroutine_raises() -> None:
     async def coroutine_handler() -> None:
         r"""Implement a coroutine handler."""
+        return
+
     with pytest.raises(TypeError, match=r"returned an awaitable; use atrigger_event"):
         _check_not_awaitable(coroutine_handler(), coroutine_handler)
 
@@ -1642,6 +1644,8 @@ def test_check_not_awaitable_coroutine_raises() -> None:
 def test_check_not_awaitable_closes_coroutine() -> None:
     async def coroutine_handler() -> None:
         r"""Implement a coroutine handler."""
+        return
+
     coroutine = coroutine_handler()
     with pytest.raises(TypeError, match=r"returned an awaitable"):
         _check_not_awaitable(coroutine, coroutine_handler)
