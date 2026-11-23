@@ -951,13 +951,13 @@ fired.
 <code>minevent</code> is organized around three main concepts:</p>
 <ul>
 <li><strong>event</strong> which defines the thing that should happen.</li>
-<li><strong>event handler</strong> which is the piece of code to execute when the event happens</li>
+<li><strong>event handler</strong> which is any callable to execute when the event happens</li>
 <li><strong>event manager</strong> which is responsible to manage the events and event handlers.</li>
 </ul>
 <p>The goal of this documentation is to explain how the event system works and how to use it.
 The library provides some implemented modules, but it is possible to extend it.
 It is possible to use all the components or just a subset based on the need.
-For example, an event handler can be used without the event manager.</p>
+For example, a handler is a plain callable, so it can be tested without the event manager.</p>
 <h2 id="motivation">Motivation<a class="headerlink" href="#motivation" title="Permanent link">&para;</a></h2>
 <p><code>minevent</code> provides a minimal event system to customize a piece of code without changing its
 implementation.

@@ -711,10 +711,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#conditional-execution" class="md-nav__link">
+  <a href="#registration-options" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Conditional Execution
+        Registration Options
       
     </span>
   </a>
@@ -784,10 +784,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#custom-event-handlers" class="md-nav__link">
+  <a href="#custom-handlers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Custom Event Handlers
+        Custom Handlers
       
     </span>
   </a>
@@ -807,6 +807,17 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#not-guaranteed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Not guaranteed
+      
+    </span>
+  </a>
   
 </li>
       
@@ -1245,10 +1256,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#conditional-execution" class="md-nav__link">
+  <a href="#registration-options" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Conditional Execution
+        Registration Options
       
     </span>
   </a>
@@ -1318,10 +1329,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#custom-event-handlers" class="md-nav__link">
+  <a href="#custom-handlers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Custom Event Handlers
+        Custom Handlers
       
     </span>
   </a>
@@ -1341,6 +1352,17 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#not-guaranteed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Not guaranteed
+      
+    </span>
+  </a>
   
 </li>
       
@@ -1402,82 +1424,92 @@
 <tr>
 <td>P1</td>
 <td>Small surface</td>
-<td>Three concepts and plain callables. Seven exported names and <code>__version__</code>. <code>EventManager</code> has 8 public members (<code>events</code>, <code>get_subscriptions</code>, <code>add_event_handler</code>, <code>on</code>, <code>trigger_event</code>, <code>atrigger_event</code>, <code>clear_event</code>, <code>reset</code>) and <code>__len__</code>, <code>__contains__</code>.</td>
+<td>Events are strings, handlers are plain callables, the manager connects them. Five exported names and <code>__version__</code> (<code>EventManager</code>, <code>Subscription</code>, <code>Condition</code>, <code>PeriodicCondition</code>, <code>AfterNCondition</code>). <code>EventManager</code> has 8 public members (<code>events</code>, <code>get_subscriptions</code>, <code>add_event_handler</code>, <code>on</code>, <code>trigger_event</code>, <code>atrigger_event</code>, <code>clear_event</code>, <code>reset</code>) and <code>__len__</code>, <code>__contains__</code>.</td>
 </tr>
 <tr>
 <td>P2</td>
+<td>Cheap import</td>
+<td><code>import minevent</code> is cheap and has no side effect: standard library only, and <code>importlib.metadata</code> is imported on the first access of <code>__version__</code>. It starts no thread, reads no file, emits no warning.</td>
+</tr>
+<tr>
+<td>P3</td>
 <td>Events are strings</td>
 <td>An event name is a case-sensitive <code>str</code>; any other type raises <code>TypeError</code>. The empty string is valid. Reading the manager never creates an event.</td>
 </tr>
 <tr>
-<td>P3</td>
-<td>Validated at the door</td>
-<td>A wrong type or value raises <code>TypeError</code> in the call that receives it, with a message that names the argument and the value: the event, the handler of <code>add_event_handler</code>, the callable, <code>handler_args</code>, <code>handler_kwargs</code> (a mapping with <code>str</code> keys) and the condition of <code>EventHandler</code>.</td>
-</tr>
-<tr>
 <td>P4</td>
-<td>Registration identity</td>
-<td><code>add_event_handler</code> returns a new <code>Subscription</code> every time; the same handler can be registered several times. <code>remove()</code> removes that registration only, once: <code>True</code> the first time, then <code>False</code>. <code>active</code> is <code>True</code> if and only if the registration is in the manager.</td>
+<td>Validated at the door</td>
+<td>A wrong type raises <code>TypeError</code> in the call that receives it, with a message that names the argument and the value: the event, the handler (must be callable) and the condition (<code>None</code> or callable) of <code>add_event_handler</code> and <code>on</code>. An invalid registration leaves the manager unchanged.</td>
 </tr>
 <tr>
 <td>P5</td>
+<td>Registration identity</td>
+<td><code>add_event_handler</code> returns a new <code>Subscription</code> every time; the same callable can be registered several times. <code>remove()</code> removes that registration only, once: <code>True</code> the first time, then <code>False</code>. <code>active</code> is <code>True</code> if and only if the registration is in the manager.</td>
+</tr>
+<tr>
+<td>P6</td>
 <td>Registration order</td>
 <td>The handlers of an event run in the order they were registered, one after the other, in the calling thread.</td>
 </tr>
 <tr>
-<td>P6</td>
+<td>P7</td>
 <td>Snapshot dispatch</td>
 <td><code>trigger_event</code> runs the registrations that exist when it starts. A registration added or removed by a running handler takes effect at the next trigger.</td>
 </tr>
 <tr>
-<td>P7</td>
+<td>P8</td>
 <td>Fail-fast with context</td>
-<td>An exception of a handler propagates unchanged (same object, same type); the remaining handlers are skipped. It carries a note with the event and the handler callable, once per distinct pair. Building the note never runs the <code>repr</code> of user data.</td>
+<td>An exception of a handler propagates unchanged (same object, same type); the remaining handlers are skipped. It carries a note with the event and the name of the handler (the function under a <code>functools.partial</code>), once per distinct pair. Building the note never runs the <code>repr</code> of user data.</td>
 </tr>
 <tr>
-<td>P8</td>
+<td>P9</td>
 <td><code>once</code> is at-most-once</td>
 <td>A <code>once</code> registration is removed before its handler is called, by an atomic claim: it runs at most once whatever the number of threads, and it is consumed even if its condition is false or its handler raises.</td>
 </tr>
 <tr>
-<td>P9</td>
+<td>P10</td>
 <td>Synchronous by default</td>
-<td><code>trigger_event</code> never awaits; a handler that returns an awaitable raises <code>TypeError</code> and the coroutine is closed. <code>atrigger_event</code> awaits the handlers one after the other; synchronous handlers run inline and block the loop.</td>
+<td><code>trigger_event</code> never awaits; a handler that returns an awaitable raises <code>TypeError</code> and the coroutine is closed. <code>atrigger_event</code> awaits the handlers one after the other; synchronous handlers run inline and block the loop. An object with <code>async def __call__</code> is a coroutine handler like a coroutine function.</td>
 </tr>
 <tr>
-<td>P10</td>
+<td>P11</td>
 <td>Thread-safe registry</td>
 <td>The registry is protected by a reentrant lock. Handlers, conditions and the <code>repr</code> of user objects run outside the lock, so a handler can use the manager.</td>
 </tr>
 <tr>
-<td>P11</td>
-<td>No hidden state</td>
-<td>No global manager, no discovery, no side effect of a read. Zero runtime dependencies. <code>import minevent</code> does not import <code>importlib.metadata</code>. A manager cannot be copied or pickled (<code>copy.copy</code>, <code>copy.deepcopy</code> and <code>pickle</code> raise the same <code>TypeError</code>): it owns a lock and a registry, so create a new one.</td>
-</tr>
-<tr>
 <td>P12</td>
-<td>Payload is data</td>
-<td><code>trigger_event(event, /, **payload)</code> passes the payload to every handler as keyword arguments, after <code>handler_kwargs</code>. Any key is allowed (<code>event</code>, <code>self</code>). With <code>filter_payload=True</code> only the keys the signature accepts are passed.</td>
+<td>No hidden state</td>
+<td>No global manager, no discovery, no side effect of a read. Zero runtime dependencies; the import is cheap (P2). A manager cannot be copied or pickled (<code>copy.copy</code>, <code>copy.deepcopy</code> and <code>pickle</code> raise the same <code>TypeError</code>).</td>
 </tr>
 <tr>
 <td>P13</td>
-<td>Conditions are callables</td>
-<td>A condition is a <code>Callable[[], bool]</code>, called once per trigger and per handler, before the handler. The built-in conditions keep per-instance state and both have <code>reset()</code>; sharing an instance shares the state. There is one way to run a handler once (<code>once=True</code>).</td>
+<td>Payload is data</td>
+<td><code>trigger_event(event, /, payload)</code> calls every handler as <code>handler(payload)</code>. Any key is allowed (<code>event</code>, <code>self</code>). Arguments that do not come from the payload are bound with <code>functools.partial</code>: the manager has no second mechanism. With <code>filter_payload=True</code> only the keys the signature accepts are passed.</td>
 </tr>
 <tr>
 <td>P14</td>
+<td>Options are per registration</td>
+<td><code>once</code>, <code>condition</code> and <code>filter_payload</code> are keyword-only arguments of <code>add_event_handler</code> and <code>on</code>, with the same names, defaults and meaning in both. A condition is a <code>Callable[[], bool]</code> called once per trigger, before the handler. The built-in conditions keep per-instance state and both have <code>reset()</code>.</td>
+</tr>
+<tr>
+<td>P15</td>
 <td>Typed</td>
 <td>Fully typed, <code>py.typed</code>, <code>ty check</code> clean, payload typed <code>object</code>.</td>
 </tr>
 <tr>
-<td>P15</td>
+<td>P16</td>
 <td>Fast and linear</td>
-<td>A trigger of one handler costs about 0.5 µs, each extra handler about 0.15 µs, a registration plus its removal about 0.9 µs. Registering <em>k</em> handlers and removing them in any order costs O(<em>k</em>) in total. Not slower than today.</td>
+<td>A trigger of one handler costs about 0.5 µs or less, each extra handler about 0.15 µs, a registration plus its removal about 1 µs or less. Registering <em>k</em> handlers and removing them in any order costs O(<em>k</em>) in total. Benchmarks guard it.</td>
 </tr>
 <tr>
-<td>P16</td>
+<td>P17</td>
 <td>A manager is a service</td>
-<td><code>bool(manager)</code> is always <code>True</code>, empty or not, so <code>manager or default</code> and <code>if manager:</code> mean "is there a manager". <code>len(manager)</code> is the number of registrations.</td>
+<td><code>bool(manager)</code> is always <code>True</code>, empty or not, so <code>manager or default</code> means "is there a manager". <code>len(manager)</code> is the number of registrations.</td>
+</tr>
+<tr>
+<td>P18</td>
+<td>One way to do each thing</td>
+<td>One way to register (<code>add_event_handler</code>, with <code>on</code> as its decorator form), one way to bind arguments (<code>functools.partial</code>), one way to run a handler once (<code>once=True</code>), one way to extend (write a callable). No handler base class.</td>
 </tr>
 </tbody>
 </table>
@@ -1485,7 +1517,7 @@
 <p><code>minevent</code> is designed as a minimal event system with three core components:</p>
 <ol>
 <li><strong>Events</strong> - String identifiers representing things that happen</li>
-<li><strong>Event Handlers</strong> - Code that executes when events occur</li>
+<li><strong>Event Handlers</strong> - Any callable that executes when events occur</li>
 <li><strong>Event Manager</strong> - Coordinator that manages handlers and triggers events</li>
 </ol>
 <h2 id="design-principles">Design Principles<a class="headerlink" href="#design-principles" title="Permanent link">&para;</a></h2>
@@ -1523,7 +1555,7 @@
 </ul>
 <p><strong>Example</strong>:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Explicit registration</span>
-<span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"event"</span><span class="p">,</span> <span class="n">EventHandler</span><span class="p">(</span><span class="n">handler</span><span class="p">))</span>
+<span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"event"</span><span class="p">,</span> <span class="n">handler</span><span class="p">)</span>
 
 <span class="c1"># Explicit triggering</span>
 <span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"event"</span><span class="p">)</span>
@@ -1531,15 +1563,20 @@
 <span class="c1"># Not: implicit auto-registration or magic discovery</span>
 </code></pre></div>
 <h3 id="4-extensibility-through-composition">4. Extensibility Through Composition<a class="headerlink" href="#4-extensibility-through-composition" title="Permanent link">&para;</a></h3>
-<p>Extend functionality by composing handlers and conditions:</p>
+<p>Extend functionality by composing callables:</p>
 <ul>
-<li>Base classes for custom implementations</li>
-<li>An <code>EventHandler</code> combines a handler and an optional condition</li>
-<li>No inheritance-heavy design</li>
+<li>A handler is any callable: a function, a method, a callable object or a <code>functools.partial</code></li>
+<li>The options of a registration (<code>once</code>, <code>condition</code>, <code>filter_payload</code>) are arguments of
+  <code>add_event_handler</code></li>
+<li>No base class and no inheritance</li>
 </ul>
 <p><strong>Example</strong>:</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># Compose handlers with conditions</span>
-<span class="n">handler</span> <span class="o">=</span> <span class="n">EventHandler</span><span class="p">(</span><span class="n">my_function</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="n">PeriodicCondition</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="mi">5</span><span class="p">))</span>
+<div class="highlight"><pre><span></span><code><span class="c1"># Compose a handler with a condition, and bind an argument with functools.partial</span>
+<span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span>
+    <span class="s2">"epoch_end"</span><span class="p">,</span>
+    <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">my_function</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="n">condition</span><span class="o">=</span><span class="n">PeriodicCondition</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="mi">5</span><span class="p">),</span>
+<span class="p">)</span>
 
 
 <span class="c1"># Custom conditions: any function without argument that returns a bool</span>
@@ -1573,24 +1610,15 @@
 <li>Consider hierarchical naming for complex systems</li>
 </ul>
 <h3 id="event-handler">Event Handler<a class="headerlink" href="#event-handler" title="Permanent link">&para;</a></h3>
-<p><strong>Design</strong>: Handlers wrap callable functions with optional arguments.</p>
-<p><strong>Class Hierarchy</strong>:</p>
-<div class="highlight"><pre><span></span><code>BaseEventHandler (abstract)
-    ├── EventHandler (handler + arguments + optional condition)
-    └── [Your custom handlers]
-</code></pre></div>
-<p><strong>Key Methods</strong>:</p>
-<ul>
-<li><code>handle(**payload)</code>: Execute the handler logic. <code>EventHandler.handle</code> raises a <code>TypeError</code> if
-  the handler returns an awaitable.</li>
-<li><code>ahandle(**payload)</code>: Execute the handler logic in a coroutine. <code>BaseEventHandler.ahandle</code> calls
-  <code>handle()</code>; <code>EventHandler.ahandle</code> awaits the awaitable returned by the handler.</li>
-</ul>
+<p><strong>Design</strong>: A handler is any callable. The manager calls it as <code>handler(**payload)</code>.</p>
 <p><strong>Rationale</strong>:</p>
 <ul>
-<li>Separation between handler logic and handler metadata</li>
-<li>Handlers are compared by identity; a <code>Subscription</code> identifies a registration</li>
-<li>Supports both simple and complex use cases</li>
+<li>A callable already is the extension point: there is no base class to learn or to import</li>
+<li>Arguments that do not come from the payload are bound with <code>functools.partial</code>, so there is one
+  way to bind them, and <code>filter_payload</code> sees the signature of the partial</li>
+<li>A handler that returns an awaitable (a coroutine function, or an object with
+  <code>async def __call__</code>) is awaited by <code>atrigger_event</code>; <code>trigger_event</code> raises a <code>TypeError</code></li>
+<li>A <code>Subscription</code> identifies a registration, so the same callable can be registered several times</li>
 </ul>
 <h3 id="event-manager">Event Manager<a class="headerlink" href="#event-manager" title="Permanent link">&para;</a></h3>
 <p><strong>Design</strong>: Central coordinator using a dictionary to map events to ordered sets of subscriptions.</p>
@@ -1613,42 +1641,42 @@
 <li><code>O(n)</code> event triggering (n = number of handlers)</li>
 <li><code>O(1)</code> removal of a registration</li>
 </ul>
-<h2 id="conditional-execution">Conditional Execution<a class="headerlink" href="#conditional-execution" title="Permanent link">&para;</a></h2>
-<p><strong>Design</strong>: <code>EventHandler</code> can wrap a handler with a condition.</p>
+<h2 id="registration-options">Registration Options<a class="headerlink" href="#registration-options" title="Permanent link">&para;</a></h2>
+<p><strong>Design</strong>: The options of a registration are the keyword-only arguments of <code>add_event_handler</code>
+(<code>on</code> is its decorator form, with the same options). The <code>Subscription</code> stores them.</p>
 <p><strong>Architecture</strong>:</p>
-<div class="highlight"><pre><span></span><code>EventHandler(condition=...)
-    ├── Handler (callable)
-    └── Condition (callable that returns a bool)
+<div class="highlight"><pre><span></span><code>add_event_handler(event, handler, *, once=False, condition=None, filter_payload=False)
+    └── Subscription (event, handler, once, condition, filter_payload)
 </code></pre></div>
 <p><strong>Execution Flow</strong>:</p>
 <div class="highlight"><pre><span></span><code>trigger_event()
-    ├── Get handlers for event
-    └── For each handler:
-        ├── If the handler has a condition:
-        │   ├── Evaluate condition
-        │   └── If True: execute handler
-        └── Else: execute handler
+    ├── Get the subscriptions of the event
+    └── For each subscription:
+        ├── If it is a once registration: remove it, and skip it if it was already removed
+        ├── If it has a condition: evaluate it, and skip the handler if it is False
+        ├── If filter_payload: keep the payload keys the handler accepts
+        └── Execute handler(**payload)
 </code></pre></div>
 <p><strong>Rationale</strong>:</p>
 <ul>
-<li>Separates "what" (handler) from "when" (condition)</li>
+<li>Separates "what" (handler) from "when" (condition) and from "how" (options)</li>
 <li>Conditions are reusable across handlers</li>
 <li>Conditions can maintain state between evaluations</li>
 </ul>
 <h2 id="event-flow">Event Flow<a class="headerlink" href="#event-flow" title="Permanent link">&para;</a></h2>
 <h3 id="registration-flow">Registration Flow<a class="headerlink" href="#registration-flow" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>1. User creates EventHandler
-   EventHandler(function, args, kwargs, condition=..., filter_payload=...)
+<div class="highlight"><pre><span></span><code>1. User registers a callable
+   subscription = manager.add_event_handler("event", handler, once=..., condition=..., filter_payload=...)
 
-2. User registers handler
-   subscription = manager.add_event_handler("event", handler, once=...)
+2. Manager validates the arguments
+   a TypeError names the event, the handler or the condition that is wrong
 
 3. Manager stores the registration
    a Subscription is added to the ordered set of the event and returned
 </code></pre></div>
 <h3 id="triggering-flow">Triggering Flow<a class="headerlink" href="#triggering-flow" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code>1. User triggers event
-   manager.trigger_event("event")
+   manager.trigger_event("event", **payload)
 
 2. Manager gets the registrations
    subscriptions = a snapshot of the ordered set of the event
@@ -1656,25 +1684,33 @@
 3. Manager executes each handler
    for subscription in subscriptions:
        if subscription is once and was already removed: skip it
-       handler.handle(**payload)   # or `await handler.ahandle(**payload)`
+       result = subscription._call(payload)   # condition, payload filter, handler(**payload)
+       # an awaitable result raises a TypeError (trigger_event) or is awaited (atrigger_event)
        # an exception gets a note (event, handler function) and propagates
 </code></pre></div>
 <h3 id="handler-execution">Handler Execution<a class="headerlink" href="#handler-execution" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code>Without condition:
-    handler(*handler_args, **handler_kwargs, **payload)
+    handler(**payload)
 
 With a condition:
     if condition():
-        handler(*handler_args, **handler_kwargs, **payload)
+        handler(**payload)
 
 With filter_payload=True, `payload` only keeps the keys the handler accepts.
+Arguments bound with functools.partial are part of `handler`, not of the payload.
 </code></pre></div>
 <h2 id="extension-points">Extension Points<a class="headerlink" href="#extension-points" title="Permanent link">&para;</a></h2>
-<h3 id="custom-event-handlers">Custom Event Handlers<a class="headerlink" href="#custom-event-handlers" title="Permanent link">&para;</a></h3>
-<p>Implement <code>BaseEventHandler</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">MyEventHandler</span><span class="p">(</span><span class="n">BaseEventHandler</span><span class="p">):</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">handle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="o">**</span><span class="n">payload</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<h3 id="custom-handlers">Custom Handlers<a class="headerlink" href="#custom-handlers" title="Permanent link">&para;</a></h3>
+<p>Write a callable. A class with a <code>__call__</code> method is a handler with its own state:</p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">MyHandler</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">payload</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># Custom logic; payload holds the keyword arguments of trigger_event</span>
+        <span class="k">pass</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">MyAsyncHandler</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">payload</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Awaited by atrigger_event</span>
         <span class="k">pass</span>
 </code></pre></div>
 <p><strong>Use Cases</strong>:</p>
@@ -1699,6 +1735,21 @@ Implement <code>__call__</code> in a class when the condition has a state:</p>
 <li>State-based conditions</li>
 <li>Metric-threshold conditions</li>
 <li>Complex multi-condition logic</li>
+</ul>
+<h2 id="not-guaranteed">Not guaranteed<a class="headerlink" href="#not-guaranteed" title="Permanent link">&para;</a></h2>
+<p>These behaviors are documented limits, not defects:</p>
+<ul>
+<li><strong>A handler removed while a trigger is running</strong> still runs in that trigger (P7). After <code>remove()</code>
+  returns, the next trigger does not run it.</li>
+<li><strong>Recursion.</strong> A handler that triggers its own event recurses until <code>RecursionError</code>.</li>
+<li><strong>Blocking.</strong> A synchronous handler in <code>atrigger_event</code> blocks the event loop.</li>
+<li><strong>A handler that returns a generator</strong> (a <code>def</code> with <code>yield</code>) does nothing: the generator is
+  never iterated. Only awaitables are detected (P10).</li>
+<li><strong>Prompt reclamation.</strong> A manager that holds a registration is in a reference cycle (manager,
+  dict, <code>Subscription</code>, manager): <code>del manager</code> does not free it until the garbage collector runs.
+  Call <code>reset()</code> to release the handlers at a known point.</li>
+<li><strong>A keyword bound by <code>functools.partial</code> and given again by the payload</strong>: the payload wins, which
+  is the rule of <code>partial</code> itself. A positional argument bound twice is a <code>TypeError</code> of Python.</li>
 </ul>
 <h2 id="thread-safety">Thread Safety<a class="headerlink" href="#thread-safety" title="Permanent link">&para;</a></h2>
 <p><strong>Status</strong>: <code>EventManager</code> protects its registry with a reentrant lock. Registering, removing and
