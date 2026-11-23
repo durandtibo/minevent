@@ -29,12 +29,12 @@ Yes. `minevent` does not depend on any ML framework.
 ### How do I pass data to the handlers?
 
 As keyword arguments of `trigger_event`: `manager.trigger_event("epoch_end", epoch=3)`. See
-[the payload](guide.md#pass-the-data-as-a-payload). Use `handler_args` and `handler_kwargs` for the
+[the payload](guide.md#pass-the-data-as-a-payload). Use `functools.partial` for the
 arguments that are fixed at registration.
 
 ### How do I run a handler only sometimes?
 
-Give the `EventHandler` a condition, for example `condition=PeriodicCondition(freq=5)`, or any
+Give the registration a condition, for example `condition=PeriodicCondition(freq=5)`, or any
 function that returns a boolean. See [conditions](guide.md#conditions).
 
 ### How do I run a handler only once?
@@ -79,8 +79,9 @@ the counter of a stateful condition is not protected. See
 
 ### Can I create custom handlers and conditions?
 
-Yes. A handler is a `BaseEventHandler` subclass with a `handle(self, /, **payload)` method. A
-condition is any function without argument that returns a boolean, or a class with `__call__`.
+Yes. A handler is any callable: write a class with a `__call__(self, **payload)` method (or
+`async def __call__` for `atrigger_event`). A condition is any function without argument that
+returns a boolean, or a class with `__call__`.
 
 ### What is the overhead?
 
