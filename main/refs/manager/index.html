@@ -874,6 +874,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#minevent.manager.Subscription.condition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        condition
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#minevent.manager.Subscription.event" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -885,10 +896,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#minevent.manager.Subscription.event_handler" class="md-nav__link">
+  <a href="#minevent.manager.Subscription.filter_payload" class="md-nav__link">
     <span class="md-ellipsis">
       
-        event_handler
+        filter_payload
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#minevent.manager.Subscription.handler" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        handler
       
     </span>
   </a>
@@ -1191,6 +1213,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#minevent.manager.Subscription.condition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        condition
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#minevent.manager.Subscription.event" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1202,10 +1235,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#minevent.manager.Subscription.event_handler" class="md-nav__link">
+  <a href="#minevent.manager.Subscription.filter_payload" class="md-nav__link">
     <span class="md-ellipsis">
       
-        event_handler
+        filter_payload
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#minevent.manager.Subscription.handler" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        handler
       
     </span>
   </a>
@@ -1326,6 +1370,11 @@ and <code>atrigger_event</code> awaits the coroutine handlers. The manager
 has no global state: create one instance and pass it where it is
 needed. Registrations and triggers are logged at the <code>DEBUG</code>
 level by the <code>minevent.manager</code> logger.</p>
+<p>A handler is any callable, called as <code>handler(**payload)</code>. The
+options of a registration (<code>once</code>, <code>condition</code> and
+<code>filter_payload</code>) are the keyword-only arguments of
+<code>add_event_handler</code> and <code>on</code>. Use <code>functools.partial</code> to bind
+other arguments.</p>
 <p>Error policy: handlers run fail-fast. If a handler raises, the
 exception propagates to the caller of <code>trigger_event</code> (or
 <code>atrigger_event</code>) and the remaining handlers of that event are
@@ -1349,14 +1398,14 @@ it cannot be copied or pickled (<code>copy.copy</code>, <code>copy.deepcopy</cod
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventHandler</span><span class="p">,</span> <span class="n">EventManager</span>
+  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">hello_handler</span><span class="p">():</span>
 <span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">"Hello!"</span><span class="p">)</span>
 <span class="gp">...</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">bool</span><span class="p">(</span><span class="n">manager</span><span class="p">)</span>
 <span class="go">True</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">EventHandler</span><span class="p">(</span><span class="n">hello_handler</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">hello_handler</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">)</span>
 <span class="go">Hello!</span>
 </code></pre></div>
@@ -1425,11 +1474,11 @@ it cannot be copied or pickled (<code>copy.copy</code>, <code>copy.deepcopy</cod
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventHandler</span><span class="p">,</span> <span class="n">EventManager</span>
+  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">events</span>
 <span class="go">[]</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">EventHandler</span><span class="p">(</span><span class="nb">print</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="nb">print</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">events</span>
 <span class="go">['my_event']</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="s2">"my_event"</span> <span class="ow">in</span> <span class="n">manager</span>
@@ -1453,18 +1502,22 @@ it cannot be copied or pickled (<code>copy.copy</code>, <code>copy.deepcopy</cod
 <a href="#minevent.manager.EventManager.add_event_handler" class="headerlink" title="Permanent link">&para;</a></h4>
 <div class="doc-signature highlight"><pre><span></span><code><span class="nf">add_event_handler</span><span class="p">(</span>
     <span class="n">event</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span>
-    <span class="n">event_handler</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="minevent.handlers.BaseEventHandler" href="../handlers/#minevent.handlers.BaseEventHandler">BaseEventHandler</a></span><span class="p">,</span>
+    <span class="n">handler</span><span class="p">:</span> <span class="n"><span title="collections.abc.Callable">Callable</span></span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n"><span title="object">object</span></span><span class="p">]</span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="minevent.handlers.BaseEventHandler" href="../handlers/#minevent.handlers.BaseEventHandler">BaseEventHandler</a></span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">once</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">condition</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="minevent.conditions.Condition" href="../conditions/#minevent.conditions.Condition">Condition</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">filter_payload</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="minevent.manager.Subscription" href="#minevent.manager.Subscription">Subscription</a></span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Add an event handler to an event.</p>
-<p>The event handler will be called every time the specified event
-is triggered. Multiple handlers can be registered to the same
-event, and they will be executed in the order they were added.</p>
+        <p>Add a handler to an event.</p>
+<p>The handler will be called every time the specified event is
+triggered, as <code>handler(**payload)</code>. Multiple handlers can be
+registered to the same event, and they will be executed in the
+order they were added. Use <code>functools.partial</code> to bind
+other arguments.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -1488,7 +1541,7 @@ event, and they will be executed in the order they were added.</p>
             <td>
               <div class="doc-md-description">
                 <p>The event name (case-sensitive string) to which
-the event handler should be attached.</p>
+the handler should be attached.</p>
               </div>
             </td>
             <td>
@@ -1497,15 +1550,15 @@ the event handler should be attached.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>event_handler</code>
+                <code>handler</code>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="minevent.handlers.BaseEventHandler" href="../handlers/#minevent.handlers.BaseEventHandler">BaseEventHandler</a></code>
+                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="object">object</span>] | <a class="autorefs autorefs-internal" title="minevent.handlers.BaseEventHandler" href="../handlers/#minevent.handlers.BaseEventHandler">BaseEventHandler</a></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The event handler instance to attach to the
-event.</p>
+                <p>The callable to attach to the event. An
+<code>EventHandler</code> is also accepted.</p>
               </div>
             </td>
             <td>
@@ -1524,8 +1577,54 @@ event.</p>
                 <p>If <code>True</code>, the handler is removed before its first
 execution, so it runs at most once. The registration
 is removed by the next trigger even if the condition
-of the handler is <code>False</code> and the handler function is
-not called. Default is <code>False</code>.</p>
+of the handler is <code>False</code> and the handler is not
+called. Default is <code>False</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>condition</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="minevent.conditions.Condition" href="../conditions/#minevent.conditions.Condition">Condition</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>An optional condition: a function without
+argument that returns a boolean. It is called each
+time the event is triggered, before the handler, and
+the handler runs only if it returns <code>True</code>. If
+<code>None</code>, the handler always runs. Default is
+<code>None</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>filter_payload</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If <code>True</code>, only the payload keys that
+the signature of the handler accepts are passed to
+it, so handlers with different needs can share an
+event without <code>**kwargs</code>. The accepted keys are
+computed once, at registration. A handler with a
+<code>**kwargs</code> parameter, or whose signature cannot be
+inspected, receives the whole payload. The signature
+of a <code>functools.partial</code> does not contain the
+positional arguments that it binds. Default is
+<code>False</code>.</p>
               </div>
             </td>
             <td>
@@ -1575,9 +1674,9 @@ registration only.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>if <code>event</code> is not a string, or if
-<code>event_handler</code> is not a <code>BaseEventHandler</code>. Wrap a
-function with <code>EventHandler</code>.</p>
+                <p>if <code>event</code> is not a string, if <code>handler</code>
+is not callable, or if <code>condition</code> is neither
+<code>None</code> nor callable. The manager is unchanged.</p>
               </div>
             </td>
           </tr>
@@ -1587,21 +1686,37 @@ function with <code>EventHandler</code>.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span><span class="p">,</span> <span class="n">EventHandler</span>
+  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">functools</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span><span class="p">,</span> <span class="n">PeriodicCondition</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">hello_handler</span><span class="p">():</span>
 <span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">"Hello!"</span><span class="p">)</span>
 <span class="gp">...</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">subscription</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">EventHandler</span><span class="p">(</span><span class="n">hello_handler</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">subscription</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">hello_handler</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">)</span>
 <span class="go">Hello!</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">subscription</span><span class="o">.</span><span class="n">remove</span><span class="p">()</span>
 <span class="go">True</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">EventHandler</span><span class="p">(</span><span class="n">hello_handler</span><span class="p">),</span> <span class="n">once</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">hello_handler</span><span class="p">,</span> <span class="n">once</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">)</span>
 <span class="go">Hello!</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"greet"</span><span class="p">,</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="nb">print</span><span class="p">,</span> <span class="s2">"Hello!"</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"greet"</span><span class="p">)</span>
+<span class="go">Hello!</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="s2">"tick"</span><span class="p">,</span> <span class="n">hello_handler</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="n">PeriodicCondition</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"tick"</span><span class="p">)</span>
+<span class="go">Hello!</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"tick"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">epoch_handler</span><span class="p">(</span><span class="n">epoch</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">epoch_handler</span><span class="p">,</span> <span class="n">filter_payload</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="go">epoch 3</span>
 </code></pre></div>
 </details>
 
@@ -1628,9 +1743,9 @@ function with <code>EventHandler</code>.</p>
 
         <p>Trigger the handler(s) for the given event, awaiting the
 coroutine handlers.</p>
-<p>This method behaves like <code>trigger_event</code>, but it calls
-<code>ahandle</code> on the event handlers, so handlers that are
-coroutine functions (or return an awaitable) are awaited.
+<p>This method behaves like <code>trigger_event</code>, but the handlers
+that are coroutine functions (or return an awaitable) are
+awaited.
 Synchronous handlers can be mixed with coroutine handlers.
 The handlers run one after the other, in the order they were
 added, and they are fail-fast like in <code>trigger_event</code>: the
@@ -1716,12 +1831,12 @@ raised by a handler also propagates.</p>
 <details class="example" open>
   <summary>Example</summary>
   <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventHandler</span><span class="p">,</span> <span class="n">EventManager</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">hello_handler</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
 <span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Hello </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">!"</span><span class="p">)</span>
 <span class="gp">...</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">EventHandler</span><span class="p">(</span><span class="n">hello_handler</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">hello_handler</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">manager</span><span class="o">.</span><span class="n">atrigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"John"</span><span class="p">))</span>
 <span class="go">Hello John!</span>
 </code></pre></div>
@@ -1805,9 +1920,9 @@ subscriptions of the removed handlers become inactive.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventHandler</span><span class="p">,</span> <span class="n">EventManager</span>
+  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">EventHandler</span><span class="p">(</span><span class="nb">print</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="nb">print</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">clear_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">events</span>
 <span class="go">[]</span>
@@ -1882,7 +1997,7 @@ subscriptions of the removed handlers become inactive.</p>
               <div class="doc-md-description">
                 <p>A snapshot of the subscriptions, in the order the handlers
 run. It is empty if no handler is registered. Use the
-<code>event_handler</code> property of a subscription to get its
+<code>handler</code> property of a subscription to get its
 handler. Changing the manager does not change the
 returned tuple.</p>
               </div>
@@ -1917,15 +2032,15 @@ returned tuple.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventHandler</span><span class="p">,</span> <span class="n">EventManager</span>
+  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">get_subscriptions</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">)</span>
 <span class="go">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span> <span class="o">=</span> <span class="n">EventHandler</span><span class="p">(</span><span class="nb">print</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">handler</span> <span class="o">=</span> <span class="nb">print</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">subscription</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">handler</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">get_subscriptions</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span><span class="n">subscription</span><span class="p">,)</span>
 <span class="go">True</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">subscription</span><span class="o">.</span><span class="n">event_handler</span> <span class="ow">is</span> <span class="n">handler</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">subscription</span><span class="o">.</span><span class="n">handler</span> <span class="ow">is</span> <span class="n">handler</span>
 <span class="go">True</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">manager</span><span class="p">)</span>
 <span class="go">1</span>
@@ -1956,12 +2071,10 @@ returned tuple.</p>
     <div class="doc doc-contents ">
 
         <p>Create a decorator that registers a function as a handler.</p>
-<p>The decorated function is registered as
-<code>EventHandler(func, condition=condition,
-filter_payload=filter_payload)</code> and returned unchanged. The
-function is called with the payload only: use
-<code>add_event_handler</code> if the handler needs <code>handler_args</code> or
-<code>handler_kwargs</code>, or if you need the <code>Subscription</code>.</p>
+<p>The decorated function is registered with
+<code>add_event_handler(event, func, once=once, condition=condition,
+filter_payload=filter_payload)</code> and returned unchanged. Use
+<code>add_event_handler</code> if you need the <code>Subscription</code>.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -2018,7 +2131,7 @@ function is called with the payload only: use
             <td>
               <div class="doc-md-description">
                 <p>An optional condition evaluated before the
-handler. See <code>EventHandler</code>. Default is <code>None</code>.</p>
+handler. See <code>add_event_handler</code>. Default is <code>None</code>.</p>
               </div>
             </td>
             <td>
@@ -2036,7 +2149,7 @@ handler. See <code>EventHandler</code>. Default is <code>None</code>.</p>
               <div class="doc-md-description">
                 <p>If <code>True</code>, only the payload keys that
 the function accepts are passed to it. See
-<code>EventHandler</code>. Default is <code>False</code>.</p>
+<code>add_event_handler</code>. Default is <code>False</code>.</p>
               </div>
             </td>
             <td>
@@ -2148,8 +2261,7 @@ state.</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">hello_handler</span><span class="p">():</span>
 <span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">"Hello!"</span><span class="p">)</span>
 <span class="gp">...</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventHandler</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">EventHandler</span><span class="p">(</span><span class="n">hello_handler</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">hello_handler</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">)</span>
 <span class="go">Hello!</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">manager</span><span class="p">)</span>
@@ -2278,19 +2390,19 @@ handler also propagates.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventHandler</span><span class="p">,</span> <span class="n">EventManager</span>
+  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">)</span>  <span class="c1"># do nothing because there is no event handler</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">hello_handler</span><span class="p">():</span>
 <span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">"Hello!"</span><span class="p">)</span>
 <span class="gp">...</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">EventHandler</span><span class="p">(</span><span class="n">hello_handler</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">hello_handler</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">)</span>
 <span class="go">Hello!</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">epoch_handler</span><span class="p">(</span><span class="n">epoch</span><span class="p">):</span>
 <span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <span class="gp">...</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">EventHandler</span><span class="p">(</span><span class="n">epoch_handler</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">epoch_handler</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
 <span class="go">epoch 3</span>
 </code></pre></div>
@@ -2323,10 +2435,11 @@ handler also propagates.</p>
 
 
 
-        <p>Represent the registration of an event handler to an event.</p>
+        <p>Represent the registration of a handler to an event.</p>
 <p>A subscription is returned by <code>EventManager.add_event_handler</code>.
-It is the registration itself: the manager stores it, and it
-removes exactly the registration that created it. The handler does
+It is the registration itself: the manager stores it with the
+options of the registration, and it removes exactly the
+registration that created it. The handler does
 not need to be re-created to be unsubscribed, other registrations
 of the same handler are not removed, and registering the same
 handler twice creates two independent subscriptions.</p>
@@ -2381,14 +2494,15 @@ event manager.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>event_handler</code>
+                <code>handler</code>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="minevent.handlers.BaseEventHandler" href="../handlers/#minevent.handlers.BaseEventHandler">BaseEventHandler</a></code>
+                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="object">object</span>] | <a class="autorefs autorefs-internal" title="minevent.handlers.BaseEventHandler" href="../handlers/#minevent.handlers.BaseEventHandler">BaseEventHandler</a></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The registered event handler.</p>
+                <p>The registered handler: a callable (or an event
+handler).</p>
               </div>
             </td>
             <td>
@@ -2397,19 +2511,20 @@ event manager.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>once</code>
+                <code>options</code>
             </td>
             <td>
-                  <code><span title="bool">bool</span></code>
+                  <code><span title="minevent.manager._Options">_Options</span> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>If <code>True</code>, the registration is removed before its
-first execution. Default is <code>False</code>.</p>
+                <p>The options of the registration (<code>once</code>,
+<code>condition</code> and <code>filter_payload</code>). <code>None</code> means the
+default options.</p>
               </div>
             </td>
             <td>
-                  <code>False</code>
+                  <code>None</code>
             </td>
           </tr>
       </tbody>
@@ -2418,11 +2533,13 @@ first execution. Default is <code>False</code>.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventHandler</span><span class="p">,</span> <span class="n">EventManager</span>
+  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">subscription</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">EventHandler</span><span class="p">(</span><span class="nb">print</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">subscription</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="nb">print</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">subscription</span><span class="o">.</span><span class="n">event</span>
 <span class="go">'my_event'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">subscription</span><span class="o">.</span><span class="n">handler</span> <span class="ow">is</span> <span class="nb">print</span>
+<span class="go">True</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">subscription</span><span class="o">.</span><span class="n">active</span>
 <span class="go">True</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">subscription</span><span class="o">.</span><span class="n">remove</span><span class="p">()</span>
@@ -2433,7 +2550,7 @@ first execution. Default is <code>False</code>.</p>
 <span class="go">False</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">events</span>
 <span class="go">[]</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">EventHandler</span><span class="p">(</span><span class="nb">print</span><span class="p">)):</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="nb">print</span><span class="p">):</span>
 <span class="gp">... </span>    <span class="n">manager</span><span class="o">.</span><span class="n">events</span>
 <span class="gp">...</span>
 <span class="go">['my_event']</span>
@@ -2515,6 +2632,53 @@ is read from the registry of the manager.</p>
 
 
 
+<h4 id="minevent.manager.Subscription.condition" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">minevent.manager.Subscription.condition</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#minevent.manager.Subscription.condition" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">condition</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="minevent.conditions.Condition" href="../conditions/#minevent.conditions.Condition">Condition</a></span> <span class="o">|</span> <span class="kc">None</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Get the condition evaluated before the handler.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="minevent.conditions.Condition" href="../conditions/#minevent.conditions.Condition">Condition</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The condition, or <code>None</code> if the handler always runs.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
 <h4 id="minevent.manager.Subscription.event" class="doc doc-heading">
             <span class="doc doc-object-name doc-attribute-name">minevent.manager.Subscription.event</span>
 
@@ -2562,21 +2726,22 @@ is read from the registry of the manager.</p>
 
 
 
-<h4 id="minevent.manager.Subscription.event_handler" class="doc doc-heading">
-            <span class="doc doc-object-name doc-attribute-name">minevent.manager.Subscription.event_handler</span>
+<h4 id="minevent.manager.Subscription.filter_payload" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">minevent.manager.Subscription.filter_payload</span>
 
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-property"><code>property</code></small>
   </span>
 
-<a href="#minevent.manager.Subscription.event_handler" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="n">event_handler</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="minevent.handlers.BaseEventHandler" href="../handlers/#minevent.handlers.BaseEventHandler">BaseEventHandler</a></span>
+<a href="#minevent.manager.Subscription.filter_payload" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">filter_payload</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Get the registered event handler.</p>
+        <p>Indicate if the payload is filtered by the signature of the
+handler.</p>
 
 
     <p><span class="doc-section-title">Returns:</span></p>
@@ -2590,11 +2755,59 @@ is read from the registry of the manager.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-internal" title="minevent.handlers.BaseEventHandler" href="../handlers/#minevent.handlers.BaseEventHandler">BaseEventHandler</a></code>
+                  <code><span title="bool">bool</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The event handler.</p>
+                <p><code>True</code> if only the payload keys accepted by the handler
+are passed to it, otherwise <code>False</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="minevent.manager.Subscription.handler" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">minevent.manager.Subscription.handler</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#minevent.manager.Subscription.handler" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">handler</span><span class="p">:</span> <span class="n"><span title="collections.abc.Callable">Callable</span></span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n"><span title="object">object</span></span><span class="p">]</span> <span class="o">|</span> <span class="n"><a class="autorefs autorefs-internal" title="minevent.handlers.BaseEventHandler" href="../handlers/#minevent.handlers.BaseEventHandler">BaseEventHandler</a></span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Get the registered handler.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="object">object</span>] | <a class="autorefs autorefs-internal" title="minevent.handlers.BaseEventHandler" href="../handlers/#minevent.handlers.BaseEventHandler">BaseEventHandler</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The handler given to <code>add_event_handler</code>.</p>
               </div>
             </td>
           </tr>
