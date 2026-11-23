@@ -154,9 +154,10 @@ Hello!
 
 ```
 
-A condition is any function without argument that returns a boolean (a `Condition`, that is a `Callable[[], bool]`).
-`minevent` provides the stateful conditions `AfterNCondition` (skip the first `n` calls) and
-`PeriodicCondition(freq, skip_first=...)`. A class with a `__call__` method is a condition too.
+A condition is any function without argument that returns a boolean (a `Condition`, that is a
+`Callable[[], bool]`). `minevent` provides the stateful conditions `AfterNCondition` (skip the
+first `n` calls) and `PeriodicCondition(freq, skip_first=...)`. A class with a `__call__` method
+is a condition too.
 
 To combine conditions, write a function. You choose which conditions are evaluated:
 
