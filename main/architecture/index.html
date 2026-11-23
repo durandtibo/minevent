@@ -1485,7 +1485,7 @@
 <tr>
 <td>P12</td>
 <td>Payload is data</td>
-<td><code>trigger_event(event, /, payload)</code> passes the payload to every handler as keyword arguments, after <code>handler_kwargs</code>. Any key is allowed (<code>event</code>, <code>self</code>). With <code>filter_payload=True</code> only the keys the signature accepts are passed.</td>
+<td><code>trigger_event(event, /, **payload)</code> passes the payload to every handler as keyword arguments, after <code>handler_kwargs</code>. Any key is allowed (<code>event</code>, <code>self</code>). With <code>filter_payload=True</code> only the keys the signature accepts are passed.</td>
 </tr>
 <tr>
 <td>P13</td>
