@@ -286,9 +286,14 @@ Use a new `EventManager` in each test, and `manager.reset()` if the manager is s
 
 ## Performance
 
+`import minevent` is cheap: it imports the standard library modules `threading`, `functools` and
+`typing` only, and not `logging`, `inspect`, `asyncio` or `importlib.metadata` (`inspect` is imported
+when `filter_payload=True` is used, and `importlib.metadata` when `__version__` is read). It takes a
+few milliseconds, so a script can import it without a measurable cost.
+
 The cost of `trigger_event` is the cost of the handlers: about 0.5 µs for a manager with one trivial
 handler, and about 0.15 µs for each additional handler on a laptop. A condition avoids the work of
-an expensive handler (`PeriodicCondition`). To find a slow handler, time it or enable the logging.
+an expensive handler (`PeriodicCondition`). To find a slow handler, time it or wrap it (see [Debug](#debug)).
 
 A handler that is slow blocks the caller. Hand the work to an executor in the handler if the caller
 must not wait.
@@ -331,16 +336,19 @@ The registration is already removed. This is not an error: `remove()` is idempot
 
 - `print(manager)` shows the number of handlers of each event, and `manager.get_subscriptions(e)`
   the registrations.
-- Enable the `minevent` logger to see the registrations and the triggers:
+- `minevent` does not log. Wrap a handler to trace it (the wrapper is a plain callable):
 
   ```python
-  import logging
+  def traced(handler):
+      def wrapper(**payload):
+          print(f"calling {handler.__qualname__}")
+          return handler(**payload)
 
-  logging.basicConfig(level=logging.DEBUG)
-  logging.getLogger("minevent").setLevel(logging.DEBUG)
+      return wrapper
+
+
+  manager.add_event_handler("batch_end", traced(log_batch))
   ```
-
-  `DEBUG` logs use the `repr` of the handler, arguments included.
 
 - Register a handler that prints the payload while you investigate:
 
