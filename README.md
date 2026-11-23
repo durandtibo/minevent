@@ -140,9 +140,8 @@ a note that names the event and the handler. Coroutine handlers need `atrigger_e
   [https://durandtibo.github.io/minevent/](https://durandtibo.github.io/minevent/)
 - **Quickstart Guide**:
   [https://durandtibo.github.io/minevent/quickstart/](https://durandtibo.github.io/minevent/quickstart/)
-- **Examples**: See the [quickstart guide](https://durandtibo.github.io/minevent/quickstart/) for
-  practical use cases
 - **FAQ**: [https://durandtibo.github.io/minevent/faq/](https://durandtibo.github.io/minevent/faq/)
+- **Examples**: [https://durandtibo.github.io/minevent/examples/](https://durandtibo.github.io/minevent/examples/)
 - **User guide**:
   [https://durandtibo.github.io/minevent/guide/](https://durandtibo.github.io/minevent/guide/)
 

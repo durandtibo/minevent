@@ -21,6 +21,7 @@ nav:
   - get_started.md
   - User Guide:
       - quickstart.md
+      - examples.md
       - architecture.md
       - guide.md
       - faq.md
