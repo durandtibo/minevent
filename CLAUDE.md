@@ -34,13 +34,13 @@
   number, so do not add one.
 - In the PR description, say what was changed, what was deliberately not changed, and any
   behaviour change (for example a changed output, or a breaking change of the signature).
+- Do not escape special characters such as the backtick (`` ` ``) in the PR title or description
+  (no `\``): the backslash is not rendered well. Write the characters as is.
 - When a PR conflicts with `main`, merge `origin/main` into the branch and resolve the conflicts
   (do not rebase and force-push). Most conflicts are two PRs appending tests at the end of the
   same test file: keep both. Check what `main` already contains before choosing a side.
 - Update any tracking document (changelog, status table, issue) affected by the change, with the
   PR number.
-- Do not escape special characters such as the backtick (`` ` ``) in the PR title or description
-  (no `\``): the backslash is not rendered well. Write the characters as is.
 
 ## Code
 
@@ -83,6 +83,19 @@
   recorded by a traced handler) may have one `assert` per attribute, which reads better than one
   assert on a tuple. Thread-safety tests may assert the count and the uniqueness together, as the
   existing ones do.
+- A test may combine `pytest.raises` (or `pytest.warns`) with an `assert` that checks the state
+  after the error (for example that the input was not mutated). This is one behaviour: the call
+  fails and leaves the state unchanged.
+
+  ```python
+  with pytest.raises(ValueError, match=r"boom"):
+      manager.trigger_event("my_event")
+  assert manager.events == ["my_event"]
+  ```
+
+- Do not use `contextlib.suppress` in place of `pytest.raises` to swallow an expected exception:
+  it passes when no exception is raised, so the test does not prove the error happens. Use
+  `pytest.raises` with `match`, then assert on the state afterwards if needed.
 - Keep the unit tests simple and fast: no sleeps, no large data, no real network or heavy I/O,
   and no logic (loops, branches) in the test body. Anything slow or concurrent belongs in
   `tests/integration/`.
@@ -146,11 +159,6 @@ check. Cover, where applicable:
 Prefer many small, precisely named tests (one behavior per test) over a few broad ones, so a
 failure points at the specific behavior that broke.
 
-## Reporting
-
-- Report faithfully: say which tests were run, which were not, and that CI was not awaited.
-- Mention test failures that already exist on `main` instead of hiding them.
-
 ## GitHub Actions workflows
 
 The workflows are in `.github/workflows/`; the composite actions are in `.github/actions/`.
@@ -192,3 +200,8 @@ and keep it up to date when you add, rename or remove a workflow.
 
 - Releases are immutable exact version tags (`v0.6.0`, ...). Do not create or move floating tags
   (`v0`, `latest`) and do not document them as an option.
+
+## Reporting
+
+- Report faithfully: say which tests were run, which were not, and that CI was not awaited.
+- Mention test failures that already exist on `main` instead of hiding them.
