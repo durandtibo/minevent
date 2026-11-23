@@ -7,8 +7,7 @@ __all__ = ["EventManager", "Subscription"]
 import functools
 import threading
 from collections.abc import Awaitable, Coroutine
-
-TYPE_CHECKING = False
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Callable
