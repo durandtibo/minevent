@@ -49,9 +49,11 @@ The package is two concepts (_event_, _handler_) and a _manager_ that connects t
 `Subscription` that a registration returns and the plain-callable _conditions_. These are the rules.
 Each design choice exists to make one of them true **by construction** instead of by discipline.
 "Enforced by" names the test that enforces the property today (verified to exist); **new** marks a
-clause that the change introduces and that needs a test (section 9). P1, P2, P4, P8, P13, P14 and P18 are
+clause that the change introduces and that needs a test (section 9). P1, P2, P4, P8, P13, P14 and
+P18 are
 stated **as they must be after the change**: today each has a clause that differs (F1 to F5 and F7).
-The table is the target: P1, P2, P4, P8, P13, P14 and P18 become true **after step 3** (P2 after step 5),
+The table is the target: P1, P2, P4, P8, P13, P14 and P18 become true **after step 3** (P2 after
+step 5),
 so `docs/docs/architecture.md` keeps today's wording of these rows until then (step 1 only fixes its
 `**payload` typo).
 
@@ -356,7 +358,7 @@ All on `main` at `520432b`, Python 3.13, Apple laptop, minimum of 5 `timeit` rep
 session scratchpad (not committed). The prototype is the **dispatch core only** (registry, options,
 snapshot, `once`, awaitable check, note): 71 lines, no logging, no note de-duplication.
 
-**Behaviour**
+### Behaviour
 
 | Probe                                                             | `main`                                                | Target (prototype)                         |
 | ----------------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------ |
@@ -412,7 +414,8 @@ after 2 is merged). Every PR updates the changelog with its number, has its test
 (stacked on #808), step 5 #810 (stacked on #809). The prose of this document describes the state
 before these pull requests.
 
-Step 1 is safe alone. Steps 2 to 4 are the only API-breaking ones and ship in the same release. Step 5 is independent and
+Step 1 is safe alone. Steps 2 to 4 are the only API-breaking ones and ship in the same release. Step
+5 is independent and
 can go first: it makes the import benchmark a baseline for the others.
 
 ---
@@ -463,12 +466,16 @@ behaviour, with `match` on every `pytest.raises`, and each regression test is ch
 
 ## 10. Decisions for the maintainers
 
-The decisions of the earlier reviews that this one **keeps** (snapshot dispatch, `once` consumed on a
+The decisions of the earlier reviews that this one **keeps** (snapshot dispatch, `once` consumed on
+a
 false condition or a raising handler, sequential async, no lock in conditions, one-line `repr`s,
-lazy `__version__`, `get_subscriptions`, note without `repr`, `dict` as an ordered set, dedupe of notes, the dispatch loops of
+lazy `__version__`, `get_subscriptions`, note without `repr`, `dict` as an ordered set, dedupe of
+notes, the dispatch loops of
 `trigger_event` and `atrigger_event` not shared, a condition without the payload, truthy and
-non-copyable manager) are settled and not reopened. D7 **reopens** two more ("`inspect` imported at module level", PR #749, and "`logger.debug` kept"), because the
-new property P2 and the measurement of F7 change the trade-off. D1 **reopens** two earlier decisions ("handlers as
+non-copyable manager) are settled and not reopened. D7 **reopens** two more ("`inspect` imported at
+module level", PR #749, and "`logger.debug` kept"), because the
+new property P2 and the measurement of F7 change the trade-off. D1 **reopens** two earlier decisions
+("handlers as
 plain callables" and "`handler_args` / `handler_kwargs` kept"), because F1 is a defect that the old
 design can only fix by re-implementing the signature handling of `functools.partial`.
 
@@ -487,7 +494,8 @@ design can only fix by re-implementing the signature handling of `functools.part
 ## 11. Not covered
 
 - **Priorities, wildcards, hierarchical events, event objects.** Non-goals of the architecture page.
-- **Typed payloads** (a `TypedDict` per event, generics on `EventManager`). Worth a separate design if
+- **Typed payloads** (a `TypedDict` per event, generics on `EventManager`). Worth a separate design
+  if
   users ask; it does not change the runtime.
 - **Weak references / auto-unsubscribe, collecting errors (`ExceptionGroup`), cross-process or
   persistent events, offloading blocking handlers to a thread.** Non-goals, unchanged.
@@ -499,13 +507,15 @@ design can only fix by re-implementing the signature handling of `functools.part
 - **Repository tooling.** 26 workflows, the shared `.make/` directory and two task runners (`invoke`
   and `make`) are large for a 1,000-line package. They are shared with other projects, so they are
   outside this review.
-- **A full implementation.** Only the dispatch core was prototyped. The docstrings, the de-duplicated notes and the 100% coverage are part of the PRs, not of this document.
+- **A full implementation.** Only the dispatch core was prototyped. The docstrings, the
+  de-duplicated notes and the 100% coverage are part of the PRs, not of this document.
 
 ---
 
 ## Appendix: effect on the size of the package
 
-Lines include docstrings (`wc -l`); "Expected" is an estimate, the gate is the behaviour of sections 1
+Lines include docstrings (`wc -l`); "Expected" is an estimate, the gate is the behaviour of sections
+1
 and 9, not the size.
 
 | Module                                       | Lines today | Expected after | Why                                                                              |
