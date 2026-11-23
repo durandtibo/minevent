@@ -30,7 +30,6 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
     `add_event_handler("e", f, condition=c, filter_payload=True)`.
   - `class H(BaseEventHandler): def handle(self, /, **payload)` becomes
     `class H: def __call__(self, **payload)`, and `async def ahandle` becomes `async def __call__`.
-
 - `BaseCondition` (with `evaluate` and `equal`) is removed. A condition is a function without
   argument that returns a boolean: implement `__call__` instead of `evaluate`, and call `condition()`
   instead of `condition.evaluate()`. Combine conditions with a function, for example
