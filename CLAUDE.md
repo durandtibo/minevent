@@ -27,6 +27,10 @@
   branch each PR from the branch of the previous one (not from `main`) and open it with the
   previous branch as its base. Keep each PR small and reviewable on its own. Once a PR of the stack
   is merged, retarget the next PR to `main` and merge `origin/main` into it.
+- Write commit messages and PR titles as a short imperative sentence starting with a verb such as
+  `Add`, `Fix`, `Update`, `Remove` or `Improve`. Do not use conventional-commit prefixes like
+  `docs:` or `feat:` (the type prefix is only for branch names). The squash-merge appends the PR
+  number, so do not add one.
 - In the PR description, say what was changed, what was deliberately not changed, and any
   behaviour change (for example a changed output, or a breaking change of the signature).
 - When a PR conflicts with `main`, merge `origin/main` into the branch and resolve the conflicts
@@ -34,6 +38,8 @@
   same test file: keep both. Check what `main` already contains before choosing a side.
 - Update any tracking document (changelog, status table, issue) affected by the change, with the
   PR number.
+- Do not escape special characters such as the backtick (`` ` ``) in the PR title or description
+  (no `\``): the backslash is not rendered well. Write the characters as is.
 
 ## Code
 
@@ -141,3 +147,8 @@ failure points at the specific behavior that broke.
 
 - Report faithfully: say which tests were run, which were not, and that CI was not awaited.
 - Mention test failures that already exist on `main` instead of hiding them.
+
+## Releases
+
+- Releases are immutable exact version tags (`v0.6.0`, ...). Do not create or move floating tags
+  (`v0`, `latest`) and do not document them as an option.
