@@ -8,7 +8,6 @@ from typing import Any
 import pytest
 
 from minevent import (
-    EventHandler,
     EventManager,
 )
 from tests.unit.utils import trace
@@ -55,14 +54,14 @@ async def async_handler(**kwargs: Any) -> None:
 
 async def test_event_manager_atrigger_event_awaits_coroutine_handler() -> None:
     manager = EventManager()
-    manager.add_event_handler("my_event", EventHandler(async_handler))
+    manager.add_event_handler("my_event", async_handler)
     await manager.atrigger_event("my_event")
     assert async_handler.call_count == 1
 
 
 async def test_event_manager_atrigger_event_payload() -> None:
     manager = EventManager()
-    manager.add_event_handler("my_event", EventHandler(async_handler))
+    manager.add_event_handler("my_event", async_handler)
     await manager.atrigger_event("my_event", epoch=3)
     assert async_handler.kwargs == {"epoch": 3}
 
@@ -70,9 +69,9 @@ async def test_event_manager_atrigger_event_payload() -> None:
 async def test_event_manager_atrigger_event_mixes_sync_and_async_in_order() -> None:
     order: list[str] = []
     manager = EventManager()
-    manager.add_event_handler("my_event", EventHandler(append_async, handler_args=(order, "first")))
-    manager.add_event_handler("my_event", EventHandler(order.append, handler_args=("second",)))
-    manager.add_event_handler("my_event", EventHandler(append_async, handler_args=(order, "third")))
+    manager.add_event_handler("my_event", functools.partial(append_async, order, "first"))
+    manager.add_event_handler("my_event", functools.partial(order.append, "second"))
+    manager.add_event_handler("my_event", functools.partial(append_async, order, "third"))
     await manager.atrigger_event("my_event")
     assert order == ["first", "second", "third"]
 
@@ -83,15 +82,15 @@ async def test_event_manager_atrigger_event_without_event_handler() -> None:
 
 async def test_event_manager_atrigger_event_fail_fast() -> None:
     manager = EventManager()
-    manager.add_event_handler("my_event", EventHandler(async_fail))
+    manager.add_event_handler("my_event", async_fail)
     with pytest.raises(RuntimeError, match=r"async failed"):
         await manager.atrigger_event("my_event")
 
 
 async def test_event_manager_atrigger_event_fail_fast_skips_next_handlers() -> None:
     manager = EventManager()
-    manager.add_event_handler("my_event", EventHandler(async_fail))
-    manager.add_event_handler("my_event", EventHandler(hello_handler))
+    manager.add_event_handler("my_event", async_fail)
+    manager.add_event_handler("my_event", hello_handler)
     with contextlib.suppress(RuntimeError):
         await manager.atrigger_event("my_event")
     assert hello_handler.call_count == 0
@@ -105,7 +104,7 @@ async def test_event_manager_atrigger_event_incorrect_event() -> None:
 
 async def test_event_manager_atrigger_event_once() -> None:
     manager = EventManager()
-    manager.add_event_handler("my_event", EventHandler(async_handler), once=True)
+    manager.add_event_handler("my_event", async_handler, once=True)
     await manager.atrigger_event("my_event")
     await manager.atrigger_event("my_event")
     assert async_handler.call_count == 1
@@ -115,9 +114,9 @@ async def test_event_manager_atrigger_event_snapshot() -> None:
     manager = EventManager()
 
     async def add_handler() -> None:
-        manager.add_event_handler("my_event", EventHandler(async_handler))
+        manager.add_event_handler("my_event", async_handler)
 
-    manager.add_event_handler("my_event", EventHandler(add_handler))
+    manager.add_event_handler("my_event", add_handler)
     await manager.atrigger_event("my_event")
     assert async_handler.call_count == 0
 
@@ -129,14 +128,14 @@ async def test_event_manager_atrigger_event_snapshot() -> None:
 
 def test_event_manager_trigger_event_coroutine_handler_raises() -> None:
     manager = EventManager()
-    manager.add_event_handler("my_event", EventHandler(async_handler))
-    with pytest.raises(TypeError, match=r"returned an awaitable; use ahandle or atrigger_event"):
+    manager.add_event_handler("my_event", async_handler)
+    with pytest.raises(TypeError, match=r"returned an awaitable; use atrigger_event"):
         manager.trigger_event("my_event")
 
 
 async def test_event_manager_atrigger_event_handler_raises_adds_note() -> None:
     manager = EventManager()
-    handler = EventHandler(failing_async_handler)
+    handler = failing_async_handler
     manager.add_event_handler("my_event", handler)
     with pytest.raises(ValueError, match=r"boom") as exc_info:
         await manager.atrigger_event("my_event")
@@ -284,3 +283,48 @@ async def test_event_manager_atrigger_event_condition_false_skips_coroutine() ->
     )
     await manager.atrigger_event("my_event")
     assert values == []
+
+
+class AwaitableObject:
+    r"""Implements an awaitable that is not a coroutine."""
+
+    def __init__(self, awaited: list[int]) -> None:
+        self._awaited = awaited
+
+    def __await__(self) -> Any:
+        self._awaited.append(1)
+        yield
+
+
+async def test_event_manager_atrigger_event_awaits_object_with_await() -> None:
+    manager = EventManager()
+    awaited: list[int] = []
+    manager.add_event_handler("my_event", lambda: AwaitableObject(awaited))
+    await manager.atrigger_event("my_event")
+    assert awaited == [1]
+
+
+def test_event_manager_trigger_event_object_with_await_raises() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", lambda: AwaitableObject([]))
+    with pytest.raises(TypeError, match=r"returned an awaitable; use atrigger_event"):
+        manager.trigger_event("my_event")
+
+
+def test_event_manager_trigger_event_condition_false_does_not_call_coroutine_function() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", async_handler, condition=lambda: False)
+    manager.trigger_event("my_event")
+    assert async_handler.call_count == 0
+
+
+async def test_event_manager_atrigger_event_filter_payload_coroutine_function() -> None:
+    manager = EventManager()
+    values: list[str] = []
+
+    async def record(value: str) -> None:
+        values.append(value)
+
+    manager.add_event_handler("my_event", record, filter_payload=True)
+    await manager.atrigger_event("my_event", value="a", other=1)
+    assert values == ["a"]

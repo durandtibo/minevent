@@ -19,16 +19,23 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
 - `trigger_event` runs the handlers registered when the trigger starts; handlers added or removed
   by a handler take effect at the next trigger.
 - Reading the manager (`trigger_event`, `get_subscriptions`, ...) no longer creates events.
-- `EventHandler` copies `handler_kwargs`, rejects a `str` or `bytes` `handler_args`, and accepts a
-  `condition` argument. `ConditionalEventHandler` is removed: use
-  `EventHandler(handler, condition=condition)`.
+- `EventHandler`, `BaseEventHandler` (and `ConditionalEventHandler`) are removed (#808). A handler is
+  any callable, called as `handler(**payload)`, and the options of a registration are the
+  keyword-only arguments of `add_event_handler` and `on`:
+
+  - `add_event_handler("e", EventHandler(f))` becomes `add_event_handler("e", f)`.
+  - `EventHandler(f, ["a"], {"k": 1})` becomes `functools.partial(f, "a", k=1)`. A payload key that
+    repeats a bound keyword overrides it (it raised a `TypeError` for `handler_kwargs`).
+  - `EventHandler(f, condition=c, filter_payload=True)` becomes
+    `add_event_handler("e", f, condition=c, filter_payload=True)`.
+  - `class H(BaseEventHandler): def handle(self, /, **payload)` becomes
+    `class H: def __call__(self, **payload)`, and `async def ahandle` becomes `async def __call__`.
 - `BaseCondition` (with `evaluate` and `equal`) is removed. A condition is a function without
   argument that returns a boolean: implement `__call__` instead of `evaluate`, and call `condition()`
   instead of `condition.evaluate()`. Combine conditions with a function, for example
   `lambda: a() and b()`.
 - `PeriodicCondition` validates `freq` and has a `skip_first` option and a `reset` method.
-- `__repr__` of `EventManager` is simpler: `EventManager(events={'my_event': 1})`, and `__repr__` of
-  `EventHandler` is one line.
+- `__repr__` of `EventManager` is simpler: `EventManager(events={'my_event': 1})`.
 - `EventManager.last_triggered_event` is removed.
 
 ### Added
@@ -36,7 +43,7 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
 - `EventManager.events`, `__contains__`, `clear_event` and `reset`.
 - `trigger_event(event, **payload)` passes the keyword arguments to the handlers.
 - `add_event_handler` returns a `Subscription` and has a `once` option.
-- `atrigger_event` and `EventHandler.ahandle` to await coroutine handlers.
+- `atrigger_event` to await coroutine handlers.
 - Built-in condition `AfterNCondition`. A condition is any function without
   argument that returns a boolean (the `Condition` protocol), so a lambda is a condition.
 - The `EventManager` registry is thread-safe.
@@ -44,7 +51,7 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
 - `EventManager.get_subscriptions`, `__len__` and the `on` decorator.
 - `Subscription` is a context manager and has an `active` property.
 - `EventManager.on(event, *, once, condition, filter_payload)` forwards the options of the handler (#767).
-- `EventHandler(..., filter_payload=True)` passes only the payload keys the handler accepts.
+- `add_event_handler(..., filter_payload=True)` passes only the payload keys the handler accepts.
 - The exception of a handler has a note (`__notes__`) with the event and the handler that raised it.
 
 ### Fixed
@@ -61,20 +68,17 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
   `manager or default` is safe; use `len(manager) == 0` to test that a manager has no handler.
   `copy.copy`, `copy.deepcopy` and `pickle` of an `EventManager` raise a `TypeError` (`copy.copy`
   used to share the registry silently): create a new manager (#771).
-- `EventHandler` validates `handler_args` and `handler_kwargs` at construction: a `TypeError` that
-  names the argument and the value, and non-`str` keys of `handler_kwargs` are rejected (they used
-  to fail at every trigger) (#774).
 - `Subscription.active` reads the registry of the manager instead of a copy of the state, so it is
   `False` for a subscription that was never registered (it was `True`). `reset` and `clear_event` no
   longer walk the registrations to flip a flag (#772).
 - Removing a registration is O(1) instead of O(n): the registry of an event is an ordered `dict`
   (#765). `Subscription.remove()` returns `False`, and no longer raises `KeyError`, for a
   subscription that was never registered in its manager.
-- Stricter type hints (`Callable[..., object]`, `Mapping`, `BaseEventHandler.handle(**payload: object)`).
+- Stricter type hints (`Callable[..., object]`, payload typed `object`).
 - `minevent.__version__` is resolved lazily from the package metadata.
 - The package has no `all` extra (it had no optional dependency). The classifiers are
   `Development Status :: 3 - Alpha` and `Operating System :: OS Independent`.
-- `EventManager.add_event_handler` accepts any callable (and still an `EventHandler`), and has the
+- `EventManager.add_event_handler` accepts any callable, and has the
   keyword-only options `condition` and `filter_payload` next to `once`. It raises a `TypeError` for a
   `handler` that is not callable or a `condition` that is neither `None` nor callable (a bare
   function used to fail at the first trigger with an `AttributeError`). `EventManager.on` is the
@@ -97,7 +101,7 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
   `atrigger_event`, `clear_event` and `AfterNCondition` describe the `once` registrations, the
   notes of the exceptions, the `TypeError` for an awaitable and the thread safety. The quickstart
   and architecture pages no longer mention a synchronous-only system or `last_triggered_event`, and
-  the architecture flows show the payload, the subscriptions and `ahandle`.
+  the architecture flows show the payload and the subscriptions.
 - Documentation: the properties table of `architecture.md` lists the 8 public members of
   `EventManager`, "Design Decisions" and "Conclusion" are removed, `CONTRIBUTING.md` uses the invoke
   tasks, and `review/suggestions.md` is deleted (#770).

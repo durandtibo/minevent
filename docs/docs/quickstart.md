@@ -5,7 +5,7 @@
 The `minevent` event system is composed of three main components:
 
 - an event
-- an event handler
+- an event handler (any callable)
 - an event manager
 
 `trigger_event` is synchronous: the handlers of an event run one after the other, in the order they
@@ -30,24 +30,23 @@ my_event = "training completed"
 
 In `minevent`, an event handler is a piece a code that is executed when an even happened.
 
-An event handler is a `BaseEventHandler`: it must have a `handle(self, /, **payload)` method, which
-executes a piece of code when the event happens (`ahandle` is its asynchronous counterpart). Event
-handlers are compared by identity.
-
-`minevent` provides `EventHandler`, which wraps a callable. It can take an optional `condition`
-to execute the logic only when the condition is true.
+An event handler is any callable. It is called as `handler(**payload)`, where `payload` is the data
+given when the event is triggered (see [Fire an event](#fire-an-event)). A coroutine function is a
+handler of `atrigger_event`. The options of a registration (`once`, `condition` and
+`filter_payload`) are the keyword-only arguments of `EventManager.add_event_handler`.
 
 ### Basic event handler
 
 Let's assume we want to create an event handler to say hello when an event is fired.
-It is possible to implement this scenario as follow by using `minevent.EventHandler`.
+A function is a handler:
 
 ```pycon
->>> from minevent import EventHandler
+>>> from minevent import EventManager
 >>> def hello_handler() -> None:
 ...     print("Hello!")
->>> handler = EventHandler(hello_handler)
->>> handler.handle()
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler("my_event", hello_handler)
+>>> manager.trigger_event("my_event")
 Hello!
 
 ```
@@ -56,38 +55,47 @@ Hello!
 
 The previous example has no arguments.
 It is also possible to provide some arguments to customize the event handler.
-The arguments can be given as positional arguments using `handler_args`:
+Use `functools.partial` to bind the arguments that do not come from the payload. The arguments can
+be given as positional arguments:
 
 ```pycon
->>> from minevent import EventHandler
+>>> import functools
+>>> from minevent import EventManager
 >>> def hello_handler(name: str, day: str) -> None:
 ...     print(f"Hello {name}! Happy {day}!")
->>> handler = EventHandler(hello_handler, handler_args=("Bob", "Monday"))
->>> handler.handle()
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler("my_event", functools.partial(hello_handler, "Bob", "Monday"))
+>>> manager.trigger_event("my_event")
 Hello Bob! Happy Monday!
 
 ```
 
-It is also possible to give the arguments as keyword arguments using `handler_kwargs`:
+as keyword arguments:
 
 ```pycon
->>> from minevent import EventHandler
+>>> import functools
+>>> from minevent import EventManager
 >>> def hello_handler(name: str, day: str) -> None:
 ...     print(f"Hello {name}! Happy {day}!")
->>> handler = EventHandler(hello_handler, handler_kwargs={"name": "Bob", "day": "Monday"})
->>> handler.handle()
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler(
+...     "my_event", functools.partial(hello_handler, name="Bob", day="Monday")
+... )
+>>> manager.trigger_event("my_event")
 Hello Bob! Happy Monday!
 
 ```
 
-It is also possible to use `handler_args` and `handler_kwargs`:
+or both:
 
 ```pycon
->>> from minevent import EventHandler
+>>> import functools
+>>> from minevent import EventManager
 >>> def hello_handler(name: str, day: str) -> None:
 ...     print(f"Hello {name}! Happy {day}!")
->>> handler = EventHandler(hello_handler, handler_args=["Bob"], handler_kwargs={"day": "Monday"})
->>> handler.handle()
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler("my_event", functools.partial(hello_handler, "Bob", day="Monday"))
+>>> manager.trigger_event("my_event")
 Hello Bob! Happy Monday!
 
 ```
@@ -96,9 +104,13 @@ It is possible to define event handlers with a large range of functions.
 For example, it is possible to implement the same logic by using directly `print`:
 
 ```pycon
->>> from minevent import EventHandler
->>> handler = EventHandler(print, handler_args=("Hello Bob! Happy Monday!",))
->>> handler.handle()
+>>> import functools
+>>> from minevent import EventManager
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler(
+...     "my_event", functools.partial(print, "Hello Bob! Happy Monday!")
+... )
+>>> manager.trigger_event("my_event")
 Hello Bob! Happy Monday!
 
 ```
@@ -110,15 +122,18 @@ The following example shows how to define an event handler where the logic is ex
 calls.
 
 ```pycon
->>> from minevent import EventHandler, PeriodicCondition
+>>> from minevent import EventManager, PeriodicCondition
 >>> def hello_handler() -> None:
 ...     print("Hello!")
->>> handler = EventHandler(hello_handler, condition=PeriodicCondition(freq=3))
->>> handler.handle()
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler(
+...     "my_event", hello_handler, condition=PeriodicCondition(freq=3)
+... )
+>>> manager.trigger_event("my_event")
 Hello!
->>> handler.handle()
->>> handler.handle()
->>> handler.handle()
+>>> manager.trigger_event("my_event")
+>>> manager.trigger_event("my_event")
+>>> manager.trigger_event("my_event")
 Hello!
 
 ```
@@ -132,12 +147,13 @@ the logic associated to the event handler is not executed.
 A plain function without argument that returns a boolean is also accepted as a condition:
 
 ```pycon
->>> from minevent import EventHandler
+>>> from minevent import EventManager
 >>> def hello_handler() -> None:
 ...     print("Hello!")
 >>> verbose = True
->>> handler = EventHandler(hello_handler, condition=lambda: verbose)
->>> handler.handle()
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler("my_event", hello_handler, condition=lambda: verbose)
+>>> manager.trigger_event("my_event")
 Hello!
 
 ```
@@ -149,13 +165,16 @@ A condition is any function without argument that returns a boolean (the `Condit
 To combine conditions, write a function. You choose which conditions are evaluated:
 
 ```pycon
->>> from minevent import AfterNCondition, EventHandler, PeriodicCondition
+>>> from minevent import AfterNCondition, EventManager, PeriodicCondition
 >>> def hello_handler() -> None:
 ...     print("Hello!")
 >>> after_one, periodic = AfterNCondition(1), PeriodicCondition(2)
->>> handler = EventHandler(hello_handler, condition=lambda: all([after_one(), periodic()]))
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler(
+...     "my_event", hello_handler, condition=lambda: all([after_one(), periodic()])
+... )
 >>> for _ in range(5):
-...     handler.handle()
+...     manager.trigger_event("my_event")
 Hello!
 Hello!
 
@@ -170,13 +189,18 @@ the instance. A condition instance given to two handlers is shared, so the two h
 same counter. Create one instance per handler (a small factory function is enough):
 
 ```pycon
->>> from minevent import EventHandler, PeriodicCondition
->>> def make_handler(name):
-...     return EventHandler(print, handler_args=(name,), condition=PeriodicCondition(freq=2))
->>> first, second = make_handler("first"), make_handler("second")
->>> first.handle()
+>>> import functools
+>>> from minevent import EventManager, PeriodicCondition
+>>> manager = EventManager()
+>>> def register(name):
+...     manager.add_event_handler(
+...         name, functools.partial(print, name), condition=PeriodicCondition(freq=2)
+...     )
+>>> register("first")
+>>> register("second")
+>>> manager.trigger_event("first")
 first
->>> second.handle()
+>>> manager.trigger_event("second")
 second
 
 ```
@@ -186,17 +210,19 @@ next trigger of the event.
 
 ### Event handler identity
 
-Event handlers are compared by identity: two `EventHandler`s created with the same arguments are
-different objects. To find or remove a registration, keep the `Subscription` returned by
-`EventManager.add_event_handler` (see [Subscriptions](#subscriptions)).
+Registrations are identified by the `Subscription` that `EventManager.add_event_handler` returns,
+not by the handler: the same callable can be registered several times. To find or remove a
+registration, keep the `Subscription` (see [Subscriptions](#subscriptions)).
 
 ```pycon
->>> from minevent import EventHandler
->>> handler = EventHandler(print)
->>> handler == handler
-True
->>> handler == EventHandler(print)
+>>> from minevent import EventManager
+>>> manager = EventManager()
+>>> first = manager.add_event_handler("my_event", print)
+>>> second = manager.add_event_handler("my_event", print)
+>>> first == second
 False
+>>> first.handler is second.handler
+True
 
 ```
 
@@ -251,11 +277,11 @@ The simplest approach requires an event and an event handler.
 The following example shows how to add a `hello_handler` handler to the `'my_event'` event.
 
 ```pycon
->>> from minevent import EventHandler, EventManager
+>>> from minevent import EventManager
 >>> def hello_handler() -> None:
 ...     print("Hello!")
 >>> manager = EventManager()
->>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
+>>> _ = manager.add_event_handler("my_event", hello_handler)
 >>> manager
 EventManager(events={'my_event': 1})
 
@@ -267,12 +293,13 @@ It is possible to add an event handler that takes some input arguments.
 The following example shows how to add an event handler with some positional arguments.
 
 ```pycon
->>> from minevent import EventHandler, EventManager
+>>> import functools
+>>> from minevent import EventManager
 >>> def hello_handler(first_name: str, last_name: str) -> None:
 ...     print(f"Hello. I am {last_name}, {first_name} {last_name}")
 >>> manager = EventManager()
->>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler, ("John", "Smith")))
->>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler, ("Jane", "Doe")))
+>>> _ = manager.add_event_handler("my_event", functools.partial(hello_handler, "John", "Smith"))
+>>> _ = manager.add_event_handler("my_event", functools.partial(hello_handler, "Jane", "Doe"))
 >>> manager
 EventManager(events={'my_event': 2})
 
@@ -284,12 +311,12 @@ Internally, each event uses a list to store the registrations.
 It is possible to add the same event handler multiple times:
 
 ```pycon
->>> from minevent import EventHandler, EventManager
+>>> from minevent import EventManager
 >>> def hello_handler() -> None:
 ...     print("Hello!")
 >>> manager = EventManager()
->>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
->>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
+>>> _ = manager.add_event_handler("my_event", hello_handler)
+>>> _ = manager.add_event_handler("my_event", hello_handler)
 >>> manager
 EventManager(events={'my_event': 2})
 
@@ -302,11 +329,11 @@ removes exactly that registration, even if the same handler is registered severa
 returns `False` if it was already removed:
 
 ```pycon
->>> from minevent import EventHandler, EventManager
+>>> from minevent import EventManager
 >>> def hello_handler() -> None:
 ...     print("Hello!")
 >>> manager = EventManager()
->>> handler = EventHandler(hello_handler)
+>>> handler = hello_handler
 >>> first = manager.add_event_handler("my_event", handler)
 >>> second = manager.add_event_handler("my_event", handler)
 >>> first.remove()
@@ -325,11 +352,11 @@ Hello!
 check the registrations:
 
 ```pycon
->>> from minevent import EventHandler, EventManager
+>>> from minevent import EventManager
 >>> def hello_handler() -> None:
 ...     print("Hello!")
 >>> manager = EventManager()
->>> handler = EventHandler(hello_handler)
+>>> handler = hello_handler
 >>> for _ in range(5):
 ...     if not any(s.handler is handler for s in manager.get_subscriptions("my_event")):
 ...         _ = manager.add_event_handler("my_event", handler)
@@ -341,11 +368,11 @@ check the registrations:
 To run a handler only on the next trigger, use `once=True`:
 
 ```pycon
->>> from minevent import EventHandler, EventManager
+>>> from minevent import EventManager
 >>> def hello_handler() -> None:
 ...     print("Hello!")
 >>> manager = EventManager()
->>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler), once=True)
+>>> _ = manager.add_event_handler("my_event", hello_handler, once=True)
 >>> manager.trigger_event("my_event")
 Hello!
 >>> manager.trigger_event("my_event")
@@ -353,12 +380,13 @@ Hello!
 ```
 
 `once=True` means "the next trigger", not "the next time the handler runs": the registration is
-removed on the next trigger even if the condition of the `EventHandler` is `False` and the
+removed on the next trigger even if the condition of the handler is `False` and the
 function is not called. If you need the handler to run the first time its condition is `True`,
 register it without `once` and write a condition that remembers it:
 
 ```pycon
->>> from minevent import EventHandler, EventManager
+>>> import functools
+>>> from minevent import EventManager
 >>> class FirstTrue:
 ...     def __init__(self, condition):
 ...         self._condition, self._done = condition, False
@@ -371,7 +399,7 @@ register it without `once` and write a condition that remembers it:
 >>> ready = [False]
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler(
-...     "step", EventHandler(print, ["ready!"], condition=FirstTrue(lambda: ready[0]))
+...     "step", functools.partial(print, "ready!"), condition=FirstTrue(lambda: ready[0])
 ... )
 >>> manager.trigger_event("step")
 >>> ready[0] = True
@@ -387,9 +415,10 @@ registers a function and returns it unchanged. It takes the options `once`, `con
 `filter_payload`:
 
 ```pycon
->>> from minevent import EventHandler, EventManager
+>>> import functools
+>>> from minevent import EventManager
 >>> manager = EventManager()
->>> with manager.add_event_handler("my_event", EventHandler(print, handler_args=("Hello!",))) as sub:
+>>> with manager.add_event_handler("my_event", functools.partial(print, "Hello!")) as sub:
 ...     manager.trigger_event("my_event")
 Hello!
 >>> sub.active
@@ -410,11 +439,11 @@ Then, we want to execute the handler when the event is fired.
 The following example shows how to fire the `hello_handler` for the event `'my_event'`:
 
 ```pycon
->>> from minevent import EventHandler, EventManager
+>>> from minevent import EventManager
 >>> def hello_handler() -> None:
 ...     print("Hello!")
 >>> manager = EventManager()
->>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
+>>> _ = manager.add_event_handler("my_event", hello_handler)
 >>> manager
 EventManager(events={'my_event': 1})
 >>> manager.trigger_event("my_event")
@@ -429,12 +458,13 @@ after. The event manager uses the arguments that were given when the event handl
 the payload given to `trigger_event` (see below).
 
 ```pycon
->>> from minevent import EventHandler, EventManager
+>>> import functools
+>>> from minevent import EventManager
 >>> def hello_handler(first_name: str, last_name: str) -> None:
 ...     print(f"Hello. I am {first_name} {last_name}")
 >>> manager = EventManager()
->>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler, ("John", "Smith")))
->>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler, ("Jane", "Doe")))
+>>> _ = manager.add_event_handler("my_event", functools.partial(hello_handler, "John", "Smith"))
+>>> _ = manager.add_event_handler("my_event", functools.partial(hello_handler, "Jane", "Doe"))
 >>> manager
 EventManager(events={'my_event': 2})
 >>> manager.trigger_event("my_event")
@@ -447,12 +477,12 @@ As explained above, it is possible to add a condition to control when to execute
 The following shows how to execute the `hello_handler` every 3 `'my_event'` events.
 
 ```pycon
->>> from minevent import EventHandler, PeriodicCondition, EventManager
+>>> from minevent import EventManager, PeriodicCondition
 >>> def hello_handler() -> None:
 ...     print("Hello!")
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler(
-...     "my_event", EventHandler(hello_handler, condition=PeriodicCondition(freq=3))
+...     "my_event", hello_handler, condition=PeriodicCondition(freq=3)
 ... )
 >>> manager
 EventManager(events={'my_event': 1})
@@ -488,18 +518,18 @@ The `trigger_event` method does nothing if there is no event handler registered 
 ### Share an event between handlers that need different payload keys
 
 Every handler receives the whole payload, so a handler that does not accept a key raises a
-`TypeError`. Either accept the extra keys with `**_`, or create the handler with
+`TypeError`. Either accept the extra keys with `**_`, or register the handler with
 `filter_payload=True` to pass only the keys its signature accepts:
 
 ```pycon
->>> from minevent import EventHandler, EventManager
+>>> from minevent import EventManager
 >>> def log_loss(loss):
 ...     print(f"loss {loss}")
 >>> def log_epoch(epoch):
 ...     print(f"epoch {epoch}")
 >>> manager = EventManager()
->>> _ = manager.add_event_handler("epoch_end", EventHandler(log_loss, filter_payload=True))
->>> _ = manager.add_event_handler("epoch_end", EventHandler(log_epoch, filter_payload=True))
+>>> _ = manager.add_event_handler("epoch_end", log_loss, filter_payload=True)
+>>> _ = manager.add_event_handler("epoch_end", log_epoch, filter_payload=True)
 >>> manager.trigger_event("epoch_end", epoch=3, loss=0.5)
 loss 0.5
 epoch 3
@@ -518,11 +548,11 @@ also runs synchronous handlers) one after the other, in the order they were adde
 
 ```pycon
 >>> import asyncio
->>> from minevent import EventHandler, EventManager
+>>> from minevent import EventManager
 >>> async def hello_handler(name: str) -> None:
 ...     print(f"Hello {name}!")
 >>> manager = EventManager()
->>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
+>>> _ = manager.add_event_handler("my_event", hello_handler)
 >>> asyncio.run(manager.atrigger_event("my_event", name="John"))
 Hello John!
 
@@ -534,11 +564,11 @@ A previous section describes how to add an event handler, but sometimes it is us
 event handler. Call `remove()` on the `Subscription` returned by `add_event_handler`:
 
 ```pycon
->>> from minevent import EventHandler, EventManager
+>>> from minevent import EventManager
 >>> def hello_handler() -> None:
 ...     print("Hello!")
 >>> manager = EventManager()
->>> subscription = manager.add_event_handler("my_event", EventHandler(hello_handler))
+>>> subscription = manager.add_event_handler("my_event", hello_handler)
 >>> manager
 EventManager(events={'my_event': 1})
 >>> subscription.remove()
@@ -552,13 +582,13 @@ If you did not keep the subscription, `get_subscriptions` returns the registrati
 `clear_event` removes all the event handlers of an event:
 
 ```pycon
->>> from minevent import EventHandler, EventManager
+>>> from minevent import EventManager
 >>> def hello_handler() -> None:
 ...     print("Hello!")
 >>> manager = EventManager()
->>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
->>> _ = manager.add_event_handler("my_event", EventHandler(print))
->>> _ = manager.add_event_handler("my_other_event", EventHandler(hello_handler))
+>>> _ = manager.add_event_handler("my_event", hello_handler)
+>>> _ = manager.add_event_handler("my_event", print)
+>>> _ = manager.add_event_handler("my_other_event", hello_handler)
 >>> manager.get_subscriptions("my_event")[0].remove()
 True
 >>> manager
@@ -575,12 +605,12 @@ It is possible to reset the event manager with the `reset` method. It removes al
 and makes their subscriptions inactive. It is equivalent to create a new event manager.
 
 ```pycon
->>> from minevent import EventHandler, EventManager
+>>> from minevent import EventManager
 >>> def hello_handler() -> None:
 ...     print("Hello!")
 >>> manager = EventManager()
->>> _ = manager.add_event_handler("my_event", EventHandler(hello_handler))
->>> _ = manager.add_event_handler("my_other_event", EventHandler(hello_handler))
+>>> _ = manager.add_event_handler("my_event", hello_handler)
+>>> _ = manager.add_event_handler("my_other_event", hello_handler)
 >>> manager
 EventManager(events={'my_event': 1, 'my_other_event': 1})
 >>> manager.reset()

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from minevent import EventHandler, EventManager
+from minevent import EventManager
 from tests.integration.helpers import run_threads
 
 if TYPE_CHECKING:
@@ -25,7 +25,7 @@ def no_argument() -> None:
 
 def test_trigger_event_threads_benchmark(benchmark: BenchmarkFixture) -> None:
     manager = EventManager()
-    manager.add_event_handler("e", EventHandler(no_argument))
+    manager.add_event_handler("e", no_argument)
 
     def work(_index: int) -> None:
         for _ in range(NUM_TRIGGERS):
@@ -36,7 +36,7 @@ def test_trigger_event_threads_benchmark(benchmark: BenchmarkFixture) -> None:
 
 def test_add_and_remove_threads_benchmark(benchmark: BenchmarkFixture) -> None:
     manager = EventManager()
-    handler = EventHandler(no_argument)
+    handler = no_argument
 
     def work(_index: int) -> None:
         for _ in range(NUM_TRIGGERS):

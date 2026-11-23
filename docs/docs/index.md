@@ -31,7 +31,7 @@ implementation.
 Below is an example on how to use `minevent` library.
 
 ```pycon
->>> from minevent import EventHandler, EventManager
+>>> from minevent import EventManager
 >>> def say_something(manager: EventManager) -> None:
 ...     print("Hello, I am Bob!")
 ...     manager.trigger_event("after")
@@ -40,7 +40,7 @@ Below is an example on how to use `minevent` library.
 Hello, I am Bob!
 >>> def hello_handler() -> None:
 ...     print("Hello!")
->>> _ = manager.add_event_handler("after", EventHandler(hello_handler))
+>>> _ = manager.add_event_handler("after", hello_handler)
 >>> say_something(manager)
 Hello, I am Bob!
 Hello!

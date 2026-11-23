@@ -5,12 +5,11 @@ from __future__ import annotations
 __all__ = ["EventManager", "Subscription"]
 
 import functools
+import inspect
 import logging
 import threading
 from collections.abc import Awaitable, Coroutine
 from typing import TYPE_CHECKING, NamedTuple, NoReturn, Self, TypeVar
-
-from minevent.handlers import BaseEventHandler, EventHandler, _accepted_keywords
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -54,7 +53,45 @@ class _Options(NamedTuple):
     filter_payload: bool = False
 
 
-def _check_not_awaitable(result: object, handler: Callable[..., object] | BaseEventHandler) -> None:
+def _accepted_keywords(func: Callable[..., object]) -> frozenset[str] | None:
+    r"""Get the keyword arguments that a callable accepts.
+
+    Args:
+        func: The callable to inspect.
+
+    Returns:
+        The names of the parameters that can be passed by keyword,
+            or ``None`` if the callable accepts any keyword (it has a
+            ``**kwargs`` parameter) or if its signature cannot be
+            inspected. The signature of a ``functools.partial`` does
+            not contain the positional arguments that it binds.
+
+    Example:
+        ```pycon
+        >>> from minevent.manager import _accepted_keywords
+        >>> def func(a, /, b, *, c, **kwargs): ...
+        >>> _accepted_keywords(func) is None
+        True
+        >>> def func(a, /, b, *, c): ...
+        >>> sorted(_accepted_keywords(func))
+        ['b', 'c']
+
+        ```
+    """
+    try:
+        parameters = inspect.signature(func).parameters.values()
+    except (TypeError, ValueError):
+        return None
+    if any(param.kind is inspect.Parameter.VAR_KEYWORD for param in parameters):
+        return None
+    return frozenset(
+        param.name
+        for param in parameters
+        if param.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY)
+    )
+
+
+def _check_not_awaitable(result: object, handler: Callable[..., object]) -> None:
     r"""Check that a handler did not return an awaitable.
 
     A coroutine is closed, so it does not emit a ``RuntimeWarning``
@@ -74,21 +111,20 @@ def _check_not_awaitable(result: object, handler: Callable[..., object] | BaseEv
         raise TypeError(msg)
 
 
-def _describe(handler: Callable[..., object] | BaseEventHandler) -> str:
+def _describe(handler: Callable[..., object]) -> str:
     r"""Name a handler without calling the ``repr`` of its data.
 
     The ``repr`` of a handler can contain its arguments, which can be
     large or raise, so it is not used in the note of an exception.
 
     Args:
-        handler: The handler to name: a callable, or an event handler.
+        handler: The callable to name.
 
     Returns:
-        The qualified name of the function of an ``EventHandler`` or
-            of a ``functools.partial`` (nested wrappers are
-            unwrapped), or the qualified name of the class of the
-            handler if it has no name (for example a callable
-            object).
+        The qualified name of the function under a
+            ``functools.partial`` (nested partials are unwrapped), or
+            the qualified name of the class of the handler if it has
+            no name (for example a callable object).
 
     Example:
         ```pycon
@@ -101,16 +137,12 @@ def _describe(handler: Callable[..., object] | BaseEventHandler) -> str:
 
         ```
     """
-    if isinstance(handler, EventHandler):
-        handler = handler.handler
     while isinstance(handler, functools.partial):
         handler = handler.func
     return getattr(handler, "__qualname__", type(handler).__qualname__)
 
 
-def _add_error_note(
-    exc: Exception, event: str, handler: Callable[..., object] | BaseEventHandler
-) -> None:
+def _add_error_note(exc: Exception, event: str, handler: Callable[..., object]) -> None:
     r"""Add a note to the exception raised by an event handler.
 
     The note names the event and the function of the handler, never
@@ -149,8 +181,7 @@ class Subscription:
     Args:
         manager: The event manager that stores the registration.
         event: The event name of the registration.
-        handler: The registered handler: a callable (or an event
-            handler).
+        handler: The registered handler: any callable.
         options: The options of the registration (``once``,
             ``condition`` and ``filter_payload``). ``None`` means the
             default options.
@@ -188,7 +219,7 @@ class Subscription:
         self,
         manager: EventManager,
         event: str,
-        handler: Callable[..., object] | BaseEventHandler,
+        handler: Callable[..., object],
         options: _Options | None = None,
     ) -> None:
         options = _Options() if options is None else options
@@ -199,9 +230,7 @@ class Subscription:
         self._condition = options.condition
         self._filter_payload = options.filter_payload
         # The accepted keys are computed once, at registration.
-        self._payload_keys = None
-        if options.filter_payload and not isinstance(handler, BaseEventHandler):
-            self._payload_keys = _accepted_keywords(handler)
+        self._payload_keys = _accepted_keywords(handler) if options.filter_payload else None
 
     def __enter__(self) -> Self:
         return self
@@ -227,7 +256,7 @@ class Subscription:
         return self._event
 
     @property
-    def handler(self) -> Callable[..., object] | BaseEventHandler:
+    def handler(self) -> Callable[..., object]:
         r"""Get the registered handler.
 
         Returns:
@@ -280,30 +309,22 @@ class Subscription:
         """
         return self._manager._is_registered(self)
 
-    def _call(self, payload: dict[str, object], *, asynchronous: bool = False) -> object:
+    def _call(self, payload: dict[str, object]) -> object:
         r"""Call the handler if the condition is ``True``.
 
         Args:
             payload: The payload given to ``trigger_event`` or
                 ``atrigger_event``.
-            asynchronous: If ``True``, an event handler is called with
-                ``ahandle`` instead of ``handle``. It has no effect on
-                a callable. Default is ``False``.
 
         Returns:
             The value returned by the handler, or ``None`` if the
                 condition is ``False``. It is awaitable if the handler
-                is a coroutine function or if ``asynchronous`` is
-                ``True`` and the handler is an event handler.
+                is a coroutine function.
         """
         if self._condition is not None and not self._condition():
             return None
         if self._payload_keys is not None:
             payload = {key: value for key, value in payload.items() if key in self._payload_keys}
-        if isinstance(self._handler, BaseEventHandler):
-            if asynchronous:
-                return self._handler.ahandle(**payload)
-            return self._handler.handle(**payload)
         return self._handler(**payload)
 
     def remove(self) -> bool:
@@ -475,7 +496,7 @@ class EventManager:
     def add_event_handler(
         self,
         event: str,
-        handler: Callable[..., object] | BaseEventHandler,
+        handler: Callable[..., object],
         *,
         once: bool = False,
         condition: Condition | None = None,
@@ -492,8 +513,7 @@ class EventManager:
         Args:
             event: The event name (case-sensitive string) to which
                 the handler should be attached.
-            handler: The callable to attach to the event. An
-                ``EventHandler`` is also accepted.
+            handler: The callable to attach to the event.
             once: If ``True``, the handler is removed before its first
                 execution, so it runs at most once. The registration
                 is removed by the next trigger even if the condition
@@ -562,7 +582,7 @@ class EventManager:
             ```
         """
         _check_event(event)
-        if not callable(handler) and not isinstance(handler, BaseEventHandler):
+        if not callable(handler):
             msg = f"handler must be callable, but got {handler!r}"
             raise TypeError(msg)
         if condition is not None and not callable(condition):
@@ -787,7 +807,7 @@ class EventManager:
             if subscription._once and not self._remove(subscription):
                 continue
             try:
-                result = subscription._call(payload, asynchronous=True)
+                result = subscription._call(payload)
                 if result is not None and isinstance(result, Awaitable):
                     await result
             except Exception as exc:

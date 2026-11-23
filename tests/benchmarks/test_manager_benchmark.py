@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from minevent import EventHandler, EventManager
+from minevent import EventManager
 
 if TYPE_CHECKING:
     from pytest_benchmark.fixture import BenchmarkFixture
@@ -27,14 +27,14 @@ def make_manager(num_events: int, num_handlers: int) -> EventManager:
     manager = EventManager()
     for i in range(num_events):
         for _ in range(num_handlers):
-            manager.add_event_handler(f"event_{i}", EventHandler(no_argument))
+            manager.add_event_handler(f"event_{i}", no_argument)
     return manager
 
 
 def test_add_event_handler_and_remove_benchmark(benchmark: BenchmarkFixture) -> None:
     # Adding alone would grow the registry at each round, so the registration is removed
     manager = EventManager()
-    handler = EventHandler(no_argument)
+    handler = no_argument
 
     def add_and_remove() -> bool:
         return manager.add_event_handler("e", handler).remove()
@@ -45,7 +45,7 @@ def test_add_event_handler_and_remove_benchmark(benchmark: BenchmarkFixture) -> 
 @pytest.mark.parametrize("num_handlers", [1, 10, 100])
 def test_subscription_remove_last_benchmark(benchmark: BenchmarkFixture, num_handlers: int) -> None:
     manager = make_manager(1, num_handlers)
-    handler = EventHandler(no_argument)
+    handler = no_argument
 
     def add_last_and_remove_it() -> bool:
         # The cost of remove() does not depend on the number of handlers of the event
@@ -55,7 +55,7 @@ def test_subscription_remove_last_benchmark(benchmark: BenchmarkFixture, num_han
 
 
 def test_subscription_active_benchmark(benchmark: BenchmarkFixture) -> None:
-    subscription = EventManager().add_event_handler("event_0", EventHandler(no_argument))
+    subscription = EventManager().add_event_handler("event_0", no_argument)
     benchmark(lambda: subscription.active)
 
 
@@ -64,7 +64,7 @@ def test_subscription_remove_many_lifo_benchmark(benchmark: BenchmarkFixture) ->
         # The order of nested ``with manager.add_event_handler(...)`` blocks. The total cost
         # must be linear in the number of registrations.
         manager = EventManager()
-        handler = EventHandler(no_argument)
+        handler = no_argument
         subscriptions = [manager.add_event_handler("event_0", handler) for _ in range(10_000)]
         for subscription in reversed(subscriptions):
             subscription.remove()
@@ -72,12 +72,13 @@ def test_subscription_remove_many_lifo_benchmark(benchmark: BenchmarkFixture) ->
     benchmark.pedantic(add_many_and_remove_in_reverse_order, rounds=3, iterations=1)
 
 
-def test_event_handler_construct_benchmark(benchmark: BenchmarkFixture) -> None:
-    benchmark(EventHandler, no_argument)
+def test_add_event_handler_filter_payload_and_remove_benchmark(benchmark: BenchmarkFixture) -> None:
+    manager = EventManager()
 
+    def add_and_remove() -> None:
+        manager.add_event_handler("e", no_argument, filter_payload=True).remove()
 
-def test_event_handler_construct_filter_payload_benchmark(benchmark: BenchmarkFixture) -> None:
-    benchmark(EventHandler, no_argument, filter_payload=True)
+    benchmark(add_and_remove)
 
 
 @pytest.mark.parametrize("num_handlers", [1, 10, 100])

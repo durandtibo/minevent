@@ -7,7 +7,7 @@ import subprocess
 import sys
 
 import minevent
-from minevent import EventHandler, EventManager
+from minevent import EventManager
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ def check_payload() -> None:
         received.append(kwargs)
 
     event_manager = EventManager()
-    event_manager.add_event_handler("my_event", EventHandler(handler))
+    event_manager.add_event_handler("my_event", handler)
     event_manager.trigger_event("my_event", epoch=3, event="batch_end")
     assert received == [{"epoch": 3, "event": "batch_end"}]
 
@@ -56,7 +56,7 @@ def check_subscription() -> None:
 
     calls: list[int] = []
     event_manager = EventManager()
-    subscription = event_manager.add_event_handler("my_event", EventHandler(calls.append, [1]))
+    subscription = event_manager.add_event_handler("my_event", functools.partial(calls.append, 1))
     assert subscription.active
     assert subscription.remove()
     event_manager.trigger_event("my_event")
@@ -73,7 +73,7 @@ def check_async_trigger() -> None:
         calls.append(value)
 
     event_manager = EventManager()
-    event_manager.add_event_handler("my_event", EventHandler(handler))
+    event_manager.add_event_handler("my_event", handler)
     asyncio.run(event_manager.atrigger_event("my_event", value=7))
     assert calls == [7]
 

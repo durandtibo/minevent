@@ -13,7 +13,7 @@ from typing import Protocol
 
 
 class Condition(Protocol):
-    r"""Define the protocol of a condition for ``EventHandler``.
+    r"""Define the protocol of a condition of a registration.
 
     A condition is any function without argument that returns a
     boolean: a lambda, a method, or an object with a ``__call__``
@@ -29,14 +29,16 @@ class Condition(Protocol):
 
     Example:
         ```pycon
-        >>> from minevent import EventHandler, PeriodicCondition
-        >>> condition = PeriodicCondition(freq=3)
-        >>> handler = EventHandler(print, ["Hello!"], condition=condition)
-        >>> handler.handle()
+        >>> from minevent import EventManager, PeriodicCondition
+        >>> manager = EventManager()
+        >>> _ = manager.add_event_handler(
+        ...     "hello", lambda: print("Hello!"), condition=PeriodicCondition(freq=3)
+        ... )
+        >>> manager.trigger_event("hello")
         Hello!
-        >>> handler.handle()
-        >>> handler = EventHandler(print, ["Bye!"], condition=lambda: False)
-        >>> handler.handle()
+        >>> manager.trigger_event("hello")
+        >>> _ = manager.add_event_handler("bye", lambda: print("Bye!"), condition=lambda: False)
+        >>> manager.trigger_event("bye")
 
         ```
     """
