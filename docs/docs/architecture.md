@@ -142,7 +142,8 @@ No hidden behavior or surprising actions:
 
 - Use descriptive names
 - Follow consistent naming convention
-- Consider hierarchical naming for complex systems
+- Use a namespace such as `training.batch.end` for complex systems (names are plain strings, so
+  there is no hierarchy)
 
 ### Event Handler
 

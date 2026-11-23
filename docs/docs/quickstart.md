@@ -1,4 +1,4 @@
-# quickstart
+# Quickstart
 
 ## Overview
 
@@ -13,7 +13,7 @@ were registered, in the calling thread. Coroutine handlers are supported by `atr
 [Fire an event with coroutine handlers](#fire-an-event-with-coroutine-handlers)).
 This page presents the design used in `minevent`, but other designs exist.
 The proposed design was not designed to work in all the scenarios, so it is highly recommended to
-read the documentation to understand if it fits your needs/requirements before to use it.
+read the documentation to understand if it fits your needs and requirements before using it.
 
 ## Event
 
@@ -22,13 +22,13 @@ The event is represented by the event name.
 For example, it is possible to write the following line to define an event that happens after the
 training is completed.
 
-```pycon
+```python
 my_event = "training completed"
 ```
 
 ## Event handler
 
-In `minevent`, an event handler is a piece a code that is executed when an even happened.
+In `minevent`, an event handler is a piece of code that is executed when an event happens.
 
 An event handler is any callable. It is called as `handler(**payload)`, where `payload` is the data
 given when the event is triggered (see [Fire an event](#fire-an-event)). A coroutine function is a
@@ -250,9 +250,8 @@ The event manager supports the following functionalities:
 ### Create an event manager
 
 To use the event system, it is important to create an event manager.
-`minevent` implements an event manager, but it is possible to implement and use other compatible
-event managers.
-This documentation uses the default event manager implemented in `minevent`.
+`minevent` implements one event manager, `EventManager`. It has no global state, so you create an
+instance and pass it where it is needed.
 To create an event manager, you can write:
 
 ```pycon
@@ -307,7 +306,7 @@ EventManager(events={'my_event': 2})
 
 For a given event, the event handlers run in the order of addition: here, the handler of
 John Smith runs before the handler of Jane Doe.
-Internally, each event uses a list to store the registrations.
+Internally, each event stores its registrations in an ordered `dict`.
 It is possible to add the same event handler multiple times:
 
 ```pycon
@@ -443,8 +442,9 @@ EventManager(events={'my_event': 1})
 ```
 
 Triggering an event does not change the manager: the representation above is the same before and
-after. The event manager uses the arguments that were given when the event handler was added, and
-the payload given to `trigger_event` (see below).
+after. A handler is called as `handler(**payload)`, where `payload` is the keyword arguments given
+to `trigger_event` (see below). The arguments that do not come from the payload are bound with
+`functools.partial`.
 
 ```pycon
 >>> import functools
