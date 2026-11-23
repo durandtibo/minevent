@@ -205,9 +205,10 @@ if not any(sub.handler is handler for sub in manager.get_subscriptions("my_event
 
 ### Clean up
 
-A registered handler lives as long as the manager: `obj.method` keeps `obj` alive, and
-so do the arguments bound by a `functools.partial` and closures. `minevent` uses no weak reference. Remove the subscriptions of
-the objects you no longer need, use a `with` block, or call `clear_event` / `reset`:
+A registered handler lives as long as the manager: `obj.method` keeps `obj` alive, and so do the
+arguments bound by a `functools.partial` and closures. `minevent` uses no weak reference. Remove the
+subscriptions of the objects you no longer need, use a `with` block, or call `clear_event` /
+`reset`:
 
 ```python
 try:
@@ -326,7 +327,8 @@ The payload is given to every handler. Accept `**kwargs` or use `filter_payload=
 
 ### `TypeError: ... returned an awaitable; use atrigger_event`
 
-The handler is a coroutine function (a coroutine object is closed, so Python does not warn that it was never awaited). Call `await manager.atrigger_event(...)`.
+The handler is a coroutine function (a coroutine object is closed, so Python does not warn that it
+was never awaited). Call `await manager.atrigger_event(...)`.
 
 ### `subscription.remove()` returns `False`
 
