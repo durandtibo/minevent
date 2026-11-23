@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling>=1.32.4"]
+requires = ["hatchling>=1.33"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build]
@@ -10,7 +10,7 @@ only-include = ["src"]
 
 [project]
 name = "minevent"
-version = "0.5.0"
+version = "0.6.0a0"
 description = "Minimal event system for Machine Learning"
 readme = "README.md"
 authors = [{ name = "Thibaut Durand", email = "durand.tibo+gh@gmail.com" }]
@@ -201,4 +201,4 @@ known-first-party = ["minevent"]
 python-version = "3.11"
 
 [tool.ty.src]
-include = ["src", "tests"]
+include = ["src", "tests", "dev"]
