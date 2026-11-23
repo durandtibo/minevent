@@ -2,52 +2,34 @@
 
 <p align="center">
     <a href="https://github.com/durandtibo/minevent/actions/workflows/ci.yaml">
-        <img alt="CI" src="https://github.com/durandtibo/minevent/actions/workflows/ci.yaml/badge.svg">
-    </a>
-    <a href="https://github.com/durandtibo/minevent/actions/workflows/nightly-test-package.yaml">
-        <img alt="Nightly Tests" src="https://github.com/durandtibo/minevent/actions/workflows/nightly-test-package.yaml/badge.svg">
-    </a>
+        <img alt="CI" src="https://img.shields.io/github/actions/workflow/status/durandtibo/minevent/ci.yaml?branch=main&label=CI&logo=github"></a>
     <a href="https://github.com/durandtibo/minevent/actions/workflows/nightly-package.yaml">
-        <img alt="Nightly Package Tests" src="https://github.com/durandtibo/minevent/actions/workflows/nightly-package.yaml/badge.svg">
-    </a>
+        <img alt="Nightly Package Tests" src="https://img.shields.io/github/actions/workflow/status/durandtibo/minevent/nightly-package.yaml?label=nightly&logo=github"></a>
     <a href="https://codecov.io/gh/durandtibo/minevent">
-        <img alt="Codecov" src="https://codecov.io/gh/durandtibo/minevent/branch/main/graph/badge.svg">
-    </a>
-    <br/>
+        <img alt="Codecov" src="https://img.shields.io/codecov/c/github/durandtibo/minevent?logo=codecov"></a>
     <a href="https://durandtibo.github.io/minevent/">
-        <img alt="Documentation" src="https://github.com/durandtibo/minevent/actions/workflows/release-docs.yaml/badge.svg">
-    </a>
-    <a href="https://durandtibo.github.io/minevent/dev/">
-        <img alt="Documentation (dev)" src="https://github.com/durandtibo/minevent/actions/workflows/release-docs-dev.yaml/badge.svg">
-    </a>
-    <br/>
-    <a href="https://google.github.io/styleguide/pyguide.html#s3.8-comments-and-docstrings">
-        <img  alt="Doc style: google" src="https://img.shields.io/badge/%20style-google-3666d6.svg">
-    </a>
-    <a href="https://github.com/astral-sh/ruff">
-        <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Ruff" style="max-width:100%;">
-    </a>
-    <a href="https://github.com/guilatrova/tryceratops">
-        <img  alt="Doc style: google" src="https://img.shields.io/badge/try%2Fexcept%20style-tryceratops%20%F0%9F%A6%96%E2%9C%A8-black">
-    </a>
+        <img alt="Documentation (stable)" src="https://img.shields.io/badge/docs-stable-blue?logo=readthedocs&logoColor=white"></a>
     <br/>
     <a href="https://pypi.org/project/minevent/">
-        <img alt="PYPI version" src="https://img.shields.io/pypi/v/minevent">
-    </a>
+        <img alt="PyPI version" src="https://img.shields.io/pypi/v/minevent?logo=pypi&logoColor=white"></a>
     <a href="https://pypi.org/project/minevent/">
-        <img alt="Python" src="https://img.shields.io/pypi/pyversions/minevent.svg">
-    </a>
+        <img alt="Python" src="https://img.shields.io/pypi/pyversions/minevent?logo=python&logoColor=white"></a>
     <a href="https://opensource.org/licenses/BSD-3-Clause">
-        <img alt="BSD-3-Clause" src="https://img.shields.io/pypi/l/minevent">
-    </a>
+        <img alt="BSD-3-Clause" src="https://img.shields.io/pypi/l/minevent"></a>
+    <br/>
+    <a href="https://github.com/astral-sh/ruff">
+        <img alt="Ruff" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json"></a>
+    <a href="https://google.github.io/styleguide/pyguide.html#s3.8-comments-and-docstrings">
+        <img alt="Doc style: google" src="https://img.shields.io/badge/docstyle-google-3666d6"></a>
+    <a href="https://scorecard.dev/viewer/?uri=github.com/durandtibo/minevent">
+        <img alt="OpenSSF Scorecard" src="https://img.shields.io/ossf-scorecard/github.com/durandtibo/minevent?label=openssf%20scorecard"></a>
     <br/>
     <a href="https://pepy.tech/project/minevent">
-        <img  alt="Downloads" src="https://static.pepy.tech/badge/minevent">
-    </a>
+        <img alt="Downloads" src="https://img.shields.io/pepy/dt/minevent"></a>
     <a href="https://pepy.tech/project/minevent">
-        <img  alt="Monthly downloads" src="https://static.pepy.tech/badge/minevent/month">
-    </a>
-    <br/>
+        <img alt="Monthly downloads" src="https://img.shields.io/pepy/dm/minevent"></a>
+    <a href="https://github.com/durandtibo/minevent/stargazers">
+        <img alt="GitHub stars" src="https://img.shields.io/github/stars/durandtibo/minevent?logo=github"></a>
 </p>
 
 ## Overview
