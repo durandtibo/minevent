@@ -1429,7 +1429,7 @@
 <tr>
 <td>P2</td>
 <td>Cheap import</td>
-<td><code>import minevent</code> is cheap and has no side effect: standard library only, and <code>importlib.metadata</code> is imported on the first access of <code>__version__</code>. It starts no thread, reads no file, emits no warning.</td>
+<td><code>import minevent</code> is cheap and has no side effect: standard library only, and not <code>logging</code>, <code>inspect</code>, <code>asyncio</code> or <code>importlib.metadata</code> (<code>inspect</code> is imported when <code>filter_payload</code> is used, the version on the first access of <code>__version__</code>). It starts no thread, reads no file, emits no warning and writes no log.</td>
 </tr>
 <tr>
 <td>P3</td>

@@ -1340,8 +1340,8 @@ handler and returns a <code>Subscription</code> that removes that
 registration. <code>trigger_event</code> runs the handlers synchronously,
 and <code>atrigger_event</code> awaits the coroutine handlers. The manager
 has no global state: create one instance and pass it where it is
-needed. Registrations and triggers are logged at the <code>DEBUG</code>
-level by the <code>minevent.manager</code> logger.</p>
+needed. Nothing is logged: to trace the registrations, read
+<code>get_subscriptions(event)</code>, or wrap the handler.</p>
 <p>A handler is any callable, called as <code>handler(**payload)</code>. The
 options of a registration (<code>once</code>, <code>condition</code> and
 <code>filter_payload</code>) are the keyword-only arguments of
