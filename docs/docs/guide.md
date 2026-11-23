@@ -191,8 +191,8 @@ False
   `once`, `condition` and `filter_payload`, as in `@manager.on("epoch_end", filter_payload=True)`,
   which are also the keyword-only arguments of `add_event_handler`. Use `add_event_handler` if you
   need the `Subscription`.
-- `once=True` removes the registration at the next trigger of the event, even if the condition of the
-  handler is `False`. To wait for the first time the condition is `True`, see the quickstart.
+- `once=True` runs the handler the first time its condition is `True` (at the next trigger if it has
+  no condition), then removes the registration. A condition that is `False` does not consume it.
 
 ### Avoid duplicates
 

@@ -164,8 +164,8 @@ class Subscription:
         manager: The event manager that stores the registration.
         event: The event name of the registration.
         handler: The registered handler: any callable.
-        once: If ``True``, the registration is removed before its
-            first execution.
+        once: If ``True``, the registration is removed just before
+            its first execution.
         condition: The condition evaluated before the handler, or
             ``None`` if the handler always runs.
         filter_payload: If ``True``, only the payload keys that the
@@ -256,8 +256,8 @@ class Subscription:
 
     @property
     def once(self) -> bool:
-        r"""Indicate if the registration is removed before its first
-        execution.
+        r"""Indicate if the registration is removed just before its
+        first execution.
 
         Returns:
             ``True`` if the event handler runs at most once, otherwise
@@ -300,12 +300,15 @@ class Subscription:
         return self._manager._is_registered(self)
 
     def _call(self, payload: dict[str, object]) -> object:
-        r"""Run the registration: once claim, condition, payload filter
+        r"""Run the registration: condition, once claim, payload filter
         and handler.
 
-        A ``once`` registration is removed by an atomic claim before
-        anything else, so it runs at most once whatever the number of
-        threads.
+        The condition decides whether the handler would run, and the
+        claim of a ``once`` registration decides who runs it: the
+        registration is removed by an atomic claim just before its
+        handler, so it runs at most once whatever the number of
+        threads. A condition that is ``False`` (or that raises) does
+        not consume a ``once`` registration.
 
         Args:
             payload: The payload given to ``trigger_event`` or
@@ -313,13 +316,13 @@ class Subscription:
 
         Returns:
             The value returned by the handler, or ``None`` if the
-                registration lost the claim (it was already removed)
-                or if the condition is ``False``. It is awaitable if
-                the handler is a coroutine function.
+                condition is ``False`` or if the registration lost the
+                claim (it was already removed). It is awaitable if the
+                handler is a coroutine function.
         """
-        if self._once and not self.remove():
-            return None
         if self._condition is not None and not self._condition():
+            return None
+        if self._once and not self.remove():
             return None
         if self._payload_keys is not None:
             payload = {key: value for key, value in payload.items() if key in self._payload_keys}
@@ -512,11 +515,11 @@ class EventManager:
             event: The event name (case-sensitive string) to which
                 the handler should be attached.
             handler: The callable to attach to the event.
-            once: If ``True``, the handler is removed before its first
-                execution, so it runs at most once. The registration
-                is removed by the next trigger even if the condition
-                of the handler is ``False`` and the handler is not
-                called. Default is ``False``.
+            once: If ``True``, the handler is removed just before its
+                first execution, so it runs at most once (P9 of the
+                architecture page). A condition that is ``False`` does
+                not consume the registration: it waits for the first
+                time the condition is ``True``. Default is ``False``.
             condition: An optional condition: a function without
                 argument that returns a boolean. It is called each
                 time the event is triggered, before the handler, and

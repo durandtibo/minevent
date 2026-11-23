@@ -38,6 +38,11 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
 - `PeriodicCondition` validates `freq` and has a `skip_first` option and a `reset` method.
 - `__repr__` of `EventManager` is simpler: `EventManager(events={'my_event': 1})`.
 - `EventManager.last_triggered_event` is removed.
+- **Breaking**: `once=True` runs the handler the first time its condition is `True`. A condition
+  that is `False` (or that raises) no longer consumes the registration: `once=True,
+  condition=AfterNCondition(2)` runs once, on the third trigger (it never ran). A program that
+  relied on "consumed by the first trigger whatever the condition" must call
+  `subscription.remove()` itself.
 
 ### Added
 

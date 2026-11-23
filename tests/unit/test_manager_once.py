@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 
 from minevent import (
+    AfterNCondition,
     EventManager,
     Subscription,
 )
@@ -224,18 +225,83 @@ async def test_event_manager_atrigger_event_once_runs_once() -> None:
     assert hello_handler.call_count == 1
 
 
-def test_event_manager_add_event_handler_once_removed_when_condition_false() -> None:
+def test_once_false_condition_does_not_consume() -> None:
     manager = EventManager()
-    manager.add_event_handler("my_event", hello_handler, condition=lambda: False, once=True)
+    subscription = manager.add_event_handler(
+        "my_event", hello_handler, condition=lambda: False, once=True
+    )
     manager.trigger_event("my_event")
-    assert "my_event" not in manager
+    assert subscription.active
 
 
-def test_event_manager_add_event_handler_once_condition_false_does_not_call() -> None:
+def test_once_false_condition_does_not_call_handler() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", hello_handler, condition=lambda: False, once=True)
     manager.trigger_event("my_event")
     assert hello_handler.call_count == 0
+
+
+def test_once_does_not_run_before_condition_is_true() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", hello_handler, condition=AfterNCondition(2), once=True)
+    for _ in range(2):
+        manager.trigger_event("my_event")
+    assert hello_handler.call_count == 0
+
+
+def test_once_runs_on_third_trigger_with_after_n_condition() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", hello_handler, condition=AfterNCondition(2), once=True)
+    for _ in range(3):
+        manager.trigger_event("my_event")
+    assert hello_handler.call_count == 1
+
+
+def test_once_removed_after_condition_becomes_true() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", hello_handler, condition=AfterNCondition(2), once=True)
+    for _ in range(3):
+        manager.trigger_event("my_event")
+    assert len(manager) == 0
+
+
+def test_once_runs_once_when_condition_stays_true() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", hello_handler, condition=lambda: True, once=True)
+    for _ in range(3):
+        manager.trigger_event("my_event")
+    assert hello_handler.call_count == 1
+
+
+def test_once_raising_condition_keeps_registration() -> None:
+    def condition() -> bool:
+        msg = "condition failed"
+        raise RuntimeError(msg)
+
+    manager = EventManager()
+    subscription = manager.add_event_handler(
+        "my_event", hello_handler, condition=condition, once=True
+    )
+    with pytest.raises(RuntimeError, match=r"condition failed"):
+        manager.trigger_event("my_event")
+    assert subscription.active
+
+
+def test_once_raising_handler_consumes_registration() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", failing_handler, once=True)
+    with pytest.raises(RuntimeError, match=r"handler failed"):
+        manager.trigger_event("my_event")
+    assert not subscription.active
+
+
+async def test_once_false_condition_does_not_consume_async() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler(
+        "my_event", hello_handler, condition=lambda: False, once=True
+    )
+    await manager.atrigger_event("my_event")
+    assert subscription.active
 
 
 def test_event_manager_repr_once() -> None:

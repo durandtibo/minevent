@@ -359,13 +359,6 @@ def test_event_manager_add_event_handler_condition_true_runs_handler() -> None:
     assert hello_handler.call_count == 1
 
 
-def test_event_manager_add_event_handler_condition_false_consumes_once() -> None:
-    manager = EventManager()
-    manager.add_event_handler("my_event", hello_handler, once=True, condition=lambda: False)
-    manager.trigger_event("my_event")
-    assert len(manager) == 0
-
-
 def test_event_manager_add_event_handler_filter_payload_passes_accepted_keys_only() -> None:
     manager = EventManager()
     epochs: list[int] = []
