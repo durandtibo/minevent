@@ -305,9 +305,10 @@ must not wait.
 
 - **A handler that retriggers its own event** recurses until `RecursionError`. Use a different event
   or a flag.
-- **A handler removed during a trigger still runs in that trigger.** The registrations that exist
-  when the trigger starts are run. Handlers added during a trigger run at the next trigger.
-  A `once` registration removed by an earlier handler of the same trigger does not run.
+- **A handler added during a trigger runs at the next trigger.** The registrations that exist when
+  the trigger starts are visited. A registration removed before its turn does not run, whatever
+  removes it (`remove()`, `clear_event`, `reset`). A `remove()` from another thread cannot stop a
+  handler that the trigger is about to call.
 - **The payload is shared**: all handlers get the same objects. A handler that mutates a payload
   object is seen by the next handlers.
 - **Threads**: the registry is thread-safe, the handlers run in the thread that triggers the event,

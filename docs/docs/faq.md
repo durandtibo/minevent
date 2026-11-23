@@ -57,8 +57,8 @@ Nothing.
 
 ### In which order do the handlers run?
 
-In the order they were registered. A handler added or removed by a running handler takes effect at
-the next trigger.
+In the order they were registered. A handler added by a running handler runs at the next trigger. A
+registration removed by a running handler before its turn does not run.
 
 ### What happens if a handler raises?
 
