@@ -60,6 +60,11 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
 - The note added to the exception of a handler is added once per distinct event and handler: an
   exception instance raised again, or a handler that triggers its own event, no longer accumulates
   identical notes (#766).
+- `repr(subscription)` names the handler (`Subscription(event='my_event', handler='print')`), so
+  `manager.get_subscriptions(event)` can be read. The `TypeError` raised when `trigger_event` runs a
+  handler that returns an awaitable names the function of the handler (it printed `repr(handler)`,
+  which contains the arguments of a `functools.partial`). A test that matches `functools.partial(`
+  in the message must match the function name.
 - `Subscription.remove` removes only its own registration: calling it twice no longer removes the
   registration of another subscription of the same handler.
 
