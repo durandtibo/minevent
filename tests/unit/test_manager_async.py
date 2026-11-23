@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import contextlib
 import functools
 import logging
 from typing import Any
@@ -91,7 +90,7 @@ async def test_event_manager_atrigger_event_fail_fast_skips_next_handlers() -> N
     manager = EventManager()
     manager.add_event_handler("my_event", async_fail)
     manager.add_event_handler("my_event", hello_handler)
-    with contextlib.suppress(RuntimeError):
+    with pytest.raises(RuntimeError, match=r"async failed"):
         await manager.atrigger_event("my_event")
     assert hello_handler.call_count == 0
 
@@ -231,7 +230,7 @@ def test_event_manager_trigger_event_async_callable_object_is_not_called_twice()
     manager = EventManager()
     calls: list[dict[str, Any]] = []
     manager.add_event_handler("my_event", AsyncCallable(calls))
-    with contextlib.suppress(TypeError):
+    with pytest.raises(TypeError, match=r"returned an awaitable; use atrigger_event"):
         manager.trigger_event("my_event")
     assert calls == []
 
