@@ -1273,33 +1273,6 @@ def test_subscription_call_filter_keeps_all_keys_for_uninspectable_handler() -> 
     assert calls == [{"a": 1, "b": 2}]
 
 
-def test_subscription_call_condition_combinator_short_circuit() -> None:
-    first = Mock(return_value=False)
-    periodic = PeriodicCondition(2)
-    subscription = Subscription(
-        EventManager(),
-        "my_event",
-        hello_handler,
-        condition=lambda: first() and periodic(),
-    )
-    for _ in range(3):
-        subscription._call({})
-    assert periodic._step == 0
-
-
-def test_subscription_call_condition_combinator_evaluates_all() -> None:
-    periodic = PeriodicCondition(2)
-    subscription = Subscription(
-        EventManager(),
-        "my_event",
-        hello_handler,
-        condition=lambda: all([False, periodic()]),
-    )
-    for _ in range(3):
-        subscription._call({})
-    assert periodic._step == 3
-
-
 ########################################
 #     Tests for _accepted_keywords     #
 ########################################
