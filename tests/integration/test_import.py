@@ -5,7 +5,7 @@ import sys
 
 import pytest
 
-LAZY_MODULES = ["logging", "inspect", "asyncio", "importlib.metadata", "typing"]
+LAZY_MODULES = ["logging", "inspect", "asyncio", "importlib.metadata"]
 
 
 def run_python(code: str) -> subprocess.CompletedProcess[str]:
@@ -28,6 +28,17 @@ def test_import_minevent_does_not_import_module(module: str) -> None:
     code that needs them."""
     result = run_python(f"import sys, minevent; print({module!r} in sys.modules)")
     assert result.stdout.strip() == "False"
+
+
+@pytest.mark.parametrize("name", ["NamedTuple", "Protocol", "TypeVar", "Self", "NoReturn"])
+def test_import_minevent_does_not_import_typing_name(name: str) -> None:
+    """Test that the modules of ``minevent`` create no ``typing`` object
+    at import: the names are read under ``TYPE_CHECKING`` only."""
+    code = (
+        "import minevent.conditions, minevent.manager\n"
+        f"print({name!r} in vars(minevent.manager) or {name!r} in vars(minevent.conditions))"
+    )
+    assert run_python(code).stdout.strip() == "False"
 
 
 def test_import_minevent_has_no_output() -> None:
