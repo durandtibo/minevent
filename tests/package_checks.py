@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import functools
 import logging
 import subprocess
 import sys
@@ -17,7 +18,7 @@ def check_event_manager() -> None:
     event_manager = EventManager()
     calls: list[str] = []
     event_manager.add_event_handler(
-        event="my_event", event_handler=EventHandler(calls.append, ["Hello!"])
+        event="my_event", handler=functools.partial(calls.append, "Hello!")
     )
     event_manager.trigger_event("my_event")
     assert calls == ["Hello!"]
@@ -29,7 +30,7 @@ def check_once() -> None:
 
     calls: list[int] = []
     event_manager = EventManager()
-    event_manager.add_event_handler("my_event", EventHandler(calls.append, [1]), once=True)
+    event_manager.add_event_handler("my_event", functools.partial(calls.append, 1), once=True)
     event_manager.trigger_event("my_event")
     event_manager.trigger_event("my_event")
     assert calls == [1]

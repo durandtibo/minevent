@@ -331,7 +331,7 @@ check the registrations:
 >>> manager = EventManager()
 >>> handler = EventHandler(hello_handler)
 >>> for _ in range(5):
-...     if not any(s.event_handler is handler for s in manager.get_subscriptions("my_event")):
+...     if not any(s.handler is handler for s in manager.get_subscriptions("my_event")):
 ...         _ = manager.add_event_handler("my_event", handler)
 >>> len(manager)
 1

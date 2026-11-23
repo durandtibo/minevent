@@ -136,6 +136,36 @@ A manager is always truthy, even when it is empty, so `manager or EventManager()
 you pass; use `len(manager)` for the number of registrations. A manager cannot be copied or pickled
 (`copy.copy`, `copy.deepcopy` and `pickle` raise a `TypeError`): create a new one.
 
+### Register any callable
+
+`add_event_handler` accepts any callable, called as `handler(**payload)`: a function, a method, a
+callable object or a `functools.partial`. The options of the registration are its keyword-only
+arguments: `once`, `condition` and `filter_payload`. Use `functools.partial` to bind the arguments
+that do not come from the payload.
+
+```pycon
+>>> import functools
+>>> from minevent import EventManager, PeriodicCondition
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler("my_event", functools.partial(print, "Hello!"))
+>>> manager.trigger_event("my_event")
+Hello!
+>>> def log_epoch(epoch):
+...     print(f"epoch {epoch}")
+...
+>>> _ = manager.add_event_handler(
+...     "epoch_end", log_epoch, condition=PeriodicCondition(freq=2), filter_payload=True
+... )
+>>> manager.trigger_event("epoch_end", epoch=1, loss=0.5)
+epoch 1
+>>> manager.trigger_event("epoch_end", epoch=2, loss=0.4)
+
+```
+
+With `filter_payload=True`, the signature of a `functools.partial` does not contain the positional
+arguments it binds, so a payload key with the same name is dropped. A payload key that repeats a
+keyword bound by the partial overrides it.
+
 ### Keep the subscription
 
 `add_event_handler` returns a `Subscription`, the registration of the handler. It is the only way to
@@ -160,11 +190,11 @@ False
 - `with manager.add_event_handler(...):` removes the registration when the block exits, which is
   convenient for a profiler or a progress bar that lives for one phase of the program.
 - `manager.get_subscriptions(event)` lists the registrations of an event if you did not keep them,
-  and `subscription.event_handler` gives the handler.
+  and `subscription.handler` gives the handler.
 - `@manager.on("event")` registers a function as a handler and returns it unchanged. It takes
-  `once`, `condition` and `filter_payload`, as in `@manager.on("epoch_end", filter_payload=True)`.
-  Use `add_event_handler` if the handler needs `handler_args` or `handler_kwargs`, or if you need
-  the `Subscription`.
+  `once`, `condition` and `filter_payload`, as in `@manager.on("epoch_end", filter_payload=True)`,
+  which are also the keyword-only arguments of `add_event_handler`. Use `add_event_handler` if you
+  need the `Subscription`.
 - `once=True` removes the registration at the next trigger of the event, even if the condition of the
   handler is `False`. To wait for the first time the condition is `True`, see the quickstart.
 
@@ -173,7 +203,7 @@ False
 Registering the same handler twice runs it twice. To register it once, look at the registrations:
 
 ```python
-if not any(sub.event_handler is handler for sub in manager.get_subscriptions("my_event")):
+if not any(sub.handler is handler for sub in manager.get_subscriptions("my_event")):
     manager.add_event_handler("my_event", handler)
 ```
 
@@ -291,9 +321,9 @@ must not wait.
 
 The payload is given to every handler. Accept `**kwargs` or use `filter_payload=True`.
 
-### `TypeError: ... returned an awaitable; use ahandle or atrigger_event`
+### `TypeError: ... returned an awaitable; use atrigger_event`
 
-The handler is a coroutine function. Call `await manager.atrigger_event(...)`.
+The handler is a coroutine function (a message that ends with `use ahandle or atrigger_event` comes from an `EventHandler`). Call `await manager.atrigger_event(...)`.
 
 ### `subscription.remove()` returns `False`
 
