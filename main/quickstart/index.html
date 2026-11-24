@@ -1407,8 +1407,8 @@ same counter. Create one instance per handler (a small factory function is enoug
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"second"</span><span class="p">)</span>
 <span class="go">second</span>
 </code></pre></div>
-<p>To run a handler once, use <code>add_event_handler(..., once=True)</code>: the registration is removed on the
-next trigger of the event.</p>
+<p>To run a handler once, use <code>add_event_handler(..., once=True)</code>: the registration is removed just
+before its handler runs, on the next trigger of the event whose condition is <code>True</code>.</p>
 <h3 id="event-handler-identity">Event handler identity<a class="headerlink" href="#event-handler-identity" title="Permanent link">&para;</a></h3>
 <p>Registrations are identified by the <code>Subscription</code> that <code>EventManager.add_event_handler</code> returns,
 not by the handler: the same callable can be registered several times. To find or remove a
@@ -1530,7 +1530,7 @@ check the registrations:</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">manager</span><span class="p">)</span>
 <span class="go">1</span>
 </code></pre></div>
-<p>To run a handler only on the next trigger, use <code>once=True</code>:</p>
+<p>To run a handler only once, use <code>once=True</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">hello_handler</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">"Hello!"</span><span class="p">)</span>
@@ -1540,31 +1540,20 @@ check the registrations:</p>
 <span class="go">Hello!</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">)</span>
 </code></pre></div>
-<p><code>once=True</code> means "the next trigger", not "the next time the handler runs": the registration is
-removed on the next trigger even if the condition of the handler is <code>False</code> and the
-function is not called. If you need the handler to run the first time its condition is <code>True</code>,
-register it without <code>once</code> and write a condition that remembers it:</p>
-<div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">functools</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span><span class="w"> </span><span class="nc">FirstTrue</span><span class="p">:</span>
-<span class="gp">... </span>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition</span><span class="p">):</span>
-<span class="gp">... </span>        <span class="bp">self</span><span class="o">.</span><span class="n">_condition</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_done</span> <span class="o">=</span> <span class="n">condition</span><span class="p">,</span> <span class="kc">False</span>
-<span class="gp">...</span>
-<span class="gp">... </span>    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="gp">... </span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_done</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_condition</span><span class="p">():</span>
-<span class="gp">... </span>            <span class="k">return</span> <span class="kc">False</span>
-<span class="gp">... </span>        <span class="bp">self</span><span class="o">.</span><span class="n">_done</span> <span class="o">=</span> <span class="kc">True</span>
-<span class="gp">... </span>        <span class="k">return</span> <span class="kc">True</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">ready</span> <span class="o">=</span> <span class="p">[</span><span class="kc">False</span><span class="p">]</span>
+<p><code>once=True</code> means "the first time the handler runs": a condition that is <code>False</code> does not consume
+the registration, which waits for the first trigger where the condition is <code>True</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">AfterNCondition</span><span class="p">,</span> <span class="n">EventManager</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">hello_handler</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">"Hello!"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="s2">"step"</span><span class="p">,</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="nb">print</span><span class="p">,</span> <span class="s2">"ready!"</span><span class="p">),</span> <span class="n">condition</span><span class="o">=</span><span class="n">FirstTrue</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">ready</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="gp">... </span>    <span class="s2">"my_event"</span><span class="p">,</span> <span class="n">hello_handler</span><span class="p">,</span> <span class="n">once</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="n">AfterNCondition</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
 <span class="gp">... </span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"step"</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">ready</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"step"</span><span class="p">)</span>
-<span class="go">ready!</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"step"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">)</span>
+<span class="go">Hello!</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">)</span>
 </code></pre></div>
 <p>A <code>Subscription</code> is a context manager that removes the registration when the block exits, and its
 <code>active</code> property tells if the handler is still registered. <code>EventManager.on</code> is a decorator that

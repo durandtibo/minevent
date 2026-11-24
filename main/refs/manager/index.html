@@ -1545,11 +1545,11 @@ the handler should be attached.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>If <code>True</code>, the handler is removed before its first
-execution, so it runs at most once. The registration
-is removed by the next trigger even if the condition
-of the handler is <code>False</code> and the handler is not
-called. Default is <code>False</code>.</p>
+                <p>If <code>True</code>, the handler is removed just before its
+first execution, so it runs at most once (P9 of the
+architecture page). A condition that is <code>False</code> does
+not consume the registration: it waits for the first
+time the condition is <code>True</code>. Default is <code>False</code>.</p>
               </div>
             </td>
             <td>
@@ -2488,8 +2488,8 @@ event manager.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>If <code>True</code>, the registration is removed before its
-first execution.</p>
+                <p>If <code>True</code>, the registration is removed just before
+its first execution.</p>
               </div>
             </td>
             <td>
@@ -2839,8 +2839,8 @@ are passed to it, otherwise <code>False</code>.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Indicate if the registration is removed before its first
-execution.</p>
+        <p>Indicate if the registration is removed just before its
+first execution.</p>
 
 
     <p><span class="doc-section-title">Returns:</span></p>

@@ -1461,7 +1461,7 @@
 <tr>
 <td>P7</td>
 <td>Snapshot dispatch</td>
-<td><code>trigger_event</code> runs the registrations that exist when it starts. A registration added or removed by a running handler takes effect at the next trigger.</td>
+<td><code>trigger_event</code> runs the registrations that exist when it starts. A registration added or removed by a running handler takes effect at the next trigger, except that a <code>once</code> registration removed by an earlier handler of the same trigger does not run.</td>
 <td><code>get_subscriptions</code>, <code>test_manager.py</code></td>
 </tr>
 <tr>
@@ -1473,7 +1473,7 @@
 <tr>
 <td>P9</td>
 <td><code>once</code> is at-most-once</td>
-<td>A <code>once</code> registration is removed before its handler is called, by an atomic claim: it runs at most once whatever the number of threads, and it is consumed even if its condition is false or its handler raises.</td>
+<td>A <code>once</code> registration is removed by an atomic claim just before its handler runs, so it runs at most once whatever the number of threads. A false condition does not consume it (the condition is evaluated first); a handler that raises does consume it.</td>
 <td><code>Subscription._call</code>, <code>test_manager_once.py</code>, <code>test_manager_threads.py</code></td>
 </tr>
 <tr>
@@ -1527,7 +1527,7 @@
 <tr>
 <td>P18</td>
 <td>One way to do each thing</td>
-<td>One way to register (<code>add_event_handler</code>, with <code>on</code> as its decorator form), one way to bind arguments (<code>functools.partial</code>), one way to run a handler once (<code>once=True</code>), one way to extend (write a callable). No handler base class.</td>
+<td>One way to register (<code>add_event_handler</code>, with <code>on</code> as its decorator form), one way to bind arguments (<code>functools.partial</code>), one way to run a handler once (<code>once=True</code>, whatever the condition), one way to extend (write a callable). No handler base class.</td>
 <td>the signatures</td>
 </tr>
 <tr>
@@ -1677,8 +1677,8 @@
 <div class="highlight"><pre><span></span><code>trigger_event()
     ├── Get the subscriptions of the event
     └── For each subscription:
-        ├── If it is a once registration: remove it, and skip it if it was already removed
         ├── If it has a condition: evaluate it, and skip the handler if it is False
+        ├── If it is a once registration: remove it, and skip it if it was already removed
         ├── If filter_payload: keep the payload keys the handler accepts
         └── Execute handler(**payload)
 </code></pre></div>
@@ -1708,8 +1708,7 @@
 
 3. Manager executes each handler
    for subscription in subscriptions:
-       if subscription is once and was already removed: skip it
-       result = subscription._call(payload)   # condition, payload filter, handler(**payload)
+       result = subscription._call(payload)   # condition, once claim, payload filter, handler(**payload)
        # an awaitable result raises a TypeError (trigger_event) or is awaited (atrigger_event)
        # an exception gets a note (event, handler function) and propagates
 </code></pre></div>

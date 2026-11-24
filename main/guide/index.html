@@ -1624,8 +1624,8 @@ a different <code>Subscription</code>.</p>
   <code>once</code>, <code>condition</code> and <code>filter_payload</code>, as in <code>@manager.on("epoch_end", filter_payload=True)</code>,
   which are also the keyword-only arguments of <code>add_event_handler</code>. Use <code>add_event_handler</code> if you
   need the <code>Subscription</code>.</li>
-<li><code>once=True</code> removes the registration at the next trigger of the event, even if the condition of the
-  handler is <code>False</code>. To wait for the first time the condition is <code>True</code>, see the quickstart.</li>
+<li><code>once=True</code> runs the handler the first time its condition is <code>True</code> (at the next trigger if it has
+  no condition), then removes the registration. A condition that is <code>False</code> does not consume it.</li>
 </ul>
 <h3 id="avoid-duplicates">Avoid duplicates<a class="headerlink" href="#avoid-duplicates" title="Permanent link">&para;</a></h3>
 <p>Registering the same handler twice runs it twice. To register it once, look at the registrations:</p>
