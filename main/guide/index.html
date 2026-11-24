@@ -1616,7 +1616,6 @@ that do not come from the payload.</p>
 <span class="go">Hello!</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">log_epoch</span><span class="p">(</span><span class="n">epoch</span><span class="p">):</span>
 <span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<span class="gp">...</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">log_epoch</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="n">PeriodicCondition</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span> <span class="n">filter_payload</span><span class="o">=</span><span class="kc">True</span>
 <span class="gp">... </span><span class="p">)</span>
@@ -1691,9 +1690,7 @@ subscriptions of the objects you no longer need, use a <code>with</code> block, 
 <p>A plugin registers its own handlers, and keeps the subscriptions to unregister them:</p>
 <div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">LoggingPlugin</span><span class="p">:</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">manager</span><span class="p">:</span> <span class="n">EventManager</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">subscription</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span>
-            <span class="s2">"training_end"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_training_complete</span>
-        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subscription</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"training_end"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_training_complete</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">teardown</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">subscription</span><span class="o">.</span><span class="n">remove</span><span class="p">()</span>
