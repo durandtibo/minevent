@@ -1418,6 +1418,7 @@
 <th>#</th>
 <th>Property</th>
 <th>Statement</th>
+<th>Enforced by</th>
 </tr>
 </thead>
 <tbody>
@@ -1425,91 +1426,109 @@
 <td>P1</td>
 <td>Small surface</td>
 <td>Events are strings, handlers are plain callables, the manager connects them. Five exported names and <code>__version__</code> (<code>EventManager</code>, <code>Subscription</code>, <code>Condition</code>, <code>PeriodicCondition</code>, <code>AfterNCondition</code>). <code>EventManager</code> has 8 public members (<code>events</code>, <code>get_subscriptions</code>, <code>add_event_handler</code>, <code>on</code>, <code>trigger_event</code>, <code>atrigger_event</code>, <code>clear_event</code>, <code>reset</code>) and <code>__len__</code>, <code>__contains__</code>.</td>
+<td><code>test_init.py</code></td>
 </tr>
 <tr>
 <td>P2</td>
 <td>Cheap import</td>
 <td><code>import minevent</code> is cheap and has no side effect: standard library only, and not <code>logging</code>, <code>inspect</code>, <code>asyncio</code> or <code>importlib.metadata</code> (<code>inspect</code> is imported when <code>filter_payload</code> is used, the version on the first access of <code>__version__</code>). It starts no thread, reads no file, emits no warning and writes no log.</td>
+<td><code>test_import.py</code></td>
 </tr>
 <tr>
 <td>P3</td>
 <td>Events are strings</td>
 <td>An event name is a case-sensitive <code>str</code>; any other type raises <code>TypeError</code>. The empty string is valid. Reading the manager never creates an event.</td>
+<td><code>test_manager.py</code></td>
 </tr>
 <tr>
 <td>P4</td>
 <td>Validated at the door</td>
 <td>A wrong type raises <code>TypeError</code> in the call that receives it, with a message that names the argument and the value: the event, the handler (must be callable) and the condition (<code>None</code> or callable) of <code>add_event_handler</code> and <code>on</code>. An invalid registration leaves the manager unchanged.</td>
+<td><code>add_event_handler</code>, <code>on</code>, <code>test_manager.py</code></td>
 </tr>
 <tr>
 <td>P5</td>
 <td>Registration identity</td>
 <td><code>add_event_handler</code> returns a new <code>Subscription</code> every time; the same callable can be registered several times. <code>remove()</code> removes that registration only, once: <code>True</code> the first time, then <code>False</code>. <code>active</code> is <code>True</code> if and only if the registration is in the manager.</td>
+<td><code>Subscription</code>, <code>test_manager.py</code></td>
 </tr>
 <tr>
 <td>P6</td>
 <td>Registration order</td>
 <td>The handlers of an event run in the order they were registered, one after the other, in the calling thread.</td>
+<td>the ordered <code>dict</code>, <code>test_manager.py</code></td>
 </tr>
 <tr>
 <td>P7</td>
 <td>Snapshot dispatch</td>
 <td><code>trigger_event</code> runs the registrations that exist when it starts. A registration added or removed by a running handler takes effect at the next trigger.</td>
+<td><code>get_subscriptions</code>, <code>test_manager.py</code></td>
 </tr>
 <tr>
 <td>P8</td>
 <td>Fail-fast with context</td>
 <td>An exception of a handler propagates unchanged (same object, same type); the remaining handlers are skipped. It carries a note with the event and the name of the handler (the function under a <code>functools.partial</code>), once per distinct pair. Building the note never runs the <code>repr</code> of user data.</td>
+<td><code>_describe</code>, <code>_add_error_note</code>, <code>test_manager.py</code></td>
 </tr>
 <tr>
 <td>P9</td>
 <td><code>once</code> is at-most-once</td>
 <td>A <code>once</code> registration is removed before its handler is called, by an atomic claim: it runs at most once whatever the number of threads, and it is consumed even if its condition is false or its handler raises.</td>
+<td><code>Subscription._call</code>, <code>test_manager_once.py</code>, <code>test_manager_threads.py</code></td>
 </tr>
 <tr>
 <td>P10</td>
 <td>Synchronous by default</td>
 <td><code>trigger_event</code> never awaits; a handler that returns an awaitable raises <code>TypeError</code> and the coroutine is closed. <code>atrigger_event</code> awaits the handlers one after the other; synchronous handlers run inline and block the loop. An object with <code>async def __call__</code> is a coroutine handler like a coroutine function.</td>
+<td><code>_check_not_awaitable</code>, <code>test_manager_async.py</code></td>
 </tr>
 <tr>
 <td>P11</td>
 <td>Thread-safe registry</td>
 <td>The registry is protected by a reentrant lock. Handlers, conditions and the <code>repr</code> of user objects run outside the lock, so a handler can use the manager.</td>
+<td><code>EventManager._lock</code>, <code>test_manager_threads.py</code></td>
 </tr>
 <tr>
 <td>P12</td>
 <td>No hidden state</td>
 <td>No global manager, no discovery, no side effect of a read. Zero runtime dependencies; the import is cheap (P2). A manager cannot be copied or pickled (<code>copy.copy</code>, <code>copy.deepcopy</code> and <code>pickle</code> raise the same <code>TypeError</code>).</td>
+<td><code>__reduce__</code>, <code>test_manager.py</code></td>
 </tr>
 <tr>
 <td>P13</td>
 <td>Payload is data</td>
-<td><code>trigger_event(event, /, payload)</code> calls every handler as <code>handler(payload)</code>. Any key is allowed (<code>event</code>, <code>self</code>). Arguments that do not come from the payload are bound with <code>functools.partial</code>: the manager has no second mechanism. With <code>filter_payload=True</code> only the keys the signature accepts are passed.</td>
+<td><code>trigger_event(event, /, **payload)</code> calls every handler as <code>handler(**payload)</code>. Any key is allowed (<code>event</code>, <code>self</code>). Arguments that do not come from the payload are bound with <code>functools.partial</code>: the manager has no second mechanism. With <code>filter_payload=True</code> only the keys the signature accepts are passed.</td>
+<td><code>trigger_event</code>, <code>test_manager.py</code></td>
 </tr>
 <tr>
 <td>P14</td>
 <td>Options are per registration</td>
 <td><code>once</code>, <code>condition</code> and <code>filter_payload</code> are keyword-only arguments of <code>add_event_handler</code> and <code>on</code>, with the same names, defaults and meaning in both. A condition is a <code>Callable[[], bool]</code> called once per trigger, before the handler. The built-in conditions keep per-instance state and both have <code>reset()</code>.</td>
+<td>signatures, <code>test_manager.py</code>, <code>test_conditions.py</code></td>
 </tr>
 <tr>
 <td>P15</td>
 <td>Typed</td>
 <td>Fully typed, <code>py.typed</code>, <code>ty check</code> clean, payload typed <code>object</code>.</td>
+<td><code>ty check</code> in CI</td>
 </tr>
 <tr>
 <td>P16</td>
 <td>Fast and linear</td>
-<td>A trigger of one handler costs about 0.5 µs or less, each extra handler about 0.15 µs, a registration plus its removal about 1 µs or less. Registering <em>k</em> handlers and removing them in any order costs O(<em>k</em>) in total. Benchmarks guard it.</td>
+<td>A trigger of one handler costs about 0.4 µs, each extra handler about 0.1 µs, a registration plus its removal about 0.8 µs (Python 3.14, laptop). Registering <em>k</em> handlers and removing them in any order costs O(<em>k</em>) in total. Benchmarks guard it.</td>
+<td><code>tests/benchmarks/</code></td>
 </tr>
 <tr>
 <td>P17</td>
 <td>A manager is a service</td>
 <td><code>bool(manager)</code> is always <code>True</code>, empty or not, so <code>manager or default</code> means "is there a manager". <code>len(manager)</code> is the number of registrations.</td>
+<td><code>__bool__</code>, <code>test_manager.py</code></td>
 </tr>
 <tr>
 <td>P18</td>
 <td>One way to do each thing</td>
 <td>One way to register (<code>add_event_handler</code>, with <code>on</code> as its decorator form), one way to bind arguments (<code>functools.partial</code>), one way to run a handler once (<code>once=True</code>), one way to extend (write a callable). No handler base class.</td>
+<td>the signatures</td>
 </tr>
 </tbody>
 </table>
