@@ -1431,8 +1431,8 @@
 <tr>
 <td>P2</td>
 <td>Cheap import</td>
-<td><code>import minevent</code> is cheap and has no side effect: standard library only, and not <code>logging</code>, <code>inspect</code>, <code>asyncio</code> or <code>importlib.metadata</code> (<code>inspect</code> is imported when <code>filter_payload</code> is used, the version on the first access of <code>__version__</code>). It starts no thread, reads no file, emits no warning and writes no log.</td>
-<td><code>test_import.py</code></td>
+<td><code>import minevent</code> is cheap and has no side effect: standard library only, and not <code>logging</code>, <code>inspect</code>, <code>asyncio</code> or <code>importlib.metadata</code>, and it creates no <code>typing</code> object (<code>NamedTuple</code>, <code>Protocol</code>, <code>TypeVar</code>): the annotations are strings and <code>typing</code> is read under <code>TYPE_CHECKING</code> only (<code>inspect</code> is imported when <code>filter_payload</code> is used, the version on the first access of <code>__version__</code>). It starts no thread, reads no file, emits no warning and writes no log.</td>
+<td><code>test_import.py</code> (modules and <code>typing</code> objects)</td>
 </tr>
 <tr>
 <td>P3</td>
