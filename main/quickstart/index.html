@@ -23,7 +23,7 @@
     
     
       
-        <title>quickstart - minevent</title>
+        <title>Quickstart - minevent</title>
       
     
     
@@ -114,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              quickstart
+              Quickstart
             
           </span>
         </div>
@@ -495,7 +495,7 @@
   <span class="md-ellipsis">
     
   
-    quickstart
+    Quickstart
   
 
     
@@ -513,7 +513,7 @@
   <span class="md-ellipsis">
     
   
-    quickstart
+    Quickstart
   
 
     
@@ -1252,7 +1252,7 @@
   
 
 
-<h1 id="quickstart">quickstart<a class="headerlink" href="#quickstart" title="Permanent link">&para;</a></h1>
+<h1 id="quickstart">Quickstart<a class="headerlink" href="#quickstart" title="Permanent link">&para;</a></h1>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
 <p>The <code>minevent</code> event system is composed of three main components:</p>
 <ul>
@@ -1265,16 +1265,16 @@ were registered, in the calling thread. Coroutine handlers are supported by <cod
 <a href="#fire-an-event-with-coroutine-handlers">Fire an event with coroutine handlers</a>).
 This page presents the design used in <code>minevent</code>, but other designs exist.
 The proposed design was not designed to work in all the scenarios, so it is highly recommended to
-read the documentation to understand if it fits your needs/requirements before to use it.</p>
+read the documentation to understand if it fits your needs and requirements before using it.</p>
 <h2 id="event">Event<a class="headerlink" href="#event" title="Permanent link">&para;</a></h2>
 <p>In <code>minevent</code>, an event is a string that represents something happening.
 The event is represented by the event name.
 For example, it is possible to write the following line to define an event that happens after the
 training is completed.</p>
-<div class="highlight"><pre><span></span><code><span class="go">my_event = "training completed"</span>
+<div class="highlight"><pre><span></span><code><span class="n">my_event</span> <span class="o">=</span> <span class="s2">"training completed"</span>
 </code></pre></div>
 <h2 id="event-handler">Event handler<a class="headerlink" href="#event-handler" title="Permanent link">&para;</a></h2>
-<p>In <code>minevent</code>, an event handler is a piece a code that is executed when an even happened.</p>
+<p>In <code>minevent</code>, an event handler is a piece of code that is executed when an event happens.</p>
 <p>An event handler is any callable. It is called as <code>handler(**payload)</code>, where <code>payload</code> is the data
 given when the event is triggered (see <a href="#fire-an-event">Fire an event</a>). A coroutine function is a
 handler of <code>atrigger_event</code>. The options of a registration (<code>once</code>, <code>condition</code> and
@@ -1370,7 +1370,7 @@ the logic associated to the event handler is not executed.</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">)</span>
 <span class="go">Hello!</span>
 </code></pre></div>
-<p>A condition is any function without argument that returns a boolean (the <code>Condition</code> protocol).
+<p>A condition is any function without argument that returns a boolean (a <code>Condition</code>, that is a <code>Callable[[], bool]</code>).
 <code>minevent</code> provides the stateful conditions <code>AfterNCondition</code> (skip the first <code>n</code> calls) and
 <code>PeriodicCondition(freq, skip_first=...)</code>. A class with a <code>__call__</code> method is a condition too.</p>
 <p>To combine conditions, write a function. You choose which conditions are evaluated:</p>
@@ -1444,9 +1444,8 @@ The event manager supports the following functionalities:</p>
 </ul>
 <h3 id="create-an-event-manager">Create an event manager<a class="headerlink" href="#create-an-event-manager" title="Permanent link">&para;</a></h3>
 <p>To use the event system, it is important to create an event manager.
-<code>minevent</code> implements an event manager, but it is possible to implement and use other compatible
-event managers.
-This documentation uses the default event manager implemented in <code>minevent</code>.
+<code>minevent</code> implements one event manager, <code>EventManager</code>. It has no global state, so you create an
+instance and pass it where it is needed.
 To create an event manager, you can write:</p>
 <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
@@ -1485,7 +1484,7 @@ The following example shows how to add an event handler with some positional arg
 </code></pre></div>
 <p>For a given event, the event handlers run in the order of addition: here, the handler of
 John Smith runs before the handler of Jane Doe.
-Internally, each event uses a list to store the registrations.
+Internally, each event stores its registrations in an ordered <code>dict</code>.
 It is possible to add the same event handler multiple times:</p>
 <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">hello_handler</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -1591,8 +1590,9 @@ The following example shows how to fire the <code>hello_handler</code> for the e
 <span class="go">EventManager(events={'my_event': 1})</span>
 </code></pre></div>
 <p>Triggering an event does not change the manager: the representation above is the same before and
-after. The event manager uses the arguments that were given when the event handler was added, and
-the payload given to <code>trigger_event</code> (see below).</p>
+after. A handler is called as <code>handler(**payload)</code>, where <code>payload</code> is the keyword arguments given
+to <code>trigger_event</code> (see below). The arguments that do not come from the payload are bound with
+<code>functools.partial</code>.</p>
 <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">functools</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">hello_handler</span><span class="p">(</span><span class="n">first_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">last_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>

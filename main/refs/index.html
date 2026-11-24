@@ -483,7 +483,7 @@
   <span class="md-ellipsis">
     
   
-    quickstart
+    Quickstart
   
 
     
@@ -1504,11 +1504,32 @@
         <p>Contain the main features of the <code>minevent</code> package.</p>
 <p><code>minevent</code> is a minimal event system with three concepts: an event (a
 case-sensitive string), a handler (any callable) and an event manager
-(<code>EventManager</code>) that stores the handlers and triggers the events. <code>add_event_handler</code> returns a
-<code>Subscription</code> that identifies a registration, and the conditions
-(<code>Condition</code>, <code>PeriodicCondition</code>, <code>AfterNCondition</code>) control when
-a handler runs. The package has no dependency.</p>
+(<code>EventManager</code>) that stores the handlers and triggers the events.</p>
+<ul>
+<li><code>EventManager.add_event_handler</code> (or the <code>on</code> decorator) registers
+  a handler and returns a <code>Subscription</code>, the registration itself,
+  that removes exactly that registration.</li>
+<li><code>EventManager.trigger_event</code> runs the handlers in the order they
+  were registered and passes its keyword arguments (the payload) to
+  them. <code>EventManager.atrigger_event</code> also awaits the coroutine
+  handlers.</li>
+<li>A condition is any function without argument that returns a boolean
+  (<code>Condition</code>). <code>PeriodicCondition</code> and <code>AfterNCondition</code> are
+  provided, and they control when a handler runs.</li>
+</ul>
+<p>The package has no dependency, and <code>__version__</code> is the version of the
+installed package.</p>
 
+
+<details class="example" open>
+  <summary>Example</summary>
+  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">epoch</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">"</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="go">epoch 3</span>
+</code></pre></div>
+</details>
 
 
 
@@ -1783,7 +1804,9 @@ registration. <code>trigger_event</code> runs the handlers synchronously,
 and <code>atrigger_event</code> awaits the coroutine handlers. The manager
 has no global state: create one instance and pass it where it is
 needed. Nothing is logged: to trace the registrations, read
-<code>get_subscriptions(event)</code>, or wrap the handler.</p>
+<code>get_subscriptions(event)</code>, or wrap the handler. <code>events</code>,
+<code>event in manager</code> and <code>len(manager)</code> inspect the registry, and
+<code>clear_event</code> and <code>reset</code> empty it.</p>
 <p>A handler is any callable, called as <code>handler(**payload)</code>. The
 options of a registration (<code>once</code>, <code>condition</code> and
 <code>filter_payload</code>) are the keyword-only arguments of
@@ -1993,10 +2016,11 @@ the handler should be attached.</p>
             <td>
               <div class="doc-md-description">
                 <p>If <code>True</code>, the handler is removed just before its
-first execution, so it runs at most once (P9 of the
-architecture page). A condition that is <code>False</code> does
-not consume the registration: it waits for the first
-time the condition is <code>True</code>. Default is <code>False</code>.</p>
+first execution, so it runs at most once, even when
+several threads trigger the event. A condition that
+is <code>False</code> does not consume the registration: it
+waits for the first time the condition is <code>True</code>.
+Default is <code>False</code>.</p>
               </div>
             </td>
             <td>
@@ -2021,8 +2045,11 @@ time the condition is <code>True</code>. Default is <code>False</code>.</p>
 argument that returns a boolean. It is called each
 time the event is triggered, before the handler, and
 the handler runs only if it returns <code>True</code>. If
-<code>None</code>, the handler always runs. Default is
-<code>None</code>.</p>
+<code>None</code>, the handler always runs. An exception
+raised by the condition propagates to the caller of
+<code>trigger_event</code>. A stateful condition, such as
+<code>PeriodicCondition</code>, must not be shared between
+registrations. Default is <code>None</code>.</p>
               </div>
             </td>
             <td>
@@ -2168,9 +2195,8 @@ is not callable, or if <code>condition</code> is neither
 coroutine handlers.</p>
 <p>This method behaves like <code>trigger_event</code>, but the handlers
 that are coroutine functions (or return an awaitable) are
-awaited.
-Synchronous handlers can be mixed with coroutine handlers.
-The handlers run one after the other, in the order they were
+awaited. Synchronous handlers can be mixed with coroutine
+handlers. The handlers run one after the other, in the order they were
 added, and they are fail-fast like in <code>trigger_event</code>: the
 exception is not wrapped and has a note with the event and the
 handler. The snapshot of the handlers, the <code>once</code>
@@ -2243,7 +2269,7 @@ arguments.</p>
             <td>
               <div class="doc-md-description">
                 <p>if <code>event</code> is not a string. Any exception
-raised by a handler also propagates.</p>
+raised by a handler or a condition also propagates.</p>
               </div>
             </td>
           </tr>
@@ -2284,7 +2310,9 @@ raised by a handler also propagates.</p>
 
         <p>Remove all the event handlers of a given event.</p>
 <p>Nothing happens if the event has no registered handler. The
-subscriptions of the removed handlers become inactive.</p>
+subscriptions of the removed handlers become inactive, and a
+removed registration that has not run yet in a running trigger
+does not run.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -2631,8 +2659,10 @@ the function accepts are passed to it. See
             </td>
             <td>
               <div class="doc-md-description">
-                <p>if <code>event</code> is not a string, or if
-<code>condition</code> is not callable.</p>
+                <p>if <code>event</code> is not a string, if <code>condition</code>
+is neither <code>None</code> nor callable, or, when the
+decorator is applied, if the decorated object is not
+callable.</p>
               </div>
             </td>
           </tr>
@@ -2682,7 +2712,8 @@ the function accepts are passed to it. See
 <p>This method removes all registered event handlers from the
 event manager, so their subscriptions become inactive. After
 calling this method, the event manager returns to its initial
-state.</p>
+state. A registration that has not run yet in a running
+trigger does not run.</p>
 
 
 <details class="example" open>
@@ -2742,11 +2773,16 @@ but nothing stops the recursion: a handler that always
 triggers its own event raises a <code>RecursionError</code>. Guard the
 recursive trigger with a condition or a flag.</p>
 <p>The keyword arguments <code>payload</code> are passed to every
-handler as keyword arguments, after the arguments given at
-registration. Without payload, handlers are called exactly as
-before. A handler that does not accept the payload raises a
-<code>TypeError</code>. The payload can use any key, including
-<code>event</code> and <code>self</code>, because <code>event</code> is positional-only.</p>
+handler as <code>handler(**payload)</code>. Without payload, handlers
+are called without argument. A handler that does not accept
+the payload raises a <code>TypeError</code>, unless it was registered
+with <code>filter_payload=True</code>, which passes only the keys that
+its signature accepts. The payload can use any key, including
+<code>event</code> and <code>self</code>, because <code>event</code> is positional-only.
+All the handlers receive the same payload objects.</p>
+<p>Before its handler, a registration evaluates its condition
+(the handler is skipped if it is <code>False</code>), and a <code>once</code>
+registration is removed.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -2815,7 +2851,9 @@ arguments.</p>
                 <p>if <code>event</code> is not a string, or if a handler
 returns an awaitable (use <code>atrigger_event</code> for
 coroutine handlers). Any exception raised by a
-handler also propagates.</p>
+handler or a condition also propagates, including a
+<code>RecursionError</code> if a handler always triggers its
+own event.</p>
               </div>
             </td>
           </tr>
@@ -3153,10 +3191,10 @@ created.</p>
 <p>A subscription is returned by <code>EventManager.add_event_handler</code>.
 It is the registration itself: the manager stores it with the
 options of the registration, and it removes exactly the
-registration that created it. The handler does
-not need to be re-created to be unsubscribed, other registrations
-of the same handler are not removed, and registering the same
-handler twice creates two independent subscriptions.</p>
+registration that created it. The handler does not need to be re-created to be unsubscribed,
+other registrations of the same handler are not removed, and
+registering the same handler twice creates two independent
+subscriptions. Subscriptions are compared by identity.</p>
 <p>A subscription is a context manager: the registration is removed
 when the <code>with</code> block exits.</p>
 <p>The constructor is internal: subscriptions are created by the
@@ -3232,7 +3270,7 @@ event manager.</p>
             <td>
               <div class="doc-md-description">
                 <p>If <code>True</code>, the registration is removed just before
-its first execution.</p>
+its first execution. Default is <code>False</code>.</p>
               </div>
             </td>
             <td>
@@ -3254,7 +3292,7 @@ its first execution.</p>
             <td>
               <div class="doc-md-description">
                 <p>The condition evaluated before the handler, or
-<code>None</code> if the handler always runs.</p>
+<code>None</code> if the handler always runs. Default is <code>None</code>.</p>
               </div>
             </td>
             <td>
@@ -3271,7 +3309,7 @@ its first execution.</p>
             <td>
               <div class="doc-md-description">
                 <p>If <code>True</code>, only the payload keys that the
-handler accepts are passed to it.</p>
+handler accepts are passed to it. Default is <code>False</code>.</p>
               </div>
             </td>
             <td>
@@ -3652,8 +3690,8 @@ way (<code>clear_event</code>, <code>reset</code>, a <code>once</code> trigger),
 nothing. It never raises, even for a subscription that was
 never registered in its manager. A registration that is
 removed before its turn in a running trigger does not run.
-The cost does not depend on
-the number of handlers of the event.</p>
+The cost does not depend on the number of handlers of the
+event.</p>
 
 
     <p><span class="doc-section-title">Returns:</span></p>
