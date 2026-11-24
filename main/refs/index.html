@@ -3329,20 +3329,53 @@ event manager.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>options</code>
+                <code>once</code>
             </td>
             <td>
-                  <code><span title="minevent.manager._Options">_Options</span> | None</code>
+                  <code><span title="bool">bool</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The options of the registration (<code>once</code>,
-<code>condition</code> and <code>filter_payload</code>). <code>None</code> means the
-default options.</p>
+                <p>If <code>True</code>, the registration is removed before its
+first execution.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>condition</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="minevent.conditions.Condition" href="conditions/#minevent.conditions.Condition">Condition</a> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The condition evaluated before the handler, or
+<code>None</code> if the handler always runs.</p>
               </div>
             </td>
             <td>
                   <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>filter_payload</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If <code>True</code>, only the payload keys that the
+handler accepts are passed to it.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
             </td>
           </tr>
       </tbody>
