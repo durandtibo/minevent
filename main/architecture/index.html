@@ -1773,8 +1773,8 @@ Arguments bound with functools.partial are part of `handler`, not of the payload
 <li>Handlers with special lifecycle</li>
 </ul>
 <h3 id="custom-conditions">Custom Conditions<a class="headerlink" href="#custom-conditions" title="Permanent link">&para;</a></h3>
-<p>A condition is any function without argument that returns a boolean (a <code>Condition</code>, that is a <code>Callable[[], bool]</code>).
-Implement <code>__call__</code> in a class when the condition has a state:</p>
+<p>A condition is any function without argument that returns a boolean (a <code>Condition</code>, that is a
+<code>Callable[[], bool]</code>). Implement <code>__call__</code> in a class when the condition has a state:</p>
 <div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">MyCondition</span><span class="p">:</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="c1"># Custom logic</span>
