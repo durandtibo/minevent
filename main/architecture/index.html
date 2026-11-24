@@ -1449,7 +1449,7 @@
 <tr>
 <td>P5</td>
 <td>Registration identity</td>
-<td><code>add_event_handler</code> returns a new <code>Subscription</code> every time; the same callable can be registered several times. <code>remove()</code> removes that registration only, once: <code>True</code> the first time, then <code>False</code>. <code>active</code> is <code>True</code> if and only if the registration is in the manager.</td>
+<td><code>add_event_handler</code> returns a new <code>Subscription</code> every time; the same callable can be registered several times. <code>remove()</code> removes that registration only, once: <code>True</code> the first time, then <code>False</code>. <code>active</code> is <code>True</code> from the registration until the registration is removed, by whatever means.</td>
 <td><code>Subscription</code>, <code>test_manager.py</code></td>
 </tr>
 <tr>
@@ -1461,8 +1461,8 @@
 <tr>
 <td>P7</td>
 <td>Snapshot dispatch</td>
-<td><code>trigger_event</code> runs the registrations that exist when it starts. A registration added or removed by a running handler takes effect at the next trigger, except that a <code>once</code> registration removed by an earlier handler of the same trigger does not run.</td>
-<td><code>get_subscriptions</code>, <code>test_manager.py</code></td>
+<td><code>trigger_event</code> runs the registrations that exist when it starts. A registration <strong>added</strong> by a running handler takes effect at the next trigger. A registration <strong>removed</strong> before its turn (by <code>remove()</code>, <code>clear_event</code>, <code>reset</code> or a <code>once</code> claim) does not run: a removed registration never starts.</td>
+<td><code>Subscription._call</code>, <code>test_manager.py</code></td>
 </tr>
 <tr>
 <td>P8</td>
@@ -1515,7 +1515,7 @@
 <tr>
 <td>P16</td>
 <td>Fast and linear</td>
-<td>A trigger of one handler costs about 0.4 µs, each extra handler about 0.1 µs, a registration plus its removal about 0.8 µs (Python 3.14, laptop). Registering <em>k</em> handlers and removing them in any order costs O(<em>k</em>) in total. Benchmarks guard it.</td>
+<td>A trigger of one handler costs about 0.35 µs, each extra handler about 0.1 µs, a registration plus its removal about 0.65 µs (Python 3.14, laptop). Registering <em>k</em> handlers and removing them in any order costs O(<em>k</em>) in total. Benchmarks guard it.</td>
 <td><code>tests/benchmarks/</code></td>
 </tr>
 <tr>
@@ -1744,7 +1744,7 @@ Arguments bound with functools.partial are part of `handler`, not of the payload
 <li>Handlers with special lifecycle</li>
 </ul>
 <h3 id="custom-conditions">Custom Conditions<a class="headerlink" href="#custom-conditions" title="Permanent link">&para;</a></h3>
-<p>A condition is any function without argument that returns a boolean (the <code>Condition</code> protocol).
+<p>A condition is any function without argument that returns a boolean (a <code>Condition</code>, that is a <code>Callable[[], bool]</code>).
 Implement <code>__call__</code> in a class when the condition has a state:</p>
 <div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">MyCondition</span><span class="p">:</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -1763,8 +1763,10 @@ Implement <code>__call__</code> in a class when the condition has a state:</p>
 <h2 id="not-guaranteed">Not guaranteed<a class="headerlink" href="#not-guaranteed" title="Permanent link">&para;</a></h2>
 <p>These behaviors are documented limits, not defects:</p>
 <ul>
-<li><strong>A handler removed while a trigger is running</strong> still runs in that trigger (P7). After <code>remove()</code>
-  returns, the next trigger does not run it.</li>
+<li><strong>A removal in another thread.</strong> P7 is exact in the thread that triggers: a handler that removes a
+  later registration of the same trigger prevents it. Another thread that calls <code>remove()</code> while a
+  trigger is between the check and the call of that handler cannot prevent that one start. After a
+  trigger returns, a removed registration has not run.</li>
 <li><strong>Recursion.</strong> A handler that triggers its own event recurses until <code>RecursionError</code>.</li>
 <li><strong>Blocking.</strong> A synchronous handler in <code>atrigger_event</code> blocks the event loop.</li>
 <li><strong>A handler that returns a generator</strong> (a <code>def</code> with <code>yield</code>) does nothing: the generator is

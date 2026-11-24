@@ -1386,8 +1386,8 @@ compared by identity.</p>
 <h3 id="what-happens-if-i-trigger-an-event-with-no-handler">What happens if I trigger an event with no handler?<a class="headerlink" href="#what-happens-if-i-trigger-an-event-with-no-handler" title="Permanent link">&para;</a></h3>
 <p>Nothing.</p>
 <h3 id="in-which-order-do-the-handlers-run">In which order do the handlers run?<a class="headerlink" href="#in-which-order-do-the-handlers-run" title="Permanent link">&para;</a></h3>
-<p>In the order they were registered. A handler added or removed by a running handler takes effect at
-the next trigger.</p>
+<p>In the order they were registered. A handler added by a running handler runs at the next trigger. A
+registration removed by a running handler before its turn does not run.</p>
 <h3 id="what-happens-if-a-handler-raises">What happens if a handler raises?<a class="headerlink" href="#what-happens-if-a-handler-raises" title="Permanent link">&para;</a></h3>
 <p>The exception propagates to the caller of <code>trigger_event</code>, with a note that names the event and the
 handler, and the next handlers are skipped.</p>
@@ -1404,7 +1404,7 @@ the counter of a stateful condition is not protected. See
 <code>async def __call__</code> for <code>atrigger_event</code>). A condition is any function without argument that
 returns a boolean, or a class with <code>__call__</code>.</p>
 <h3 id="what-is-the-overhead">What is the overhead?<a class="headerlink" href="#what-is-the-overhead" title="Permanent link">&para;</a></h3>
-<p>About 0.4 µs per trigger with one trivial handler. See <a href="../guide/#performance">performance</a>.</p>
+<p>About 0.35 µs per trigger with one trivial handler. See <a href="../guide/#performance">performance</a>.</p>
 <h2 id="help">Help<a class="headerlink" href="#help" title="Permanent link">&para;</a></h2>
 <h3 id="where-can-i-report-a-bug-or-ask-for-a-feature">Where can I report a bug or ask for a feature?<a class="headerlink" href="#where-can-i-report-a-bug-or-ask-for-a-feature" title="Permanent link">&para;</a></h3>
 <p>On the <a href="https://github.com/durandtibo/minevent/issues">GitHub issue tracker</a>.</p>

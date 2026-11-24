@@ -1551,8 +1551,8 @@ the handler should be attached.</p>
             <td>
               <div class="doc-md-description">
                 <p>If <code>True</code>, the handler is removed just before its
-first execution, so it runs at most once (P9 of the
-architecture page). A condition that is <code>False</code> does
+first execution, so it runs at most once, even when
+several threads trigger the event. A condition that is <code>False</code> does
 not consume the registration: it waits for the first
 time the condition is <code>True</code>. Default is <code>False</code>.</p>
               </div>
@@ -2290,9 +2290,11 @@ exception propagates and the remaining handlers are skipped.
 The exception is not wrapped: it has a note (<code>__notes__</code>)
 with the event and the function of the handler that raised it.</p>
 <p>The handlers are read from a snapshot taken when the event is
-triggered. Handlers added or removed by a running handler
-take effect on the next trigger, not the current one. A
-<code>once</code> registration is removed just before its handler runs.</p>
+triggered. A handler added by a running handler takes effect
+on the next trigger. A registration removed before its turn
+(by <code>remove</code>, <code>clear_event</code> or <code>reset</code>) does not run.
+A <code>once</code> registration is removed just before its handler
+runs.</p>
 <p>A handler can trigger events, including the event it handles,
 but nothing stops the recursion: a handler that always
 triggers its own event raises a <code>RecursionError</code>. Guard the
@@ -2643,9 +2645,9 @@ handler accepts are passed to it.</p>
                 <p><code>True</code> if the event handler is still registered,
 <code>False</code> if it was removed (by this subscription, by
 <code>clear_event</code> or <code>reset</code>, or because it was a
-<code>once</code> registration consumed by a trigger), or if
-it was never registered in its manager. The answer
-is read from the registry of the manager.</p>
+<code>once</code> registration consumed by a trigger). The
+manager sets the flag when the registration leaves
+its registry.</p>
               </div>
             </td>
           </tr>
@@ -2927,7 +2929,9 @@ registered several times to the same event. Calling this
 method again, or after the registration was removed another
 way (<code>clear_event</code>, <code>reset</code>, a <code>once</code> trigger), does
 nothing. It never raises, even for a subscription that was
-never registered in its manager. The cost does not depend on
+never registered in its manager. A registration that is
+removed before its turn in a running trigger does not run.
+The cost does not depend on
 the number of handlers of the event.</p>
 
 
