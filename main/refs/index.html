@@ -1993,8 +1993,8 @@ the handler should be attached.</p>
             <td>
               <div class="doc-md-description">
                 <p>If <code>True</code>, the handler is removed just before its
-first execution, so it runs at most once, even when
-several threads trigger the event. A condition that is <code>False</code> does
+first execution, so it runs at most once (P9 of the
+architecture page). A condition that is <code>False</code> does
 not consume the registration: it waits for the first
 time the condition is <code>True</code>. Default is <code>False</code>.</p>
               </div>

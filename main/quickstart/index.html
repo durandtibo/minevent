@@ -1370,7 +1370,7 @@ the logic associated to the event handler is not executed.</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">)</span>
 <span class="go">Hello!</span>
 </code></pre></div>
-<p>A condition is any function without argument that returns a boolean (a <code>Condition</code>, that is a <code>Callable[[], bool]</code>).
+<p>A condition is any function without argument that returns a boolean (the <code>Condition</code> protocol).
 <code>minevent</code> provides the stateful conditions <code>AfterNCondition</code> (skip the first <code>n</code> calls) and
 <code>PeriodicCondition(freq, skip_first=...)</code>. A class with a <code>__call__</code> method is a condition too.</p>
 <p>To combine conditions, write a function. You choose which conditions are evaluated:</p>
