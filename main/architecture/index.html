@@ -1467,7 +1467,7 @@
 <tr>
 <td>P8</td>
 <td>Fail-fast with context</td>
-<td>An exception of a handler propagates unchanged (same object, same type); the remaining handlers are skipped. It carries a note with the event and the name of the handler (the function under a <code>functools.partial</code>), once per distinct pair. Building the note never runs the <code>repr</code> of user data.</td>
+<td>An exception of a handler propagates unchanged (same object, same type); the remaining handlers are skipped. It carries a note with the event and the name of the handler (the function under a <code>functools.partial</code>), once per distinct pair. <strong>No message and no <code>repr</code> of the package runs the <code>repr</code> of user data</strong>: they name the function, never its arguments.</td>
 <td><code>_describe</code>, <code>_add_error_note</code>, <code>test_manager.py</code></td>
 </tr>
 <tr>
@@ -1529,6 +1529,12 @@
 <td>One way to do each thing</td>
 <td>One way to register (<code>add_event_handler</code>, with <code>on</code> as its decorator form), one way to bind arguments (<code>functools.partial</code>), one way to run a handler once (<code>once=True</code>), one way to extend (write a callable). No handler base class.</td>
 <td>the signatures</td>
+</tr>
+<tr>
+<td>P19</td>
+<td>Debuggable without a logger</td>
+<td><code>repr(subscription)</code> names the event and the handler function (<code>Subscription(event='epoch_end', handler='log_epoch')</code>), <code>repr(manager)</code> counts the registrations per event. The library logs nothing: <code>get_subscriptions(event)</code> is the way to look.</td>
+<td><code>__repr__</code>, <code>test_manager.py</code></td>
 </tr>
 </tbody>
 </table>

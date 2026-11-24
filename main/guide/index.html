@@ -1737,7 +1737,8 @@ was never awaited). Call <code>await manager.atrigger_event(...)</code>.</p>
 <h3 id="debug">Debug<a class="headerlink" href="#debug" title="Permanent link">&para;</a></h3>
 <ul>
 <li><code>print(manager)</code> shows the number of handlers of each event, and <code>manager.get_subscriptions(e)</code>
-  the registrations.</li>
+  the registrations; each one prints its event and the name of its handler
+  (<code>Subscription(event='my_event', handler='print')</code>).</li>
 <li><code>minevent</code> does not log. Wrap a handler to trace it (the wrapper is a plain callable):</li>
 </ul>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">traced</span><span class="p">(</span><span class="n">handler</span><span class="p">):</span>
