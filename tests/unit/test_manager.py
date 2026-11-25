@@ -20,11 +20,14 @@ from minevent import (
 )
 from minevent.manager import _as_context, _check_event
 from tests.unit.handlers import (
+    AsyncConditionMethod,
+    AsyncConditionObject,
     AwaitableResult,
     CallableRecorder,
     CustomCondition,
     ModelStandIn,
     async_condition,
+    condition_returning_a_coroutine,
     copy_context,
     fail,
     generator_handler,
@@ -1080,6 +1083,26 @@ def test_event_manager_add_event_handler_rejected_condition_leaves_manager_uncha
     assert len(manager) == 0
 
 
+@pytest.mark.parametrize(
+    "condition",
+    [async_condition, AsyncConditionMethod().check, functools.partial(async_condition)],
+)
+def test_event_manager_add_event_handler_async_condition(condition: Any) -> None:
+    manager = EventManager()
+    with pytest.raises(TypeError, match=r"^condition must be synchronous, but got "):
+        manager.add_event_handler("my_event", noop_handler, condition=condition)
+    assert len(manager) == 0
+
+
+def test_event_manager_on_async_condition() -> None:
+    manager = EventManager()
+    condition: Any = async_condition
+    decorator = manager.on("my_event", condition=condition)
+    with pytest.raises(TypeError, match=r"^condition must be synchronous, but got async_condition"):
+        decorator(noop_handler)
+    assert len(manager) == 0
+
+
 def test_event_manager_on_rejected_signature() -> None:
     manager = EventManager()
     decorator = manager.on("my_event")
@@ -1153,18 +1176,18 @@ def test_event_manager_trigger_event_autospec_handler() -> None:
 ############################################
 
 
-def test_event_manager_trigger_event_condition_returns_awaitable() -> None:
+@pytest.mark.parametrize("condition", [AsyncConditionObject(), condition_returning_a_coroutine])
+def test_event_manager_trigger_event_condition_returns_awaitable(condition: Any) -> None:
     manager = EventManager()
-    condition: Any = async_condition
     manager.add_event_handler("my_event", hello_handler, condition=condition)
-    with pytest.raises(TypeError, match=r"condition async_condition returned an awaitable"):
+    with pytest.raises(TypeError, match=r"^condition .+ returned an awaitable"):
         manager.trigger_event("my_event")
     assert hello_handler.call_count == 0
 
 
 def test_event_manager_trigger_event_condition_awaitable_keeps_once_registration() -> None:
     manager = EventManager()
-    condition: Any = async_condition
+    condition: Any = condition_returning_a_coroutine
     subscription = manager.add_event_handler(
         "my_event", hello_handler, once=True, condition=condition
     )
@@ -1175,11 +1198,11 @@ def test_event_manager_trigger_event_condition_awaitable_keeps_once_registration
 
 def test_event_manager_trigger_event_condition_awaitable_has_note() -> None:
     manager = EventManager()
-    condition: Any = async_condition
+    condition: Any = condition_returning_a_coroutine
     manager.add_event_handler("my_event", noop_handler, condition=condition)
     assert raised(manager.trigger_event, "my_event").__notes__ == [
         (
-            "raised by the condition async_condition of noop_handler "
+            "raised by the condition condition_returning_a_coroutine of noop_handler "
             "while handling the event 'my_event'"
         )
     ]

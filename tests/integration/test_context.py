@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import copy
 import dataclasses
+import functools
 import multiprocessing
 import threading
 from concurrent.futures import ProcessPoolExecutor
@@ -142,6 +143,21 @@ def test_missing_key_in_a_condition_adds_a_note_that_names_the_condition() -> No
             "while handling the event 'epoch_end'"
         )
     ]
+
+
+def test_async_condition_is_rejected_at_registration() -> None:
+    """Test that a partial of an async condition method is rejected by
+    the real signature and coroutine checks, before any trigger."""
+    manager = EventManager()
+
+    class Schedule:
+        async def is_late(self, limit: int, context: Context) -> bool:
+            return context["epoch"] > limit
+
+    condition: Any = functools.partial(Schedule().is_late, 2)
+    with pytest.raises(TypeError, match=r"^condition must be synchronous, but got .*is_late$"):
+        manager.add_event_handler("epoch_end", lambda: None, condition=condition)
+    assert len(manager) == 0
 
 
 def test_context_is_read_only_for_a_handler() -> None:

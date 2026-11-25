@@ -97,6 +97,27 @@ async def async_condition() -> bool:
     return False
 
 
+class AsyncConditionObject:
+    r"""Implement a condition with an async ``__call__``."""
+
+    async def __call__(self) -> bool:
+        r"""Return ``False``."""
+        return False
+
+
+class AsyncConditionMethod:
+    r"""Implement an object with an async condition method."""
+
+    async def check(self) -> bool:
+        r"""Return ``False``."""
+        return False
+
+
+def condition_returning_a_coroutine() -> object:
+    r"""Implement a synchronous condition that returns a coroutine."""
+    return async_condition()
+
+
 class AwaitableResult:
     r"""Implement an awaitable that is not a coroutine."""
 

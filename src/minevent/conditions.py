@@ -8,7 +8,8 @@ it has a parameter without default, so it can depend on the payload:
 ``lambda context: context.get("epoch", 0) > 5``. Like a handler, it
 keeps the values of the parameters that have a default, and any other
 signature is rejected at registration. A condition is synchronous, in
-``atrigger_event`` too: the trigger raises a ``TypeError`` if it
+``atrigger_event`` too: a coroutine function is rejected at
+registration, and the trigger raises a ``TypeError`` if a condition
 returns an awaitable.
 ``Condition`` is the type alias
 ``Callable[[], bool] | Callable[[Context], bool]``. A condition is

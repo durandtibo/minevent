@@ -112,7 +112,8 @@ class Subscription:
 
     Raises:
         TypeError: if the signature of ``handler`` or ``condition``
-            is rejected (see ``EventManager.add_event_handler``).
+            is rejected, or if ``condition`` is a coroutine function
+            (see ``EventManager.add_event_handler``).
 
     Example:
         ```pycon
@@ -165,6 +166,13 @@ class Subscription:
         self._condition_with_context = condition is not None and needs_context(
             condition, "condition"
         )
+        if condition is not None:
+            import inspect  # noqa: PLC0415
+
+            # The condition is rejected now, not at the first trigger, which can be much later.
+            if inspect.iscoroutinefunction(condition):
+                msg = f"condition must be synchronous, but got {describe(condition)}"
+                raise TypeError(msg)
         # The same condition, typed for the two ways to call it.
         self._condition_call: Callable[..., object] | None = condition
         # A trigger only calls ``_claim`` for these registrations: the others save a method call.
@@ -250,8 +258,10 @@ class Subscription:
         registration is removed by an atomic claim, so its handler runs
         at most once whatever the number of threads. A condition that
         is ``False`` (or that raises) does not consume a ``once``
-        registration. A condition is synchronous: if it returns an
-        awaitable, a coroutine is closed and a ``TypeError`` is raised.
+        registration. A condition is synchronous: a coroutine function
+        is rejected at registration, and if a condition returns an
+        awaitable, a coroutine is closed and a ``TypeError`` is
+        raised.
 
         Args:
             context: The context of the trigger. The condition receives
@@ -285,7 +295,7 @@ class Subscription:
                     if self._condition_with_context
                     else self._condition_call()
                 )
-                # A coroutine is truthy, so an async condition would always run the handler.
+                # A coroutine is truthy: a condition that returns one would always run the handler.
                 if result is not True and result is not False:
                     msg = f"condition {describe(self._condition_call)} returned an awaitable"
                     reject_awaitable(result, msg)
@@ -540,15 +550,17 @@ class EventManager:
                 waits for the first time the condition is ``True``.
                 Default is ``False``.
             condition: An optional condition: a synchronous function
-                that returns a boolean (a condition that returns an
-                awaitable, such as a coroutine function, makes the
-                trigger raise a ``TypeError``). It is called each time the event is
-                triggered, before the handler, and the handler runs
-                only if it returns ``True``. It is called as
-                ``condition()`` or ``condition(context)``, with the
-                rule of the handlers: a parameter that has a default
-                keeps it. If
-                ``None``, the handler always runs. An exception
+                that returns a boolean. A coroutine function is
+                rejected here, and a condition that returns an
+                awaitable another way (a lambda that returns a
+                coroutine, or an object with ``async def __call__``)
+                makes the trigger raise a ``TypeError``. It is called
+                each time the event is triggered, before the handler,
+                and the handler runs only if it returns ``True``. It is
+                called as ``condition()`` or ``condition(context)``,
+                with the rule of the handlers: a parameter that has a
+                default keeps it. If ``None``, the handler always
+                runs. An exception
                 raised by the condition propagates to the caller of
                 ``trigger_event``. A stateful condition, such as
                 ``PeriodicCondition``, must not be shared between
@@ -561,10 +573,11 @@ class EventManager:
         Raises:
             TypeError: if ``event`` is not a string, if ``handler``
                 is not callable, if ``condition`` is neither ``None``
-                nor callable, or if ``handler`` or ``condition`` is a
+                nor callable, if ``handler`` or ``condition`` is a
                 generator function, needs another argument than the
-                context, or has a signature that cannot be inspected.
-                The manager is unchanged.
+                context, or has a signature that cannot be inspected,
+                or if ``condition`` is a coroutine function. The
+                manager is unchanged.
 
         Example:
             ```pycon
@@ -647,8 +660,9 @@ class EventManager:
             TypeError: if ``event`` is not a string, or, when the
                 decorator is applied, if ``condition`` is neither
                 ``None`` nor callable, if the decorated object is not
-                callable, or if ``add_event_handler`` rejects the
-                signature of the function or of the condition.
+                callable, if ``add_event_handler`` rejects the
+                signature of the function or of the condition, or if
+                ``condition`` is a coroutine function.
 
         Example:
             ```pycon
