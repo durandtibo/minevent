@@ -7,6 +7,7 @@ import logging
 import pickle
 import threading
 from collections.abc import Awaitable
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 from unittest.mock import Mock
 
@@ -20,10 +21,10 @@ from minevent import (
 )
 from minevent.manager import (
     _add_error_note,
+    _as_context,
     _check_event,
     _check_not_awaitable,
     _describe,
-    _make_context,
     _needs_context,
 )
 from tests.unit.utils import raised, trace
@@ -356,7 +357,7 @@ def test_event_manager_add_event_handler_callable_object() -> None:
     manager = EventManager()
     calls: list[dict[str, Any]] = []
     manager.add_event_handler("my_event", CallableRecorder(calls))
-    manager.trigger_event("my_event", epoch=3)
+    manager.trigger_event("my_event", {"epoch": 3})
     assert calls == [{"epoch": 3}]
 
 
@@ -370,14 +371,14 @@ def test_event_manager_add_event_handler_event_handler_still_accepted() -> None:
 def test_event_manager_add_event_handler_partial_binds_positional_argument() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", functools.partial(payload_handler, 1, 2))
-    manager.trigger_event("my_event", epoch=3)
+    manager.trigger_event("my_event", {"epoch": 3})
     assert payload_handler.args == (1, 2, {"epoch": 3})
 
 
 def test_event_manager_add_event_handler_partial_binds_keyword_argument() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", functools.partial(payload_handler, k=1))
-    manager.trigger_event("my_event", epoch=3)
+    manager.trigger_event("my_event", {"epoch": 3})
     assert (payload_handler.args, payload_handler.kwargs) == (({"epoch": 3},), {"k": 1})
 
 
@@ -386,7 +387,7 @@ def test_event_manager_add_event_handler_payload_does_not_override_keyword_bound
 ):
     manager = EventManager()
     manager.add_event_handler("my_event", functools.partial(payload_handler, k=1))
-    manager.trigger_event("my_event", k=2)
+    manager.trigger_event("my_event", {"k": 2})
     assert (payload_handler.args, payload_handler.kwargs) == (({"k": 2},), {"k": 1})
 
 
@@ -533,7 +534,7 @@ def test_event_manager_clear_event_must_be_str() -> None:
 def test_event_manager_trigger_event_payload() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", payload_handler)
-    manager.trigger_event("my_event", epoch=3, loss=0.5)
+    manager.trigger_event("my_event", {"epoch": 3, "loss": 0.5})
     assert payload_handler.args == ({"epoch": 3, "loss": 0.5},)
 
 
@@ -541,7 +542,7 @@ def test_event_manager_trigger_event_payload_all_handlers() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", payload_handler)
     manager.add_event_handler("my_event", functools.partial(payload_handler, 1))
-    manager.trigger_event("my_event", epoch=3)
+    manager.trigger_event("my_event", {"epoch": 3})
     assert payload_handler.call_count == 2
 
 
@@ -555,21 +556,21 @@ def test_event_manager_trigger_event_without_payload() -> None:
 def test_event_manager_trigger_event_payload_is_a_context() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", payload_handler)
-    manager.trigger_event("my_event", epoch=3)
+    manager.trigger_event("my_event", {"epoch": 3})
     assert isinstance(payload_handler.args[0], Context)
 
 
 def test_event_manager_trigger_event_payload_ignored_by_handler_without_parameter() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", hello_handler)
-    manager.trigger_event("my_event", epoch=3)
+    manager.trigger_event("my_event", {"epoch": 3})
     assert hello_handler.call_count == 1
 
 
 def test_event_manager_trigger_event_handler_without_parameter_called_without_argument() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", hello_handler)
-    manager.trigger_event("my_event", epoch=3)
+    manager.trigger_event("my_event", {"epoch": 3})
     assert (hello_handler.args, hello_handler.kwargs) == ((), {})
 
 
@@ -578,7 +579,7 @@ def test_event_manager_trigger_event_handlers_read_different_keys() -> None:
     calls: list[object] = []
     manager.add_event_handler("my_event", lambda context: calls.append(context["epoch"]))
     manager.add_event_handler("my_event", lambda context: calls.append(context["loss"]))
-    manager.trigger_event("my_event", epoch=3, loss=0.5)
+    manager.trigger_event("my_event", {"epoch": 3, "loss": 0.5})
     assert calls == [3, 0.5]
 
 
@@ -586,7 +587,7 @@ def test_event_manager_trigger_event_handler_missing_key_raises_key_error() -> N
     manager = EventManager()
     manager.add_event_handler("my_event", read_epoch)
     with pytest.raises(KeyError, match=r"key 'epoch' not found in the context") as exc_info:
-        manager.trigger_event("my_event", loss=0.5)
+        manager.trigger_event("my_event", {"loss": 0.5})
     assert exc_info.value.__notes__ == ["raised by read_epoch while handling the event 'my_event'"]
 
 
@@ -594,7 +595,7 @@ def test_event_manager_trigger_event_handler_missing_key_with_default() -> None:
     manager = EventManager()
     calls: list[object] = []
     manager.add_event_handler("my_event", lambda context: calls.append(context.get("epoch", -1)))
-    manager.trigger_event("my_event", loss=0.5)
+    manager.trigger_event("my_event", {"loss": 0.5})
     assert calls == [-1]
 
 
@@ -603,7 +604,7 @@ def test_event_manager_trigger_event_all_handlers_share_one_context() -> None:
     contexts: list[Context] = []
     manager.add_event_handler("my_event", contexts.append)
     manager.add_event_handler("my_event", contexts.append)
-    manager.trigger_event("my_event", epoch=3)
+    manager.trigger_event("my_event", {"epoch": 3})
     assert contexts[0] is contexts[1]
 
 
@@ -611,8 +612,8 @@ def test_event_manager_trigger_event_new_context_for_each_trigger() -> None:
     manager = EventManager()
     contexts: list[Context] = []
     manager.add_event_handler("my_event", contexts.append)
-    manager.trigger_event("my_event", epoch=1)
-    manager.trigger_event("my_event", epoch=2)
+    manager.trigger_event("my_event", {"epoch": 1})
+    manager.trigger_event("my_event", {"epoch": 2})
     assert contexts == [{"epoch": 1}, {"epoch": 2}]
 
 
@@ -624,7 +625,7 @@ def test_event_manager_trigger_event_context_is_read_only() -> None:
 
     manager.add_event_handler("my_event", handler)
     with pytest.raises(TypeError, match=r"does not support item assignment"):
-        manager.trigger_event("my_event", epoch=3)
+        manager.trigger_event("my_event", {"epoch": 3})
 
 
 ##########################################
@@ -681,35 +682,35 @@ def test_event_manager_trigger_event_custom_handler_receives_payload() -> None:
     calls: list[dict[str, Any]] = []
     event_manager = EventManager()
     event_manager.add_event_handler("my_event", CallableRecorder(calls))
-    event_manager.trigger_event("my_event", value=1)
+    event_manager.trigger_event("my_event", {"value": 1})
     assert calls == [{"value": 1}]
 
 
 def test_event_manager_trigger_event_payload_with_event_and_self_keys() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", payload_handler)
-    manager.trigger_event("my_event", event="batch_end", self=1)
+    manager.trigger_event("my_event", {"event": "batch_end", "self": 1})
     assert payload_handler.args == ({"event": "batch_end", "self": 1},)
 
 
 async def test_event_manager_atrigger_event_payload_with_event_and_self_keys() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", payload_handler)
-    await manager.atrigger_event("my_event", event="batch_end", self=1)
+    await manager.atrigger_event("my_event", {"event": "batch_end", "self": 1})
     assert payload_handler.args == ({"event": "batch_end", "self": 1},)
 
 
 def test_event_manager_trigger_event_once_payload_with_self_key() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", payload_handler, once=True)
-    manager.trigger_event("my_event", self=1)
+    manager.trigger_event("my_event", {"self": 1})
     assert payload_handler.args == ({"self": 1},)
 
 
 async def test_event_manager_atrigger_event_once_payload_with_self_key() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", payload_handler, once=True)
-    await manager.atrigger_event("my_event", self=1)
+    await manager.atrigger_event("my_event", {"self": 1})
     assert payload_handler.args == ({"self": 1},)
 
 
@@ -895,7 +896,7 @@ def test_event_manager_on_returns_function_unchanged() -> None:
 def test_event_manager_on_passes_payload() -> None:
     manager = EventManager()
     manager.on("my_event")(payload_handler)
-    manager.trigger_event("my_event", epoch=3)
+    manager.trigger_event("my_event", {"epoch": 3})
     assert payload_handler.args == ({"epoch": 3},)
 
 
@@ -955,15 +956,15 @@ def test_event_manager_trigger_event_condition_reads_the_payload() -> None:
         "my_event", hello_handler, condition=lambda context: context.get("epoch", 0) >= 2
     )
     for epoch in range(4):
-        manager.trigger_event("my_event", epoch=epoch)
+        manager.trigger_event("my_event", {"epoch": epoch})
     assert hello_handler.call_count == 2
 
 
 def test_event_manager_on_condition_reads_the_payload() -> None:
     manager = EventManager()
     manager.on("my_event", condition=lambda context: context["go"])(hello_handler)
-    manager.trigger_event("my_event", go=True)
-    manager.trigger_event("my_event", go=False)
+    manager.trigger_event("my_event", {"go": True})
+    manager.trigger_event("my_event", {"go": False})
     assert hello_handler.call_count == 1
 
 
@@ -1518,62 +1519,154 @@ def test_needs_context_lambda_with_parameter() -> None:
     assert _needs_context(lambda context: context)
 
 
-###################################
-#     Tests for _make_context     #
-###################################
+#################################
+#     Tests for _as_context     #
+#################################
 
 
-def test_make_context_handler_with_parameter() -> None:
-    subscriptions = (Subscription(EventManager(), "my_event", copy_context),)
-    assert _make_context(subscriptions, {"a": 1}) == {"a": 1}
+def test_as_context_dict() -> None:
+    assert _as_context({"a": 1, "b": 2}) == {"a": 1, "b": 2}
 
 
-def test_make_context_is_a_context() -> None:
-    subscriptions = (Subscription(EventManager(), "my_event", copy_context),)
-    assert isinstance(_make_context(subscriptions, {"a": 1}), Context)
+def test_as_context_dict_is_a_context() -> None:
+    assert isinstance(_as_context({"a": 1}), Context)
 
 
-def test_make_context_handler_without_parameter() -> None:
-    subscriptions = (Subscription(EventManager(), "my_event", hello_handler),)
-    assert _make_context(subscriptions, {"a": 1}) == {}
+def test_as_context_dict_is_copied() -> None:
+    data: dict[str, object] = {"a": 1}
+    context = _as_context(data)
+    data["b"] = 2
+    assert dict(context) == {"a": 1}
 
 
-def test_make_context_condition_with_parameter() -> None:
-    subscriptions = (
-        Subscription(EventManager(), "my_event", hello_handler, condition=has_payload),
-    )
-    assert _make_context(subscriptions, {"a": 1}) == {"a": 1}
+def test_as_context_dict_is_not_modified() -> None:
+    data: dict[str, object] = {"a": 1}
+    _as_context(data)
+    assert data == {"a": 1}
 
 
-def test_make_context_condition_without_parameter() -> None:
-    subscriptions = (
-        Subscription(EventManager(), "my_event", hello_handler, condition=lambda: True),
-    )
-    assert _make_context(subscriptions, {"a": 1}) == {}
+def test_as_context_empty_dict() -> None:
+    assert _as_context({}) == {}
 
 
-def test_make_context_no_subscription() -> None:
-    assert _make_context((), {"a": 1}) == {}
+def test_as_context_none() -> None:
+    assert _as_context(None) == {}
 
 
-def test_make_context_one_handler_with_parameter_among_others() -> None:
+def test_as_context_none_is_shared() -> None:
+    assert _as_context(None) is _as_context(None)
+
+
+def test_as_context_context_is_reused() -> None:
+    context = Context({"a": 1})
+    assert _as_context(context) is context
+
+
+def test_as_context_other_mapping() -> None:
+    assert _as_context(MappingProxyType({"a": 1})) == {"a": 1}
+
+
+@pytest.mark.parametrize("context", [1, "abc", [("a", 1)], 1.5])
+def test_as_context_invalid_type(context: Any) -> None:
+    with pytest.raises(TypeError, match=r"context must be a mapping or None, but got"):
+        _as_context(context)
+
+
+def test_as_context_invalid_type_names_the_type() -> None:
+    with pytest.raises(TypeError, match=r"but got list"):
+        _as_context([])
+
+
+@pytest.mark.parametrize("key", [1, None, b"a"])
+def test_as_context_invalid_key(key: Any) -> None:
+    with pytest.raises(TypeError, match=r"the keys of data must be str, but got"):
+        _as_context({key: 1})
+
+
+####################################################
+#     Tests for the context given to a trigger     #
+####################################################
+
+
+def test_event_manager_trigger_event_context_object_is_passed_as_is() -> None:
     manager = EventManager()
-    subscriptions = (
-        Subscription(manager, "my_event", hello_handler),
-        Subscription(manager, "my_event", copy_context),
-    )
-    assert _make_context(subscriptions, {"a": 1}) == {"a": 1}
+    contexts: list[Context] = []
+    manager.add_event_handler("my_event", contexts.append)
+    context = Context({"epoch": 3})
+    manager.trigger_event("my_event", context)
+    assert contexts[0] is context
 
 
-def test_make_context_handlers_without_parameter_share_the_empty_context() -> None:
-    subscriptions = (Subscription(EventManager(), "my_event", hello_handler),)
-    assert _make_context(subscriptions, {"a": 1}) is _make_context(subscriptions, {"b": 2})
+@pytest.mark.parametrize("data", [{"epoch": 3, "loss": 0.5}, Context({"epoch": 3, "loss": 0.5})])
+def test_event_manager_trigger_event_dict_and_context_give_the_same_data(data: Any) -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", payload_handler)
+    manager.trigger_event("my_event", data)
+    assert payload_handler.args == ({"epoch": 3, "loss": 0.5},)
 
 
-def test_make_context_does_not_mutate_the_payload() -> None:
-    payload: dict[str, object] = {"a": 1}
-    _make_context((Subscription(EventManager(), "my_event", copy_context),), payload)
-    assert payload == {"a": 1}
+@pytest.mark.parametrize("data", [{"epoch": 3}, Context({"epoch": 3})])
+async def test_event_manager_atrigger_event_dict_and_context_give_the_same_data(data: Any) -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", payload_handler)
+    await manager.atrigger_event("my_event", data)
+    assert payload_handler.args == ({"epoch": 3},)
+
+
+def test_event_manager_trigger_event_context_can_be_reused() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", payload_handler)
+    context = Context({"epoch": 3})
+    manager.trigger_event("my_event", context)
+    manager.trigger_event("my_event", context)
+    assert payload_handler.call_count == 2
+
+
+def test_event_manager_trigger_event_dict_is_not_modified_by_a_handler() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", copy_context)
+    data = {"epoch": 3}
+    manager.trigger_event("my_event", data)
+    assert data == {"epoch": 3}
+
+
+def test_event_manager_trigger_event_keys_need_not_be_identifiers() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", payload_handler)
+    manager.trigger_event("my_event", {"train/loss": 0.5, "event": "x"})
+    assert payload_handler.args == ({"train/loss": 0.5, "event": "x"},)
+
+
+def test_event_manager_trigger_event_context_none() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", payload_handler)
+    manager.trigger_event("my_event", None)
+    assert payload_handler.args == ({},)
+
+
+@pytest.mark.parametrize("context", [1, "abc", [("a", 1)]])
+def test_event_manager_trigger_event_invalid_context(context: Any) -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", hello_handler)
+    with pytest.raises(TypeError, match=r"context must be a mapping or None, but got"):
+        manager.trigger_event("my_event", context)
+    assert hello_handler.call_count == 0
+
+
+def test_event_manager_trigger_event_invalid_key() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", hello_handler)
+    context: Any = {1: "a"}
+    with pytest.raises(TypeError, match=r"the keys of data must be str, but got 1"):
+        manager.trigger_event("my_event", context)
+    assert hello_handler.call_count == 0
+
+
+def test_event_manager_trigger_event_keyword_payload_is_rejected() -> None:
+    manager = EventManager()
+    payload: Any = {"epoch": 3}
+    with pytest.raises(TypeError, match=r"got an unexpected keyword argument 'epoch'"):
+        manager.trigger_event("my_event", **payload)
 
 
 def test_subscription_active_after_add() -> None:

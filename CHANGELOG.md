@@ -49,8 +49,11 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
     of Python), and `context.get(key, default)` reads an optional value. A key that the handler does
     not read never breaks it.
   - A bridge for an old handler: `lambda context: f(**context)` registers it unchanged.
-  - The `Context` is built only if a handler of the event takes it: a trigger of one trivial handler
-    costs 0.36 µs without context (0.34 µs before) and 0.56 µs with it (Python 3.14, laptop).
+  - A trigger of one trivial handler costs 0.33 µs with no data (0.34 µs before) and 0.7 µs with a
+    small dict, which is copied into a `Context` (Python 3.14, laptop).
+  - **Breaking**: the payload is not given as keyword arguments any more:
+    `trigger_event("e", epoch=3)` becomes `trigger_event("e", {"epoch": 3})` (#849). The keys can be
+    any `str`, and `**payload` is no longer a way to pass them: use `trigger_event("e", payload)`.
 
 - `BaseCondition` (with `evaluate` and `equal`) is removed. A condition is a function without
   argument that returns a boolean: implement `__call__` instead of `evaluate`, and call `condition()`
@@ -68,8 +71,10 @@ condition=AfterNCondition(2)` runs once, on the third trigger (it never ran). A 
 ### Added
 
 - `EventManager.events`, `__contains__`, `clear_event` and `reset`.
-- `trigger_event(event, **payload)` passes the keyword arguments to the handlers in a read-only
-  `Context` (#841).
+- `trigger_event(event, context=None, /)` passes the mapping `context` to the handlers in a
+  read-only `Context` (#841, #849). A dict and a `Context` are both accepted:
+  `trigger_event("e", {"k": 1})` and `trigger_event("e", Context({"k": 1}))`. A `Context` is passed
+  as is, and `None` means no data.
 - A condition that has a parameter is called with the `Context` of the trigger, with the rule of the
   handlers (`condition(context)`, or `condition()` without parameter), so it can depend on the
   payload. `Condition` is `Callable[[], bool] | Callable[[Context], bool]`. Existing conditions are

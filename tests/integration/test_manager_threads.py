@@ -222,7 +222,7 @@ def test_add_event_handler_options_from_threads() -> None:
         )
 
     run_threads(work, NUM_THREADS)
-    manager.trigger_event("my_event", epoch=3, loss=0.5)
+    manager.trigger_event("my_event", {"epoch": 3, "loss": 0.5})
     assert sorted(calls) == sorted([(i, 3) for i in range(NUM_THREADS)] * 2)
     assert len(manager) == NUM_THREADS
 

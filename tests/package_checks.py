@@ -47,7 +47,7 @@ def check_payload() -> None:
 
     event_manager = EventManager()
     event_manager.add_event_handler("my_event", handler)
-    event_manager.trigger_event("my_event", epoch=3, event="batch_end")
+    event_manager.trigger_event("my_event", {"epoch": 3, "event": "batch_end"})
     assert received == [{"epoch": 3, "event": "batch_end"}]
 
 
@@ -74,7 +74,7 @@ def check_async_trigger() -> None:
 
     event_manager = EventManager()
     event_manager.add_event_handler("my_event", handler)
-    asyncio.run(event_manager.atrigger_event("my_event", value=7))
+    asyncio.run(event_manager.atrigger_event("my_event", {"value": 7}))
     assert calls == [7]
 
 

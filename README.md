@@ -88,9 +88,9 @@ It allows you to customize the function `say_something` without changing its imp
 
 - **Minimal and Lightweight**: No dependency, keeping your project dependencies clean
 - **Simple API**: Easy to learn and use with intuitive event registration and triggering
-- **Payload**: `trigger_event("epoch_end", epoch=3)` passes the keyword arguments to the handlers in
-  a read-only `Context`: each handler reads the keys it needs, with `context["epoch"]` or
-  `context.get("loss")`
+- **Payload**: `trigger_event("epoch_end", {"epoch": 3})` passes a dict (or a `Context`) to the
+  handlers in a read-only `Context`: each handler reads the keys it needs, with `context["epoch"]`
+  or `context.get("loss")`
 - **Subscriptions**: `add_event_handler` returns a `Subscription` to remove exactly that
   registration (it is also a context manager), and `once=True` runs a handler at most once
 - **Decorator**: `@manager.on("epoch_end")` registers a function as a handler
@@ -108,10 +108,10 @@ It allows you to customize the function `say_something` without changing its imp
 
 ## Usage
 
-The keyword arguments of `trigger_event` are the payload. The handlers receive it in a read-only
-`Context`: a handler that has a parameter is called as `handler(context)`, and a handler without
-parameter is called as `handler()`. The options of a registration (`once`, `condition`) are
-keyword-only arguments of `add_event_handler` and of its decorator form `on`:
+The second argument of `trigger_event` (a dict, or a `Context`) is the payload. The handlers receive
+it in a read-only `Context`: a handler that has a parameter is called as `handler(context)`, and a
+handler without parameter is called as `handler()`. The options of a registration (`once`,
+`condition`) are keyword-only arguments of `add_event_handler` and of its decorator form `on`:
 
 ```pycon
 >>> from minevent import Context, EventManager, PeriodicCondition
@@ -120,7 +120,7 @@ keyword-only arguments of `add_event_handler` and of its decorator form `on`:
 ... def log_epoch(context: Context) -> None:
 ...     print(f"epoch {context['epoch']}, loss {context.get('loss', 'unknown')}")
 >>> for epoch in range(4):
-...     manager.trigger_event("epoch_end", epoch=epoch, loss=0.5)
+...     manager.trigger_event("epoch_end", {"epoch": epoch, "loss": 0.5})
 epoch 0, loss 0.5
 epoch 2, loss 0.5
 >>> subscription = manager.add_event_handler("epoch_end", print, once=True)

@@ -145,7 +145,7 @@ def test_event_manager_add_event_handler_once_removed_after_trigger() -> None:
 def test_event_manager_add_event_handler_once_receives_payload() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", payload_handler, once=True)
-    manager.trigger_event("my_event", epoch=2)
+    manager.trigger_event("my_event", {"epoch": 2})
     assert payload_handler.args == ({"epoch": 2},)
 
 

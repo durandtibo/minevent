@@ -60,7 +60,7 @@ class Context(Mapping[str, object]):
     def __init__(self, data: Mapping[str, object] | None = None) -> None:
         if data is None:
             data = {}
-        elif not isinstance(data, Mapping):
+        elif type(data) is not dict and not isinstance(data, Mapping):
             msg = f"data must be a mapping or None, but got {type(data).__qualname__}"
             raise TypeError(msg)
         for key in data:
@@ -68,36 +68,6 @@ class Context(Mapping[str, object]):
                 msg = f"the keys of data must be str, but got {key!r}"
                 raise TypeError(msg)
         self._data = MappingProxyType(dict(data))
-
-    @classmethod
-    def from_keywords(cls, data: dict[str, object]) -> Context:
-        r"""Create a context from the keyword arguments of a call.
-
-        The keys of keyword arguments are always ``str``, so this
-        constructor skips the validation of ``Context(data)``. It
-        copies ``data`` like ``Context(data)`` does.
-
-        Args:
-            data: The keyword arguments, as a dict whose keys are all
-                ``str``. The dict is not checked.
-
-        Returns:
-            The context.
-
-        Example:
-            ```pycon
-            >>> from minevent import Context
-            >>> def make(**payload):
-            ...     return Context.from_keywords(payload)
-            ...
-            >>> make(epoch=3)
-            Context({'epoch': 3})
-
-            ```
-        """
-        context = cls.__new__(cls)
-        context._data = MappingProxyType(dict(data))
-        return context
 
     def __getitem__(self, key: str) -> object:
         try:

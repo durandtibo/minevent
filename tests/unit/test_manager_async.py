@@ -61,7 +61,7 @@ async def test_event_manager_atrigger_event_awaits_coroutine_handler() -> None:
 async def test_event_manager_atrigger_event_payload() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", async_handler)
-    await manager.atrigger_event("my_event", epoch=3)
+    await manager.atrigger_event("my_event", {"epoch": 3})
     assert async_handler.args == ({"epoch": 3},)
 
 
@@ -151,7 +151,7 @@ async def test_event_manager_atrigger_event_on_reads_context() -> None:
     async def log_epoch(context: Context) -> None:
         epochs.append(context["epoch"])
 
-    await manager.atrigger_event("my_event", epoch=3, loss=0.5)
+    await manager.atrigger_event("my_event", {"epoch": 3, "loss": 0.5})
     assert epochs == [3]
 
 
@@ -199,7 +199,7 @@ async def test_event_manager_atrigger_event_awaits_async_callable_object() -> No
     manager = EventManager()
     calls: list[dict[str, Any]] = []
     manager.add_event_handler("my_event", AsyncCallable(calls))
-    await manager.atrigger_event("my_event", epoch=3)
+    await manager.atrigger_event("my_event", {"epoch": 3})
     assert calls == [{"epoch": 3}]
 
 
@@ -207,7 +207,7 @@ async def test_event_manager_atrigger_event_sync_callable_object() -> None:
     manager = EventManager()
     calls: list[dict[str, Any]] = []
     manager.add_event_handler("my_event", SyncCallable(calls))
-    await manager.atrigger_event("my_event", epoch=3)
+    await manager.atrigger_event("my_event", {"epoch": 3})
     assert calls == [{"epoch": 3}]
 
 
@@ -215,7 +215,7 @@ def test_event_manager_trigger_event_sync_callable_object() -> None:
     manager = EventManager()
     calls: list[dict[str, Any]] = []
     manager.add_event_handler("my_event", SyncCallable(calls))
-    manager.trigger_event("my_event", epoch=3)
+    manager.trigger_event("my_event", {"epoch": 3})
     assert calls == [{"epoch": 3}]
 
 
@@ -270,7 +270,7 @@ async def test_event_manager_atrigger_event_condition_and_context() -> None:
         values.append(context["value"])
 
     manager.add_event_handler("my_event", record, condition=lambda: True)
-    await manager.atrigger_event("my_event", value="a", other=1)
+    await manager.atrigger_event("my_event", {"value": "a", "other": 1})
     assert values == ["a"]
 
 
@@ -325,7 +325,7 @@ async def test_event_manager_atrigger_event_context_coroutine_function() -> None
         values.append(context["value"])
 
     manager.add_event_handler("my_event", record)
-    await manager.atrigger_event("my_event", value="a", other=1)
+    await manager.atrigger_event("my_event", {"value": "a", "other": 1})
     assert values == ["a"]
 
 
@@ -337,6 +337,6 @@ async def test_event_manager_atrigger_event_condition_reads_the_payload() -> Non
         values.append(context["epoch"])
 
     manager.add_event_handler("my_event", record, condition=lambda context: context["epoch"] >= 1)
-    await manager.atrigger_event("my_event", epoch=0)
-    await manager.atrigger_event("my_event", epoch=1)
+    await manager.atrigger_event("my_event", {"epoch": 0})
+    await manager.atrigger_event("my_event", {"epoch": 1})
     assert values == [1]

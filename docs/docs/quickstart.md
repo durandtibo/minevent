@@ -168,8 +168,8 @@ the trigger if it has one, so it can depend on the payload:
 ...     lambda: print("late epoch"),
 ...     condition=lambda context: context.get("epoch", 0) >= 2,
 ... )
->>> manager.trigger_event("epoch_end", epoch=1)
->>> manager.trigger_event("epoch_end", epoch=2)
+>>> manager.trigger_event("epoch_end", {"epoch": 1})
+>>> manager.trigger_event("epoch_end", {"epoch": 2})
 late epoch
 
 ```
@@ -428,7 +428,7 @@ False
 >>> @manager.on("epoch_end")
 ... def log_epoch(context: Context) -> None:
 ...     print(f"epoch {context['epoch']}")
->>> manager.trigger_event("epoch_end", epoch=1)
+>>> manager.trigger_event("epoch_end", {"epoch": 1})
 epoch 1
 
 ```
@@ -456,7 +456,7 @@ EventManager(events={'my_event': 1})
 ```
 
 Triggering an event does not change the manager: the representation above is the same before and
-after. A handler is called as `handler(context)`, where `context` holds the keyword arguments given
+after. A handler is called as `handler(context)`, where `context` holds the data given
 to `trigger_event` (see below), or as `handler()` if it has no parameter. The arguments that do not
 come from the payload are bound with `functools.partial`.
 
@@ -518,10 +518,11 @@ The `trigger_event` method does nothing if there is no event handler registered 
 
 ### Share an event between handlers that need different payload keys
 
-The keyword arguments of `trigger_event` are copied into one read-only `Context` that is shared by
-the handlers. Each handler reads the keys it needs: `context["key"]` raises a `KeyError` (that lists
-the available keys) if the key is missing, and `context.get("key", default)` returns a default. An
-extra key never breaks a handler:
+The dict given to `trigger_event` is copied into one read-only `Context` that is shared by the
+handlers. You can also give a `Context` yourself, `trigger_event("epoch_end", Context({...}))`: it
+is passed as is, so it can be reused for several triggers. Each handler reads the keys it needs:
+`context["key"]` raises a `KeyError` (that lists the available keys) if the key is missing, and
+`context.get("key", default)` returns a default. An extra key never breaks a handler:
 
 ```pycon
 >>> from minevent import Context, EventManager
@@ -532,7 +533,7 @@ extra key never breaks a handler:
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("epoch_end", log_loss)
 >>> _ = manager.add_event_handler("epoch_end", log_epoch)
->>> manager.trigger_event("epoch_end", epoch=3, loss=0.5)
+>>> manager.trigger_event("epoch_end", {"epoch": 3, "loss": 0.5})
 loss 0.5
 epoch 3, lr 0.1
 
@@ -552,7 +553,7 @@ also runs synchronous handlers) one after the other, in the order they were adde
 ...     print(f"Hello {context['name']}!")
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("my_event", hello_handler)
->>> asyncio.run(manager.atrigger_event("my_event", name="John"))
+>>> asyncio.run(manager.atrigger_event("my_event", {"name": "John"}))
 Hello John!
 
 ```
