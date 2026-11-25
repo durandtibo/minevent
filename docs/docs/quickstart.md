@@ -5,7 +5,7 @@
 The `minevent` event system is composed of three main components:
 
 - an event
-- an event handler (any callable)
+- an event handler (a callable)
 - an event manager
 
 `trigger_event` is synchronous: the handlers of an event run one after the other, in the order they
@@ -30,9 +30,12 @@ my_event = "training completed"
 
 In `minevent`, an event handler is a piece of code that is executed when an event happens.
 
-An event handler is any callable. It is called as `handler(context)` if it has a parameter, and as
-`handler()` otherwise, where `context` is a read-only `Context` that holds the data given when the
-event is triggered (see [Fire an event](#fire-an-event)). A coroutine function is a handler of
+An event handler is a callable that needs no argument or only the context. It is called as
+`handler(context)` if it has a parameter without default, and as `handler()` otherwise, where
+`context` is a read-only `Context` that holds the data given when the event is triggered (see
+[Fire an event](#fire-an-event)). A parameter that has a default keeps it, and any other signature
+is rejected at registration (see the
+[calling rule](architecture.md#the-calling-rule)). A coroutine function is a handler of
 `atrigger_event`. The options of a registration (`once` and `condition`) are the keyword-only
 arguments of `EventManager.add_event_handler`.
 
@@ -102,9 +105,9 @@ Hello Bob! Happy Monday!
 ```
 
 It is possible to define event handlers with a large range of functions.
-For example, it is possible to implement the same logic with a lambda function. Note that a callable
-that accepts `*args`, like `print`, receives the context as an argument, so a handler that does not
-need the context must not have a parameter:
+For example, it is possible to implement the same logic with a lambda function. A callable that
+accepts `*args`, like `print`, does not say whether it expects the context, so it is rejected: wrap
+it in a function or a lambda that says what it needs:
 
 ```pycon
 >>> from minevent import EventManager
@@ -157,8 +160,8 @@ Hello!
 ```
 
 A condition is any function that returns a boolean (a `Condition`). Like a handler, it is called as
-`condition()` if it has no parameter, and as `condition(context)` with the read-only `Context` of
-the trigger if it has one, so it can depend on the payload:
+`condition(context)` with the read-only `Context` of the trigger if it has a parameter without
+default, and as `condition()` otherwise, so it can depend on the payload:
 
 ```pycon
 >>> from minevent import EventManager
@@ -459,9 +462,9 @@ EventManager(events={'my_event': 1})
 ```
 
 Triggering an event does not change the manager: the representation above is the same before and
-after. A handler is called as `handler(context)`, where `context` holds the data given
-to `trigger_event` (see below), or as `handler()` if it has no parameter. The arguments that do not
-come from the payload are bound with `functools.partial`.
+after. A handler is called as `handler(context)`, where `context` holds the data given to
+`trigger_event` (see below), or as `handler()` if it has no parameter without default. The arguments
+that do not come from the payload are bound with `functools.partial`.
 
 ```pycon
 >>> import functools

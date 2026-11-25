@@ -27,8 +27,8 @@ they were registered, so register them in the order they must run.
 
 The second argument of `trigger_event` is a mapping from `str` to values (a dict, for example). It
 is copied into a read-only `Context`, which is built once per trigger and passed to every handler
-that has a parameter. A `Context` is also accepted, and is passed as is (it is immutable, so it can
-be reused for several triggers); `None`, or no argument, means no data:
+that has a parameter without default. A `Context` is also accepted, and is passed as is (it is
+immutable, so it can be reused for several triggers); `None`, or no argument, means no data:
 
 ```pycon
 >>> from minevent import Context, EventManager
@@ -69,10 +69,15 @@ Hello!
 
 ```
 
-A handler that has a parameter that accepts a positional argument (or a `*args`) is called as
-`handler(context)`, and a handler without parameter is called as `handler()`. This is decided once,
-when the handler is registered, from the number of parameters: the names are never matched. A
-callable whose signature cannot be inspected is called as `handler(context)`.
+A handler is called as `handler(context)` if it has a parameter without default, and as
+`handler()` otherwise. This is decided once, when the handler is registered, from the signature: the
+names are never matched, and a signature that needs anything else is rejected with a `TypeError`
+(see the [calling rule](architecture.md#the-calling-rule)).
+
+A parameter that has a default keeps it, so `model.train` (`def train(mode=True)`) is called as
+`model.train()`, and `lambda i=i: ...` gets the value of `i` saved when the lambda was created. To
+give a value, wrap the call: `lambda: model.train(mode=False)`. A handler that needs a saved value
+and the context takes the context first, without default: `lambda context, i=i: ...`.
 
 Bind the arguments that do not come from the payload with `functools.partial`: the context is passed
 after the bound positional arguments.
@@ -110,10 +115,10 @@ coroutine handlers, and they block the event loop while they run.
 ## Conditions
 
 A condition is a function that returns a boolean. It is called each time the event is triggered,
-before the handler, and the handler runs only if it returns `True`. A condition that has a
-parameter is called with the read-only `Context` of the trigger, like a handler (see
-[Pass the data as a payload](#pass-the-data-as-a-payload)), and a condition without parameter is
-called without argument:
+before the handler, and the handler runs only if it returns `True`. A condition follows the
+calling rule of the handlers: it is called with the read-only `Context` of the trigger if it has a
+parameter without default, and without argument otherwise (see
+[Pass the data as a payload](#pass-the-data-as-a-payload)):
 
 ```python
 from minevent import PeriodicCondition
@@ -161,7 +166,7 @@ you pass; use `len(manager)` for the number of registrations. A manager cannot b
 
 ### Register any callable
 
-`add_event_handler` accepts any callable, called as `handler(context)` or `handler()` (see
+`add_event_handler` accepts a callable that can be called as `handler(context)` or `handler()` (see
 [Pass the data as a payload](#pass-the-data-as-a-payload)): a function, a method, a callable object
 or a `functools.partial`. The options of the registration are its keyword-only arguments: `once`
 and `condition`. Use `functools.partial` to bind the arguments that do not come from the payload.
@@ -187,7 +192,9 @@ epoch 1
 ```
 
 The signature of a `functools.partial` does not contain the arguments that it binds: a partial that
-binds the only positional parameter of a function is called as `handler()`.
+binds the only positional parameter of a function is called as `handler()`. A callable that is
+rejected, such as `print`, `max` or a `Mock()`, is wrapped in a function or a lambda:
+`lambda context: print(context)`.
 
 ### Keep the subscription
 
@@ -365,11 +372,17 @@ must not wait.
 The trigger did not give the key that the handler requires. The message lists the available keys.
 Read an optional value with `context.get("epoch", default)`, or check `"epoch" in context`.
 
-### `TypeError: ... takes 0 positional arguments but 1 was given`
+### `TypeError: ... must need no argument or only the context`
 
-The handler has no parameter that accepts the context, but its signature cannot be inspected, so it
-is called as `handler(context)`. Wrap it in a function without parameter, or in a function that
-takes the context.
+The registration is rejected because the manager cannot tell how to call the handler or the
+condition: it has `*args` or `**kwargs`, it needs two or more arguments or a keyword-only one, or
+its signature cannot be inspected. Wrap it in a function or a lambda that takes the context or
+nothing, or bind the extra arguments with `functools.partial`.
+
+### `TypeError: ... must not be a generator function`
+
+Calling a generator function (a function with `yield`) runs none of its code. Register a function
+that iterates over the generator.
 
 ### `TypeError: ... returned an awaitable; use atrigger_event`
 

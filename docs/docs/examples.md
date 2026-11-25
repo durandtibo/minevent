@@ -99,8 +99,9 @@ To combine conditions, write a function, for example `condition=lambda: a() and 
 
 ## Decide from the payload
 
-A condition that has a parameter is called with the same read-only `Context` as the handlers, so it
-can depend on the payload of the trigger. A condition without parameter is called without argument.
+A condition that has a parameter without default is called with the same read-only `Context` as the
+handlers, so it can depend on the payload of the trigger. The other conditions are called without
+argument.
 A handler and its condition can read different keys:
 
 ```pycon

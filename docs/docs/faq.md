@@ -81,7 +81,7 @@ the counter of a stateful condition is not protected. See
 
 ### Can I create custom handlers and conditions?
 
-Yes. A handler is any callable: write a class with a `__call__(self, context)` method (or
+Yes. A handler is a callable: write a class with a `__call__(self, context)` method (or
 `async def __call__` for `atrigger_event`). A condition is any function that returns a
 boolean (it can take the `Context` of the trigger), or a class with `__call__`.
 

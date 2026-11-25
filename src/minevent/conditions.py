@@ -2,11 +2,12 @@ r"""Implement some conditions that can be used in the event system.
 
 A condition is any function that returns a boolean: a lambda, a
 method, or an object with a ``__call__(self) -> bool`` method like the
-conditions of this module. A condition without parameter is called as
-``condition()``. A condition that has a parameter that accepts a
-positional argument is called as ``condition(context)`` with the
-read-only ``Context`` of the trigger, like a handler, so it can depend
-on the payload: ``lambda context: context.get("epoch", 0) > 5``.
+conditions of this module. It is called as ``condition()``, or as
+``condition(context)`` with the read-only ``Context`` of the trigger if
+it has a parameter without default, so it can depend on the payload:
+``lambda context: context.get("epoch", 0) > 5``. Like a handler, it
+keeps the values of the parameters that have a default, and any other
+signature is rejected at registration.
 ``Condition`` is the type alias
 ``Callable[[], bool] | Callable[[Context], bool]``. A condition is
 called each time the event is triggered, before the handler, and the
