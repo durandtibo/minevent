@@ -45,7 +45,7 @@ The trigger of a reusable workflow is `workflow_call`: it runs when another work
 | `ci-doctest.yaml`                   | called by `ci.yaml`, manual                 | Run the doctests (`inv test.doctest`) and check that the documentation builds.                |
 | `ci-format.yaml`                    | called by `ci.yaml`, manual                 | Check the formatting and the linting of the source, the Markdown, YAML, TOML and shell files. |
 | `ci-pre-commit.yaml`                | called by `ci.yaml`, manual                 | Run all the pre-commit hooks.                                                                 |
-| `ci-test.yaml`                      | called by `ci.yaml`                         | Unit and integration tests on every Python version and OS, and one pass of the benchmarks.    |
+| `ci-test.yaml`                      | called by `ci.yaml`                         | Unit and integration tests on every Python version and OS.                                    |
 | `ci-type-checking.yaml`             | called by `ci.yaml`, manual                 | Type check the package with `ty`.                                                             |
 | `ci-benchmark.yaml`                 | nightly, manual                             | Run the benchmarks (not a merge gate).                                                        |
 | `ci-verify-workflows.yaml`          | pull request or push changing the workflows | Lint the files of `.github/workflows`.                                                        |

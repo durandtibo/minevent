@@ -1,6 +1,6 @@
 # Comprehensive test suite workflow.
-# Runs unit and integration tests across multiple Python versions and operating systems, and
-# runs each benchmark once.
+# Runs unit and integration tests across multiple Python versions and operating systems.
+# The benchmarks are not run here: ci-benchmark.yaml and ci-benchmark-import.yaml run them nightly.
 # The ubuntu-latest/3.14 cell of the matrix also uploads coverage to Codecov,
 # so coverage tracking rides on an existing run instead of a separate full test pass.
 
@@ -59,8 +59,3 @@ jobs:
       - name: Run integration tests
         run: |
           inv test.integration --cov
-      # Run each benchmark once, without measure, so a change of the API cannot leave one
-      # behind.
-      - name: Check the benchmarks
-        run: |
-          pytest tests/benchmarks --benchmark-disable

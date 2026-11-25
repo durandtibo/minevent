@@ -49,7 +49,7 @@ today) or **new**.
 | P17 | A manager is a service       | `bool(manager)` is always `True`; `len(manager)` is the number of registrations.                                                                                                                                                                                                                                                                                                                                                                         | same    | `__bool__`                                             |
 | P18 | One way to do each thing     | One way to register (`add_event_handler`, with `on` as its decorator form), one way to adapt a callable (a function, a lambda or a `functools.partial`), one way to run once (`once=True`), one way to extend (write a callable), **one option to shift a period (`start`)**. One page states each rule; a docstring states what its own object does and names the page or the function that holds the rule.                                             | changed | the signatures, the documents                          |
 | P19 | Debuggable without a logger  | `repr(subscription)` names the event and the handler function, `repr(manager)` counts the registrations per event. The library logs nothing.                                                                                                                                                                                                                                                                                                             | same    | `__repr__`                                             |
-| P20 | Everything that runs, is run | Each pull request runs the unit and integration tests, the doctests, `tests/package_checks.py` and one pass of **every** benchmark. A test passes or fails for the same reason on every Python of the matrix, with and without the GIL.                                                                                                                                                                                                                  | changed | CI                                                     |
+| P20 | Everything that runs, is run | Each pull request runs the unit and integration tests, the doctests and `tests/package_checks.py`; **every** benchmark runs nightly only. A test passes or fails for the same reason on every Python of the matrix, with and without the GIL.                                                                                                                                                                                                            | changed | CI                                                     |
 | P21 | Exact built-in conditions    | `PeriodicCondition` and `AfterNCondition` count every call once, from any number of threads, with and without the GIL. They can be copied and pickled.                                                                                                                                                                                                                                                                                                   | new     | a lock in the conditions, `test_conditions_threads.py` |
 
 Not guaranteed, and documented as such:
@@ -378,14 +378,14 @@ its removal.
 
 ### What else follows
 
-| Place                     | Change                                                                                      |
-| ------------------------- | ------------------------------------------------------------------------------------------- |
-| `docs/docs`               | the properties, `start` in the examples, `StrEnum` in the guide, `Handler` in the reference |
-| `README.md`               | nothing                                                                                     |
-| `tests/package_checks.py` | nothing: it uses no changed API                                                             |
-| `tests/benchmarks/`       | `start` in `test_handler_benchmark.py`; new benchmarks of a missing key and a condition     |
-| `.github/`                | `ci-test.yaml` drops `--ignore` for the import benchmarks; `GUIDELINES.md` follows          |
-| `CHANGELOG.md`            | the "Unreleased" section, still written against `0.5.0` only                                |
+| Place                     | Change                                                                                        |
+| ------------------------- | --------------------------------------------------------------------------------------------- |
+| `docs/docs`               | the properties, `start` in the examples, `StrEnum` in the guide, `Handler` in the reference   |
+| `README.md`               | nothing                                                                                       |
+| `tests/package_checks.py` | nothing: it uses no changed API                                                               |
+| `tests/benchmarks/`       | `start` in `test_handler_benchmark.py`; new benchmarks of a missing key and a condition       |
+| `.github/`                | `ci-test.yaml` no longer runs the benchmarks, which run nightly only; `GUIDELINES.md` follows |
+| `CHANGELOG.md`            | the "Unreleased" section, still written against `0.5.0` only                                  |
 
 ## 6. Evidence: a prototype
 
@@ -445,19 +445,19 @@ Not verified: the speed on 3.11 to 3.13 and on the free-threaded builds, and Lin
 One branch and one pull request per step (`CLAUDE.md`), each green on its own, stacked where it says
 so. Each step updates the docstrings, the property it changes in `architecture.md` and the changelog.
 
-| Step | Branch                                      | Change                                                          | Breaking | Fixes    | Pull request |
-| ---- | ------------------------------------------- | --------------------------------------------------------------- | -------- | -------- | ------------ |
-| 1    | `bugfix/fix-removal-thread-test`            | Assert what P9 guarantees: `once=True` in the test              | no       | F5       | #864         |
-| 2    | `bugfix/count-condition-calls-exactly`      | The shared counter and its lock (4.4, without `start`)          | no       | F4       | #865         |
-| 3    | `perf/read-missing-context-keys`            | `get` and `__contains__` (4.5), a benchmark                     | no       | F6       | #867         |
-| 4    | `refactor/add-calls-module`                 | Move the helpers to `calls.py` and split `test_manager.py`      | no       | F12      | #868         |
-| 5    | `bugfix/name-failing-condition` (on 4)      | `_claim`, `_invoke`, the notes (4.1, 4.2)                       | note     | F1, F3   | #869         |
-| 6    | `feat/reject-async-conditions` (on 5)       | The check of 4.3                                                | **yes**  | F2       | #870         |
-| 7    | `bugfix/release-handlers-outside-lock`      | 4.7                                                             | no       | F9       | #871         |
-| 8    | `feat/add-handler-type` (on 4)              | `Handler` (4.6), a typed sample checked by `ty`                 | types    | F8       | #872         |
-| 9    | `feat/replace-skip-first-with-start` (on 2) | `start` (4.4)                                                   | **yes**  | F7       | #873         |
-| 10   | `test/run-every-benchmark`                  | The import benchmarks work when disabled; CI drops `--ignore`   | no       | F11      | #874         |
-| 11   | `docs/state-each-rule-once` (last)          | Short docstrings (4.8), the statements of F10, `dir`, changelog | no       | F10, F12 | #875         |
+| Step | Branch                                      | Change                                                                | Breaking | Fixes    | Pull request |
+| ---- | ------------------------------------------- | --------------------------------------------------------------------- | -------- | -------- | ------------ |
+| 1    | `bugfix/fix-removal-thread-test`            | Assert what P9 guarantees: `once=True` in the test                    | no       | F5       | #864         |
+| 2    | `bugfix/count-condition-calls-exactly`      | The shared counter and its lock (4.4, without `start`)                | no       | F4       | #865         |
+| 3    | `perf/read-missing-context-keys`            | `get` and `__contains__` (4.5), a benchmark                           | no       | F6       | #867         |
+| 4    | `refactor/add-calls-module`                 | Move the helpers to `calls.py` and split `test_manager.py`            | no       | F12      | #868         |
+| 5    | `bugfix/name-failing-condition` (on 4)      | `_claim`, `_invoke`, the notes (4.1, 4.2)                             | note     | F1, F3   | #869         |
+| 6    | `feat/reject-async-conditions` (on 5)       | The check of 4.3                                                      | **yes**  | F2       | #870         |
+| 7    | `bugfix/release-handlers-outside-lock`      | 4.7                                                                   | no       | F9       | #871         |
+| 8    | `feat/add-handler-type` (on 4)              | `Handler` (4.6), a typed sample checked by `ty`                       | types    | F8       | #872         |
+| 9    | `feat/replace-skip-first-with-start` (on 2) | `start` (4.4)                                                         | **yes**  | F7       | #873         |
+| 10   | `test/run-every-benchmark`                  | The import benchmarks work when disabled; benchmarks run nightly only | no       | F11      | #874         |
+| 11   | `docs/state-each-rule-once` (last)          | Short docstrings (4.8), the statements of F10, `dir`, changelog       | no       | F10, F12 | #875         |
 
 Step 1 comes first: a test that fails at random hides the result of the other steps. Step 11 contains
 the one-line fix of `__dir__`; take it out as its own `bugfix/` pull request if the documentation
@@ -493,8 +493,11 @@ The lock test of step 2 must be shown to fail on `main` with a free-threaded int
 
 Gates before each merge: `ruff check src tests`, `ruff format src tests`, `ty check`,
 `pytest tests/unit tests/integration --cov=minevent --cov-branch` at 100%, `inv test.doctest`,
-`python tests/package_checks.py`, one pass of the benchmarks, the thread tests repeated on 3.14t for
+`python tests/package_checks.py`, the thread tests repeated on 3.14t for
 steps 1, 2 and 7, and the benchmarks compared with `main` for steps 2, 3 and 5 (P16).
+
+During step 10, the maintainers decided that the benchmarks run nightly only, not at each pull
+request.
 
 ## 9. Decisions for the maintainers
 
