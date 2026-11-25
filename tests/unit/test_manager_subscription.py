@@ -175,6 +175,21 @@ def test_subscription_async_handler_is_accepted() -> None:
     assert subscription.handler is async_condition
 
 
+@pytest.mark.parametrize(
+    "handler",
+    [async_condition, functools.partial(async_condition), AsyncConditionObject()],
+)
+def test_subscription_remembers_an_async_handler(handler: Any) -> None:
+    assert Subscription(EventManager(), "my_event", handler)._is_async
+
+
+@pytest.mark.parametrize(
+    "handler", [noop_handler, condition_returning_a_coroutine, AwaitableResult]
+)
+def test_subscription_remembers_a_synchronous_handler(handler: Any) -> None:
+    assert not Subscription(EventManager(), "my_event", handler)._is_async
+
+
 def test_subscription_rejected_signature() -> None:
     with pytest.raises(TypeError, match=r"^handler print must need no argument"):
         Subscription(EventManager(), "my_event", print)

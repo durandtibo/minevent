@@ -39,7 +39,8 @@ has the following members:
    callable.
 2. It reads the signature of the handler and of the condition to decide how to call each of them
    (see [the calling rule](#the-calling-rule)). It also rejects a generator function, and a
-   coroutine function used as a condition. A callable object is judged by its `__call__`.
+   coroutine function used as a condition. A callable object is judged by its `__call__`. It
+   remembers whether the handler is a coroutine function.
 3. It creates a `Subscription` and appends it to the registrations of the event.
 
 Every rejection is a `TypeError` that says which argument is wrong, and it leaves the manager
@@ -55,6 +56,7 @@ The registration lasts until `subscription.remove()`, the end of a `with subscri
 trigger_event(event, context)
     |   take a snapshot of the registrations of the event
     |   build one Context from the context (a Context is used as is)
+    |   trigger_event only: a coroutine function as handler in the snapshot -> TypeError
     v
 for each registration of the snapshot, in registration order:
     removed since the snapshot?          -> skip
@@ -170,7 +172,9 @@ first, without default: `lambda context, i=i: print(i, context["epoch"])`.
 
 ### Coroutines
 
-- `trigger_event` never awaits: a handler that returns an awaitable raises a `TypeError`.
+- `trigger_event` never awaits. If a registration of the snapshot has a coroutine function as
+  handler, it raises a `TypeError` before any condition or handler runs, whatever the conditions
+  would answer. Any other handler that returns an awaitable raises a `TypeError` after its call.
 - `atrigger_event` awaits what a handler returns, if it is awaitable, before it calls the next
   handler. It also runs the synchronous handlers.
 - Conditions are synchronous in both: a coroutine function, or an object whose `__call__` is one,
@@ -208,8 +212,9 @@ first, without default: `lambda context, i=i: print(i, context["epoch"])`.
   it.
 - **Recursion.** A handler that triggers its own event recurses until `RecursionError`.
 - **Blocking.** A synchronous handler in `atrigger_event` blocks the event loop.
-- **A coroutine handler used with `trigger_event`.** The `TypeError` is raised after the call: the
-  handlers before it have run, and a `once` registration is consumed.
+- **A hidden coroutine.** A lambda, or a synchronous `functools.wraps` wrapper, that returns a
+  coroutine is only detected after its call by `trigger_event`: the handlers before it have run, and
+  a `once` registration is consumed.
 - **Hidden generators.** A function that returns a generator, such as a lambda that calls a
   generator function, does nothing.
 - **An optional parameter never receives the context.** `def f(context=None)` is called as `f()` and
@@ -238,6 +243,6 @@ The registry maps each event to an ordered `dict` of subscriptions, used as an o
   one. `context[key]` lists up to 20 keys in its `KeyError`, so a missing key costs more.
 
 As an order of magnitude, measured on a laptop with Python 3.14: about 0.3 µs for a trigger with one
-trivial handler, 0.06 µs for each extra one, 0.9 µs with a small dict, and 4.5 µs for a registration
+trivial handler, 0.07 µs for each extra one, 0.8 µs with a small dict, and 5.5 µs for a registration
 plus its removal. Measure on your machine with `inv test.benchmark` in a
 [source installation](get_started.md#installing-from-source).

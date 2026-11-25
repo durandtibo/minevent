@@ -109,6 +109,16 @@ them one at a time, and the library starts no thread.
   and a synchronous handler blocks the event loop.
 - **In practice**: inside one handler, use `asyncio.gather`, `asyncio.to_thread` or an executor.
 
+## A synchronous trigger rejects coroutine handlers first
+
+`trigger_event` looks for a coroutine function among the handlers before it runs anything.
+
+- **Benefits**: a trigger does not stop in the middle, no `once` registration is consumed, and the
+  mistake appears at the first trigger, not at the first one where a condition is true.
+- **Costs**: one more pass over the handlers at each trigger, and a coroutine handler whose
+  condition is false rejects the trigger too.
+- **In practice**: trigger an event that has coroutine handlers with `atrigger_event`.
+
 ## Conditions are synchronous
 
 - **Benefits**: a condition has the same meaning with `trigger_event` and `atrigger_event`, and a

@@ -590,7 +590,8 @@ from a coroutine handler.
 
 ## Handle an async handler used with trigger_event
 
-`trigger_event` cannot await a coroutine, and raises a `TypeError` that names the handler:
+`trigger_event` cannot await a coroutine. It raises a `TypeError` that names the handler, before any
+handler runs:
 
 ```pycon
 >>> from minevent import EventManager
@@ -602,7 +603,7 @@ from a coroutine handler.
 ...     manager.trigger_event("my_event")
 ... except TypeError as exc:
 ...     print(exc)
-notify returned an awaitable; use atrigger_event
+notify is a coroutine function; use atrigger_event for the event 'my_event'
 
 ```
 

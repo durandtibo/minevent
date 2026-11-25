@@ -165,6 +165,9 @@ class Subscription:
         if condition is not None and has_kind(condition, inspect.iscoroutinefunction):
             msg = f"condition must be synchronous, but got {describe(condition)}"
             raise TypeError(msg)
+        # ``trigger_event`` cannot run a coroutine function: it is detected now, so that the
+        # trigger is rejected before anything runs.
+        self._is_async = has_kind(handler, inspect.iscoroutinefunction)
         # A trigger only calls ``_claim`` for these registrations: the others save a method call.
         self._guarded = bool(once) or condition is not None
         # Set to False by the manager when the registration leaves its registry.
@@ -644,6 +647,9 @@ class EventManager:
         No handler runs if the event has none. The trigger is fail-fast:
         an exception of a handler or a condition propagates unwrapped, with a
         note that says what raised it, and the next handlers are skipped.
+        If one of the registrations has a coroutine function as handler (a
+        callable object is judged by its ``__call__``), the trigger is
+        rejected before any condition or handler runs.
 
         Args:
             event: The event name (case-sensitive string) to trigger.
@@ -655,10 +661,10 @@ class EventManager:
 
         Raises:
             TypeError: if ``event`` is not a string, if ``context`` is neither
-                ``None`` nor a mapping with ``str`` keys, if a condition
-                returns an awaitable, or if a handler returns an awaitable
-                (use ``atrigger_event`` for coroutine handlers). Any exception
-                of a handler or a condition also propagates.
+                ``None`` nor a mapping with ``str`` keys, if a handler is a
+                coroutine function (nothing runs, use ``atrigger_event``), or if
+                a condition or a handler returns an awaitable. Any exception of a
+                handler or a condition also propagates.
 
         Example:
             ```pycon
@@ -675,6 +681,12 @@ class EventManager:
         """
         subscriptions = self.get_subscriptions(event)
         context = _as_context(context)
+        # A first pass rejects the trigger as a whole, whatever the conditions would answer.
+        for subscription in subscriptions:
+            if subscription._is_async:
+                name = describe(subscription.handler)
+                msg = f"{name} is a coroutine function; use atrigger_event for the event {event!r}"
+                raise TypeError(msg)
         for subscription in subscriptions:
             if not subscription._active or (
                 subscription._guarded and not subscription._claim(context)
