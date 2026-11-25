@@ -1153,12 +1153,18 @@
     <div class="doc doc-contents first">
 
         <p>Implement some conditions that can be used in the event system.</p>
-<p>A condition is any function without argument that returns a boolean:
-a lambda, a method, or an object with a <code>__call__(self) -&gt; bool</code>
-method like the conditions of this module. <code>Condition</code> is the type
-alias <code>Callable[[], bool]</code>. A condition is called each time the event
-is triggered, before the handler, and the handler is executed only if
-it returns <code>True</code>. A condition can keep a state between calls.</p>
+<p>A condition is any function that returns a boolean: a lambda, a
+method, or an object with a <code>__call__(self) -&gt; bool</code> method like the
+conditions of this module. A condition without parameter is called as
+<code>condition()</code>. A condition that has a parameter that accepts a
+positional argument is called as <code>condition(context)</code> with the
+read-only <code>Context</code> of the trigger, like a handler, so it can depend
+on the payload: <code>lambda context: context.get("epoch", 0) &gt; 5</code>.
+<code>Condition</code> is the type alias
+<code>Callable[[], bool] | Callable[[Context], bool]</code>. A condition is
+called each time the event is triggered, before the handler, and the
+handler is executed only if it returns <code>True</code>. A condition can keep a
+state between calls. The built-in conditions take no parameter.</p>
 <p>To combine conditions, write a function. The function decides which
 conditions are evaluated: <code>lambda: a() and b()</code> skips <code>b</code> when
 <code>a</code> is <code>False</code>, while <code>lambda: all([a(), b()])</code> evaluates both,
@@ -1177,6 +1183,14 @@ so stateful conditions advance together.</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"hello"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"bye"</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"Bye!"</span><span class="p">),</span> <span class="n">condition</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">False</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"bye"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="s2">"epoch_end"</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="k">lambda</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"late epoch"</span><span class="p">),</span>
+<span class="gp">... </span>    <span class="n">condition</span><span class="o">=</span><span class="k">lambda</span> <span class="n">context</span><span class="p">:</span> <span class="n">context</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"epoch"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="go">late epoch</span>
 </code></pre></div>
 </details>
 
@@ -1209,12 +1223,13 @@ so stateful conditions advance together.</p>
   </span>
 
 <a href="#minevent.conditions.Condition" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="n">Condition</span> <span class="o">=</span> <span class="n"><span title="collections.abc.Callable">Callable</span></span><span class="p">[[],</span> <span class="n"><span title="bool">bool</span></span><span class="p">]</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">Condition</span> <span class="o">=</span> <span class="n"><span title="collections.abc.Callable">Callable</span></span><span class="p">[[],</span> <span class="n"><span title="bool">bool</span></span><span class="p">]</span> <span class="o">|</span> <span class="n"><span title="collections.abc.Callable">Callable</span></span><span class="p">[[</span><span class="n"><a class="autorefs autorefs-internal" title="minevent.context.Context" href="../context/#minevent.context.Context">Context</a></span><span class="p">],</span> <span class="n"><span title="bool">bool</span></span><span class="p">]</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>A condition: any function without argument that returns a boolean.</p>
+        <p>A condition: a function that returns a boolean, without parameter or
+with the <code>Context</code> of the trigger.</p>
 
     </div>
 

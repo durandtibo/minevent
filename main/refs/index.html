@@ -1603,8 +1603,8 @@ case-sensitive string), a handler (any callable) and an event manager
   were registered and passes its keyword arguments (the payload) to
   them in a read-only <code>Context</code>. <code>EventManager.atrigger_event</code> also
   awaits the coroutine handlers.</li>
-<li>A condition is any function without argument that returns a boolean
-  (<code>Condition</code>). <code>PeriodicCondition</code> and <code>AfterNCondition</code> are
+<li>A condition is any function that returns a boolean, without parameter
+  or with the <code>Context</code> of the trigger (<code>Condition</code>). <code>PeriodicCondition</code> and <code>AfterNCondition</code> are
   provided, and they control when a handler runs.</li>
 </ul>
 <p>The package has no dependency, and <code>__version__</code> is the version of the
@@ -1650,12 +1650,13 @@ installed package.</p>
   </span>
 
 <a href="#minevent.Condition" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="n">Condition</span> <span class="o">=</span> <span class="n"><span title="collections.abc.Callable">Callable</span></span><span class="p">[[],</span> <span class="n"><span title="bool">bool</span></span><span class="p">]</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">Condition</span> <span class="o">=</span> <span class="n"><span title="collections.abc.Callable">Callable</span></span><span class="p">[[],</span> <span class="n"><span title="bool">bool</span></span><span class="p">]</span> <span class="o">|</span> <span class="n"><span title="collections.abc.Callable">Callable</span></span><span class="p">[[</span><span class="n"><a class="autorefs autorefs-internal" title="minevent.context.Context" href="context/#minevent.context.Context">Context</a></span><span class="p">],</span> <span class="n"><span title="bool">bool</span></span><span class="p">]</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>A condition: any function without argument that returns a boolean.</p>
+        <p>A condition: a function that returns a boolean, without parameter or
+with the <code>Context</code> of the trigger.</p>
 
     </div>
 
@@ -2362,10 +2363,14 @@ Default is <code>False</code>.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>An optional condition: a function without
-argument that returns a boolean. It is called each
-time the event is triggered, before the handler, and
-the handler runs only if it returns <code>True</code>. If
+                <p>An optional condition: a function that returns
+a boolean. It is called each time the event is
+triggered, before the handler, and the handler runs
+only if it returns <code>True</code>. Like a handler, it is
+called as <code>condition(context)</code> if it has a
+parameter that accepts a positional argument (or if
+its signature cannot be inspected), and as
+<code>condition()</code> otherwise. If
 <code>None</code>, the handler always runs. An exception
 raised by the condition propagates to the caller of
 <code>trigger_event</code>. A stateful condition, such as
@@ -3578,7 +3583,8 @@ its first execution. Default is <code>False</code>.</p>
             <td>
               <div class="doc-md-description">
                 <p>The condition evaluated before the handler, or
-<code>None</code> if the handler always runs. Default is <code>None</code>.</p>
+<code>None</code> if the handler always runs. It is called with the
+context if it has a parameter. Default is <code>None</code>.</p>
               </div>
             </td>
             <td>

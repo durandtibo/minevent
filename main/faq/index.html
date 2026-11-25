@@ -1457,8 +1457,8 @@ the counter of a stateful condition is not protected. See
 <a href="../architecture/#thread-safety">Thread Safety</a>.</p>
 <h3 id="can-i-create-custom-handlers-and-conditions">Can I create custom handlers and conditions?<a class="headerlink" href="#can-i-create-custom-handlers-and-conditions" title="Permanent link">&para;</a></h3>
 <p>Yes. A handler is any callable: write a class with a <code>__call__(self, context)</code> method (or
-<code>async def __call__</code> for <code>atrigger_event</code>). A condition is any function without argument that
-returns a boolean, or a class with <code>__call__</code>.</p>
+<code>async def __call__</code> for <code>atrigger_event</code>). A condition is any function that returns a
+boolean (it can take the <code>Context</code> of the trigger), or a class with <code>__call__</code>.</p>
 <h3 id="what-is-the-overhead">What is the overhead?<a class="headerlink" href="#what-is-the-overhead" title="Permanent link">&para;</a></h3>
 <p>About 0.36 µs per trigger with one trivial handler (0.56 µs if it reads the context). See <a href="../guide/#performance">performance</a>.</p>
 <h2 id="help">Help<a class="headerlink" href="#help" title="Permanent link">&para;</a></h2>

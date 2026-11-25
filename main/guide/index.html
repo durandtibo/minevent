@@ -1632,8 +1632,11 @@ no option to collect the errors of all the handlers (see the non-goals in the ar
 handlers, one after the other, in the registration order. Synchronous handlers can be mixed with
 coroutine handlers, and they block the event loop while they run.</p>
 <h2 id="conditions">Conditions<a class="headerlink" href="#conditions" title="Permanent link">&para;</a></h2>
-<p>A condition is a function without argument that returns a boolean. It is called each time the event
-is triggered, before the handler, and the handler runs only if it returns <code>True</code>:</p>
+<p>A condition is a function that returns a boolean. It is called each time the event is triggered,
+before the handler, and the handler runs only if it returns <code>True</code>. A condition that has a
+parameter is called with the read-only <code>Context</code> of the trigger, like a handler (see
+<a href="#pass-the-data-as-a-payload">Pass the data as a payload</a>), and a condition without parameter is
+called without argument:</p>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">PeriodicCondition</span>
 
 <span class="c1"># Save a checkpoint every 10 epochs, and log every 100 batches</span>
@@ -1642,6 +1645,9 @@ is triggered, before the handler, and the handler runs only if it returns <code>
 
 <span class="c1"># Any function works as a condition</span>
 <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">notify</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="n">is_main_process</span><span class="p">)</span>
+
+<span class="c1"># A condition with a parameter reads the payload of the trigger</span>
+<span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">validate</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="k">lambda</span> <span class="n">context</span><span class="p">:</span> <span class="n">context</span><span class="p">[</span><span class="s2">"epoch"</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">5</span><span class="p">)</span>
 </code></pre></div>
 <ul>
 <li><code>PeriodicCondition</code> and <code>AfterNCondition</code> keep a counter. Do not share one

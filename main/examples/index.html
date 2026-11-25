@@ -600,6 +600,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#decide-from-the-payload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decide from the payload
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#keep-a-state-in-a-handler" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1111,6 +1122,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#decide-from-the-payload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decide from the payload
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#keep-a-state-in-a-handler" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1341,8 +1363,9 @@ every three calls; <code>skip_first=True</code> skips the first call:</p>
 <span class="go">validate at epoch 3</span>
 </code></pre></div>
 <h2 id="write-a-custom-condition">Write a custom condition<a class="headerlink" href="#write-a-custom-condition" title="Permanent link">&para;</a></h2>
-<p>A condition is any function without argument that returns a boolean. A class with <code>__call__</code> is
-useful when the condition has a state or reads another object:</p>
+<p>A condition is any function that returns a boolean, without parameter or with the <code>Context</code> of the
+trigger (see the next example). A class with <code>__call__</code> is useful when the condition has a state or
+reads another object:</p>
 <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">class</span><span class="w"> </span><span class="nc">Flag</span><span class="p">:</span>
 <span class="gp">... </span>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -1359,6 +1382,27 @@ useful when the condition has a state or reads another object:</p>
 <span class="go">batch done</span>
 </code></pre></div>
 <p>To combine conditions, write a function, for example <code>condition=lambda: a() and b()</code>.</p>
+<h2 id="decide-from-the-payload">Decide from the payload<a class="headerlink" href="#decide-from-the-payload" title="Permanent link">&para;</a></h2>
+<p>A condition that has a parameter is called with the same read-only <code>Context</code> as the handlers, so it
+can depend on the payload of the trigger. A condition without parameter is called without argument.
+A handler and its condition can read different keys:</p>
+<div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">EventManager</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">is_improving</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">context</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"loss"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.5</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="s2">"epoch_end"</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="k">lambda</span> <span class="n">context</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"save the model of epoch </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">'epoch'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">),</span>
+<span class="gp">... </span>    <span class="n">condition</span><span class="o">=</span><span class="n">is_improving</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">epoch</span><span class="p">,</span> <span class="n">loss</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">([</span><span class="mf">0.9</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">]):</span>
+<span class="gp">... </span>    <span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="n">epoch</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="p">)</span>
+<span class="go">save the model of epoch 1</span>
+<span class="go">save the model of epoch 3</span>
+</code></pre></div>
+<p>The built-in conditions (<code>PeriodicCondition</code>, <code>AfterNCondition</code>) take no parameter. To combine one
+with a condition on the payload, write a function that calls it:
+<code>condition=lambda context: periodic() and is_improving(context)</code>.</p>
 <h2 id="keep-a-state-in-a-handler">Keep a state in a handler<a class="headerlink" href="#keep-a-state-in-a-handler" title="Permanent link">&para;</a></h2>
 <p>A class with a <code>__call__(self, context)</code> method is a handler with its own state. This one
 collects the losses and is read after the training:</p>

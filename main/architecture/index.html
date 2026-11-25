@@ -1559,7 +1559,7 @@
 <tr>
 <td>P14</td>
 <td>Options are per registration</td>
-<td><code>once</code> and <code>condition</code> are keyword-only arguments of <code>add_event_handler</code> and <code>on</code>, with the same names, defaults and meaning in both. A condition is a <code>Callable[[], bool]</code> called once per trigger, before the handler. The built-in conditions keep per-instance state and both have <code>reset()</code>.</td>
+<td><code>once</code> and <code>condition</code> are keyword-only arguments of <code>add_event_handler</code> and <code>on</code>, with the same names, defaults and meaning in both. A condition is a function that returns a boolean, called once per trigger, before the handler: as <code>condition(context)</code> if it has a parameter, and as <code>condition()</code> otherwise (the rule of the handlers). The built-in conditions keep per-instance state and both have <code>reset()</code>.</td>
 <td>signatures, <code>test_manager.py</code>, <code>test_conditions.py</code></td>
 </tr>
 <tr>
@@ -1660,7 +1660,7 @@
 <span class="p">)</span>
 
 
-<span class="c1"># Custom conditions: any function without argument that returns a bool</span>
+<span class="c1"># Custom conditions: any function that returns a bool, with or without the context</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">MyCondition</span><span class="p">:</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">custom_logic</span><span class="p">()</span>
@@ -1803,8 +1803,9 @@ Arguments bound with functools.partial are part of `handler`, not of the payload
 <li>Handlers with special lifecycle</li>
 </ul>
 <h3 id="custom-conditions">Custom Conditions<a class="headerlink" href="#custom-conditions" title="Permanent link">&para;</a></h3>
-<p>A condition is any function without argument that returns a boolean (a <code>Condition</code>, that is a
-<code>Callable[[], bool]</code>). Implement <code>__call__</code> in a class when the condition has a state:</p>
+<p>A condition is any function that returns a boolean (a <code>Condition</code>): <code>Callable[[], bool]</code>, or
+<code>Callable[[Context], bool]</code> to decide from the payload of the trigger. Implement <code>__call__</code> in a
+class when the condition has a state:</p>
 <div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">MyCondition</span><span class="p">:</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="c1"># Custom logic</span>
