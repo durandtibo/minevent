@@ -800,6 +800,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#minevent.Context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#minevent.EventManager" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1118,6 +1129,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="context/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Context
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1237,6 +1276,17 @@
         
       </ul>
     </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#minevent.Context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
   
 </li>
         
@@ -1797,6 +1847,138 @@ created.</p>
     </div>
 
 </div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="minevent.Context" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">minevent.Context</span>
+
+
+<a href="#minevent.Context" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="collections.abc.Mapping">Mapping</span>[<span title="str">str</span>, <span title="object">object</span>]</code></p>
+
+
+
+        <p>Implement a read-only mapping of the payload of a trigger.</p>
+<p>The data is copied at construction and held in a read-only view, so
+neither the code that built the context nor a handler can change
+what the next handler sees. The values themselves are not copied: a
+mutable value stays mutable. A context has no method that changes
+it (no <code>__setitem__</code>, <code>update</code> or <code>pop</code>).</p>
+<p><code>context[key]</code> reads a required value and raises a <code>KeyError</code>
+if it is missing. <code>context.get(key, default)</code> reads an optional
+value. <code>key in context</code>, <code>len</code>, iteration, <code>keys</code>, <code>items</code>,
+<code>values</code> and <code>==</code> are inherited from
+<code>collections.abc.Mapping</code>, so <code>dict(context)</code> is a valid
+<code>**kwargs</code>.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>data</code>
+            </td>
+            <td>
+                  <code><span title="collections.abc.Mapping">Mapping</span>[<span title="str">str</span>, <span title="object">object</span>] | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The mapping to copy, or <code>None</code> for an empty context.
+Default is <code>None</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="TypeError">TypeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>if <code>data</code> is neither <code>None</code> nor a mapping, or
+if a key of <code>data</code> is not a <code>str</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="example" open>
+  <summary>Example</summary>
+  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">context</span> <span class="o">=</span> <span class="n">Context</span><span class="p">({</span><span class="s2">"epoch"</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">"loss"</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">context</span><span class="p">[</span><span class="s2">"epoch"</span><span class="p">]</span>
+<span class="go">3</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">context</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"lr"</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">)</span>
+<span class="go">0.1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="s2">"loss"</span> <span class="ow">in</span> <span class="n">context</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
+<span class="go">2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">context</span>
+<span class="go">Context({'epoch': 3, 'loss': 0.5})</span>
+</code></pre></div>
+</details>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
 
 
 
