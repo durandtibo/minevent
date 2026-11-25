@@ -61,6 +61,27 @@ def test_handler_with_context_works_after_a_cheap_import() -> None:
     assert run_python(code).stdout.strip() == "3"
 
 
+@pytest.mark.skipif(
+    sys.version_info < (3, 14),
+    reason="the annotations are evaluated at definition before Python 3.14",
+)
+def test_handler_with_unresolved_annotation_is_registered_and_called() -> None:
+    """Test that a handler annotated with a name imported under
+    ``TYPE_CHECKING`` only is registered and called."""
+    code = (
+        "from typing import TYPE_CHECKING\n"
+        "from minevent import EventManager\n"
+        "if TYPE_CHECKING:\n"
+        "    from decimal import Decimal\n"
+        "def handler(context: Decimal) -> Decimal:\n"
+        "    print(context['epoch'])\n"
+        "manager = EventManager()\n"
+        "manager.add_event_handler('e', handler)\n"
+        "manager.trigger_event('e', {'epoch': 3})\n"
+    )
+    assert run_python(code).stdout.strip() == "3"
+
+
 def test_trigger_event_does_not_import_logging() -> None:
     """Test that registering and triggering handlers never imports
     ``logging``."""
