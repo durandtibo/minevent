@@ -414,7 +414,7 @@ for what it changes.
 | 4    | `bugfix/check-copied-context-keys`        | Validate the copy (4.4), on 3                                                                      | no       | F7     | #883         |
 | 5    | `refactor/import-stdlib-at-top`           | 4.5: eager version, delete the lazy checks, `CLAUDE.md`, the "cheap import" entry of the changelog | no       | F10    | #884         |
 | 6    | `refactor/adapt-calls` (on 5)             | `adapt_call` (4.1)                                                                                 | internal | F11    | #885         |
-| 7    | `feat/detect-async-callables` (on 6)      | `has_kind` for the generators and the conditions (4.2)                                             | **yes**  | F3     |              |
+| 7    | `feat/detect-async-callables` (on 6)      | `has_kind` for the generators and the conditions (4.2)                                             | **yes**  | F3     | #886         |
 | 8    | `feat/reject-async-handlers-early` (on 7) | The pre-pass of `trigger_event` (4.3), a benchmark                                                 | **yes**  | F2     |              |
 | 9    | `ci/fix-benchmark-baseline`               | The baseline and the median (4.6), `GUIDELINES.md`                                                 | no       | F8     | #878         |
 | 10   | `ci/check-published-package`              | The checks of the installed version (4.6), `GUIDELINES.md`                                         | no       | F9     |              |
