@@ -48,7 +48,7 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
   | a generator handler (it did nothing)               | a function that iterates                                   |
 
 - **Breaking**: a condition that returns an awaitable, such as a coroutine function, raises a
-  `TypeError` in `trigger_event` and `atrigger_event` (#PR). A coroutine is truthy, so the handler
+  `TypeError` in `trigger_event` and `atrigger_event` (#855). A coroutine is truthy, so the handler
   always ran. Compute the value before the trigger and pass it in the payload. A coroutine is
   closed, and a `once` registration is not consumed.
 - **Breaking**: the handlers receive the payload of `trigger_event` in a read-only `Context` instead
