@@ -1592,6 +1592,12 @@
 <td><code>repr(subscription)</code> names the event and the handler function (<code>Subscription(event='epoch_end', handler='log_epoch')</code>), <code>repr(manager)</code> counts the registrations per event. The library logs nothing: <code>get_subscriptions(event)</code> is the way to look.</td>
 <td><code>__repr__</code>, <code>test_manager.py</code></td>
 </tr>
+<tr>
+<td>P20</td>
+<td>Everything that runs, is run</td>
+<td>Each pull request runs the unit and integration tests, the doctests, <code>tests/package_checks.py</code> and one pass of every benchmark (except the import benchmarks, which need the statistics and run on a schedule), so a change of the API cannot leave one of them behind.</td>
+<td><code>ci.yaml</code>, <code>test_package_checks.py</code></td>
+</tr>
 </tbody>
 </table>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
