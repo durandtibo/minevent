@@ -234,9 +234,12 @@ registration, keep the `Subscription` (see [Subscriptions](#subscriptions)).
 
 ```pycon
 >>> from minevent import EventManager
+>>> def hello_handler() -> None:
+...     print("Hello!")
+...
 >>> manager = EventManager()
->>> first = manager.add_event_handler("my_event", print)
->>> second = manager.add_event_handler("my_event", print)
+>>> first = manager.add_event_handler("my_event", hello_handler)
+>>> second = manager.add_event_handler("my_event", hello_handler)
 >>> first == second
 False
 >>> first.handler is second.handler
@@ -587,7 +590,7 @@ If you did not keep the subscription, `get_subscriptions` returns the registrati
 ...     print("Hello!")
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("my_event", hello_handler)
->>> _ = manager.add_event_handler("my_event", print)
+>>> _ = manager.add_event_handler("my_event", lambda: None)
 >>> _ = manager.add_event_handler("my_other_event", hello_handler)
 >>> manager.get_subscriptions("my_event")[0].remove()
 True

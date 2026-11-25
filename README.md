@@ -123,7 +123,7 @@ handler without parameter is called as `handler()`. The options of a registratio
 ...     manager.trigger_event("epoch_end", {"epoch": epoch, "loss": 0.5})
 epoch 0, loss 0.5
 epoch 2, loss 0.5
->>> subscription = manager.add_event_handler("epoch_end", print, once=True)
+>>> subscription = manager.add_event_handler("epoch_end", log_epoch, once=True)
 >>> subscription.active
 True
 >>> subscription.remove()

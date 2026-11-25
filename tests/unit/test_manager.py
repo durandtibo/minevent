@@ -11,7 +11,7 @@ import threading
 from collections.abc import Awaitable
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
-from unittest.mock import Mock
+from unittest.mock import Mock, create_autospec
 
 import pytest
 
@@ -97,9 +97,35 @@ def hello_handler() -> None:
 
 
 @trace
-def payload_handler(*args: Any, **kwargs: Any) -> None:
-    r"""Implements a handler that accepts any arguments."""
-    logger.info("Payload: %s %s", args, kwargs)
+def payload_handler(context: Context) -> None:
+    r"""Implements a handler that receives the context."""
+    logger.info("Payload: %s", context)
+
+
+@trace
+def positional_bound_handler(first: int, second: int, context: Context) -> None:
+    r"""Implements a handler that receives two bound values and the
+    context."""
+    logger.info("Payload: %s %s %s", first, second, context)
+
+
+@trace
+def keyword_bound_handler(context: Context, *, k: int = 0) -> None:
+    r"""Implements a handler that receives the context and a keyword
+    value."""
+    logger.info("Payload: %s %s", context, k)
+
+
+def noop_handler() -> None:
+    r"""Implement a handler that does nothing."""
+
+
+def read_secret(secret: str) -> None:
+    r"""Implement a handler that needs a bound argument."""
+
+
+def var_positional_handler(*args: object) -> None:
+    r"""Implement a handler that accepts any positional arguments."""
 
 
 ##################################
@@ -211,7 +237,7 @@ def test_event_manager_trigger_event_removed_by_clear_event_keeps_other_events()
     event_manager = EventManager()
     event_manager.add_event_handler("my_event", lambda: event_manager.clear_event("other_event"))
     event_manager.add_event_handler("my_event", hello_handler)
-    event_manager.add_event_handler("other_event", print)
+    event_manager.add_event_handler("other_event", noop_handler)
     event_manager.trigger_event("my_event")
     assert hello_handler.call_count == 1
 
@@ -255,7 +281,7 @@ def test_event_manager_trigger_event_handler_raises_adds_note() -> None:
 def test_event_manager_trigger_event_reused_exception_has_one_note() -> None:
     error = ValueError("boom")
     manager = EventManager()
-    manager.add_event_handler("my_event", Mock(side_effect=error, __qualname__="f"))
+    manager.add_event_handler("my_event", create_autospec(read_epoch, side_effect=error))
     raised(manager.trigger_event, "my_event")
     raised(manager.trigger_event, "my_event")
     raised(manager.trigger_event, "my_event")
@@ -291,13 +317,15 @@ def test_event_manager_trigger_event_nested_events_have_one_note_each() -> None:
 def test_event_manager_trigger_event_handler_raises_same_exception_type_and_object() -> None:
     error = ValueError("boom")
     event_manager = EventManager()
-    event_manager.add_event_handler("my_event", Mock(side_effect=error))
+    event_manager.add_event_handler("my_event", create_autospec(read_epoch, side_effect=error))
     assert raised(event_manager.trigger_event, "my_event") is error
 
 
 def test_event_manager_trigger_event_base_exception_has_no_note() -> None:
     event_manager = EventManager()
-    event_manager.add_event_handler("my_event", Mock(side_effect=KeyboardInterrupt("interrupted")))
+    event_manager.add_event_handler(
+        "my_event", create_autospec(read_epoch, side_effect=KeyboardInterrupt("interrupted"))
+    )
     assert not hasattr(raised(event_manager.trigger_event, "my_event"), "__notes__")
 
 
@@ -373,25 +401,25 @@ def test_event_manager_add_event_handler_event_handler_still_accepted() -> None:
 
 def test_event_manager_add_event_handler_partial_binds_positional_argument() -> None:
     manager = EventManager()
-    manager.add_event_handler("my_event", functools.partial(payload_handler, 1, 2))
+    manager.add_event_handler("my_event", functools.partial(positional_bound_handler, 1, 2))
     manager.trigger_event("my_event", {"epoch": 3})
-    assert payload_handler.args == (1, 2, {"epoch": 3})
+    assert positional_bound_handler.args == (1, 2, {"epoch": 3})
 
 
 def test_event_manager_add_event_handler_partial_binds_keyword_argument() -> None:
     manager = EventManager()
-    manager.add_event_handler("my_event", functools.partial(payload_handler, k=1))
+    manager.add_event_handler("my_event", functools.partial(keyword_bound_handler, k=1))
     manager.trigger_event("my_event", {"epoch": 3})
-    assert (payload_handler.args, payload_handler.kwargs) == (({"epoch": 3},), {"k": 1})
+    assert (keyword_bound_handler.args, keyword_bound_handler.kwargs) == (({"epoch": 3},), {"k": 1})
 
 
 def test_event_manager_add_event_handler_payload_does_not_override_keyword_bound_by_partial() -> (
     None
 ):
     manager = EventManager()
-    manager.add_event_handler("my_event", functools.partial(payload_handler, k=1))
+    manager.add_event_handler("my_event", functools.partial(keyword_bound_handler, k=1))
     manager.trigger_event("my_event", {"k": 2})
-    assert (payload_handler.args, payload_handler.kwargs) == (({"k": 2},), {"k": 1})
+    assert (keyword_bound_handler.args, keyword_bound_handler.kwargs) == (({"k": 2},), {"k": 1})
 
 
 def test_event_manager_add_event_handler_condition_false_does_not_run_handler() -> None:
@@ -544,7 +572,7 @@ def test_event_manager_trigger_event_payload() -> None:
 def test_event_manager_trigger_event_payload_all_handlers() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", payload_handler)
-    manager.add_event_handler("my_event", functools.partial(payload_handler, 1))
+    manager.add_event_handler("my_event", functools.partial(payload_handler))
     manager.trigger_event("my_event", {"epoch": 3})
     assert payload_handler.call_count == 2
 
@@ -1010,10 +1038,10 @@ def test_event_manager_get_subscriptions_event_handler() -> None:
     assert manager.get_subscriptions("my_event")[0].handler is handler
 
 
-def fail_with_arguments(*args: object) -> None:
-    r"""Implements a handler with arguments that raises a
+def fail_with_argument(value: object) -> None:
+    r"""Implements a handler with an argument that raises a
     ``ValueError``."""
-    msg = f"boom {len(args)}"
+    msg = f"boom {type(value).__qualname__}"
     raise ValueError(msg)
 
 
@@ -1024,7 +1052,7 @@ def test_event_manager_trigger_event_note_ignores_repr_of_arguments() -> None:
             raise RuntimeError(msg)
 
     manager = EventManager()
-    manager.add_event_handler("my_event", functools.partial(fail_with_arguments, BadRepr()))
+    manager.add_event_handler("my_event", functools.partial(fail_with_argument, BadRepr()))
     with pytest.raises(ValueError, match=r"boom"):
         manager.trigger_event("my_event")
 
@@ -1032,7 +1060,7 @@ def test_event_manager_trigger_event_note_ignores_repr_of_arguments() -> None:
 def test_event_manager_trigger_event_note_is_short_for_large_arguments() -> None:
     manager = EventManager()
     manager.add_event_handler(
-        "my_event", functools.partial(fail_with_arguments, list(range(10_000)))
+        "my_event", functools.partial(fail_with_argument, list(range(10_000)))
     )
     assert len(raised(manager.trigger_event, "my_event").__notes__[0]) < 100
 
@@ -1122,19 +1150,21 @@ def failing_handler() -> None:
 
 
 def test_subscription_repr() -> None:
-    assert repr(Subscription(EventManager(), "my_event", print)) == (
-        "Subscription(event='my_event', handler='print')"
+    assert repr(Subscription(EventManager(), "my_event", noop_handler)) == (
+        "Subscription(event='my_event', handler='noop_handler')"
     )
 
 
 def test_subscription_repr_names_function_of_partial() -> None:
-    subscription = Subscription(EventManager(), "my_event", functools.partial(print, "secret"))
-    assert repr(subscription) == "Subscription(event='my_event', handler='print')"
+    subscription = Subscription(
+        EventManager(), "my_event", functools.partial(read_secret, "secret")
+    )
+    assert repr(subscription) == "Subscription(event='my_event', handler='read_secret')"
 
 
 def test_subscription_repr_names_class_of_callable_object() -> None:
-    subscription = Subscription(EventManager(), "my_event", UninspectableCallable([]))
-    assert repr(subscription) == "Subscription(event='my_event', handler='UninspectableCallable')"
+    subscription = Subscription(EventManager(), "my_event", CallableRecorder([]))
+    assert repr(subscription) == "Subscription(event='my_event', handler='CallableRecorder')"
 
 
 def test_subscription_repr_ignores_repr_of_handler() -> None:
@@ -1145,40 +1175,40 @@ def test_subscription_repr_ignores_repr_of_handler() -> None:
 
 def test_event_manager_get_subscriptions_repr_names_handlers() -> None:
     manager = EventManager()
-    manager.add_event_handler("my_event", print)
+    manager.add_event_handler("my_event", noop_handler)
     manager.add_event_handler("my_event", hello_handler)
     assert repr(manager.get_subscriptions("my_event")) == (
-        "(Subscription(event='my_event', handler='print'), "
+        "(Subscription(event='my_event', handler='noop_handler'), "
         "Subscription(event='my_event', handler='hello_handler'))"
     )
 
 
 def test_subscription_event() -> None:
-    assert Subscription(EventManager(), "my_event", print).event == "my_event"
+    assert Subscription(EventManager(), "my_event", noop_handler).event == "my_event"
 
 
 def test_subscription_handler() -> None:
-    handler = print
+    handler = noop_handler
     assert Subscription(EventManager(), "my_event", handler).handler is handler
 
 
 def test_subscription_once_default() -> None:
-    assert not Subscription(EventManager(), "my_event", print).once
+    assert not Subscription(EventManager(), "my_event", noop_handler).once
 
 
 def test_subscription_once_true() -> None:
-    assert Subscription(EventManager(), "my_event", print, once=True).once
+    assert Subscription(EventManager(), "my_event", noop_handler, once=True).once
 
 
 def test_subscription_condition_default() -> None:
-    assert Subscription(EventManager(), "my_event", print).condition is None
+    assert Subscription(EventManager(), "my_event", noop_handler).condition is None
 
 
 def test_subscription_condition() -> None:
     condition = PeriodicCondition(freq=2)
-    assert Subscription(EventManager(), "my_event", print, condition=condition).condition is (
-        condition
-    )
+    assert Subscription(
+        EventManager(), "my_event", noop_handler, condition=condition
+    ).condition is (condition)
 
 
 def test_subscription_call_returns_handler_result() -> None:
@@ -1202,7 +1232,7 @@ def test_subscription_call_removed_does_not_call_handler() -> None:
 
 
 def test_subscription_call_removed_does_not_evaluate_condition() -> None:
-    condition = Mock(return_value=True)
+    condition = create_autospec(has_payload, return_value=True)
     subscription = EventManager().add_event_handler("my_event", hello_handler, condition=condition)
     subscription.remove()
     subscription._call(Context())
@@ -1296,13 +1326,13 @@ def test_subscription_call_condition_with_parameter_raises() -> None:
 
 
 def test_subscription_call_condition_is_called_once() -> None:
-    condition = Mock(return_value=True)
+    condition = create_autospec(has_payload, return_value=True)
     Subscription(EventManager(), "my_event", hello_handler, condition=condition)._call(Context())
     assert condition.call_count == 1
 
 
 def test_subscription_options_are_keyword_only() -> None:
-    args: list[Any] = [EventManager(), "my_event", print, True]
+    args: list[Any] = [EventManager(), "my_event", noop_handler, True]
     with pytest.raises(TypeError, match=r"positional arguments"):
         Subscription(*args)
 
@@ -1475,7 +1505,7 @@ def test_needs_context_parameter_with_default() -> None:
 
 
 def test_needs_context_var_positional() -> None:
-    assert _needs_context(payload_handler)
+    assert _needs_context(var_positional_handler)
 
 
 def test_needs_context_keyword_only() -> None:
@@ -1575,7 +1605,7 @@ def test_event_manager_add_event_handler_unresolved_annotation(tmp_path: Path) -
 @requires_lazy_annotations
 def test_event_manager_add_event_handler_condition_unresolved_annotation(tmp_path: Path) -> None:
     condition = unresolved_function(tmp_path, "no_parameter")
-    subscription = EventManager().add_event_handler("my_event", print, condition=condition)
+    subscription = EventManager().add_event_handler("my_event", noop_handler, condition=condition)
     assert subscription.active
 
 
@@ -1730,68 +1760,68 @@ def test_event_manager_trigger_event_keyword_payload_is_rejected() -> None:
 
 
 def test_subscription_active_after_add() -> None:
-    assert EventManager().add_event_handler("my_event", print).active
+    assert EventManager().add_event_handler("my_event", noop_handler).active
 
 
 def test_subscription_active_never_registered() -> None:
-    assert Subscription(EventManager(), "my_event", print).active
+    assert Subscription(EventManager(), "my_event", noop_handler).active
 
 
 def test_subscription_active_false_after_remove() -> None:
-    subscription = EventManager().add_event_handler("my_event", print)
+    subscription = EventManager().add_event_handler("my_event", noop_handler)
     subscription.remove()
     assert not subscription.active
 
 
 def test_subscription_active_other_subscription_removed() -> None:
     manager = EventManager()
-    manager.add_event_handler("my_event", print).remove()
-    assert manager.add_event_handler("my_event", print).active
+    manager.add_event_handler("my_event", noop_handler).remove()
+    assert manager.add_event_handler("my_event", noop_handler).active
 
 
 def test_subscription_active_other_event_cleared() -> None:
     manager = EventManager()
-    subscription = manager.add_event_handler("my_event", print)
+    subscription = manager.add_event_handler("my_event", noop_handler)
     manager.clear_event("my_other_event")
     assert subscription.active
 
 
 def test_subscription_remove_returns_true() -> None:
-    assert EventManager().add_event_handler("my_event", print).remove()
+    assert EventManager().add_event_handler("my_event", noop_handler).remove()
 
 
 def test_subscription_remove_twice_returns_false() -> None:
-    subscription = EventManager().add_event_handler("my_event", print)
+    subscription = EventManager().add_event_handler("my_event", noop_handler)
     subscription.remove()
     assert not subscription.remove()
 
 
 def test_subscription_remove_inactive_after_remove() -> None:
-    subscription = EventManager().add_event_handler("my_event", print)
+    subscription = EventManager().add_event_handler("my_event", noop_handler)
     subscription.remove()
     assert not subscription.active
 
 
 def test_subscription_remove_removes_from_manager() -> None:
     manager = EventManager()
-    manager.add_event_handler("my_event", print).remove()
+    manager.add_event_handler("my_event", noop_handler).remove()
     assert len(manager) == 0
 
 
 def test_subscription_remove_middle_keeps_order() -> None:
     manager = EventManager()
-    first = manager.add_event_handler("my_event", print)
-    second = manager.add_event_handler("my_event", print)
-    third = manager.add_event_handler("my_event", print)
+    first = manager.add_event_handler("my_event", noop_handler)
+    second = manager.add_event_handler("my_event", noop_handler)
+    third = manager.add_event_handler("my_event", noop_handler)
     second.remove()
     assert manager.get_subscriptions("my_event") == (first, third)
 
 
 def test_subscription_remove_first_and_last_keeps_middle() -> None:
     manager = EventManager()
-    first = manager.add_event_handler("my_event", print)
-    second = manager.add_event_handler("my_event", print)
-    third = manager.add_event_handler("my_event", print)
+    first = manager.add_event_handler("my_event", noop_handler)
+    second = manager.add_event_handler("my_event", noop_handler)
+    third = manager.add_event_handler("my_event", noop_handler)
     first.remove()
     third.remove()
     assert manager.get_subscriptions("my_event") == (second,)
@@ -1799,7 +1829,7 @@ def test_subscription_remove_first_and_last_keeps_middle() -> None:
 
 def test_subscription_remove_same_handler_registered_three_times_removes_second() -> None:
     manager = EventManager()
-    handler = print
+    handler = noop_handler
     first = manager.add_event_handler("my_event", handler)
     second = manager.add_event_handler("my_event", handler)
     third = manager.add_event_handler("my_event", handler)
@@ -1808,20 +1838,20 @@ def test_subscription_remove_same_handler_registered_three_times_removes_second(
 
 
 def test_subscription_remove_not_registered_returns_false() -> None:
-    subscription = Subscription(EventManager(), "my_event", print)
+    subscription = Subscription(EventManager(), "my_event", noop_handler)
     assert not subscription.remove()
 
 
 def test_subscription_remove_not_registered_keeps_other_registration() -> None:
     manager = EventManager()
-    registered = manager.add_event_handler("my_event", print)
-    Subscription(manager, "my_event", print).remove()
+    registered = manager.add_event_handler("my_event", noop_handler)
+    Subscription(manager, "my_event", noop_handler).remove()
     assert manager.get_subscriptions("my_event") == (registered,)
 
 
 def test_subscription_is_hashable_by_identity() -> None:
     manager = EventManager()
-    handler = print
+    handler = noop_handler
     first = manager.add_event_handler("my_event", handler)
     second = manager.add_event_handler("my_event", handler)
     assert len({first, second}) == 2
@@ -1829,7 +1859,7 @@ def test_subscription_is_hashable_by_identity() -> None:
 
 def test_subscription_remove_same_handler_registered_twice_keeps_other_registration() -> None:
     manager = EventManager()
-    handler = print
+    handler = noop_handler
     first = manager.add_event_handler("my_event", handler)
     manager.add_event_handler("my_event", handler)
     first.remove()
@@ -1839,7 +1869,7 @@ def test_subscription_remove_same_handler_registered_twice_keeps_other_registrat
 
 def test_subscription_remove_same_handler_registered_twice_second_stays_active() -> None:
     manager = EventManager()
-    handler = print
+    handler = noop_handler
     first = manager.add_event_handler("my_event", handler)
     second = manager.add_event_handler("my_event", handler)
     first.remove()
@@ -1849,34 +1879,34 @@ def test_subscription_remove_same_handler_registered_twice_second_stays_active()
 
 def test_subscription_inactive_after_clear_event() -> None:
     manager = EventManager()
-    subscription = manager.add_event_handler("my_event", print)
+    subscription = manager.add_event_handler("my_event", noop_handler)
     manager.clear_event("my_event")
     assert not subscription.active
 
 
 def test_subscription_remove_after_clear_event_returns_false() -> None:
     manager = EventManager()
-    subscription = manager.add_event_handler("my_event", print)
+    subscription = manager.add_event_handler("my_event", noop_handler)
     manager.clear_event("my_event")
     assert not subscription.remove()
 
 
 def test_subscription_inactive_after_reset() -> None:
     manager = EventManager()
-    subscription = manager.add_event_handler("my_event", print)
+    subscription = manager.add_event_handler("my_event", noop_handler)
     manager.reset()
     assert not subscription.active
 
 
 def test_subscription_enter_returns_subscription() -> None:
-    subscription = EventManager().add_event_handler("my_event", print)
+    subscription = EventManager().add_event_handler("my_event", noop_handler)
     with subscription as entered:
         assert entered is subscription
 
 
 def test_subscription_exit_removes() -> None:
     manager = EventManager()
-    with manager.add_event_handler("my_event", print):
+    with manager.add_event_handler("my_event", noop_handler):
         pass
     assert len(manager) == 0
 
@@ -1884,7 +1914,7 @@ def test_subscription_exit_removes() -> None:
 def test_subscription_exit_does_not_swallow_exception_of_block() -> None:
     with (
         pytest.raises(RuntimeError, match=r"handler failed"),
-        EventManager().add_event_handler("my_event", print),
+        EventManager().add_event_handler("my_event", noop_handler),
     ):
         failing_handler()
 
@@ -1893,7 +1923,7 @@ def test_subscription_exit_removes_when_block_raises() -> None:
     manager = EventManager()
     with (
         pytest.raises(RuntimeError, match=r"handler failed"),
-        manager.add_event_handler("my_event", print),
+        manager.add_event_handler("my_event", noop_handler),
     ):
         failing_handler()
     assert len(manager) == 0
@@ -1966,20 +1996,20 @@ def flag_and_registry(manager: EventManager, subscription: Subscription) -> tupl
 
 def test_flag_and_registry_agree_before_removal() -> None:
     manager = EventManager()
-    subscription = manager.add_event_handler("my_event", print)
+    subscription = manager.add_event_handler("my_event", noop_handler)
     assert flag_and_registry(manager, subscription) == (True, True)
 
 
 def test_flag_and_registry_agree_after_remove() -> None:
     manager = EventManager()
-    subscription = manager.add_event_handler("my_event", print)
+    subscription = manager.add_event_handler("my_event", noop_handler)
     subscription.remove()
     assert flag_and_registry(manager, subscription) == (False, False)
 
 
 def test_flag_and_registry_agree_after_exit() -> None:
     manager = EventManager()
-    subscription = manager.add_event_handler("my_event", print)
+    subscription = manager.add_event_handler("my_event", noop_handler)
     with subscription:
         pass
     assert flag_and_registry(manager, subscription) == (False, False)
@@ -1987,20 +2017,20 @@ def test_flag_and_registry_agree_after_exit() -> None:
 
 def test_flag_and_registry_agree_after_clear_event() -> None:
     manager = EventManager()
-    subscription = manager.add_event_handler("my_event", print)
+    subscription = manager.add_event_handler("my_event", noop_handler)
     manager.clear_event("my_event")
     assert flag_and_registry(manager, subscription) == (False, False)
 
 
 def test_flag_and_registry_agree_after_reset() -> None:
     manager = EventManager()
-    subscription = manager.add_event_handler("my_event", print)
+    subscription = manager.add_event_handler("my_event", noop_handler)
     manager.reset()
     assert flag_and_registry(manager, subscription) == (False, False)
 
 
 def test_flag_and_registry_agree_after_clear_other_event() -> None:
     manager = EventManager()
-    subscription = manager.add_event_handler("my_event", print)
+    subscription = manager.add_event_handler("my_event", noop_handler)
     manager.clear_event("other_event")
     assert flag_and_registry(manager, subscription) == (True, True)
