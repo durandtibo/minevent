@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from minevent import EventManager, PeriodicCondition
+from minevent import Context, EventManager, PeriodicCondition
 
 if TYPE_CHECKING:
     from pytest_benchmark.fixture import BenchmarkFixture
@@ -25,8 +25,10 @@ def no_argument() -> None:
     r"""Implement a handler without argument."""
 
 
-def with_payload(epoch: int = 0, loss: float = 0.0) -> None:
-    r"""Implement a handler that accepts two payload keys."""
+def with_payload(context: Context) -> None:
+    r"""Implement a handler that reads two payload keys."""
+    context.get("epoch")
+    context.get("loss")
 
 
 async def async_no_argument() -> None:
@@ -58,9 +60,9 @@ def test_trigger_event_payload_benchmark(benchmark: BenchmarkFixture) -> None:
     benchmark(manager.trigger_event, "e", epoch=1, loss=0.5)
 
 
-def test_trigger_event_filter_payload_benchmark(benchmark: BenchmarkFixture) -> None:
+def test_trigger_event_extra_payload_keys_benchmark(benchmark: BenchmarkFixture) -> None:
     manager = EventManager()
-    manager.add_event_handler("e", with_payload, filter_payload=True)
+    manager.add_event_handler("e", with_payload)
     benchmark(manager.trigger_event, "e", epoch=1, loss=0.5, extra=1)
 
 

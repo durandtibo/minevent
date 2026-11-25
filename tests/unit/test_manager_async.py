@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 
 from minevent import (
+    Context,
     EventManager,
 )
 from tests.unit.utils import trace
@@ -45,10 +46,9 @@ def hello_handler() -> None:
 
 
 @trace
-async def async_handler(**kwargs: Any) -> None:
-    r"""Implements a coroutine handler that accepts any keyword
-    arguments."""
-    logger.info("Async payload: %s", kwargs)
+async def async_handler(*args: Any, **kwargs: Any) -> None:
+    r"""Implements a coroutine handler that accepts any arguments."""
+    logger.info("Async payload: %s %s", args, kwargs)
 
 
 async def test_event_manager_atrigger_event_awaits_coroutine_handler() -> None:
@@ -62,7 +62,7 @@ async def test_event_manager_atrigger_event_payload() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", async_handler)
     await manager.atrigger_event("my_event", epoch=3)
-    assert async_handler.kwargs == {"epoch": 3}
+    assert async_handler.args == ({"epoch": 3},)
 
 
 async def test_event_manager_atrigger_event_mixes_sync_and_async_in_order() -> None:
@@ -143,13 +143,13 @@ async def test_event_manager_atrigger_event_handler_raises_adds_note() -> None:
     ]
 
 
-async def test_event_manager_atrigger_event_on_filter_payload() -> None:
+async def test_event_manager_atrigger_event_on_reads_context() -> None:
     manager = EventManager()
-    epochs: list[int] = []
+    epochs: list[object] = []
 
-    @manager.on("my_event", filter_payload=True)
-    async def log_epoch(epoch: int) -> None:
-        epochs.append(epoch)
+    @manager.on("my_event")
+    async def log_epoch(context: Context) -> None:
+        epochs.append(context["epoch"])
 
     await manager.atrigger_event("my_event", epoch=3, loss=0.5)
     assert epochs == [3]
@@ -173,8 +173,8 @@ class AsyncCallable:
     def __init__(self, calls: list[dict[str, Any]]) -> None:
         self._calls = calls
 
-    async def __call__(self, **payload: Any) -> None:
-        self._calls.append(payload)
+    async def __call__(self, context: Context) -> None:
+        self._calls.append(dict(context))
 
 
 class SyncCallable:
@@ -183,8 +183,8 @@ class SyncCallable:
     def __init__(self, calls: list[dict[str, Any]]) -> None:
         self._calls = calls
 
-    def __call__(self, **payload: Any) -> None:
-        self._calls.append(payload)
+    def __call__(self, context: Context) -> None:
+        self._calls.append(dict(context))
 
 
 async def test_event_manager_atrigger_event_awaits_plain_coroutine_function() -> None:
@@ -262,14 +262,14 @@ async def test_event_manager_atrigger_event_partial_error_note_names_function() 
     ]
 
 
-async def test_event_manager_atrigger_event_condition_and_filter_payload() -> None:
+async def test_event_manager_atrigger_event_condition_and_context() -> None:
     manager = EventManager()
-    values: list[str] = []
+    values: list[object] = []
 
-    async def record(value: str) -> None:
-        values.append(value)
+    async def record(context: Context) -> None:
+        values.append(context["value"])
 
-    manager.add_event_handler("my_event", record, condition=lambda: True, filter_payload=True)
+    manager.add_event_handler("my_event", record, condition=lambda: True)
     await manager.atrigger_event("my_event", value="a", other=1)
     assert values == ["a"]
 
@@ -317,13 +317,13 @@ def test_event_manager_trigger_event_condition_false_does_not_call_coroutine_fun
     assert async_handler.call_count == 0
 
 
-async def test_event_manager_atrigger_event_filter_payload_coroutine_function() -> None:
+async def test_event_manager_atrigger_event_context_coroutine_function() -> None:
     manager = EventManager()
-    values: list[str] = []
+    values: list[object] = []
 
-    async def record(value: str) -> None:
-        values.append(value)
+    async def record(context: Context) -> None:
+        values.append(context["value"])
 
-    manager.add_event_handler("my_event", record, filter_payload=True)
+    manager.add_event_handler("my_event", record)
     await manager.atrigger_event("my_event", value="a", other=1)
     assert values == ["a"]

@@ -72,15 +72,6 @@ def test_subscription_remove_many_lifo_benchmark(benchmark: BenchmarkFixture) ->
     benchmark.pedantic(add_many_and_remove_in_reverse_order, rounds=3, iterations=1)
 
 
-def test_add_event_handler_filter_payload_and_remove_benchmark(benchmark: BenchmarkFixture) -> None:
-    manager = EventManager()
-
-    def add_and_remove() -> None:
-        manager.add_event_handler("e", no_argument, filter_payload=True).remove()
-
-    benchmark(add_and_remove)
-
-
 @pytest.mark.parametrize("num_handlers", [1, 10, 100])
 def test_get_subscriptions_benchmark(benchmark: BenchmarkFixture, num_handlers: int) -> None:
     manager = make_manager(1, num_handlers)
