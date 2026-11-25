@@ -184,4 +184,4 @@ condition=AfterNCondition(2)` runs once, on the third trigger (it never ran). A 
   current API again, and each pull request runs the script (in an integration test) and each
   benchmark once, except the import benchmarks (#851).
 - Documentation: the examples, the docstrings and the tests register handlers that take no argument
-  or only the context, and test the wiring with `create_autospec` instead of `Mock` (#PR).
+  or only the context, and test the wiring with `create_autospec` instead of `Mock` (#853).
