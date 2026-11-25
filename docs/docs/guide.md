@@ -52,6 +52,7 @@ event and an extra key never breaks a handler:
 
 - `context["loss"]` reads a required value and raises a `KeyError` that lists the available keys.
 - `context.get("loss", 0.0)` reads an optional value.
+- The values are typed `Any`, so `context["epoch"] + 1` type checks without a cast.
 - `"loss" in context`, `len(context)`, `context.items()` and `dict(context)` work as for a mapping.
 - `copy.deepcopy(context)` takes a snapshot of the payload, and a context can be pickled (to send it
   to a worker process, for example) if its values can.

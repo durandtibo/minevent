@@ -396,7 +396,7 @@ it says so.
 | 4    | `feat/two-handler-calls` (on step 3)             | The rule of 4.1, generator functions rejected, documents of the rule  | **yes**  | F2, F4, F5 | #854 |
 | 5    | `bugfix/reject-awaitable-conditions` (on step 4) | The check of 4.2                                                      | **yes**  | F3         | #855 |
 | 6    | `bugfix/picklable-context`                       | A plain `dict` in the `Context`                                       | no       | F7         | #856 |
-| 7    | `feat/context-values-any` (on step 6)            | `Mapping[str, Any]`, P15, a typed sample checked by `ty`              | no       | F8         | -    |
+| 7    | `feat/context-values-any` (on step 6)            | `Mapping[str, Any]`, P15, a typed sample checked by `ty`              | no       | F8         | #857 |
 | 8    | `perf/import-without-typing` (on step 7)         | `TYPE_CHECKING = False`, `typing` in `LAZY_MODULES`                   | no       | F12        | -    |
 | 9    | `test/follow-the-test-rules`                     | Tests of `_remove`, the missing assertion, the loop                   | no       | F11        | -    |
 | 10   | `docs/one-home-per-fact` (last)                  | The table of 4.6, the changelog, the timings and the stale statements | no       | F9, F10    | -    |
