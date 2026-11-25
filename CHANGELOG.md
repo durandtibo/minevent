@@ -67,6 +67,8 @@ the new API are in the
 - `AfterNCondition`, and the `skip_first` option and the `reset` method of `PeriodicCondition`,
   which now validates `freq`. The type alias `Condition`.
 - The registry of `EventManager` is thread-safe, and a removal is O(1).
+- `PeriodicCondition` and `AfterNCondition` count every call once from any number of threads, with
+  and without the GIL, and can be copied and pickled.
 - The exception of a handler or a condition has a note with the event and the function of the
   handler.
 - `import minevent` is cheap: it does not import `logging`, `inspect`, `asyncio` or
