@@ -49,8 +49,8 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
     of Python), and `context.get(key, default)` reads an optional value. A key that the handler does
     not read never breaks it.
   - A bridge for an old handler: `lambda context: f(**context)` registers it unchanged.
-  - A trigger costs about 0.3 µs more (it builds one `Context`): 0.65 µs for one trivial handler
-    (0.34 µs before, Python 3.14, laptop).
+  - The `Context` is built only if a handler of the event takes it: a trigger of one trivial handler
+    costs 0.36 µs without context (0.34 µs before) and 0.56 µs with it (Python 3.14, laptop).
 
 - `BaseCondition` (with `evaluate` and `equal`) is removed. A condition is a function without
   argument that returns a boolean: implement `__call__` instead of `evaluate`, and call `condition()`

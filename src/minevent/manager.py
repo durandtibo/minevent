@@ -88,6 +88,42 @@ def _needs_context(func: Callable[..., object]) -> bool:
     )
 
 
+_EMPTY_CONTEXT = Context()
+
+
+def _make_context(subscriptions: tuple[Subscription, ...], payload: dict[str, object]) -> Context:
+    r"""Build the context of a trigger, only if a handler needs it.
+
+    Args:
+        subscriptions: The subscriptions that the trigger runs.
+        payload: The keyword arguments given to ``trigger_event`` or
+            ``atrigger_event``.
+
+    Returns:
+        The context built from ``payload``, or a shared empty
+            context if no subscription has a handler that takes the
+            context (it is never passed to a handler).
+
+    Example:
+        ```pycon
+        >>> from minevent import EventManager
+        >>> from minevent.manager import _make_context
+        >>> manager = EventManager()
+        >>> subscription = manager.add_event_handler("my_event", lambda: None)
+        >>> _make_context((subscription,), {"epoch": 3})
+        Context({})
+        >>> subscription = manager.add_event_handler("my_event", lambda context: None)
+        >>> _make_context((subscription,), {"epoch": 3})
+        Context({'epoch': 3})
+
+        ```
+    """
+    for subscription in subscriptions:
+        if subscription._with_context:
+            return Context.from_keywords(payload)
+    return _EMPTY_CONTEXT
+
+
 def _check_not_awaitable(result: object, handler: Callable[..., object]) -> None:
     r"""Check that a handler did not return an awaitable.
 
@@ -770,7 +806,7 @@ class EventManager:
             ```
         """
         subscriptions = self.get_subscriptions(event)
-        context = Context(payload)
+        context = _make_context(subscriptions, payload)
         for subscription in subscriptions:
             try:
                 _check_not_awaitable(subscription._call(context), subscription.handler)
@@ -817,7 +853,7 @@ class EventManager:
             ```
         """
         subscriptions = self.get_subscriptions(event)
-        context = Context(payload)
+        context = _make_context(subscriptions, payload)
         for subscription in subscriptions:
             try:
                 result = subscription._call(context)

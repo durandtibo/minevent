@@ -170,3 +170,51 @@ def test_context_invalid_data(data: Any) -> None:
 def test_context_invalid_key(key: Any) -> None:
     with pytest.raises(TypeError, match=r"the keys of data must be str, but got"):
         Context({key: 1})
+
+
+###################################
+#     Tests for from_keywords     #
+###################################
+
+
+def test_context_from_keywords() -> None:
+    assert Context.from_keywords({"a": 1, "b": 2}) == {"a": 1, "b": 2}
+
+
+def test_context_from_keywords_is_a_context() -> None:
+    assert isinstance(Context.from_keywords({"a": 1}), Context)
+
+
+def test_context_from_keywords_empty() -> None:
+    assert len(Context.from_keywords({})) == 0
+
+
+def test_context_from_keywords_keeps_the_order() -> None:
+    assert list(Context.from_keywords({"b": 1, "a": 2})) == ["b", "a"]
+
+
+def test_context_from_keywords_copies_the_input() -> None:
+    data: dict[str, object] = {"a": 1}
+    context = Context.from_keywords(data)
+    data["b"] = 2
+    assert dict(context) == {"a": 1}
+
+
+def test_context_from_keywords_does_not_copy_the_values() -> None:
+    value = [1, 2]
+    assert Context.from_keywords({"a": value})["a"] is value
+
+
+def test_context_from_keywords_is_read_only() -> None:
+    context: Any = Context.from_keywords({"a": 1})
+    with pytest.raises(TypeError, match=r"does not support item assignment"):
+        context["a"] = 2
+
+
+def test_context_from_keywords_missing_key() -> None:
+    with pytest.raises(KeyError, match=r"key 'b' not found in the context.*\['a'\]"):
+        Context.from_keywords({"a": 1})["b"]
+
+
+def test_context_from_keywords_repr() -> None:
+    assert repr(Context.from_keywords({"a": 1})) == "Context({'a': 1})"
