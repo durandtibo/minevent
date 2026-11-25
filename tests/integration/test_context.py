@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import copy
+import dataclasses
 import multiprocessing
 import threading
 from concurrent.futures import ProcessPoolExecutor
@@ -96,6 +97,51 @@ def test_missing_key_with_getitem_adds_a_note_that_names_the_handler() -> None:
     with pytest.raises(KeyError, match=r"key 'lr' not found") as exc_info:
         manager.trigger_event("epoch_end", {"epoch": 3})
     assert exc_info.value.__notes__[0].endswith("read_lr while handling the event 'epoch_end'")
+
+
+@dataclasses.dataclass(frozen=True)
+class FrozenError(Exception):
+    r"""Implement an exception that forbids new attributes."""
+
+    key: str
+
+
+def test_frozen_exception_of_a_handler_reaches_the_caller() -> None:
+    """Test that a frozen dataclass exception raised by a handler
+    reaches the caller of ``atrigger_event`` unchanged."""
+    manager = EventManager()
+    error = FrozenError("lr")
+
+    async def handler() -> None:
+        await asyncio.sleep(0)
+        raise error
+
+    manager.add_event_handler("epoch_end", handler)
+    with pytest.raises(FrozenError, match=r"lr") as exc_info:
+        asyncio.run(manager.atrigger_event("epoch_end"))
+    assert exc_info.value is error
+
+
+def test_missing_key_in_a_condition_adds_a_note_that_names_the_condition() -> None:
+    """Test that the ``KeyError`` of a missing key in a condition has a
+    note with the event, the condition and the handler."""
+    manager = EventManager()
+
+    def is_late(context: Context) -> bool:
+        return context["epoch"] > 2
+
+    def log_epoch() -> None:
+        pass
+
+    manager.add_event_handler("epoch_end", log_epoch, condition=is_late)
+    with pytest.raises(KeyError, match=r"key 'epoch' not found") as exc_info:
+        manager.trigger_event("epoch_end")
+    assert exc_info.value.__notes__ == [
+        (
+            f"raised by the condition {is_late.__qualname__} of {log_epoch.__qualname__} "
+            "while handling the event 'epoch_end'"
+        )
+    ]
 
 
 def test_context_is_read_only_for_a_handler() -> None:

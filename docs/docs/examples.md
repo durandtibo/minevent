@@ -546,7 +546,8 @@ notify returned an awaitable; use atrigger_event
 
 ## Handle the errors of a handler
 
-The exception of a handler reaches the caller with a note that names the event and the handler:
+The exception of a handler reaches the caller with a note that names the event and the handler (for
+the error of a condition, the note names the condition and its handler):
 
 ```pycon
 >>> from minevent import EventManager

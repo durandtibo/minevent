@@ -167,6 +167,8 @@ class Subscription:
         )
         # The same condition, typed for the two ways to call it.
         self._condition_call: Callable[..., object] | None = condition
+        # A trigger only calls ``_claim`` for these registrations: the others save a method call.
+        self._guarded = bool(once) or condition is not None
         # Set to False by the manager when the registration leaves its registry.
         self._active = True
 
@@ -239,60 +241,91 @@ class Subscription:
         """
         return self._active
 
-    def _call(self, context: Context) -> object:
-        r"""Run the registration: removal check, condition, once claim
-        and handler.
+    def _claim(self, context: Context) -> bool:
+        r"""Decide if a trigger calls the handler: condition, then once
+        claim.
 
-        A registration that was removed before its turn (by
-        ``remove``, ``clear_event``, ``reset`` or a ``once`` claim)
-        does not run. The condition decides whether the handler would
-        run, and the claim of a ``once`` registration decides who runs
-        it: the
-        registration is removed by an atomic claim just before its
-        handler, so it runs at most once whatever the number of
-        threads. A condition that is ``False`` (or that raises) does
-        not consume a ``once`` registration. A condition is
-        synchronous: if it returns an awaitable, a coroutine is closed,
-        a ``TypeError`` is raised, and the handler is not called.
-
-        The condition and the handler are called with the context if
-        they have a parameter without default, and without argument
-        otherwise (see ``minevent.calls.needs_context``).
+        The condition decides whether the handler would run, and the
+        claim of a ``once`` registration decides who runs it: the
+        registration is removed by an atomic claim, so its handler runs
+        at most once whatever the number of threads. A condition that
+        is ``False`` (or that raises) does not consume a ``once``
+        registration. A condition is synchronous: if it returns an
+        awaitable, a coroutine is closed and a ``TypeError`` is raised.
 
         Args:
-            context: The context built from the payload given to
-                ``trigger_event`` or ``atrigger_event``.
+            context: The context of the trigger. The condition receives
+                it if it has a parameter without default (see
+                ``minevent.calls.needs_context``).
 
         Returns:
-            The value returned by the handler, or ``None`` if the
-                registration was removed, if the condition is
-                ``False`` or if the registration lost the claim. It is
-                awaitable if the handler is a coroutine function.
+            ``True`` if the handler must be called, ``False`` if the
+                condition is ``False`` or if the registration lost the
+                claim.
 
         Raises:
             TypeError: if the condition returns an awaitable. Any
-                exception raised by the condition or the handler also
-                propagates.
+                exception of the condition also propagates. Both have a
+                note that names the condition and the handler.
+
+        Example:
+            ```pycon
+            >>> from minevent import Context, EventManager
+            >>> manager = EventManager()
+            >>> subscription = manager.add_event_handler("my_event", lambda: None, once=True)
+            >>> subscription._claim(Context()), subscription._claim(Context())
+            (True, False)
+
+            ```
         """
-        if not self._active:
-            return None
         if self._condition_call is not None:
-            result = (
-                self._condition_call(context)
-                if self._condition_with_context
-                else self._condition_call()
-            )
-            # A coroutine is truthy, so an async condition would always run the handler.
-            if result is not True and isinstance(result, Awaitable):
-                msg = f"condition {describe(self._condition_call)} returned an awaitable"
-                reject_awaitable(result, msg)
-            if not result:
-                return None
-        if self._once and not self.remove():
-            return None
-        if self._with_context:
-            return self._handler(context)
-        return self._handler()
+            try:
+                result = (
+                    self._condition_call(context)
+                    if self._condition_with_context
+                    else self._condition_call()
+                )
+                # A coroutine is truthy, so an async condition would always run the handler.
+                if result is not True and result is not False:
+                    msg = f"condition {describe(self._condition_call)} returned an awaitable"
+                    reject_awaitable(result, msg)
+                if not result:
+                    return False
+            except Exception as exc:
+                condition = describe(self._condition_call)
+                source = f"the condition {condition} of {describe(self._handler)}"
+                add_error_note(exc, source, self._event)
+                raise
+        return not self._once or self.remove()
+
+    def _invoke(self, context: Context) -> object:
+        r"""Call the handler.
+
+        It checks neither the removal, the condition nor ``once``: a
+        trigger does it first (see ``_claim``).
+
+        Args:
+            context: The context of the trigger. The handler receives it
+                if it has a parameter without default.
+
+        Returns:
+            The value returned by the handler. It is awaitable if the
+                handler is a coroutine function.
+
+        Raises:
+            Exception: any exception of the handler propagates.
+
+        Example:
+            ```pycon
+            >>> from minevent import Context, EventManager
+            >>> manager = EventManager()
+            >>> subscription = manager.add_event_handler("my_event", lambda: "called")
+            >>> subscription._invoke(Context())
+            'called'
+
+            ```
+        """
+        return self._handler(context) if self._with_context else self._handler()
 
     def remove(self) -> bool:
         r"""Remove the registration.
@@ -676,7 +709,8 @@ class EventManager:
         Handlers are executed fail-fast: if a handler raises, the
         exception propagates and the remaining handlers are skipped.
         The exception is not wrapped: it has a note (``__notes__``)
-        with the event and the function of the handler that raised it.
+        with the event and what raised it, the handler or the condition
+        and its handler.
 
         The handlers are read from a snapshot taken when the event is
         triggered. A handler added by a running handler takes effect
@@ -751,14 +785,18 @@ class EventManager:
         subscriptions = self.get_subscriptions(event)
         context = _as_context(context)
         for subscription in subscriptions:
+            if not subscription._active or (
+                subscription._guarded and not subscription._claim(context)
+            ):
+                continue
             try:
-                result = subscription._call(context)
+                result = subscription._invoke(context)
                 if result is not None and isinstance(result, Awaitable):
                     name = describe(subscription.handler)
                     msg = f"{name} returned an awaitable; use atrigger_event"
                     reject_awaitable(result, msg)
             except Exception as exc:
-                add_error_note(exc, event, subscription.handler)
+                add_error_note(exc, describe(subscription.handler), event)
                 raise
 
     async def atrigger_event(
@@ -772,8 +810,7 @@ class EventManager:
         awaited. Synchronous handlers can be mixed with coroutine
         handlers. The handlers run one after the other, in the order they were
         added, and they are fail-fast like in ``trigger_event``: the
-        exception is not wrapped and has a note with the event and the
-        handler. The snapshot of the handlers, the ``once``
+        exception is not wrapped and has the same note. The snapshot of the handlers, the ``once``
         registrations and the context follow the rules of
         ``trigger_event``. Synchronous handlers block the event loop
         while they run.
@@ -808,12 +845,16 @@ class EventManager:
         subscriptions = self.get_subscriptions(event)
         context = _as_context(context)
         for subscription in subscriptions:
+            if not subscription._active or (
+                subscription._guarded and not subscription._claim(context)
+            ):
+                continue
             try:
-                result = subscription._call(context)
+                result = subscription._invoke(context)
                 if result is not None and isinstance(result, Awaitable):
                     await result
             except Exception as exc:
-                add_error_note(exc, event, subscription.handler)
+                add_error_note(exc, describe(subscription.handler), event)
                 raise
 
     def clear_event(self, event: str) -> None:

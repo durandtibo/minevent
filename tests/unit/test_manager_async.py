@@ -145,6 +145,40 @@ async def test_event_manager_atrigger_event_handler_raises_adds_note() -> None:
     ]
 
 
+async def test_event_manager_atrigger_event_condition_raises_note_names_condition() -> None:
+    def is_late(context: Context) -> bool:
+        return context["missing"]
+
+    manager = EventManager()
+    manager.add_event_handler("my_event", async_handler, condition=is_late)
+    with pytest.raises(KeyError, match=r"key 'missing' not found") as exc_info:
+        await manager.atrigger_event("my_event")
+    assert exc_info.value.__notes__ == [
+        (
+            f"raised by the condition {is_late.__qualname__} of async_handler "
+            "while handling the event 'my_event'"
+        )
+    ]
+
+
+async def test_event_manager_atrigger_event_handler_raises_after_condition_note() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", failing_async_handler, condition=lambda: True)
+    with pytest.raises(ValueError, match=r"boom") as exc_info:
+        await manager.atrigger_event("my_event")
+    assert exc_info.value.__notes__ == [
+        "raised by failing_async_handler while handling the event 'my_event'"
+    ]
+
+
+async def test_event_manager_atrigger_event_removed_registration_does_not_run() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", lambda: manager.clear_event("my_event"))
+    manager.add_event_handler("my_event", hello_handler)
+    await manager.atrigger_event("my_event")
+    assert hello_handler.call_count == 0
+
+
 async def test_event_manager_atrigger_event_on_reads_context() -> None:
     manager = EventManager()
     epochs: list[object] = []

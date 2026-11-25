@@ -11,6 +11,7 @@ from __future__ import annotations
 
 __all__ = ["add_error_note", "describe", "needs_context", "reject_awaitable"]
 
+import contextlib
 import functools
 import sys
 from collections.abc import Awaitable, Coroutine
@@ -160,30 +161,35 @@ def reject_awaitable(result: object, message: str) -> None:
         raise TypeError(message)
 
 
-def add_error_note(exc: Exception, event: str, handler: Callable[..., object]) -> None:
-    r"""Add a note to the exception raised by an event handler.
+def add_error_note(exc: Exception, source: str, event: str) -> None:
+    r"""Add a note to the exception raised while handling an event.
 
-    The note names the event and the function of the handler, never
-    its arguments. The note is not added if the exception already has
-    it, so an exception instance that is raised again (or a handler
-    that triggers its own event) has one note per distinct pair of
-    event and handler.
+    The note says what raised and while handling which event. It is not
+    added if the exception already has it, so an exception instance that
+    is raised again (or a handler that triggers its own event) has one
+    note per distinct note. Adding the note never replaces the
+    exception: if the note cannot be added, for example to a
+    ``frozen=True`` dataclass exception, the exception is left without
+    it.
 
     Args:
-        exc: The exception raised by the event handler.
+        exc: The exception raised by a handler or a condition.
+        source: What raised the exception, for example the name of the
+            handler (see ``describe``).
         event: The event that was triggered.
-        handler: The handler that raised the exception.
 
     Example:
         ```pycon
         >>> from minevent.calls import add_error_note
         >>> error = ValueError("boom")
-        >>> add_error_note(error, "my_event", print)
+        >>> add_error_note(error, "log_epoch", "epoch_end")
         >>> error.__notes__
-        ["raised by print while handling the event 'my_event'"]
+        ["raised by log_epoch while handling the event 'epoch_end'"]
 
         ```
     """
-    note = f"raised by {describe(handler)} while handling the event {event!r}"
-    if note not in getattr(exc, "__notes__", ()):
-        exc.add_note(note)
+    # A frozen exception, or one with unusual ``__notes__``, cannot take the note.
+    with contextlib.suppress(Exception):
+        note = f"raised by {source} while handling the event {event!r}"
+        if note not in getattr(exc, "__notes__", ()):
+            exc.add_note(note)

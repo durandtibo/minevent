@@ -70,8 +70,8 @@ the new API are in the
 - The registry of `EventManager` is thread-safe, and a removal is O(1).
 - `PeriodicCondition` and `AfterNCondition` count every call once from any number of threads, with
   and without the GIL, and can be copied and pickled.
-- The exception of a handler or a condition has a note with the event and the function of the
-  handler.
+- The exception of a handler or a condition has a note with the event and what raised it: the
+  handler, or the condition and its handler. Adding the note never replaces the exception.
 - `import minevent` is cheap: it does not import `logging`, `inspect`, `asyncio` or
   `importlib.metadata`, and `__version__` is read from the package metadata when it is used.
 - Documentation: a new [examples page](https://durandtibo.github.io/minevent/examples/) and a user
