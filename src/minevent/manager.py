@@ -12,7 +12,7 @@ __all__ = ["EventManager", "Subscription"]
 
 import functools
 import threading
-from collections.abc import Awaitable, Coroutine
+from collections.abc import Awaitable, Coroutine, Mapping
 from typing import TYPE_CHECKING
 
 from minevent.context import Context
@@ -91,38 +91,42 @@ def _needs_context(func: Callable[..., object]) -> bool:
 _EMPTY_CONTEXT = Context()
 
 
-def _make_context(subscriptions: tuple[Subscription, ...], payload: dict[str, object]) -> Context:
-    r"""Build the context of a trigger, only if a handler or a condition
-    needs it.
+def _as_context(context: object) -> Context:
+    r"""Convert the data of a trigger to a context.
 
     Args:
-        subscriptions: The subscriptions that the trigger runs.
-        payload: The keyword arguments given to ``trigger_event`` or
-            ``atrigger_event``.
+        context: The data given to ``trigger_event`` or
+            ``atrigger_event``: a mapping from ``str`` to values, a
+            ``Context``, or ``None``.
 
     Returns:
-        The context built from ``payload``, or a shared empty
-            context if no subscription has a handler or a condition that takes the
-            context (it is never passed to a handler or a condition).
+        ``context`` itself if it is a ``Context`` (it is immutable, so
+            it is shared, not copied), a shared empty context if it is
+            ``None``, and a new ``Context`` that copies the mapping
+            otherwise.
+
+    Raises:
+        TypeError: if ``context`` is neither ``None`` nor a mapping, or
+            if a key of the mapping is not a ``str``.
 
     Example:
         ```pycon
-        >>> from minevent import EventManager
-        >>> from minevent.manager import _make_context
-        >>> manager = EventManager()
-        >>> subscription = manager.add_event_handler("my_event", lambda: None)
-        >>> _make_context((subscription,), {"epoch": 3})
-        Context({})
-        >>> subscription = manager.add_event_handler("my_event", lambda context: None)
-        >>> _make_context((subscription,), {"epoch": 3})
+        >>> from minevent.manager import _as_context
+        >>> _as_context({"epoch": 3})
         Context({'epoch': 3})
+        >>> _as_context(None)
+        Context({})
 
         ```
     """
-    for subscription in subscriptions:
-        if subscription._with_context or subscription._condition_with_context:
-            return Context.from_keywords(payload)
-    return _EMPTY_CONTEXT
+    if context is None:
+        return _EMPTY_CONTEXT
+    if isinstance(context, Context):
+        return context
+    if not isinstance(context, Mapping):
+        msg = f"context must be a mapping or None, but got {type(context).__qualname__}"
+        raise TypeError(msg)
+    return Context(context)
 
 
 def _check_not_awaitable(result: object, handler: Callable[..., object]) -> None:
@@ -652,7 +656,7 @@ class EventManager:
             ...     print(f"epoch {context['epoch']}")
             ...
             >>> _ = manager.add_event_handler("epoch_end", epoch_handler)
-            >>> manager.trigger_event("epoch_end", epoch=3, loss=0.5)
+            >>> manager.trigger_event("epoch_end", {"epoch": 3, "loss": 0.5})
             epoch 3
 
             ```
@@ -707,7 +711,7 @@ class EventManager:
             ... def hello_handler(context):
             ...     print(f"Hello {context['name']}!")
             ...
-            >>> manager.trigger_event("my_event", name="Bob")
+            >>> manager.trigger_event("my_event", {"name": "Bob"})
             Hello Bob!
             >>> hello_handler({"name": "Alice"})
             Hello Alice!
@@ -715,7 +719,7 @@ class EventManager:
             ... def log_epoch(context):
             ...     print(f"epoch {context['epoch']}")
             ...
-            >>> manager.trigger_event("epoch_end", epoch=3, loss=0.5)
+            >>> manager.trigger_event("epoch_end", {"epoch": 3, "loss": 0.5})
             epoch 3
 
             ```
@@ -748,7 +752,7 @@ class EventManager:
                 del self._subscriptions[subscription.event]
         return True
 
-    def trigger_event(self, event: str, /, **payload: object) -> None:
+    def trigger_event(self, event: str, context: Mapping[str, object] | None = None, /) -> None:
         r"""Trigger the handler(s) for the given event.
 
         This method executes all event handlers registered for the
@@ -772,18 +776,20 @@ class EventManager:
         triggers its own event raises a ``RecursionError``. Guard the
         recursive trigger with a condition or a flag.
 
-        The keyword arguments ``payload`` are copied into one
-        read-only ``Context`` that is built once per trigger and
-        shared by all the handlers. A handler that has a parameter
+        The data ``context`` (a mapping from ``str`` to values, a
+        ``Context`` or ``None``) is copied into one read-only
+        ``Context`` that is built once per trigger and shared by all
+        the handlers. A ``Context`` is passed as is (it is immutable,
+        so it can be reused for several triggers), and ``None`` means
+        no data. A handler that has a parameter
         that accepts a positional argument is called as
         ``handler(context)``, and the other handlers are called as
         ``handler()``. A handler reads the keys it needs and decides
         what to do when one is missing: ``context["key"]`` raises a
         ``KeyError``, and ``context.get("key", default)`` returns a
-        default. Extra keys never break a handler. The payload can
-        use any key, including ``event`` and ``self``, because
-        ``event`` is positional-only. All the handlers receive the
-        same payload objects.
+        default. Extra keys never break a handler. The keys can be any
+        ``str``, they do not need to be valid identifiers. All the
+        handlers receive the same value objects.
 
         Before its handler, a registration evaluates its condition
         (the handler is skipped if it is ``False``), and a ``once``
@@ -791,11 +797,13 @@ class EventManager:
 
         Args:
             event: The event name (case-sensitive string) to trigger.
-            **payload: The data passed to the handlers in the
-                ``Context``.
+            context: The data passed to the handlers: a mapping from
+                ``str`` to values, a ``Context`` or ``None``. It is
+                not modified. Default is ``None``.
 
         Raises:
-            TypeError: if ``event`` is not a string, or if a handler
+            TypeError: if ``event`` is not a string, if ``context`` is
+                neither ``None`` nor a mapping with ``str`` keys, or if a handler
                 returns an awaitable (use ``atrigger_event`` for
                 coroutine handlers). Any exception raised by a
                 handler or a condition also propagates, including a
@@ -817,13 +825,13 @@ class EventManager:
             ...     print(f"epoch {context['epoch']}")
             ...
             >>> _ = manager.add_event_handler("epoch_end", epoch_handler)
-            >>> manager.trigger_event("epoch_end", epoch=3)
+            >>> manager.trigger_event("epoch_end", {"epoch": 3})
             epoch 3
 
             ```
         """
         subscriptions = self.get_subscriptions(event)
-        context = _make_context(subscriptions, payload)
+        context = _as_context(context)
         for subscription in subscriptions:
             try:
                 _check_not_awaitable(subscription._call(context), subscription.handler)
@@ -831,7 +839,9 @@ class EventManager:
                 _add_error_note(exc, event, subscription.handler)
                 raise
 
-    async def atrigger_event(self, event: str, /, **payload: object) -> None:
+    async def atrigger_event(
+        self, event: str, context: Mapping[str, object] | None = None, /
+    ) -> None:
         r"""Trigger the handler(s) for the given event, awaiting the
         coroutine handlers.
 
@@ -842,17 +852,19 @@ class EventManager:
         added, and they are fail-fast like in ``trigger_event``: the
         exception is not wrapped and has a note with the event and the
         handler. The snapshot of the handlers, the ``once``
-        registrations and the payload follow the rules of
+        registrations and the context follow the rules of
         ``trigger_event``. Synchronous handlers block the event loop
         while they run.
 
         Args:
             event: The event name (case-sensitive string) to trigger.
-            **payload: The data passed to the handlers in the
-                ``Context``.
+            context: The data passed to the handlers: a mapping from
+                ``str`` to values, a ``Context`` or ``None``. It is
+                not modified. Default is ``None``.
 
         Raises:
-            TypeError: if ``event`` is not a string. Any exception
+            TypeError: if ``event`` is not a string, or if ``context``
+                is neither ``None`` nor a mapping with ``str`` keys. Any exception
                 raised by a handler or a condition also propagates.
 
         Example:
@@ -864,13 +876,13 @@ class EventManager:
             ...     print(f"Hello {context['name']}!")
             ...
             >>> _ = manager.add_event_handler("my_event", hello_handler)
-            >>> asyncio.run(manager.atrigger_event("my_event", name="John"))
+            >>> asyncio.run(manager.atrigger_event("my_event", {"name": "John"}))
             Hello John!
 
             ```
         """
         subscriptions = self.get_subscriptions(event)
-        context = _make_context(subscriptions, payload)
+        context = _as_context(context)
         for subscription in subscriptions:
             try:
                 result = subscription._call(context)

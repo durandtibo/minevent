@@ -25,8 +25,10 @@ they were registered, so register them in the order they must run.
 
 ### Pass the data as a payload
 
-The keyword arguments of `trigger_event` are copied into a read-only `Context`, which is built once
-per trigger and passed to every handler that has a parameter:
+The second argument of `trigger_event` is a mapping from `str` to values (a dict, for example). It
+is copied into a read-only `Context`, which is built once per trigger and passed to every handler
+that has a parameter. A `Context` is also accepted, and is passed as is (it is immutable, so it can
+be reused for several triggers); `None`, or no argument, means no data:
 
 ```pycon
 >>> from minevent import Context, EventManager
@@ -34,7 +36,7 @@ per trigger and passed to every handler that has a parameter:
 ...     print(f"epoch {context['epoch']}: {context['loss']}")
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("epoch_end", log_epoch)
->>> manager.trigger_event("epoch_end", epoch=3, loss=0.5)
+>>> manager.trigger_event("epoch_end", {"epoch": 3, "loss": 0.5})
 epoch 3: 0.5
 
 ```
@@ -57,7 +59,7 @@ event and an extra key never breaks a handler:
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("epoch_end", log_epoch)
 >>> _ = manager.add_event_handler("epoch_end", say_hello)
->>> manager.trigger_event("epoch_end", epoch=3)
+>>> manager.trigger_event("epoch_end", {"epoch": 3})
 epoch 3, loss unknown
 Hello!
 
@@ -174,9 +176,9 @@ Hello Bob!
 >>> _ = manager.add_event_handler(
 ...     "epoch_end", log_epoch, condition=PeriodicCondition(freq=2)
 ... )
->>> manager.trigger_event("epoch_end", epoch=1, loss=0.5)
+>>> manager.trigger_event("epoch_end", {"epoch": 1, "loss": 0.5})
 epoch 1
->>> manager.trigger_event("epoch_end", epoch=2, loss=0.4)
+>>> manager.trigger_event("epoch_end", {"epoch": 2, "loss": 0.4})
 
 ```
 
@@ -251,11 +253,11 @@ class Trainer:
     def train(self, epochs: int, loader) -> None:
         self.manager.trigger_event("training_start")
         for epoch in range(epochs):
-            self.manager.trigger_event("epoch_start", epoch=epoch)
+            self.manager.trigger_event("epoch_start", {"epoch": epoch})
             for batch in loader:
                 loss = self.step(batch)
-                self.manager.trigger_event("batch_end", epoch=epoch, loss=loss)
-            self.manager.trigger_event("epoch_end", epoch=epoch)
+                self.manager.trigger_event("batch_end", {"epoch": epoch, "loss": loss})
+            self.manager.trigger_event("epoch_end", {"epoch": epoch})
         self.manager.trigger_event("training_end")
 ```
 
@@ -293,7 +295,7 @@ def test_epoch_end_calls_handler():
     manager = EventManager()
     mock = Mock()
     manager.add_event_handler("epoch_end", mock)
-    manager.trigger_event("epoch_end", epoch=1)
+    manager.trigger_event("epoch_end", {"epoch": 1})
     mock.assert_called_once_with({"epoch": 1})
 
 
@@ -313,11 +315,10 @@ Use a new `EventManager` in each test, and `manager.reset()` if the manager is s
 `NamedTuple`, `TypeVar`). It takes a few milliseconds, so a script can import it without a
 measurable cost.
 
-The cost of `trigger_event` is the cost of the handlers: about 0.36 µs for a manager with one trivial
-handler, 0.56 µs if a handler takes the `Context` (it is built only then), and about 0.1 µs for each
-additional handler on a laptop. A
-condition avoids the work of an expensive handler (`PeriodicCondition`). To find a slow handler,
-time it or wrap it (see [Debug](#debug)).
+The cost of `trigger_event` is the cost of the handlers: about 0.33 µs for a manager with one
+trivial handler and no data, 0.7 µs with a small dict (it is copied into a `Context`), and about 0.1
+µs for each additional handler on a laptop. A condition avoids the work of an expensive handler
+(`PeriodicCondition`). To find a slow handler, time it or wrap it (see [Debug](#debug)).
 
 A handler that is slow blocks the caller. Hand the work to an executor in the handler if the caller
 must not wait.

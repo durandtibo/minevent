@@ -8,8 +8,8 @@ case-sensitive string), a handler (any callable) and an event manager
   a handler and returns a ``Subscription``, the registration itself,
   that removes exactly that registration.
 - ``EventManager.trigger_event`` runs the handlers in the order they
-  were registered and passes its keyword arguments (the payload) to
-  them in a read-only ``Context``. ``EventManager.atrigger_event`` also
+  were registered and passes its ``context`` argument (a mapping, the
+  payload) to them in a read-only ``Context``. ``EventManager.atrigger_event`` also
   awaits the coroutine handlers.
 - A condition is any function that returns a boolean, without parameter
   or with the ``Context`` of the trigger (``Condition``). ``PeriodicCondition`` and ``AfterNCondition`` are
@@ -23,7 +23,7 @@ Example:
     >>> from minevent import EventManager
     >>> manager = EventManager()
     >>> _ = manager.add_event_handler("epoch_end", lambda context: print(f"epoch {context['epoch']}"))
-    >>> manager.trigger_event("epoch_end", epoch=3)
+    >>> manager.trigger_event("epoch_end", {"epoch": 3})
     epoch 3
 
     ```

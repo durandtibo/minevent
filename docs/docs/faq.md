@@ -28,7 +28,8 @@ Yes. `minevent` does not depend on any ML framework.
 
 ### How do I pass data to the handlers?
 
-As keyword arguments of `trigger_event`: `manager.trigger_event("epoch_end", epoch=3)`. See
+As a dict, the second argument of `trigger_event`:
+`manager.trigger_event("epoch_end", {"epoch": 3})`. See
 [the payload](guide.md#pass-the-data-as-a-payload). Use `functools.partial` for the
 arguments that are fixed at registration.
 
@@ -85,7 +86,8 @@ boolean (it can take the `Context` of the trigger), or a class with `__call__`.
 
 ### What is the overhead?
 
-About 0.36 µs per trigger with one trivial handler (0.56 µs if it reads the context). See [performance](guide.md#performance).
+About 0.33 µs per trigger with one trivial handler and no data (0.7 µs with a small dict). See
+[performance](guide.md#performance).
 
 ## Help
 

@@ -35,8 +35,8 @@ Example:
     ...     lambda: print("late epoch"),
     ...     condition=lambda context: context.get("epoch", 0) >= 2,
     ... )
-    >>> manager.trigger_event("epoch_end", epoch=1)
-    >>> manager.trigger_event("epoch_end", epoch=2)
+    >>> manager.trigger_event("epoch_end", {"epoch": 1})
+    >>> manager.trigger_event("epoch_end", {"epoch": 2})
     late epoch
 
     ```

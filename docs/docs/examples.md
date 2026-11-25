@@ -15,7 +15,7 @@ happens, so logging, checkpointing or monitoring is added without changing the l
 ...     manager.trigger_event("training_start")
 ...     for epoch in range(epochs):
 ...         loss = 1.0 / (epoch + 1)
-...         manager.trigger_event("epoch_end", epoch=epoch, loss=loss)
+...         manager.trigger_event("epoch_end", {"epoch": epoch, "loss": loss})
 ...     manager.trigger_event("training_end")
 >>> manager = EventManager()
 >>> train(manager, epochs=2)
@@ -48,7 +48,7 @@ every three calls; `skip_first=True` skips the first call:
 ...     condition=PeriodicCondition(freq=3, skip_first=True),
 ... )
 >>> for epoch in range(7):
-...     manager.trigger_event("epoch_end", epoch=epoch)
+...     manager.trigger_event("epoch_end", {"epoch": epoch})
 checkpoint at epoch 3
 checkpoint at epoch 6
 
@@ -65,7 +65,7 @@ checkpoint at epoch 6
 ...     condition=AfterNCondition(2),
 ... )
 >>> for epoch in range(4):
-...     manager.trigger_event("epoch_end", epoch=epoch)
+...     manager.trigger_event("epoch_end", {"epoch": epoch})
 validate at epoch 2
 validate at epoch 3
 
@@ -114,7 +114,7 @@ A handler and its condition can read different keys:
 ...     condition=is_improving,
 ... )
 >>> for epoch, loss in enumerate([0.9, 0.4, 0.6, 0.3]):
-...     manager.trigger_event("epoch_end", epoch=epoch, loss=loss)
+...     manager.trigger_event("epoch_end", {"epoch": epoch, "loss": loss})
 save the model of epoch 1
 save the model of epoch 3
 
@@ -141,7 +141,7 @@ collects the losses and is read after the training:
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("epoch_end", history)
 >>> for epoch, loss in enumerate([0.9, 0.6, 0.4]):
-...     manager.trigger_event("epoch_end", epoch=epoch, loss=loss)
+...     manager.trigger_event("epoch_end", {"epoch": epoch, "loss": loss})
 >>> history.losses
 [0.9, 0.6, 0.4]
 
@@ -164,7 +164,7 @@ decides what to do with a missing key: `context["lr"]` raises a `KeyError`, and
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("epoch_end", log_loss)
 >>> _ = manager.add_event_handler("epoch_end", log_epoch)
->>> manager.trigger_event("epoch_end", epoch=3, loss=0.5)
+>>> manager.trigger_event("epoch_end", {"epoch": 3, "loss": 0.5})
 loss 0.5
 epoch 3, lr 0.1
 
@@ -182,7 +182,7 @@ takes the same options as `add_event_handler`:
 ... def log_epoch(context: Context) -> None:
 ...     print(f"epoch {context['epoch']}")
 >>> for epoch in range(3):
-...     manager.trigger_event("epoch_end", epoch=epoch)
+...     manager.trigger_event("epoch_end", {"epoch": epoch})
 epoch 0
 epoch 2
 >>> log_epoch(Context({"epoch": 10}))
@@ -202,7 +202,7 @@ after the bound arguments:
 ...     print(f"save epoch {context['epoch']} to {path}")
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("epoch_end", functools.partial(save, "model.pt"))
->>> manager.trigger_event("epoch_end", epoch=4)
+>>> manager.trigger_event("epoch_end", {"epoch": 4})
 save epoch 4 to model.pt
 
 ```
@@ -273,9 +273,9 @@ it is torn down:
 >>> manager = EventManager()
 >>> plugin = ProgressPlugin()
 >>> plugin.setup(manager)
->>> manager.trigger_event("epoch_start", epoch=0)
+>>> manager.trigger_event("epoch_start", {"epoch": 0})
 start 0
->>> manager.trigger_event("epoch_end", epoch=0)
+>>> manager.trigger_event("epoch_end", {"epoch": 0})
 end 0
 >>> plugin.teardown()
 >>> len(manager)
@@ -297,7 +297,7 @@ other, in the registration order. `trigger_event` raises a `TypeError` for a cor
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("epoch_end", lambda context: print(f"epoch {context['epoch']}"))
 >>> _ = manager.add_event_handler("epoch_end", notify)
->>> asyncio.run(manager.atrigger_event("epoch_end", epoch=1))
+>>> asyncio.run(manager.atrigger_event("epoch_end", {"epoch": 1}))
 epoch 1
 notified epoch 1
 
@@ -312,10 +312,10 @@ one after the other, so the next step starts when every handler is done:
 >>> import asyncio
 >>> from minevent import Context, EventManager
 >>> async def fetch_all(manager: EventManager, urls: list[str]) -> None:
-...     await manager.atrigger_event("fetch_start", count=len(urls))
+...     await manager.atrigger_event("fetch_start", {"count": len(urls)})
 ...     for url in urls:
 ...         await asyncio.sleep(0)  # a real program awaits a request here
-...         await manager.atrigger_event("fetch_done", url=url)
+...         await manager.atrigger_event("fetch_done", {"url": url})
 ...     await manager.atrigger_event("fetch_end")
 >>> async def log_done(context: Context) -> None:
 ...     print(f"fetched {context['url']}")
@@ -348,7 +348,7 @@ handlers:
 ...     print(f"uploaded epoch {context['epoch']}")
 >>> async def main() -> None:
 ...     for epoch in range(3):
-...         await manager.atrigger_event("epoch_end", epoch=epoch, loss=0.5)
+...         await manager.atrigger_event("epoch_end", {"epoch": epoch, "loss": 0.5})
 >>> asyncio.run(main())
 uploaded epoch 0
 uploaded epoch 2
@@ -371,7 +371,7 @@ awaitables at the same time, use `asyncio.gather` inside one handler:
 ...     print(f"uploaded {done}")
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("training_end", upload_all)
->>> asyncio.run(manager.atrigger_event("training_end", files=["a.pt", "b.pt"]))
+>>> asyncio.run(manager.atrigger_event("training_end", {"files": ["a.pt", "b.pt"]}))
 uploaded ['a.pt', 'b.pt']
 
 ```
@@ -434,7 +434,7 @@ def test_epoch_end_calls_the_handler():
     manager = EventManager()
     handler = Mock()
     manager.add_event_handler("epoch_end", handler)
-    manager.trigger_event("epoch_end", epoch=1)
+    manager.trigger_event("epoch_end", {"epoch": 1})
     handler.assert_called_once_with({"epoch": 1})
 ```
 
@@ -451,6 +451,6 @@ def test_epoch_end_awaits_the_handler():
     manager = EventManager()
     handler = AsyncMock()
     manager.add_event_handler("epoch_end", handler)
-    asyncio.run(manager.atrigger_event("epoch_end", epoch=1))
+    asyncio.run(manager.atrigger_event("epoch_end", {"epoch": 1}))
     handler.assert_awaited_once_with({"epoch": 1})
 ```

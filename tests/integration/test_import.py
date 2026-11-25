@@ -56,7 +56,7 @@ def test_handler_with_context_works_after_a_cheap_import() -> None:
         "assert 'inspect' not in sys.modules\n"
         "manager = EventManager()\n"
         "manager.add_event_handler('e', lambda context: print(context['epoch']))\n"
-        "manager.trigger_event('e', epoch=3, loss=0.5)\n"
+        "manager.trigger_event('e', {'epoch': 3, 'loss': 0.5})\n"
     )
     assert run_python(code).stdout.strip() == "3"
 

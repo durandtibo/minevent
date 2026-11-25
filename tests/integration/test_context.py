@@ -23,7 +23,7 @@ def test_handlers_read_different_keys() -> None:
     )
     manager.add_event_handler("epoch_end", lambda context: calls.append(("loss", context["loss"])))
     manager.add_event_handler("epoch_end", lambda: calls.append(("none", None)))
-    manager.trigger_event("epoch_end", epoch=3, loss=0.5, lr=0.1)
+    manager.trigger_event("epoch_end", {"epoch": 3, "loss": 0.5, "lr": 0.1})
     assert calls == [("epoch", 3), ("loss", 0.5), ("none", None)]
 
 
@@ -32,7 +32,7 @@ def test_extra_keys_do_not_break_handlers() -> None:
     manager = EventManager()
     calls: list[object] = []
     manager.add_event_handler("epoch_end", lambda context: calls.append(context["epoch"]))
-    manager.trigger_event("epoch_end", epoch=3, unused=1, other="a")
+    manager.trigger_event("epoch_end", {"epoch": 3, "unused": 1, "other": "a"})
     assert calls == [3]
 
 
@@ -42,7 +42,7 @@ def test_missing_key_with_get_uses_the_default() -> None:
     manager = EventManager()
     calls: list[object] = []
     manager.add_event_handler("epoch_end", lambda context: calls.append(context.get("lr", 0.1)))
-    manager.trigger_event("epoch_end", epoch=3)
+    manager.trigger_event("epoch_end", {"epoch": 3})
     assert calls == [0.1]
 
 
@@ -55,7 +55,7 @@ def test_missing_key_with_getitem_raises_key_error_and_skips_next_handlers() -> 
     manager.add_event_handler("epoch_end", lambda context: calls.append(str(context["lr"])))
     manager.add_event_handler("epoch_end", lambda: calls.append("next"))
     with pytest.raises(KeyError, match=r"key 'lr' not found.*\['epoch'\]"):
-        manager.trigger_event("epoch_end", epoch=3)
+        manager.trigger_event("epoch_end", {"epoch": 3})
     assert calls == []
 
 
@@ -69,7 +69,7 @@ def test_missing_key_with_getitem_adds_a_note_that_names_the_handler() -> None:
 
     manager.add_event_handler("epoch_end", read_lr)
     with pytest.raises(KeyError, match=r"key 'lr' not found") as exc_info:
-        manager.trigger_event("epoch_end", epoch=3)
+        manager.trigger_event("epoch_end", {"epoch": 3})
     assert exc_info.value.__notes__[0].endswith("read_lr while handling the event 'epoch_end'")
 
 
@@ -85,7 +85,7 @@ def test_context_is_read_only_for_a_handler() -> None:
 
     manager.add_event_handler("epoch_end", mutate)
     manager.add_event_handler("epoch_end", lambda context: seen.append(context["epoch"]))
-    manager.trigger_event("epoch_end", epoch=3)
+    manager.trigger_event("epoch_end", {"epoch": 3})
     assert seen == [3]
 
 
@@ -95,7 +95,7 @@ def test_builtin_bound_method_receives_the_context() -> None:
     manager = EventManager()
     contexts: list[Context] = []
     manager.add_event_handler("epoch_end", contexts.append)
-    manager.trigger_event("epoch_end", epoch=3)
+    manager.trigger_event("epoch_end", {"epoch": 3})
     assert contexts == [{"epoch": 3}]
 
 
@@ -105,7 +105,7 @@ def test_builtin_bound_method_without_parameter_is_called_without_argument() -> 
     manager = EventManager()
     values = [1, 2]
     manager.add_event_handler("epoch_end", values.clear)
-    manager.trigger_event("epoch_end", epoch=3)
+    manager.trigger_event("epoch_end", {"epoch": 3})
     assert values == []
 
 
@@ -123,7 +123,7 @@ def test_atrigger_event_passes_the_context_to_sync_and_async_handlers() -> None:
     manager.add_event_handler("epoch_end", lambda context: calls.append(("sync", context["loss"])))
     manager.add_event_handler("epoch_end", read_epoch)
     manager.add_event_handler("epoch_end", lambda: calls.append(("none", None)))
-    asyncio.run(manager.atrigger_event("epoch_end", epoch=3, loss=0.5))
+    asyncio.run(manager.atrigger_event("epoch_end", {"epoch": 3, "loss": 0.5}))
     assert calls == [("sync", 0.5), ("async", 3), ("none", None)]
 
 
@@ -138,7 +138,7 @@ def test_atrigger_event_missing_key_raises_key_error() -> None:
 
     manager.add_event_handler("epoch_end", read_lr)
     with pytest.raises(KeyError, match=r"key 'lr' not found") as exc_info:
-        asyncio.run(manager.atrigger_event("epoch_end", epoch=3))
+        asyncio.run(manager.atrigger_event("epoch_end", {"epoch": 3}))
     assert exc_info.value.__notes__[0].endswith("read_lr while handling the event 'epoch_end'")
 
 
@@ -159,7 +159,7 @@ def test_trigger_event_from_threads_gives_each_trigger_its_own_context() -> None
 
     def work(index: int) -> None:
         for iteration in range(NUM_ITERATIONS):
-            manager.trigger_event("my_event", thread=index, iteration=iteration)
+            manager.trigger_event("my_event", {"thread": index, "iteration": iteration})
 
     run_threads(work, NUM_THREADS)
     expected = [(i, j) for i in range(NUM_THREADS) for j in range(NUM_ITERATIONS)] * 2
@@ -183,7 +183,7 @@ def test_handlers_read_different_keys_from_threads() -> None:
     manager.add_event_handler("my_event", lambda context: append("c", context.get("c", -1)))
 
     def work(index: int) -> None:
-        manager.trigger_event("my_event", a=index, b=index * 2)
+        manager.trigger_event("my_event", {"a": index, "b": index * 2})
 
     run_threads(work, NUM_THREADS)
     expected = [
@@ -209,7 +209,7 @@ def test_atrigger_event_from_threads() -> None:
     manager.add_event_handler("my_event", record)
 
     def work(index: int) -> None:
-        asyncio.run(manager.atrigger_event("my_event", thread=index))
+        asyncio.run(manager.atrigger_event("my_event", {"thread": index}))
 
     run_threads(work, NUM_THREADS)
     assert sorted(calls) == list(range(NUM_THREADS))
@@ -228,7 +228,7 @@ def test_condition_reads_the_payload() -> None:
     )
     manager.add_event_handler("epoch_end", lambda: calls.append("always"), condition=lambda: True)
     for epoch in range(3):
-        manager.trigger_event("epoch_end", epoch=epoch)
+        manager.trigger_event("epoch_end", {"epoch": epoch})
     assert calls == ["always", "always", "late 2", "always"]
 
 
@@ -244,7 +244,7 @@ def test_once_waits_for_a_condition_that_reads_the_payload() -> None:
         condition=lambda context: context["epoch"] >= 2,
     )
     for epoch in range(5):
-        manager.trigger_event("epoch_end", epoch=epoch)
+        manager.trigger_event("epoch_end", {"epoch": epoch})
     assert calls == [2]
 
 
@@ -255,8 +255,8 @@ def test_condition_reads_the_payload_with_atrigger_event() -> None:
     manager.add_event_handler(
         "epoch_end", lambda: calls.append("run"), condition=lambda context: context["go"]
     )
-    asyncio.run(manager.atrigger_event("epoch_end", go=False))
-    asyncio.run(manager.atrigger_event("epoch_end", go=True))
+    asyncio.run(manager.atrigger_event("epoch_end", {"go": False}))
+    asyncio.run(manager.atrigger_event("epoch_end", {"go": True}))
     assert calls == ["run"]
 
 
@@ -275,7 +275,7 @@ def test_condition_reads_the_payload_from_threads() -> None:
 
     def work(index: int) -> None:
         for _ in range(NUM_ITERATIONS):
-            manager.trigger_event("my_event", even=index % 2 == 0)
+            manager.trigger_event("my_event", {"even": index % 2 == 0})
 
     run_threads(work, NUM_THREADS)
     assert len(calls) == NUM_THREADS // 2 * NUM_ITERATIONS
