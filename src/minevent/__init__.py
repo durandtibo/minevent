@@ -1,8 +1,9 @@
 r"""Contain the main features of the ``minevent`` package.
 
 ``minevent`` is a minimal event system with three concepts: an event (a
-case-sensitive string), a handler (any callable) and an event manager
-(``EventManager``) that stores the handlers and triggers the events.
+case-sensitive string), a handler (a callable that needs no argument or
+only the context) and an event manager (``EventManager``) that stores
+the handlers and triggers the events.
 
 - ``EventManager.add_event_handler`` (or the ``on`` decorator) registers
   a handler and returns a ``Subscription``, the registration itself,

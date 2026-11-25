@@ -16,7 +16,7 @@ fired.
 `minevent` is organized around three main concepts:
 
 - **event** which defines the thing that should happen.
-- **event handler** which is any callable to execute when the event happens
+- **event handler** which is a callable to execute when the event happens
 - **event manager** which is responsible to manage the events and event handlers.
 
 The goal of this documentation is to explain how the event system works and how to use it.
