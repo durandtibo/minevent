@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import dataclasses
 import functools
 import logging
 import pickle
@@ -120,6 +121,19 @@ class BadReprAwaitableCallable:
     def __call__(self) -> object:
         r"""Return an awaitable."""
         return AwaitableResult()
+
+
+@dataclasses.dataclass(frozen=True)
+class FrozenError(Exception):
+    r"""Implement an exception that forbids new attributes."""
+
+    code: int = 1
+
+
+def failing_condition() -> bool:
+    r"""Implement a condition that raises a ``ValueError``."""
+    msg = "boom"
+    raise ValueError(msg)
 
 
 ##################################
@@ -1164,8 +1178,31 @@ def test_event_manager_trigger_event_condition_awaitable_has_note() -> None:
     condition: Any = async_condition
     manager.add_event_handler("my_event", noop_handler, condition=condition)
     assert raised(manager.trigger_event, "my_event").__notes__ == [
-        "raised by noop_handler while handling the event 'my_event'"
+        (
+            "raised by the condition async_condition of noop_handler "
+            "while handling the event 'my_event'"
+        )
     ]
+
+
+def test_event_manager_trigger_event_removed_registration_does_not_evaluate_condition() -> None:
+    manager = EventManager()
+    condition = create_autospec(has_payload, return_value=True)
+    manager.add_event_handler("my_event", lambda: manager.clear_event("my_event"))
+    manager.add_event_handler("my_event", noop_handler, condition=condition)
+    manager.trigger_event("my_event")
+    assert condition.call_count == 0
+
+
+def test_event_manager_trigger_event_lost_claim_does_not_call_handler() -> None:
+    manager = EventManager()
+
+    def condition() -> bool:
+        return manager.get_subscriptions("my_event")[0].remove()
+
+    manager.add_event_handler("my_event", hello_handler, once=True, condition=condition)
+    manager.trigger_event("my_event")
+    assert hello_handler.call_count == 0
 
 
 #############################
@@ -1409,3 +1446,41 @@ def test_event_manager_trigger_event_awaitable_ignores_repr_of_handler() -> None
         match=r"^BadReprAwaitableCallable returned an awaitable; use atrigger_event",
     ):
         manager.trigger_event("my_event")
+
+
+def test_event_manager_trigger_event_condition_raises_note_names_condition() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", noop_handler, condition=failing_condition)
+    assert raised(manager.trigger_event, "my_event").__notes__ == [
+        (
+            "raised by the condition failing_condition of noop_handler "
+            "while handling the event 'my_event'"
+        )
+    ]
+
+
+def test_event_manager_trigger_event_handler_raises_after_condition_note() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", fail, condition=lambda: True)
+    assert raised(manager.trigger_event, "my_event").__notes__ == [
+        "raised by fail while handling the event 'my_event'"
+    ]
+
+
+def test_event_manager_trigger_event_condition_raises_skips_next_handlers() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", noop_handler, condition=failing_condition)
+    manager.add_event_handler("my_event", hello_handler)
+    with pytest.raises(ValueError, match=r"boom"):
+        manager.trigger_event("my_event")
+    assert hello_handler.call_count == 0
+
+
+@pytest.mark.parametrize("option", ["handler", "condition"])
+def test_event_manager_trigger_event_frozen_exception_is_unchanged(option: str) -> None:
+    error = FrozenError()
+    raising = create_autospec(noop_handler, side_effect=error)
+    manager = EventManager()
+    options: dict[str, Any] = {"handler": noop_handler, option: raising}
+    manager.add_event_handler("my_event", **options)
+    assert raised(manager.trigger_event, "my_event") is error

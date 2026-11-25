@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 import functools
 import inspect
 import logging
@@ -326,36 +327,108 @@ def test_reject_awaitable_does_not_close_a_future() -> None:
 ####################################
 
 
+@dataclasses.dataclass(frozen=True)
+class FrozenError(Exception):
+    r"""Implement an exception that forbids new attributes."""
+
+    code: int = 1
+
+
 def test_add_error_note() -> None:
     error = ValueError("boom")
-    add_error_note(error, "my_event", fail)
+    add_error_note(error, "fail", "my_event")
     assert error.__notes__ == ["raised by fail while handling the event 'my_event'"]
 
 
-def test_add_error_note_same_pair_twice_adds_one_note() -> None:
+def test_add_error_note_returns_none() -> None:
+    assert add_error_note(ValueError("boom"), "fail", "my_event") is None
+
+
+def test_add_error_note_source_is_kept_as_given() -> None:
     error = ValueError("boom")
-    handler = fail
-    add_error_note(error, "my_event", handler)
-    add_error_note(error, "my_event", handler)
+    add_error_note(error, "the condition is_late of log_epoch", "epoch_end")
+    assert error.__notes__ == [
+        "raised by the condition is_late of log_epoch while handling the event 'epoch_end'"
+    ]
+
+
+def test_add_error_note_empty_event() -> None:
+    error = ValueError("boom")
+    add_error_note(error, "fail", "")
+    assert error.__notes__ == ["raised by fail while handling the event ''"]
+
+
+def test_add_error_note_same_note_twice_adds_one_note() -> None:
+    error = ValueError("boom")
+    add_error_note(error, "fail", "my_event")
+    add_error_note(error, "fail", "my_event")
     assert error.__notes__ == ["raised by fail while handling the event 'my_event'"]
 
 
 def test_add_error_note_other_event_adds_note() -> None:
     error = ValueError("boom")
-    handler = fail
-    add_error_note(error, "my_event", handler)
-    add_error_note(error, "my_other_event", handler)
+    add_error_note(error, "fail", "my_event")
+    add_error_note(error, "fail", "my_other_event")
     assert error.__notes__ == [
         "raised by fail while handling the event 'my_event'",
         "raised by fail while handling the event 'my_other_event'",
     ]
 
 
-def test_add_error_note_other_handler_adds_note() -> None:
+def test_add_error_note_other_source_adds_note() -> None:
     error = ValueError("boom")
-    add_error_note(error, "my_event", fail)
-    add_error_note(error, "my_event", hello_handler)
+    add_error_note(error, "fail", "my_event")
+    add_error_note(error, "hello_handler", "my_event")
     assert error.__notes__ == [
         "raised by fail while handling the event 'my_event'",
         "raised by hello_handler while handling the event 'my_event'",
     ]
+
+
+def test_add_error_note_keeps_the_existing_notes() -> None:
+    error = ValueError("boom")
+    error.add_note("first")
+    add_error_note(error, "fail", "my_event")
+    assert error.__notes__ == ["first", "raised by fail while handling the event 'my_event'"]
+
+
+def test_add_error_note_frozen_exception() -> None:
+    error = FrozenError()
+    add_error_note(error, "fail", "my_event")
+    assert not hasattr(error, "__notes__")
+
+
+@pytest.mark.parametrize("notes", [("first",), "first", 1])
+def test_add_error_note_notes_not_a_list(notes: object) -> None:
+    error: Any = ValueError("boom")
+    error.__notes__ = notes
+    add_error_note(error, "fail", "my_event")
+    assert error.__notes__ == notes
+
+
+class AddNoteRaisesError(Exception):
+    r"""Implement an exception whose ``add_note`` raises."""
+
+    def add_note(self, note: str) -> None:
+        r"""Fail to add ``note``."""
+        msg = f"cannot add {note}"
+        raise RuntimeError(msg)
+
+
+def test_add_error_note_add_note_raises() -> None:
+    error = AddNoteRaisesError()
+    add_error_note(error, "fail", "my_event")
+    assert not hasattr(error, "__notes__")
+
+
+def test_add_error_note_unprintable_event() -> None:
+    class BadReprEvent(str):
+        __slots__ = ()
+
+        def __repr__(self) -> str:
+            msg = "repr failed"
+            raise RuntimeError(msg)
+
+    error = ValueError("boom")
+    add_error_note(error, "fail", BadReprEvent("my_event"))
+    assert not hasattr(error, "__notes__")

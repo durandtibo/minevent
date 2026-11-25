@@ -31,7 +31,7 @@ today) or **new**.
 | #   | Property                     | Statement                                                                                                                                                                                                                                                                                                                                                                                                                                                | Status  | Enforced by                                            |
 | --- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ------------------------------------------------------ |
 | P1  | Small surface                | Events are strings, handlers are plain callables, the manager connects them. Seven exported names and `__version__` (`EventManager`, `Subscription`, `Context`, `Handler`, `Condition`, `PeriodicCondition`, `AfterNCondition`). `EventManager` has 8 public members (`events`, `get_subscriptions`, `add_event_handler`, `on`, `trigger_event`, `atrigger_event`, `clear_event`, `reset`) and `__len__`, `__contains__`.                                | changed | `__all__` and review                                   |
-| P2  | Cheap import                 | `import minevent` has no side effect (no thread, file, warning or log), uses the standard library only, imports none of `logging`, `inspect`, `asyncio`, `contextlib` and `importlib.metadata`, and creates no `typing` object.                                                                                                                                                                                                                          | changed | `test_import.py`                                       |
+| P2  | Cheap import                 | `import minevent` has no side effect (no thread, file, warning or log), uses the standard library only, imports none of `logging`, `inspect`, `asyncio` and `importlib.metadata`, and creates no `typing` object.                                                                                                                                                                                                                                        | changed | `test_import.py`                                       |
 | P3  | Events are strings           | An event name is a case-sensitive `str` (a `StrEnum` member is one, and is kept as given); `add_event_handler`, `on`, `get_subscriptions`, `trigger_event`, `atrigger_event` and `clear_event` raise `TypeError` for another type. `in` answers like a dict (`1 in manager` is `False`). The empty string is valid. Reading the manager never creates an event.                                                                                          | changed | `_check_event`, `test_manager.py`                      |
 | P4  | Validated at the door        | `add_event_handler` and `on` reject, with a `TypeError` that names the argument and the value: a non-`str` event, a non-callable handler or condition, a signature that P13 rejects, a generator or async generator function, and **a coroutine function used as a condition**. A rejected registration leaves the manager unchanged. The annotations do not have to be resolvable.                                                                      | changed | `Subscription`, `calls.needs_context`                  |
 | P5  | Registration identity        | `add_event_handler` returns a new `Subscription` every time; the same callable can be registered several times. `remove()` removes that registration only: `True` the first time, then `False`. `active` is `True` until the registration is removed, by whatever means.                                                                                                                                                                                 | same    | `Subscription`, `test_manager.py`                      |
@@ -204,8 +204,6 @@ handler without it made a trigger of 10 handlers about a third slower than `main
 
 ```python
 def add_error_note(exc: Exception, source: str, event: str) -> None:
-    import contextlib  # noqa: PLC0415  (only the error path needs it, P2)
-
     note = f"raised by {source} while handling the event {event!r}"
     with contextlib.suppress(Exception):  # a frozen exception, or odd __notes__
         if note not in getattr(exc, "__notes__", ()):
@@ -214,7 +212,9 @@ def add_error_note(exc: Exception, source: str, event: str) -> None:
 
 The note of a handler keeps its text. The note of a condition is
 `raised by the condition is_late of log_epoch while handling the event 'epoch_end'`. When the note
-cannot be added, the exception propagates without it, which is the lesser loss.
+cannot be added, the exception propagates without it, which is the lesser loss. `contextlib` is
+imported at the top of the module: the maintainers decided during step 5 that P2 does not cover the
+light modules of the standard library (and `typing` imports `contextlib` before Python 3.13).
 
 ### 4.3 An async condition is rejected at registration (P4, P10)
 
@@ -435,8 +435,8 @@ Three costs are accepted: a trigger with a condition (+0.02 µs), a registration
 without condition is faster, because a helper call per handler is gone.
 
 **Import** [verified]: `main` loads 23 modules. With `contextlib` imported at the top, the prototype
-loads 24 and takes about 0.4 ms more (4.1 to 4.5 ms, median of 60), so 4.2 imports it on the error
-path.
+loads 24 and takes about 0.4 ms more (4.1 to 4.5 ms, median of 60), a cost that was accepted (see
+4.2).
 
 Not verified: the speed on 3.11 to 3.13 and on the free-threaded builds, and Linux or Windows.
 
@@ -451,7 +451,7 @@ so. Each step updates the docstrings, the property it changes in `architecture.m
 | 2    | `bugfix/count-condition-calls-exactly`      | The shared counter and its lock (4.4, without `start`)          | no       | F4       | #865         |
 | 3    | `perf/read-missing-context-keys`            | `get` and `__contains__` (4.5), a benchmark                     | no       | F6       | #867         |
 | 4    | `refactor/add-calls-module`                 | Move the helpers to `calls.py` and split `test_manager.py`      | no       | F12      | #868         |
-| 5    | `bugfix/name-failing-condition` (on 4)      | `_claim`, `_invoke`, the notes (4.1, 4.2)                       | note     | F1, F3   |              |
+| 5    | `bugfix/name-failing-condition` (on 4)      | `_claim`, `_invoke`, the notes (4.1, 4.2)                       | note     | F1, F3   | #869         |
 | 6    | `feat/reject-async-conditions` (on 5)       | The check of 4.3                                                | **yes**  | F2       |              |
 | 7    | `bugfix/release-handlers-outside-lock`      | 4.7                                                             | no       | F9       |              |
 | 8    | `feat/add-handler-type` (on 4)              | `Handler` (4.6), a typed sample checked by `ty`                 | types    | F8       |              |
@@ -487,7 +487,6 @@ every `pytest.raises`, literals for expected values, a regression test that fail
 | `test_condition_pickle` / `test_condition_deepcopy`             | the same step, an independent counter and lock                 |
 | `test_context_get_missing_does_not_format_keys`                 | a patched `__getitem__` is not called                          |
 | `test_context_typing.py` (extended)                             | the accepted shapes of 4.6 type check and run                  |
-| `test_import_minevent_does_not_import_module[contextlib]`       | P2                                                             |
 
 The lock test of step 2 must be shown to fail on `main` with a free-threaded interpreter
 (`uv run --python 3.14t`); with the GIL it passes either way, so say so in the pull request.

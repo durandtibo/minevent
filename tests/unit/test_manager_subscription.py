@@ -3,7 +3,7 @@ from __future__ import annotations
 import functools
 import inspect
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from unittest.mock import create_autospec
 
 import pytest
@@ -20,10 +20,15 @@ from tests.unit.handlers import (
     CallableRecorder,
     async_condition,
     copy_context,
+    fail,
     has_payload,
     hello_handler,
     noop_handler,
 )
+from tests.unit.utils import raised
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -129,230 +134,10 @@ def test_subscription_condition() -> None:
     ).condition is (condition)
 
 
-def test_subscription_call_returns_handler_result() -> None:
-    context = Context({"a": 1})
-    assert (
-        Subscription(EventManager(), "my_event", lambda context: context)._call(context) is context
-    )
-
-
-def test_subscription_call_removed_returns_none() -> None:
-    subscription = EventManager().add_event_handler("my_event", hello_handler)
-    subscription.remove()
-    assert subscription._call(Context()) is None
-
-
-def test_subscription_call_removed_does_not_call_handler() -> None:
-    subscription = EventManager().add_event_handler("my_event", hello_handler)
-    subscription.remove()
-    subscription._call(Context())
-    assert hello_handler.call_count == 0
-
-
-def test_subscription_call_removed_does_not_evaluate_condition() -> None:
-    condition = create_autospec(has_payload, return_value=True)
-    subscription = EventManager().add_event_handler("my_event", hello_handler, condition=condition)
-    subscription.remove()
-    subscription._call(Context())
-    assert condition.call_count == 0
-
-
-def test_subscription_call_condition_false_returns_none() -> None:
-    subscription = Subscription(EventManager(), "my_event", lambda: 1, condition=lambda: False)
-    assert subscription._call(Context()) is None
-
-
-def test_subscription_call_condition_false_does_not_call_handler() -> None:
-    subscription = Subscription(EventManager(), "my_event", hello_handler, condition=lambda: False)
-    subscription._call(Context())
-    assert hello_handler.call_count == 0
-
-
-def test_subscription_call_condition_true_calls_handler() -> None:
-    subscription = Subscription(EventManager(), "my_event", lambda: 1, condition=lambda: True)
-    assert subscription._call(Context()) == 1
-
-
-def test_subscription_call_condition_without_parameter_is_called_without_argument() -> None:
-    subscription = Subscription(EventManager(), "my_event", lambda: 1, condition=lambda: True)
-    assert subscription._call(Context({"a": 1})) == 1
-
-
-def test_subscription_call_condition_with_parameter_receives_the_context() -> None:
-    contexts: list[Context] = []
-
-    def condition(context: Context) -> bool:
-        contexts.append(context)
-        return True
-
-    context = Context({"a": 1})
-    Subscription(EventManager(), "my_event", hello_handler, condition=condition)._call(context)
-    assert contexts == [context]
-
-
-def test_subscription_call_condition_with_parameter_true_calls_handler() -> None:
-    subscription = Subscription(
-        EventManager(), "my_event", lambda: 1, condition=lambda context: context["a"] == 1
-    )
-    assert subscription._call(Context({"a": 1})) == 1
-
-
-def test_subscription_call_condition_with_parameter_false_returns_none() -> None:
-    subscription = Subscription(
-        EventManager(), "my_event", lambda: 1, condition=lambda context: context["a"] == 2
-    )
-    assert subscription._call(Context({"a": 1})) is None
-
-
-def test_subscription_call_condition_with_parameter_false_does_not_call_handler() -> None:
-    Subscription(
-        EventManager(), "my_event", hello_handler, condition=lambda context: context["a"] == 2
-    )._call(Context({"a": 1}))
-    assert hello_handler.call_count == 0
-
-
-def test_subscription_call_condition_with_parameter_and_handler_with_parameter() -> None:
-    subscription = Subscription(
-        EventManager(), "my_event", copy_context, condition=lambda context: "a" in context
-    )
-    assert subscription._call(Context({"a": 1})) == {"a": 1}
-
-
-def test_subscription_call_condition_with_parameter_does_not_consume_once() -> None:
-    manager = EventManager()
-    subscription = manager.add_event_handler(
-        "my_event", hello_handler, once=True, condition=lambda context: context["go"]
-    )
-    subscription._call(Context({"go": False}))
-    assert subscription.active
-
-
-def test_subscription_call_condition_with_parameter_raises() -> None:
-    subscription = Subscription(
-        EventManager(), "my_event", hello_handler, condition=lambda context: context["missing"]
-    )
-    with pytest.raises(KeyError, match=r"key 'missing' not found in the context"):
-        subscription._call(Context({"a": 1}))
-
-
-def test_subscription_call_condition_is_called_once() -> None:
-    condition = create_autospec(has_payload, return_value=True)
-    Subscription(EventManager(), "my_event", hello_handler, condition=condition)._call(Context())
-    assert condition.call_count == 1
-
-
-@pytest.mark.parametrize(
-    "condition",
-    [
-        async_condition,
-        AsyncConditionObject(),
-        condition_returning_a_coroutine,
-        condition_of_context_returning_a_coroutine,
-        AwaitableResult,
-    ],
-)
-def test_subscription_call_condition_returns_awaitable(condition: Any) -> None:
-    subscription = Subscription(EventManager(), "my_event", hello_handler, condition=condition)
-    with pytest.raises(TypeError, match=r"^condition .+ returned an awaitable$"):
-        subscription._call(Context())
-    assert hello_handler.call_count == 0
-
-
-def test_subscription_call_condition_returns_awaitable_closes_the_coroutine() -> None:
-    coroutine = async_condition()
-
-    def condition() -> Any:
-        return coroutine
-
-    subscription = Subscription(EventManager(), "my_event", hello_handler, condition=condition)
-    with pytest.raises(TypeError, match=r"returned an awaitable"):
-        subscription._call(Context())
-    assert inspect.getcoroutinestate(coroutine) == inspect.CORO_CLOSED
-
-
-@pytest.mark.parametrize("result", [1, "yes", [0]])
-def test_subscription_call_condition_truthy_non_bool(result: Any) -> None:
-    subscription = Subscription(EventManager(), "my_event", lambda: 2, condition=lambda: result)
-    assert subscription._call(Context()) == 2
-
-
-@pytest.mark.parametrize("result", [0, "", [], None])
-def test_subscription_call_condition_falsy_non_bool(result: Any) -> None:
-    subscription = Subscription(EventManager(), "my_event", lambda: 2, condition=lambda: result)
-    assert subscription._call(Context()) is None
-
-
 def test_subscription_options_are_keyword_only() -> None:
     args: list[Any] = [EventManager(), "my_event", noop_handler, True]
     with pytest.raises(TypeError, match=r"positional arguments"):
         Subscription(*args)
-
-
-def test_subscription_call_once_removes_registration() -> None:
-    manager = EventManager()
-    subscription = manager.add_event_handler("my_event", hello_handler, once=True)
-    subscription._call(Context())
-    assert not subscription.active
-
-
-def test_subscription_call_once_calls_handler() -> None:
-    manager = EventManager()
-    manager.add_event_handler("my_event", lambda: 1, once=True)
-    assert manager.get_subscriptions("my_event")[0]._call(Context()) == 1
-
-
-def test_subscription_call_once_lost_claim_returns_none() -> None:
-    manager = EventManager()
-    subscriptions: list[Subscription] = []
-
-    def condition() -> bool:
-        subscriptions[0].remove()  # another thread wins the claim after the check
-        return True
-
-    subscriptions.append(
-        manager.add_event_handler("my_event", lambda: 1, condition=condition, once=True)
-    )
-    assert subscriptions[0]._call(Context()) is None
-
-
-def test_subscription_call_once_lost_claim_does_not_call_handler() -> None:
-    manager = EventManager()
-    subscriptions: list[Subscription] = []
-
-    def condition() -> bool:
-        subscriptions[0].remove()
-        return True
-
-    subscriptions.append(
-        manager.add_event_handler("my_event", hello_handler, condition=condition, once=True)
-    )
-    subscriptions[0]._call(Context())
-    assert hello_handler.call_count == 0
-
-
-def test_subscription_call_once_removed_does_not_call_handler() -> None:
-    manager = EventManager()
-    subscription = manager.add_event_handler("my_event", hello_handler, once=True)
-    subscription.remove()
-    subscription._call(Context())
-    assert hello_handler.call_count == 0
-
-
-def test_subscription_call_not_once_keeps_registration() -> None:
-    manager = EventManager()
-    subscription = manager.add_event_handler("my_event", hello_handler)
-    subscription._call(Context())
-    assert subscription.active
-
-
-def test_subscription_call_passes_the_whole_context() -> None:
-    subscription = Subscription(EventManager(), "my_event", copy_context)
-    assert subscription._call(Context({"a": 1, "b": 2})) == {"a": 1, "b": 2}
-
-
-def test_subscription_call_without_parameter_calls_handler_without_argument() -> None:
-    subscription = Subscription(EventManager(), "my_event", lambda: "called")
-    assert subscription._call(Context({"a": 1})) == "called"
 
 
 def test_subscription_rejected_signature() -> None:
@@ -528,6 +313,230 @@ def test_subscription_exit_removes_when_block_raises() -> None:
     ):
         failing_handler()
     assert len(manager) == 0
+
+
+############################
+#     Tests for _claim     #
+############################
+
+
+def subscribe(handler: Callable[..., object] = noop_handler, **kwargs: Any) -> Subscription:
+    r"""Register ``handler`` to ``my_event`` of a new manager."""
+    return EventManager().add_event_handler("my_event", handler, **kwargs)
+
+
+def subscribe_removed_by_its_condition(handler: Callable[..., object]) -> Subscription:
+    r"""Register a ``once`` handler whose condition removes the
+    registration, as another thread that wins the claim would."""
+    manager = EventManager()
+
+    def condition() -> bool:
+        return manager.get_subscriptions("my_event")[0].remove()
+
+    return manager.add_event_handler("my_event", handler, once=True, condition=condition)
+
+
+def test_claim_without_option() -> None:
+    assert subscribe()._claim(Context())
+
+
+def test_claim_without_option_keeps_registration() -> None:
+    subscription = subscribe()
+    subscription._claim(Context())
+    assert subscription.active
+
+
+def test_claim_does_not_call_the_handler() -> None:
+    subscribe(hello_handler, once=True, condition=lambda: True)._claim(Context())
+    assert hello_handler.call_count == 0
+
+
+def test_claim_once() -> None:
+    assert subscribe(once=True)._claim(Context())
+
+
+def test_claim_once_removes_registration() -> None:
+    subscription = subscribe(once=True)
+    subscription._claim(Context())
+    assert not subscription.active
+
+
+def test_claim_once_second_time() -> None:
+    subscription = subscribe(once=True)
+    subscription._claim(Context())
+    assert not subscription._claim(Context())
+
+
+def test_claim_once_lost() -> None:
+    subscription = subscribe_removed_by_its_condition(noop_handler)
+    assert not subscription._claim(Context())
+
+
+@pytest.mark.parametrize("result", [True, 1, "yes", [0]])
+def test_claim_condition_truthy(result: Any) -> None:
+    assert subscribe(condition=lambda: result)._claim(Context())
+
+
+@pytest.mark.parametrize("result", [False, 0, "", [], None])
+def test_claim_condition_falsy(result: Any) -> None:
+    assert not subscribe(condition=lambda: result)._claim(Context())
+
+
+def test_claim_condition_false_does_not_consume_once() -> None:
+    subscription = subscribe(once=True, condition=lambda: False)
+    subscription._claim(Context())
+    assert subscription.active
+
+
+def test_claim_condition_without_parameter() -> None:
+    condition = create_autospec(noop_handler, return_value=True)
+    subscribe(condition=condition)._claim(Context({"a": 1}))
+    condition.assert_called_once_with()
+
+
+def test_claim_condition_with_parameter_receives_the_context() -> None:
+    condition = create_autospec(has_payload, return_value=True)
+    subscribe(condition=condition)._claim(Context({"a": 1}))
+    condition.assert_called_once_with({"a": 1})
+
+
+def test_claim_condition_raises() -> None:
+    subscription = subscribe(condition=lambda context: context["missing"])
+    with pytest.raises(KeyError, match=r"key 'missing' not found in the context"):
+        subscription._claim(Context({"a": 1}))
+
+
+def test_claim_condition_raises_keeps_once_registration() -> None:
+    subscription = subscribe(once=True, condition=lambda context: context["missing"])
+    with pytest.raises(KeyError, match=r"key 'missing' not found in the context"):
+        subscription._claim(Context())
+    assert subscription.active
+
+
+def test_claim_condition_raises_note_names_condition_and_handler() -> None:
+    def is_late(context: Context) -> bool:
+        return context["missing"]
+
+    subscription = subscribe(functools.partial(read_secret, "secret"), condition=is_late)
+    assert raised(subscription._claim, Context()).__notes__ == [
+        (
+            f"raised by the condition {is_late.__qualname__} of read_secret "
+            "while handling the event 'my_event'"
+        )
+    ]
+
+
+def test_claim_condition_note_names_function_of_partial() -> None:
+    subscription = subscribe(condition=functools.partial(fail))
+    assert raised(subscription._claim, Context()).__notes__ == [
+        "raised by the condition fail of noop_handler while handling the event 'my_event'"
+    ]
+
+
+def test_claim_condition_note_ignores_repr_of_condition() -> None:
+    class BadReprCondition(BadReprCallable):
+        def __call__(self) -> None:
+            fail()
+
+    subscription = subscribe(condition=BadReprCondition())
+    assert (
+        raised(subscription._claim, Context())
+        .__notes__[0]
+        .startswith(f"raised by the condition {BadReprCondition.__qualname__} of noop_handler ")
+    )
+
+
+def test_claim_condition_bool_raises_has_note() -> None:
+    class Ambiguous:
+        def __bool__(self) -> bool:
+            msg = "ambiguous truth value"
+            raise ValueError(msg)
+
+    subscription = subscribe(condition=Ambiguous)
+    assert (
+        raised(subscription._claim, Context()).__notes__[0].startswith("raised by the condition ")
+    )
+
+
+def test_claim_condition_base_exception_has_no_note() -> None:
+    condition = create_autospec(noop_handler, side_effect=KeyboardInterrupt("interrupted"))
+    subscription = subscribe(condition=condition)
+    assert not hasattr(raised(subscription._claim, Context()), "__notes__")
+
+
+@pytest.mark.parametrize(
+    "condition",
+    [
+        async_condition,
+        AsyncConditionObject(),
+        condition_returning_a_coroutine,
+        condition_of_context_returning_a_coroutine,
+        AwaitableResult,
+    ],
+)
+def test_claim_condition_returns_awaitable(condition: Any) -> None:
+    subscription = subscribe(condition=condition)
+    with pytest.raises(TypeError, match=r"^condition .+ returned an awaitable"):
+        subscription._claim(Context())
+
+
+def test_claim_condition_returns_awaitable_closes_the_coroutine() -> None:
+    coroutine = async_condition()
+
+    def condition() -> Any:
+        return coroutine
+
+    subscription = subscribe(condition=condition)
+    with pytest.raises(TypeError, match=r"returned an awaitable"):
+        subscription._claim(Context())
+    assert inspect.getcoroutinestate(coroutine) == inspect.CORO_CLOSED
+
+
+#############################
+#     Tests for _invoke     #
+#############################
+
+
+def test_invoke_returns_handler_result() -> None:
+    assert subscribe(lambda: "called")._invoke(Context()) == "called"
+
+
+def test_invoke_passes_the_whole_context() -> None:
+    assert subscribe(copy_context)._invoke(Context({"a": 1, "b": 2})) == {"a": 1, "b": 2}
+
+
+def test_invoke_passes_the_context_object() -> None:
+    context = Context({"a": 1})
+    assert subscribe(lambda context: context)._invoke(context) is context
+
+
+def test_invoke_without_parameter_calls_handler_without_argument() -> None:
+    handler = create_autospec(noop_handler)
+    subscribe(handler)._invoke(Context({"a": 1}))
+    handler.assert_called_once_with()
+
+
+def test_invoke_does_not_evaluate_the_condition() -> None:
+    condition = create_autospec(has_payload, return_value=False)
+    subscribe(condition=condition)._invoke(Context())
+    assert condition.call_count == 0
+
+
+def test_invoke_does_not_consume_once() -> None:
+    subscription = subscribe(once=True)
+    subscription._invoke(Context())
+    assert subscription.active
+
+
+def test_invoke_calls_the_handler_of_a_removed_registration() -> None:
+    subscription = subscribe(hello_handler)
+    subscription.remove()
+    subscription._invoke(Context())
+    assert hello_handler.call_count == 1
+
+
+def test_invoke_handler_raises_without_note() -> None:
+    assert not hasattr(raised(subscribe(fail)._invoke, Context()), "__notes__")
 
 
 ###############################################
