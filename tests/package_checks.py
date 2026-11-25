@@ -1,3 +1,10 @@
+r"""Check an installed ``minevent`` package.
+
+The build workflow runs this script against the built package, and the
+nightly workflow against the package published on PyPI. Run it with
+``python tests/package_checks.py``.
+"""
+
 from __future__ import annotations
 
 import asyncio
@@ -13,6 +20,8 @@ logger = logging.getLogger(__name__)
 
 
 def check_event_manager() -> None:
+    r"""Check that a registered handler runs when its event is
+    triggered."""
     logger.info("Checking event manager...")
 
     event_manager = EventManager()
@@ -26,6 +35,7 @@ def check_event_manager() -> None:
 
 
 def check_once() -> None:
+    r"""Check that a ``once`` handler runs once."""
     logger.info("Checking once...")
 
     calls: list[int] = []
@@ -38,6 +48,7 @@ def check_once() -> None:
 
 
 def check_payload() -> None:
+    r"""Check that a handler receives the payload of the trigger."""
     logger.info("Checking payload...")
 
     received: list[dict[str, object]] = []
@@ -52,6 +63,7 @@ def check_payload() -> None:
 
 
 def check_subscription() -> None:
+    r"""Check that a removed subscription does not run."""
     logger.info("Checking subscription...")
 
     calls: list[int] = []
@@ -65,6 +77,7 @@ def check_subscription() -> None:
 
 
 def check_async_trigger() -> None:
+    r"""Check that ``atrigger_event`` awaits a coroutine handler."""
     logger.info("Checking atrigger_event...")
 
     calls: list[object] = []
@@ -79,6 +92,7 @@ def check_async_trigger() -> None:
 
 
 def check_no_third_party_import() -> None:
+    r"""Check that ``import minevent`` loads no third-party package."""
     logger.info("Checking that minevent imports no third-party package...")
     # Only the modules loaded by the import are checked: the interpreter can load third-party
     # modules at startup (for example the sitecustomize module of some distributions).
@@ -95,6 +109,8 @@ def check_no_third_party_import() -> None:
 
 
 def check_lazy_imports() -> None:
+    r"""Check that ``import minevent`` does not load the modules that
+    are imported lazily."""
     logger.info("Checking that minevent does not import logging, inspect, asyncio...")
     modules = ["logging", "inspect", "asyncio", "importlib.metadata"]
     code = f"import sys, minevent; assert not set({modules!r}) & set(sys.modules)"
@@ -102,17 +118,23 @@ def check_lazy_imports() -> None:
 
 
 def check_exports() -> None:
+    r"""Check that every name of ``__all__`` exists."""
     logger.info("Checking exports...")
     for name in minevent.__all__:
         assert hasattr(minevent, name), f"missing export: {name}"
 
 
 def check_version() -> None:
+    r"""Check that the version is read from the installed package."""
     logger.info("Checking version...")
     assert minevent.__version__ != "0.0.0"
 
 
 def main() -> None:
+    r"""Run all the checks.
+
+    A failed check raises.
+    """
     check_no_third_party_import()
     check_lazy_imports()
     check_exports()

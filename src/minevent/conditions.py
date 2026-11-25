@@ -6,7 +6,8 @@ like a handler: as ``condition()``, or as ``condition(context)`` with
 the read-only ``Context`` of the trigger (see
 ``minevent.calls.needs_context``). ``Condition`` is its type, and
 ``EventManager.add_event_handler`` states how a registration uses it.
-The user guide shows how to combine conditions.
+``PeriodicCondition`` and ``AfterNCondition`` count their calls. The
+user guide of the documentation shows how to combine conditions.
 
 Example:
     ```pycon
@@ -202,6 +203,14 @@ class PeriodicCondition(_CountingCondition):
         Returns:
             The number of calls between each ``True`` result. The
                 condition evaluates to ``True`` every ``freq`` calls.
+
+        Example:
+            ```pycon
+            >>> from minevent import PeriodicCondition
+            >>> PeriodicCondition(freq=3).freq
+            3
+
+            ```
         """
         return self._freq
 
@@ -212,6 +221,14 @@ class PeriodicCondition(_CountingCondition):
         Returns:
             The index, from 0, of the first call that evaluates to
                 ``True``.
+
+        Example:
+            ```pycon
+            >>> from minevent import PeriodicCondition
+            >>> PeriodicCondition(freq=3, start=2).start
+            2
+
+            ```
         """
         return self._start
 
@@ -266,5 +283,13 @@ class AfterNCondition(_CountingCondition):
 
         Returns:
             The number of calls that evaluate to ``False``.
+
+        Example:
+            ```pycon
+            >>> from minevent import AfterNCondition
+            >>> AfterNCondition(2).n
+            2
+
+            ```
         """
         return self._n

@@ -141,10 +141,12 @@ def test_periodic_condition_repr_large_values() -> None:
 
 
 def always_true() -> bool:
+    r"""Implement a condition that is ``True``."""
     return True
 
 
 def always_false() -> bool:
+    r"""Implement a condition that is ``False``."""
     return False
 
 

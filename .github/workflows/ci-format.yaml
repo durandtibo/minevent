@@ -1,5 +1,6 @@
 # Code formatting and linting workflow.
-# Checks code formatting and code quality with ruff.
+# Checks the formatting and the linting of the repository files with the make
+# targets, and of the Python code with ruff.
 # Ensures code follows project style guidelines.
 
 name: Format

@@ -7,7 +7,7 @@
 - an **event manager** stores the handlers and triggers the events.
 
 This page shows how to register a handler, trigger an event, pass data and remove a handler. The
-[examples](examples.md) show more recipes, and the [architecture page](architecture.md) states the
+[examples](examples.md) show more recipes, and the [how it works page](architecture.md) states the
 rules of the library. To install it, see [Get Started](get_started.md).
 
 ## Register a handler and trigger an event
@@ -188,9 +188,31 @@ Hello John!
 
 ```
 
+## Errors
+
+An exception of a handler reaches the caller of the trigger, and the next handlers are skipped. A
+note says which handler raised it:
+
+```pycon
+>>> from minevent import Context, EventManager
+>>> def log_loss(context: Context) -> None:
+...     print(context["loss"])
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler("epoch_end", log_loss)
+>>> try:
+...     manager.trigger_event("epoch_end", {"epoch": 1})
+... except KeyError as exc:
+...     print(exc)
+...     print(exc.__notes__[0])
+"key 'loss' not found in the context; available keys: ['epoch']"
+raised by log_loss while handling the event 'epoch_end'
+
+```
+
 ## Next steps
 
 - [Examples](examples.md): recipes for training loops, plugins, async programs and tests.
 - [User guide](guide.md): recommendations, pitfalls and troubleshooting.
-- [Architecture](architecture.md): the guarantees and the limits.
+- [How it works](architecture.md): the rules, the guarantees and the limits.
+- [Design choices](design.md): the reasons and the trade-offs.
 - [Reference](refs/index.md): the signatures of the classes.

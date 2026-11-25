@@ -2,7 +2,8 @@
 
 This guide collects the recommendations, the pitfalls and the troubleshooting tips for using
 `minevent`. The [quickstart](quickstart.md) shows the basics, the [examples](examples.md) are the
-recipes, and the [architecture page](architecture.md) states the rules of the library.
+recipes, the [how it works page](architecture.md) states the rules of the library and the
+[design choices page](design.md) explains them.
 
 ## Recommendations
 
@@ -56,9 +57,10 @@ recipes, and the [architecture page](architecture.md) states the rules of the li
 
 ### Performance
 
-The cost of a trigger is mostly the cost of the handlers (see P16 in the
-[architecture page](architecture.md#properties)). To find a slow handler, time it or wrap it (see
-[Trace the handlers](examples.md#trace-the-handlers)).
+The cost of a trigger is mostly the cost of the handlers (see
+[Performance](architecture.md#performance)). To find a slow handler, time it or wrap it (see
+[Trace the handlers](examples.md#trace-the-handlers)). In a loop that triggers often with the same
+data, build one `Context` and reuse it.
 
 ## Pitfalls
 
@@ -86,6 +88,26 @@ The cost of a trigger is mostly the cost of the handlers (see P16 in the
 
 The trigger did not give the key that the handler requires. The message lists the available keys.
 Give the key to the trigger, or read it as an optional value.
+
+### `TypeError: context must be a mapping or None` and `the keys of data must be str`
+
+The data of a trigger is a mapping with `str` keys, such as a dict, given as the second argument:
+`manager.trigger_event("epoch_end", {"epoch": 1})`.
+
+### `TypeError` about unexpected or positional-only arguments of `trigger_event`
+
+`trigger_event` and `atrigger_event` take the event and the context as positional arguments only.
+Neither `trigger_event("epoch_end", epoch=1)` nor `trigger_event("epoch_end", context=data)` is
+valid: write `trigger_event("epoch_end", {"epoch": 1})`.
+
+### `TypeError: event must be a str`
+
+An event is a `str`, for example a `StrEnum` member. A member of a plain `Enum` is not.
+
+### `TypeError: EventManager cannot be copied or pickled`
+
+A manager, or an object that holds one, was copied or sent to another process. Create a new manager
+there and register the handlers, or exclude the manager from the state of the object.
 
 ### `TypeError: ... must need no argument or only the context`
 

@@ -1,3 +1,5 @@
+r"""Implement the helpers of the unit tests."""
+
 from __future__ import annotations
 
 __all__ = ["Tracer", "raised", "reset_traced", "trace"]

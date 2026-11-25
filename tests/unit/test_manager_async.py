@@ -31,6 +31,7 @@ async def append_async(values: list[str], value: str) -> None:
 
 
 async def failing_async_handler() -> None:
+    r"""Implement a coroutine handler that raises a ``ValueError``."""
     msg = "boom"
     raise ValueError(msg)
 

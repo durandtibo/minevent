@@ -15,14 +15,22 @@ It allows you to customize code by adding pieces of code that are executed when 
 fired.
 `minevent` is organized around three main concepts:
 
-- **event** which defines the thing that should happen.
-- **event handler** which is a callable to execute when the event happens
-- **event manager** which is responsible to manage the events and event handlers.
+- **event** which is a case-sensitive string that names something that happens.
+- **event handler** which is a callable to execute when the event happens.
+- **event manager** (`EventManager`) which stores the event handlers and triggers the events.
 
-The goal of this documentation is to explain how the event system works and how to use it.
-The library provides some implemented modules, but it is possible to extend it.
-It is possible to use all the components or just a subset based on the need.
-For example, a handler is a plain callable, so it can be tested without the event manager.
+A trigger can pass data to the handlers in a read-only `Context`, a condition can decide if a handler
+runs, and each registration returns a `Subscription` that removes it. `minevent` has no dependency
+and is fully typed.
+
+A handler is a plain callable, so it can be tested without the event manager, and there is no base
+class to extend.
+
+!!! note "Version"
+
+    The documentation of the `main` version describes the code of the `main` branch. Version `0.5.0`
+    and older have a different API: use the version selector of their documentation, or see the
+    [changelog](https://github.com/durandtibo/minevent/blob/main/CHANGELOG.md) to migrate.
 
 ## Motivation
 
@@ -48,7 +56,18 @@ Hello!
 ```
 
 It allows you to customize the function `say_something` without changing its implementation.
-Please read the [quickstart page](quickstart.md) to learn more about the library.
+
+## Where to go next
+
+| Page                            | Content                                              |
+| ------------------------------- | ---------------------------------------------------- |
+| [Get started](get_started.md)   | Install the library.                                 |
+| [Quickstart](quickstart.md)     | The basics in a few minutes.                         |
+| [Examples](examples.md)         | Recipes for training loops, plugins, async and tests |
+| [User guide](guide.md)          | Recommendations, pitfalls and troubleshooting.       |
+| [How it works](architecture.md) | The rules, the guarantees and the limits.            |
+| [Design choices](design.md)     | Why it works this way, and the trade-offs.           |
+| [Reference](refs/index.md)      | The classes and functions.                           |
 
 ## API stability
 

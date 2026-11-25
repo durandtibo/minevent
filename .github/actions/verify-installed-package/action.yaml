@@ -1,5 +1,5 @@
 # Composite action shared by every workflow that verifies an already-installed
-# minevent package (nightly-test-package.yaml, nightly-test-package-dep.yaml).
+# minevent package (nightly-test-package.yaml).
 # Prints the resolved dependency tree for debugging, then runs the same
 # package-level sanity checks used everywhere else, so the callers can't drift
 # on what "verify the package" means.

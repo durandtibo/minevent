@@ -1,37 +1,72 @@
-# Architecture and Design Principles
+# How It Works
 
-This page is the reference of the rules of `minevent`: the properties that it guarantees, the
-behaviors that it does not guarantee, the rule that calls the handlers and the reasons of the design.
-The [quickstart](quickstart.md) is the first contact, the [examples](examples.md) are runnable
-recipes and the [user guide](guide.md) gives the recommendations.
+This page describes the parts of `minevent`, what happens when you register a handler and trigger an
+event, and the behavior that you can rely on. The reasons of these rules, and their trade-offs, are
+on the [design choices page](design.md). The [quickstart](quickstart.md) is the first contact, the
+[examples](examples.md) are runnable recipes and the [user guide](guide.md) gives the
+recommendations.
 
-## Properties
+## Overview
 
-These properties hold for every release and each one is covered by tests.
+| Name                | Role                                                                             |
+| ------------------- | -------------------------------------------------------------------------------- |
+| event               | A case-sensitive `str` that names something that happens.                        |
+| `Handler`           | A callable that runs when the event happens, called as `f()` or `f(context)`.    |
+| `EventManager`      | Stores the registrations and triggers the events.                                |
+| `Subscription`      | The registration of one handler to one event: it holds the options and `remove`. |
+| `Context`           | The read-only payload of one trigger.                                            |
+| `Condition`         | A synchronous function that returns a boolean and decides if a handler runs.     |
+| `PeriodicCondition` | A condition that is `True` on one call in `freq`.                                |
+| `AfterNCondition`   | A condition that is `False` for the first `n` calls, then `True`.                |
 
-| #   | Property                     | Statement                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Enforced by                                                                       |
-| --- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| P1  | Small surface                | Events are strings, handlers are plain callables, the manager connects them. Seven exported names and `__version__` (`EventManager`, `Subscription`, `Context`, `Handler`, `Condition`, `PeriodicCondition`, `AfterNCondition`). `EventManager` has 8 public members (`events`, `get_subscriptions`, `add_event_handler`, `on`, `trigger_event`, `atrigger_event`, `clear_event`, `reset`) and `__len__`, `__contains__`.                                                                                                                                            | `__all__` and review                                                              |
-| P2  | Cheap import                 | `import minevent` is cheap and has no side effect: standard library only, and not `logging`, `inspect`, `asyncio` or `importlib.metadata`, and it creates no `typing` object (`NamedTuple`, `Protocol`, `TypeVar`): the annotations are strings and the names that only a type checker needs are imported under `TYPE_CHECKING` (`inspect` is imported when the first handler is registered, the version on the first access of `__version__`). It starts no thread, reads no file, emits no warning and writes no log.                                              | `test_import.py` (modules and `typing` objects)                                   |
-| P3  | Events are strings           | An event name is a case-sensitive `str` (a `StrEnum` member is one, and is kept as given); `add_event_handler`, `on`, `get_subscriptions`, `trigger_event`, `atrigger_event` and `clear_event` raise `TypeError` for another type. `in` answers like a dict (`1 in manager` is `False`). The empty string is valid. Reading the manager never creates an event.                                                                                                                                                                                                      | `_check_event`, `test_manager.py`                                                 |
-| P4  | Validated at the door        | `add_event_handler` and `on` reject, with a `TypeError` that names the argument and the value: a non-`str` event, a non-callable handler or condition, a signature that P13 rejects, a generator or async generator function, and **a coroutine function used as a condition**. A rejected registration leaves the manager unchanged. The annotations of a handler or a condition do not have to be resolvable.                                                                                                                                                      | `Subscription`, `calls.needs_context`, `test_manager.py`                          |
-| P5  | Registration identity        | `add_event_handler` returns a new `Subscription` every time; the same callable can be registered several times. `remove()` removes that registration only: `True` the first time, then `False`. `active` is `True` until the registration is removed, by whatever means.                                                                                                                                                                                                                                                                                             | `Subscription`, `test_manager.py`                                                 |
-| P6  | Registration order           | The handlers of an event run in the order they were registered, one after the other, in the calling thread.                                                                                                                                                                                                                                                                                                                                                                                                                                                          | the ordered `dict`, `test_manager.py`                                             |
-| P7  | Snapshot dispatch            | A trigger visits the registrations that exist when it starts. A registration **added** by a running handler takes effect at the next trigger. A registration **removed** before its turn (by `remove()`, `clear_event`, `reset` or a `once` claim) does not run.                                                                                                                                                                                                                                                                                                     | the dispatch loop, `test_manager.py`                                              |
-| P8  | Fail-fast with context       | An exception of a handler or a condition propagates unchanged (same object, same type); the remaining handlers are skipped. It carries a note with the event and what raised: the handler, or the condition and its handler (each named by its function, under a `functools.partial`), once per distinct note. Adding the note never replaces the exception: an exception that cannot take it propagates without it. No message and no `repr` of the package runs the `repr` of user data to name a callable.                                                        | `calls.add_error_note`, `Subscription._claim`, `test_calls.py`, `test_manager.py` |
-| P9  | `once` is at-most-once       | A `once` registration is removed by an atomic claim just before its handler is called, after its condition, so it is called at most once whatever the number of threads. A false or raising condition does not consume it; a handler that raises does.                                                                                                                                                                                                                                                                                                               | `Subscription._claim`, `test_manager_once.py`, `test_manager_threads.py`          |
-| P10 | Synchronous by default       | `trigger_event` never awaits; a handler that returns an awaitable raises `TypeError`. `atrigger_event` awaits the handlers one after the other (an object with `async def __call__` is a coroutine handler too). **Conditions are synchronous in both**: a coroutine function is rejected at registration (P4), and a condition that returns an awaitable raises `TypeError`. A coroutine that is rejected is closed.                                                                                                                                                | `calls.reject_awaitable`, `Subscription`, `test_manager_async.py`                 |
-| P11 | Thread-safe registry         | The registry is protected by a reentrant lock. Handlers, conditions, the `repr` and **the finalizers** of user objects run outside the lock, so they can use the manager. This holds with and without the GIL.                                                                                                                                                                                                                                                                                                                                                       | `EventManager._lock`, `test_manager_threads.py`                                   |
-| P12 | No hidden state              | No global manager, no discovery, no side effect of a read. Zero runtime dependency. A manager cannot be copied or pickled (`copy.copy`, `copy.deepcopy` and `pickle` raise the same `TypeError`).                                                                                                                                                                                                                                                                                                                                                                    | `__reduce__`, `test_manager.py`                                                   |
-| P13 | Two calls                    | A handler and a condition are called as `f()` or `f(context)`. **A parameter that has a default keeps it: the manager never fills it.** A callable whose other parameters are none is called as `f()`; one with exactly one other parameter, positional, is called as `f(context)`; any other signature (including `*args` and `**kwargs`), or one that cannot be inspected, is rejected (P4). Names and annotations are not checked. The signature is the one that `inspect.signature` reports, read once, at registration ([the calling rule](#the-calling-rule)). | `calls.needs_context`, `test_calls.py`                                            |
-| P14 | Payload is data              | `trigger_event(event, context=None, /)` copies the mapping `context` (a dict, for example), or reuses a `Context` as is, into one read-only `Context` per trigger, shared by the handlers and the conditions. A `Context` can be copied, deep-copied and pickled (protocol 2 or higher) if its values can; the values are not copied by the context itself. Any `str` key is allowed, it does not need to be a valid identifier. The handler decides what a missing key means (`context[key]` or `context.get(key, default)`).                                       | `trigger_event`, `Context`, `test_context.py`                                     |
-| P15 | Typed                        | Fully typed, `py.typed`, `ty check` clean. The values of a `Context` are `Any`, so the documented handlers type check in the code of a user. **A handler argument is typed `Handler`**, so a type checker reports a callable that needs two arguments, a keyword-only argument or an argument of another type than `Context`; the run-time check (P13) stays the authority.                                                                                                                                                                                          | `ty check` in CI, `test_context_typing.py`                                        |
-| P16 | Fast and linear              | About 0.3 µs for a trigger with one trivial handler, 0.06 µs for each extra one, 0.75 µs with a small dict (it is copied into a `Context`), and 4.5 µs for a registration plus its removal (the signature is inspected there, never in a trigger). Reading a value of a `Context` costs the same, present or missing, whatever the number of keys (`get` and `in`; `context[key]` lists the keys in its `KeyError`). Registering _k_ handlers and removing them in any order costs O(_k_). Measured on a laptop with Python 3.14.                                    | `tests/benchmarks/`                                                               |
-| P17 | A manager is a service       | `bool(manager)` is always `True`, empty or not, so `manager or default` means "is there a manager". `len(manager)` is the number of registrations.                                                                                                                                                                                                                                                                                                                                                                                                                   | `__bool__`, `test_manager.py`                                                     |
-| P18 | One way to do each thing     | One way to register (`add_event_handler`, with `on` as its decorator form and the same keyword-only options `once` and `condition`), one way to adapt a callable (wrap it in a function, a lambda or a `functools.partial` that needs nothing or only the context), one way to run once (`once=True`), one way to extend (write a callable), one option to shift a period (`start` of `PeriodicCondition`). No handler base class. One page states each rule; a docstring states what its own object does and names the page or the function that holds the rule.    | the signatures, the documents                                                     |
-| P19 | Debuggable without a logger  | `repr(subscription)` names the event and the handler function (`Subscription(event='epoch_end', handler='log_epoch')`), `repr(manager)` counts the registrations per event. The library logs nothing: `get_subscriptions(event)` is the way to look.                                                                                                                                                                                                                                                                                                                 | `__repr__`, `test_manager.py`                                                     |
-| P20 | Everything that runs, is run | Each pull request runs the unit and integration tests, the doctests and `tests/package_checks.py`; **every** benchmark runs nightly, not at each pull request. A test passes or fails for the same reason on every Python of the matrix, with and without the GIL.                                                                                                                                                                                                                                                                                                   | `ci.yaml`, the nightly benchmark workflows, `test_package_checks.py`              |
-| P21 | Exact built-in conditions    | `PeriodicCondition` and `AfterNCondition` count every call once, from any number of threads, with and without the GIL. They can be copied and pickled: a copy starts at the same step and has its own counter.                                                                                                                                                                                                                                                                                                                                                       | `_CountingCondition`, `test_conditions.py`, `test_conditions_threads.py`          |
+These seven names (all but "event") and `__version__` are what `minevent` exports. `EventManager`
+has the following members:
+
+| Member                                                                   | Use                                    |
+| ------------------------------------------------------------------------ | -------------------------------------- |
+| `add_event_handler(event, handler, *, once=False, condition=None)`       | Register a handler.                    |
+| `on(event, *, once=False, condition=None)`                               | Register a function with a decorator.  |
+| `trigger_event(event, context=None, /)`                                  | Run the handlers of an event.          |
+| `atrigger_event(event, context=None, /)`                                 | Same, and await the coroutine handlers |
+| `events`, `get_subscriptions(event)`, `event in manager`, `len(manager)` | Look at the registrations.             |
+| `clear_event(event)`, `reset()` (and `remove()` of a `Subscription`)     | Remove registrations.                  |
+
+## Registration
+
+`add_event_handler` does the following, once:
+
+1. It checks that the event is a `str`, and that the handler and the condition (if any) are
+   callable.
+2. It reads the signature of the handler and of the condition to decide how to call each of them
+   (see [the calling rule](#the-calling-rule)). It also rejects a generator function, and a
+   coroutine function used as a condition.
+3. It creates a `Subscription` and appends it to the registrations of the event.
+
+Every rejection is a `TypeError` that says which argument is wrong, and it leaves the manager
+unchanged. The same callable can be registered several times: each call returns a new
+`Subscription`, and each registration runs and is removed on its own.
+
+The registration lasts until `subscription.remove()`, the end of a `with subscription:` block,
+`clear_event`, `reset`, or, with `once=True`, the first call of the handler.
+
+## Trigger
+
+```text
+trigger_event(event, context)
+    |   take a snapshot of the registrations of the event
+    |   build one Context from the context (a Context is used as is)
+    v
+for each registration of the snapshot, in registration order:
+    removed since the snapshot?          -> skip
+    has a condition that is False?       -> skip
+    once=True?                           -> remove the registration, or skip if already removed
+    call handler() or handler(context)
+    the handler returned an awaitable?   -> trigger_event raises, atrigger_event awaits it
+```
+
+If a condition or a handler raises, the trigger stops: the exception reaches the caller, and the
+next registrations are skipped. Triggering an event that has no handler does nothing (the event and
+the context are still checked).
 
 ## The Calling Rule
 
@@ -53,8 +88,11 @@ applies to a condition, which returns a boolean. It is checked once, at registra
 | one, keyword-only                     | `def g(*, epoch)`                  | `TypeError`  |
 | (any) generator or async generator    | `def g(): yield`                   | `TypeError`  |
 
-Coroutine functions, bound methods, callable objects, classes and `functools.partial` objects follow
-the same table. The signature of a partial does not contain the arguments that it binds.
+Names and annotations are not checked. Coroutine functions, bound methods, callable objects, classes
+and `functools.partial` objects follow the same table. The signature is the one that
+`inspect.signature` reports: the signature of a partial does not contain the positional arguments
+that it binds, and a decorator that uses `functools.wraps` has the signature of the wrapped
+function.
 
 To adapt a callable, wrap it in a function, a lambda or a `functools.partial`:
 
@@ -72,59 +110,124 @@ evaluated when the lambda is **created**. So `lambda i=i: print(i)` saves the cu
 is called without argument. A handler that needs a saved value **and** the context takes the context
 first, without default: `lambda context, i=i: print(i, context["epoch"])`.
 
-## Not guaranteed
+## Behavior You Can Rely On
 
-These behaviors are documented limits, not defects:
+### Events and registrations
 
-- **A removal in another thread.** P7 is exact in the thread that triggers. A `remove()` from another
-  thread cannot stop a handler that the trigger is about to call.
+- An event name is a case-sensitive `str`. A `StrEnum` member is a `str`, and is kept as given. The
+  empty string is valid. The methods of the manager raise a `TypeError` for another type, while `in`
+  answers like a dict (`1 in manager` is `False`).
+- Reading the manager never creates an event: `events` lists the events that have at least one
+  registration.
+- `subscription.remove()` removes that registration only. It returns `True` the first time, then
+  `False`. `subscription.active` is `True` until the registration is removed, by whatever means.
+- `bool(manager)` is always `True`, empty or not, and `len(manager)` is the number of
+  registrations. A manager cannot be copied or pickled (`copy.copy`, `copy.deepcopy` and `pickle`
+  raise a `TypeError`).
+
+### Dispatch
+
+- The handlers of an event run in the order they were registered, one after the other, in the calling
+  thread.
+- A trigger visits the registrations that exist when it starts. A registration **added** by a
+  running handler takes effect at the next trigger. A registration **removed** before its turn (by
+  `remove()`, `clear_event`, `reset` or a `once` claim) does not run.
+- A condition is called just before its handler, so it sees the effects of the handlers that ran
+  before.
+- A `once` registration is removed by an atomic claim just before its handler is called, after its
+  condition, so it is called at most once whatever the number of threads. A false or raising
+  condition does not consume it; a handler that raises does.
+
+### Payload
+
+- `trigger_event(event, context)` copies the mapping `context` (a dict, for example), or reuses a
+  `Context` as is, into one read-only `Context` per trigger, shared by the handlers and the
+  conditions. Both arguments are positional-only.
+- Any `str` key is allowed, it does not need to be a valid identifier. Another key raises a
+  `TypeError`.
+- The values are not copied. A `Context` can be copied, deep-copied and pickled (protocol 2 or
+  higher) if its values can.
+- A `Context` is equal to a mapping that has the same items, and it is not hashable.
+
+### Errors
+
+- An exception of a handler or a condition propagates unchanged (same object, same type), and the
+  remaining handlers are skipped.
+- An `Exception` carries a note with the event and what raised it: the handler, or the condition and
+  its handler (each named by its function, under a `functools.partial`). The same note is not added
+  twice. An exception that cannot take a note (a frozen dataclass exception, for example) propagates
+  without it. A `BaseException` that is not an `Exception`, such as `KeyboardInterrupt` or
+  `asyncio.CancelledError`, has no note.
+- The messages of `minevent` do not run the `repr` of your objects to name a callable.
+
+### Coroutines
+
+- `trigger_event` never awaits: a handler that returns an awaitable raises a `TypeError`.
+- `atrigger_event` awaits what a handler returns, if it is awaitable, before it calls the next
+  handler. It also runs the synchronous handlers.
+- Conditions are synchronous in both: a coroutine function is rejected at registration, and a
+  condition that returns an awaitable raises a `TypeError` at the trigger.
+- A coroutine that is rejected is closed, so it does not emit a "never awaited" warning.
+
+### Threads
+
+- Registering, removing, triggering and reading the manager are safe from several threads, with and
+  without the GIL.
+- Your code (handlers, conditions, `repr` and finalizers) runs outside the lock of the manager, so
+  it can use the manager.
+- `PeriodicCondition` and `AfterNCondition` count every call once, from any number of threads. They
+  can be copied and pickled: a copy starts at the same step and has its own counter.
+
+### Import and typing
+
+- `minevent` uses the standard library only. `import minevent` starts no thread, reads no file,
+  emits no warning, writes no log, and does not import `logging`, `inspect`, `asyncio` or
+  `importlib.metadata`: `inspect` is imported at the first registration, and the version is read at
+  the first access of `__version__`.
+- The package is fully typed (`py.typed`). A handler argument is typed `Handler`, so a type checker
+  reports a callable that needs two arguments, a keyword-only argument or an argument of another
+  type than `Context`. The run-time check of the calling rule stays the authority. The values of a
+  `Context` are typed `Any`.
+
+## Limits
+
+`minevent` does not protect against the following:
+
+- **A removal in another thread** cannot stop a handler that a trigger is about to call.
+- **Concurrent calls.** A registration without `once` is called by every thread that triggers its
+  event, possibly at the same time. A handler or a condition of yours that shares state must protect
+  it.
 - **Recursion.** A handler that triggers its own event recurses until `RecursionError`.
 - **Blocking.** A synchronous handler in `atrigger_event` blocks the event loop.
-- **A callable object whose `__call__` is a generator**, and a function that _returns_ a generator,
-  do nothing. Only generator _functions_ are rejected (P4) and awaitables detected (P10).
 - **A coroutine handler used with `trigger_event`.** The `TypeError` is raised after the call: the
   handlers before it have run, and a `once` registration is consumed.
+- **Generators that are not generator functions.** A callable object whose `__call__` yields, and a
+  function that returns a generator, do nothing.
 - **An optional parameter never receives the context.** `def f(context=None)` is called as `f()` and
   gets `None`, without an error: the context needs a parameter without default.
-- **A decorated function** is judged by the signature that `inspect.signature` reports: with
-  `functools.wraps`, that is the signature of the wrapped function.
-- **A signature that depends on Python.** The calling rule reads what `inspect.signature` reports,
-  and the standard library adds signatures to C callables between versions: `set.add` and
-  `time.time` are rejected on Python 3.11 and 3.12, and accepted from 3.13.
+- **A signature that depends on Python.** The standard library adds signatures to C callables
+  between versions: `set.add` is rejected on Python 3.11 and 3.12, and accepted from 3.13.
 - **A condition counts its calls, not the triggers.** It is not called when an earlier handler
   raised, nor for a removed registration.
+- **A condition that removes its own registration** (without `once`) does not stop the call that it
+  allows.
 - **A mutable value of the payload** can be mutated by a handler, and the next ones see it.
-- **Threads.** The handlers run in the thread that triggers the event, concurrently if several
-  threads trigger it, so a handler that shares state must protect it. The state of a condition of a
-  user is not protected: only the built-in conditions are (P21).
-- **Prompt reclamation.** A manager with registrations is in a reference cycle (manager, dict,
+- **Delayed release.** A manager with registrations is in a reference cycle (manager, registry,
   `Subscription`, manager): `del manager` does not free it until the garbage collector runs.
   `reset()` releases the handlers at a known point.
 
-## Design Notes
+## Performance
 
-- **Events are strings.** They are easy to type, to read and to serialize. A namespace such as
-  `training.batch.end` is a naming convention: there is no hierarchy.
-- **A callable is the extension point.** There is no base class to learn or to import. The
-  introspection is limited to the signature at registration and to the awaitable results.
-- **Synchronous and sequential.** The handlers run in a deterministic order, which suits the
-  sequential workflows of Machine Learning and is easy to debug. Coroutine handlers are opt-in with
-  `atrigger_event`. The library starts no thread.
-- **The registry** maps each event to an ordered `dict` of subscriptions used as an ordered set, so
-  a registration and a removal are O(1), and a trigger is linear in the handlers of the event. A
-  reentrant lock protects it, and a trigger takes a snapshot under the lock and runs it outside.
-- **The `Subscription` is the registration.** It stores the handler and the options, so the same
-  callable can be registered several times and each registration is removed on its own.
+The registry maps each event to an ordered `dict` of subscriptions, used as an ordered set:
 
-## Non-goals
+- registering and removing a handler are O(1), whatever the number of handlers;
+- a trigger is linear in the number of handlers of its event, and the other events cost nothing;
+- the signature is inspected at registration, never during a trigger;
+- a mapping given to a trigger is copied (linear in its number of keys), while a `Context` is not;
+- `context.get(key, default)` and `key in context` cost the same for a present key and a missing
+  one. `context[key]` lists the available keys in its `KeyError`, so a missing key costs more.
 
-`minevent` stays minimal. These features are not provided and are not planned:
-
-- **Event objects** with metadata or priorities: events are plain strings, and data is given as a
-  dict (or a `Context`) to `trigger_event`.
-- **Handler ordering** other than the registration order.
-- **Weak references** or sender/receiver filtering.
-- **Collecting handler errors**: handlers run fail-fast, and an exception stops the dispatch. To run
-  every handler and report all the failures, wrap the handler in a `try`/`except` (an
-  `ExceptionGroup` option such as `on_error="collect"` was considered and declined to keep
-  `trigger_event` minimal).
+As an order of magnitude, measured on a laptop with Python 3.14: about 0.3 µs for a trigger with one
+trivial handler, 0.06 µs for each extra one, 0.9 µs with a small dict, and 4.5 µs for a registration
+plus its removal. Measure on your machine with `inv test.benchmark` in a
+[source installation](get_started.md#installing-from-source).

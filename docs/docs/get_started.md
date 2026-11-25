@@ -14,7 +14,27 @@ a [virtual environment](https://packaging.python.org/guides/installing-using-pip
 pip install minevent
 ```
 
-`minevent` has no dependency, so no optional dependencies or extras are required.
+`minevent` has no dependency, so no optional dependencies or extras are required. It requires
+Python 3.11 or newer on the `main` branch (see the
+[version table](https://github.com/durandtibo/minevent#installation) for the releases).
+
+This command installs the latest release. Version `0.5.0` and older have a different API than the
+one of the `main` documentation. To install the code of the `main` branch:
+
+```shell
+pip install git+https://github.com/durandtibo/minevent.git
+```
+
+Check the installation:
+
+```pycon
+>>> from minevent import EventManager
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler("hello", lambda: print("Hello!"))
+>>> manager.trigger_event("hello")
+Hello!
+
+```
 
 ## Installing from source
 
@@ -31,36 +51,24 @@ the [official installation guide](https://docs.astral.sh/uv/getting-started/inst
 First, clone the git repository:
 
 ```shell
-git clone git@github.com:durandtibo/minevent.git
+git clone https://github.com/durandtibo/minevent.git
 cd minevent
 ```
 
-### Create a virtual environment (optional but recommended)
+### Install the dependencies
 
-It is recommended to create a Python 3.11+ virtual environment. You can use `uv` to create a virtual
-environment:
+Create the virtual environment `.venv` with the package (in editable mode) and its development
+dependencies, then activate it:
 
 ```shell
-uv venv --python 3.13
+uv sync --python 3.13
 source .venv/bin/activate
 ```
 
-### Install dependencies
+To also install the documentation dependencies, use `uv sync --python 3.13 --group docs`.
 
-Once you have activated your virtual environment, install the required packages with:
-
-```shell
-inv env.install
-```
-
-Or if you're developing and need documentation dependencies:
-
-```shell
-inv env.install --docs-deps
-```
-
-These commands will install all the required packages. You can also use these commands to update the
-required packages.
+Once the environment is activated, `inv env.install` installs the dependencies again, and
+`inv env.update` updates them. `inv --list` shows all the tasks.
 
 ### Verify the installation
 

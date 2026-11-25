@@ -1,3 +1,3 @@
-::: minevent.calls.Handler
+# Event manager
 
 ::: minevent.manager
