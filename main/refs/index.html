@@ -808,23 +808,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Context">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#minevent.Context.from_keywords" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        from_keywords
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
         
           <li class="md-nav__item">
@@ -1294,23 +1277,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Context">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#minevent.Context.from_keywords" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        from_keywords
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
         
           <li class="md-nav__item">
@@ -1600,8 +1566,8 @@ case-sensitive string), a handler (any callable) and an event manager
   a handler and returns a <code>Subscription</code>, the registration itself,
   that removes exactly that registration.</li>
 <li><code>EventManager.trigger_event</code> runs the handlers in the order they
-  were registered and passes its keyword arguments (the payload) to
-  them in a read-only <code>Context</code>. <code>EventManager.atrigger_event</code> also
+  were registered and passes its <code>context</code> argument (a mapping, the
+  payload) to them in a read-only <code>Context</code>. <code>EventManager.atrigger_event</code> also
   awaits the coroutine handlers.</li>
 <li>A condition is any function that returns a boolean, without parameter
   or with the <code>Context</code> of the trigger (<code>Condition</code>). <code>PeriodicCondition</code> and <code>AfterNCondition</code> are
@@ -1616,7 +1582,7 @@ installed package.</p>
   <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">context</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"epoch </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">'epoch'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">))</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"epoch"</span><span class="p">:</span> <span class="mi">3</span><span class="p">})</span>
 <span class="go">epoch 3</span>
 </code></pre></div>
 </details>
@@ -1992,99 +1958,6 @@ if a key of <code>data</code> is not a <code>str</code>.</p>
 
 
 
-
-<div class="doc doc-object doc-function">
-
-
-<h4 id="minevent.Context.from_keywords" class="doc doc-heading">
-            <span class="doc doc-object-name doc-function-name">minevent.Context.from_keywords</span>
-
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
-  </span>
-
-<a href="#minevent.Context.from_keywords" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">from_keywords</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n"><span title="dict">dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="object">object</span></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="minevent.context.Context" href="context/#minevent.context.Context">Context</a></span>
-</code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Create a context from the keyword arguments of a call.</p>
-<p>The keys of keyword arguments are always <code>str</code>, so this
-constructor skips the validation of <code>Context(data)</code>. It
-copies <code>data</code> like <code>Context(data)</code> does.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>data</code>
-            </td>
-            <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="object">object</span>]</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The keyword arguments, as a dict whose keys are all
-<code>str</code>. The dict is not checked.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><a class="autorefs autorefs-internal" title="minevent.context.Context" href="context/#minevent.context.Context">Context</a></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The context.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<details class="example" open>
-  <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">make</span><span class="p">(</span><span class="o">**</span><span class="n">payload</span><span class="p">):</span>
-<span class="gp">... </span>    <span class="k">return</span> <span class="n">Context</span><span class="o">.</span><span class="n">from_keywords</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
-<span class="gp">...</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">make</span><span class="p">(</span><span class="n">epoch</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
-<span class="go">Context({'epoch': 3})</span>
-</code></pre></div>
-</details>
-
-    </div>
-
-</div>
 
 
 
@@ -2471,7 +2344,7 @@ is not callable, or if <code>condition</code> is neither
 <span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"epoch </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">'epoch'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <span class="gp">...</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">epoch_handler</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"epoch"</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">"loss"</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">})</span>
 <span class="go">epoch 3</span>
 </code></pre></div>
 </details>
@@ -2492,7 +2365,9 @@ is not callable, or if <code>condition</code> is neither
   </span>
 
 <a href="#minevent.EventManager.atrigger_event" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">atrigger_event</span><span class="p">(</span><span class="n">event</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="o">**</span><span class="n">payload</span><span class="p">:</span> <span class="n"><span title="object">object</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">atrigger_event</span><span class="p">(</span>
+    <span class="n">event</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n"><span title="collections.abc.Mapping">Mapping</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="object">object</span></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2506,7 +2381,7 @@ handlers. The handlers run one after the other, in the order they were
 added, and they are fail-fast like in <code>trigger_event</code>: the
 exception is not wrapped and has a note with the event and the
 handler. The snapshot of the handlers, the <code>once</code>
-registrations and the payload follow the rules of
+registrations and the context follow the rules of
 <code>trigger_event</code>. Synchronous handlers block the event loop
 while they run.</p>
 
@@ -2540,19 +2415,20 @@ while they run.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>**payload</code>
+                <code>context</code>
             </td>
             <td>
-                  <code><span title="object">object</span></code>
+                  <code><span title="collections.abc.Mapping">Mapping</span>[<span title="str">str</span>, <span title="object">object</span>] | None</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The data passed to the handlers in the
-<code>Context</code>.</p>
+                <p>The data passed to the handlers: a mapping from
+<code>str</code> to values, a <code>Context</code> or <code>None</code>. It is
+not modified. Default is <code>None</code>.</p>
               </div>
             </td>
             <td>
-                  <code>{}</code>
+                  <code>None</code>
             </td>
           </tr>
       </tbody>
@@ -2574,7 +2450,8 @@ while they run.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>if <code>event</code> is not a string. Any exception
+                <p>if <code>event</code> is not a string, or if <code>context</code>
+is neither <code>None</code> nor a mapping with <code>str</code> keys. Any exception
 raised by a handler or a condition also propagates.</p>
               </div>
             </td>
@@ -2592,7 +2469,7 @@ raised by a handler or a condition also propagates.</p>
 <span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Hello </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">'name'</span><span class="p">]</span><span class="si">}</span><span class="s2">!"</span><span class="p">)</span>
 <span class="gp">...</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">hello_handler</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">manager</span><span class="o">.</span><span class="n">atrigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"John"</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">manager</span><span class="o">.</span><span class="n">atrigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"name"</span><span class="p">:</span> <span class="s2">"John"</span><span class="p">}))</span>
 <span class="go">Hello John!</span>
 </code></pre></div>
 </details>
@@ -2965,7 +2842,7 @@ callable.</p>
 <span class="gp">... </span><span class="k">def</span><span class="w"> </span><span class="nf">hello_handler</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
 <span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Hello </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">'name'</span><span class="p">]</span><span class="si">}</span><span class="s2">!"</span><span class="p">)</span>
 <span class="gp">...</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"Bob"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"name"</span><span class="p">:</span> <span class="s2">"Bob"</span><span class="p">})</span>
 <span class="go">Hello Bob!</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">hello_handler</span><span class="p">({</span><span class="s2">"name"</span><span class="p">:</span> <span class="s2">"Alice"</span><span class="p">})</span>
 <span class="go">Hello Alice!</span>
@@ -2973,7 +2850,7 @@ callable.</p>
 <span class="gp">... </span><span class="k">def</span><span class="w"> </span><span class="nf">log_epoch</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
 <span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"epoch </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">'epoch'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <span class="gp">...</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"epoch"</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">"loss"</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">})</span>
 <span class="go">epoch 3</span>
 </code></pre></div>
 </details>
@@ -3036,7 +2913,9 @@ trigger does not run.</p>
 
 
 <a href="#minevent.EventManager.trigger_event" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">trigger_event</span><span class="p">(</span><span class="n">event</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="o">**</span><span class="n">payload</span><span class="p">:</span> <span class="n"><span title="object">object</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">trigger_event</span><span class="p">(</span>
+    <span class="n">event</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n"><span title="collections.abc.Mapping">Mapping</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="object">object</span></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3059,18 +2938,20 @@ runs.</p>
 but nothing stops the recursion: a handler that always
 triggers its own event raises a <code>RecursionError</code>. Guard the
 recursive trigger with a condition or a flag.</p>
-<p>The keyword arguments <code>payload</code> are copied into one
-read-only <code>Context</code> that is built once per trigger and
-shared by all the handlers. A handler that has a parameter
+<p>The data <code>context</code> (a mapping from <code>str</code> to values, a
+<code>Context</code> or <code>None</code>) is copied into one read-only
+<code>Context</code> that is built once per trigger and shared by all
+the handlers. A <code>Context</code> is passed as is (it is immutable,
+so it can be reused for several triggers), and <code>None</code> means
+no data. A handler that has a parameter
 that accepts a positional argument is called as
 <code>handler(context)</code>, and the other handlers are called as
 <code>handler()</code>. A handler reads the keys it needs and decides
 what to do when one is missing: <code>context["key"]</code> raises a
 <code>KeyError</code>, and <code>context.get("key", default)</code> returns a
-default. Extra keys never break a handler. The payload can
-use any key, including <code>event</code> and <code>self</code>, because
-<code>event</code> is positional-only. All the handlers receive the
-same payload objects.</p>
+default. Extra keys never break a handler. The keys can be any
+<code>str</code>, they do not need to be valid identifiers. All the
+handlers receive the same value objects.</p>
 <p>Before its handler, a registration evaluates its condition
 (the handler is skipped if it is <code>False</code>), and a <code>once</code>
 registration is removed.</p>
@@ -3105,19 +2986,20 @@ registration is removed.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>**payload</code>
+                <code>context</code>
             </td>
             <td>
-                  <code><span title="object">object</span></code>
+                  <code><span title="collections.abc.Mapping">Mapping</span>[<span title="str">str</span>, <span title="object">object</span>] | None</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The data passed to the handlers in the
-<code>Context</code>.</p>
+                <p>The data passed to the handlers: a mapping from
+<code>str</code> to values, a <code>Context</code> or <code>None</code>. It is
+not modified. Default is <code>None</code>.</p>
               </div>
             </td>
             <td>
-                  <code>{}</code>
+                  <code>None</code>
             </td>
           </tr>
       </tbody>
@@ -3139,7 +3021,8 @@ registration is removed.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>if <code>event</code> is not a string, or if a handler
+                <p>if <code>event</code> is not a string, if <code>context</code> is
+neither <code>None</code> nor a mapping with <code>str</code> keys, or if a handler
 returns an awaitable (use <code>atrigger_event</code> for
 coroutine handlers). Any exception raised by a
 handler or a condition also propagates, including a
@@ -3154,7 +3037,7 @@ own event.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
+  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">)</span>  <span class="c1"># do nothing because there is no event handler</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">hello_handler</span><span class="p">():</span>
@@ -3167,8 +3050,10 @@ own event.</p>
 <span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"epoch </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">'epoch'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <span class="gp">...</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">epoch_handler</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"epoch"</span><span class="p">:</span> <span class="mi">3</span><span class="p">})</span>
 <span class="go">epoch 3</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">Context</span><span class="p">({</span><span class="s2">"epoch"</span><span class="p">:</span> <span class="mi">4</span><span class="p">}))</span>
+<span class="go">epoch 4</span>
 </code></pre></div>
 </details>
 

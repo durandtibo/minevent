@@ -1425,7 +1425,9 @@ handlers), handlers run in the registration order, and it has no dependency.</p>
 <p>Yes. <code>minevent</code> does not depend on any ML framework.</p>
 <h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">&para;</a></h2>
 <h3 id="how-do-i-pass-data-to-the-handlers">How do I pass data to the handlers?<a class="headerlink" href="#how-do-i-pass-data-to-the-handlers" title="Permanent link">&para;</a></h3>
-<p>As keyword arguments of <code>trigger_event</code>: <code>manager.trigger_event("epoch_end", epoch=3)</code>. See
+<p>As a dict, the second argument of <code>trigger_event</code>:
+<code>manager.trigger_event("epoch_end", {"epoch": 3})</code>, or as a <code>Context</code>, which is reused as is:
+<code>manager.trigger_event("epoch_end", Context({"epoch": 3}))</code>. See
 <a href="../guide/#pass-the-data-as-a-payload">the payload</a>. Use <code>functools.partial</code> for the
 arguments that are fixed at registration.</p>
 <h3 id="how-do-i-run-a-handler-only-sometimes">How do I run a handler only sometimes?<a class="headerlink" href="#how-do-i-run-a-handler-only-sometimes" title="Permanent link">&para;</a></h3>
@@ -1460,7 +1462,8 @@ the counter of a stateful condition is not protected. See
 <code>async def __call__</code> for <code>atrigger_event</code>). A condition is any function that returns a
 boolean (it can take the <code>Context</code> of the trigger), or a class with <code>__call__</code>.</p>
 <h3 id="what-is-the-overhead">What is the overhead?<a class="headerlink" href="#what-is-the-overhead" title="Permanent link">&para;</a></h3>
-<p>About 0.36 µs per trigger with one trivial handler (0.56 µs if it reads the context). See <a href="../guide/#performance">performance</a>.</p>
+<p>About 0.33 µs per trigger with one trivial handler and no data (0.7 µs with a small dict). See
+<a href="../guide/#performance">performance</a>.</p>
 <h2 id="help">Help<a class="headerlink" href="#help" title="Permanent link">&para;</a></h2>
 <h3 id="where-can-i-report-a-bug-or-ask-for-a-feature">Where can I report a bug or ask for a feature?<a class="headerlink" href="#where-can-i-report-a-bug-or-ask-for-a-feature" title="Permanent link">&para;</a></h3>
 <p>On the <a href="https://github.com/durandtibo/minevent/issues">GitHub issue tracker</a>.</p>

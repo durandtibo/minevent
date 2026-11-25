@@ -1434,8 +1434,8 @@ the trigger if it has one, so it can depend on the payload:</p>
 <span class="gp">... </span>    <span class="k">lambda</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"late epoch"</span><span class="p">),</span>
 <span class="gp">... </span>    <span class="n">condition</span><span class="o">=</span><span class="k">lambda</span> <span class="n">context</span><span class="p">:</span> <span class="n">context</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"epoch"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">,</span>
 <span class="gp">... </span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"epoch"</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"epoch"</span><span class="p">:</span> <span class="mi">2</span><span class="p">})</span>
 <span class="go">late epoch</span>
 </code></pre></div>
 <p><code>minevent</code> provides the stateful conditions <code>AfterNCondition</code> (skip the
@@ -1635,7 +1635,7 @@ registers a function and returns it unchanged. It takes the options <code>once</
 <span class="gp">&gt;&gt;&gt; </span><span class="nd">@manager</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">)</span>
 <span class="gp">... </span><span class="k">def</span><span class="w"> </span><span class="nf">log_epoch</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"epoch </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">'epoch'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"epoch"</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span>
 <span class="go">epoch 1</span>
 </code></pre></div>
 <h3 id="fire-an-event">Fire an event<a class="headerlink" href="#fire-an-event" title="Permanent link">&para;</a></h3>
@@ -1656,7 +1656,7 @@ The following example shows how to fire the <code>hello_handler</code> for the e
 <span class="go">EventManager(events={'my_event': 1})</span>
 </code></pre></div>
 <p>Triggering an event does not change the manager: the representation above is the same before and
-after. A handler is called as <code>handler(context)</code>, where <code>context</code> holds the keyword arguments given
+after. A handler is called as <code>handler(context)</code>, where <code>context</code> holds the data given
 to <code>trigger_event</code> (see below), or as <code>handler()</code> if it has no parameter. The arguments that do not
 come from the payload are bound with <code>functools.partial</code>.</p>
 <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">functools</span>
@@ -1705,10 +1705,11 @@ The following shows how to execute the <code>hello_handler</code> every 3 <code>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="share-an-event-between-handlers-that-need-different-payload-keys">Share an event between handlers that need different payload keys<a class="headerlink" href="#share-an-event-between-handlers-that-need-different-payload-keys" title="Permanent link">&para;</a></h3>
-<p>The keyword arguments of <code>trigger_event</code> are copied into one read-only <code>Context</code> that is shared by
-the handlers. Each handler reads the keys it needs: <code>context["key"]</code> raises a <code>KeyError</code> (that lists
-the available keys) if the key is missing, and <code>context.get("key", default)</code> returns a default. An
-extra key never breaks a handler:</p>
+<p>The dict given to <code>trigger_event</code> is copied into one read-only <code>Context</code> that is shared by the
+handlers. You can also give a <code>Context</code> yourself, <code>trigger_event("epoch_end", Context({...}))</code>: it
+is passed as is, so it can be reused for several triggers. Each handler reads the keys it needs:
+<code>context["key"]</code> raises a <code>KeyError</code> (that lists the available keys) if the key is missing, and
+<code>context.get("key", default)</code> returns a default. An extra key never breaks a handler:</p>
 <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">log_loss</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"loss </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">'loss'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
@@ -1717,7 +1718,7 @@ extra key never breaks a handler:</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">log_loss</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">log_epoch</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"epoch"</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">"loss"</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">})</span>
 <span class="go">loss 0.5</span>
 <span class="go">epoch 3, lr 0.1</span>
 </code></pre></div>
@@ -1732,7 +1733,7 @@ also runs synchronous handlers) one after the other, in the order they were adde
 <span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Hello </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">'name'</span><span class="p">]</span><span class="si">}</span><span class="s2">!"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">hello_handler</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">manager</span><span class="o">.</span><span class="n">atrigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"John"</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">manager</span><span class="o">.</span><span class="n">atrigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"name"</span><span class="p">:</span> <span class="s2">"John"</span><span class="p">}))</span>
 <span class="go">Hello John!</span>
 </code></pre></div>
 <h3 id="remove-an-event-handler">Remove an event handler<a class="headerlink" href="#remove-an-event-handler" title="Permanent link">&para;</a></h3>

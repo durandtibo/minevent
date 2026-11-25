@@ -836,23 +836,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Context">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#minevent.context.Context.from_keywords" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        from_keywords
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
         
       </ul>
@@ -947,23 +930,6 @@
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Context">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#minevent.context.Context.from_keywords" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        from_keywords
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
         
@@ -1153,99 +1119,6 @@ if a key of <code>data</code> is not a <code>str</code>.</p>
 
 
 
-
-<div class="doc doc-object doc-function">
-
-
-<h4 id="minevent.context.Context.from_keywords" class="doc doc-heading">
-            <span class="doc doc-object-name doc-function-name">minevent.context.Context.from_keywords</span>
-
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
-  </span>
-
-<a href="#minevent.context.Context.from_keywords" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">from_keywords</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n"><span title="dict">dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="object">object</span></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="minevent.context.Context" href="#minevent.context.Context">Context</a></span>
-</code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Create a context from the keyword arguments of a call.</p>
-<p>The keys of keyword arguments are always <code>str</code>, so this
-constructor skips the validation of <code>Context(data)</code>. It
-copies <code>data</code> like <code>Context(data)</code> does.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>data</code>
-            </td>
-            <td>
-                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="object">object</span>]</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The keyword arguments, as a dict whose keys are all
-<code>str</code>. The dict is not checked.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><a class="autorefs autorefs-internal" title="minevent.context.Context" href="#minevent.context.Context">Context</a></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The context.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<details class="example" open>
-  <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">make</span><span class="p">(</span><span class="o">**</span><span class="n">payload</span><span class="p">):</span>
-<span class="gp">... </span>    <span class="k">return</span> <span class="n">Context</span><span class="o">.</span><span class="n">from_keywords</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
-<span class="gp">...</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">make</span><span class="p">(</span><span class="n">epoch</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
-<span class="go">Context({'epoch': 3})</span>
-</code></pre></div>
-</details>
-
-    </div>
-
-</div>
 
 
 
