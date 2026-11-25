@@ -812,7 +812,7 @@ class EventManager:
 
         Example:
             ```pycon
-            >>> from minevent import EventManager
+            >>> from minevent import Context, EventManager
             >>> manager = EventManager()
             >>> manager.trigger_event("my_event")  # do nothing because there is no event handler
             >>> def hello_handler():
@@ -827,6 +827,8 @@ class EventManager:
             >>> _ = manager.add_event_handler("epoch_end", epoch_handler)
             >>> manager.trigger_event("epoch_end", {"epoch": 3})
             epoch 3
+            >>> manager.trigger_event("epoch_end", Context({"epoch": 4}))
+            epoch 4
 
             ```
         """

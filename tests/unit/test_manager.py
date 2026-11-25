@@ -1597,6 +1597,22 @@ def test_event_manager_trigger_event_context_object_is_passed_as_is() -> None:
     assert contexts[0] is context
 
 
+@pytest.mark.parametrize("data", [{"epoch": 3, "loss": 0.5}, Context({"epoch": 3, "loss": 0.5})])
+def test_event_manager_trigger_event_dict_and_context_give_the_same_data(data: Any) -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", payload_handler)
+    manager.trigger_event("my_event", data)
+    assert payload_handler.args == ({"epoch": 3, "loss": 0.5},)
+
+
+@pytest.mark.parametrize("data", [{"epoch": 3}, Context({"epoch": 3})])
+async def test_event_manager_atrigger_event_dict_and_context_give_the_same_data(data: Any) -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", payload_handler)
+    await manager.atrigger_event("my_event", data)
+    assert payload_handler.args == ({"epoch": 3},)
+
+
 def test_event_manager_trigger_event_context_can_be_reused() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", payload_handler)

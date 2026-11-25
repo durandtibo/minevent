@@ -41,6 +41,10 @@ epoch 3: 0.5
 
 ```
 
+Both forms are equivalent for the handlers: `manager.trigger_event("epoch_end", {"epoch": 3})` and
+`manager.trigger_event("epoch_end", Context({"epoch": 3}))`. Pass a dict for a one-off trigger, and
+build a `Context` once to reuse it for several triggers (it is validated and copied only once).
+
 A `Context` is a read-only mapping from `str` to values: a handler cannot change what the next
 handler sees (the values are not copied, so a mutable value stays mutable). Each handler reads the
 keys it needs and decides what to do when one is missing, so handlers with different needs share an
