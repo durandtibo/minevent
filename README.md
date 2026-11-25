@@ -40,11 +40,11 @@ fired.
 `minevent` is organized around three main concepts:
 
 - **event** which is a case-sensitive string that names something that happens.
-- **event handler** which is any callable to execute when the event happens.
+- **event handler** which is a callable to execute when the event happens.
 - **event manager** (`EventManager`) which stores the event handlers and triggers the events.
 
 The library provides two built-in conditions (`PeriodicCondition` and `AfterNCondition`) to control
-when a handler runs, and it is easy to extend: a handler is any callable and a condition is any
+when a handler runs, and it is easy to extend: a handler is a callable and a condition is any
 function that returns a boolean, so there is no base class to extend.
 It is possible to use all the components or just a subset based on the need.
 For example, a handler is a plain callable, so it can be tested without the event manager.
@@ -100,7 +100,7 @@ It allows you to customize the function `say_something` without changing its imp
 - **Debuggable**: an exception of a handler has a note that names the event and the handler, and
   `manager.get_subscriptions(event)` lists the registrations
 - **Thread-safe registry**: register handlers and trigger events from different threads
-- **Extensible**: A handler is any callable and a condition is any function that returns a boolean,
+- **Extensible**: A handler is a callable and a condition is any function that returns a boolean,
   so there is no base class to extend
 - **Type Hints**: Full type hint support for better IDE integration and code quality
 - **Well Tested**: Comprehensive test suite ensuring reliability
@@ -109,8 +109,10 @@ It allows you to customize the function `say_something` without changing its imp
 ## Usage
 
 The second argument of `trigger_event` (a dict, or a `Context`) is the payload. The handlers receive
-it in a read-only `Context`: a handler that has a parameter is called as `handler(context)`, and a
-handler without parameter is called as `handler()`. The options of a registration (`once`,
+it in a read-only `Context`: a handler is called as `handler(context)` if it has a parameter without
+default, and as `handler()` otherwise (a parameter that has a default keeps it). A callable that
+needs other arguments, or that accepts `*args` or `**kwargs` like `print`, is rejected at
+registration: wrap it in a function or a lambda. The options of a registration (`once`,
 `condition`) are keyword-only arguments of `add_event_handler` and of its decorator form `on`:
 
 ```pycon

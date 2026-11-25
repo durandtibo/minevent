@@ -11,7 +11,7 @@ import threading
 from collections.abc import Awaitable
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
-from unittest.mock import Mock, create_autospec
+from unittest.mock import AsyncMock, Mock, create_autospec
 
 import pytest
 
@@ -32,7 +32,7 @@ from minevent.manager import (
 from tests.unit.utils import raised, trace
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import AsyncIterator, Callable, Iterator
     from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -122,10 +122,6 @@ def noop_handler() -> None:
 
 def read_secret(secret: str) -> None:
     r"""Implement a handler that needs a bound argument."""
-
-
-def var_positional_handler(*args: object) -> None:
-    r"""Implement a handler that accepts any positional arguments."""
 
 
 ##################################
@@ -1300,14 +1296,6 @@ def test_subscription_call_condition_with_parameter_and_handler_with_parameter()
     assert subscription._call(Context({"a": 1})) == {"a": 1}
 
 
-def test_subscription_call_condition_uninspectable_receives_the_context() -> None:
-    calls: list[dict[str, Any]] = []
-    Subscription(
-        EventManager(), "my_event", hello_handler, condition=UninspectableCondition(calls)
-    )._call(Context({"a": 1}))
-    assert calls == [{"a": 1}]
-
-
 def test_subscription_call_condition_with_parameter_does_not_consume_once() -> None:
     manager = EventManager()
     subscription = manager.add_event_handler(
@@ -1404,14 +1392,6 @@ def test_subscription_call_without_parameter_calls_handler_without_argument() ->
     assert subscription._call(Context({"a": 1})) == "called"
 
 
-def test_subscription_call_uninspectable_handler_receives_context() -> None:
-    calls: list[dict[str, Any]] = []
-    Subscription(EventManager(), "my_event", UninspectableCallable(calls))._call(
-        Context({"a": 1, "b": 2})
-    )
-    assert calls == [{"a": 1, "b": 2}]
-
-
 ##################################
 #     Tests for _check_event     #
 ##################################
@@ -1455,25 +1435,85 @@ def default_handler(context: Context | None = None) -> None:
     logger.info("context %s", context)
 
 
+def context_then_default_handler(context: Context, verbose: bool = False) -> None:
+    logger.info("context %s %s", context, verbose)
+
+
+def context_then_keyword_default_handler(context: Context, *, verbose: bool = False) -> None:
+    logger.info("context %s %s", context, verbose)
+
+
+def keyword_default_handler(*, value: int = 1) -> None:
+    logger.info("value %s", value)
+
+
 def keyword_only_handler(*, loss: float) -> None:
     logger.info("loss %s", loss)
 
 
-def kwargs_handler(**kwargs: Any) -> None:
+def context_and_keyword_only_handler(context: Context, *, loss: float) -> None:
+    logger.info("context %s %s", context, loss)
+
+
+def var_positional_handler(*args: object) -> None:
+    logger.info("Args: %s", args)
+
+
+def var_keyword_handler(**kwargs: object) -> None:
     logger.info("Kwargs: %s", kwargs)
 
 
-class UninspectableCondition:
-    r"""Implements a condition whose signature cannot be inspected."""
+def var_handler(*args: object, **kwargs: object) -> None:
+    logger.info("Args: %s %s", args, kwargs)
 
-    __signature__ = 1
 
-    def __init__(self, calls: list[dict[str, Any]]) -> None:
-        self._calls = calls
+def context_and_var_positional_handler(context: Context, *args: object) -> None:
+    logger.info("context %s %s", context, args)
 
-    def __call__(self, context: Context) -> bool:
-        self._calls.append(dict(context))
-        return True
+
+async def async_no_parameter_handler() -> None:
+    r"""Implement a coroutine handler without parameter."""
+
+
+async def async_context_handler(context: Context) -> None:
+    r"""Implement a coroutine handler that receives the context."""
+
+
+def generator_handler() -> Iterator[None]:
+    r"""Implement a generator handler."""
+    yield
+
+
+def generator_context_handler(context: Context) -> Iterator[Context]:
+    r"""Implement a generator handler that receives the context."""
+    yield context
+
+
+async def async_generator_handler() -> AsyncIterator[None]:
+    r"""Implement an async generator handler."""
+    yield
+
+
+@functools.wraps(positional_handler)
+def wrapping_handler(*args: Any) -> None:
+    r"""Implement a decorator of ``positional_handler``."""
+    positional_handler(*args)
+
+
+class ModelStandIn:
+    r"""Stand in for a model, with the signature of
+    ``torch.nn.Module.train``."""
+
+    def __init__(self) -> None:
+        self.mode: object = False
+
+    def train(self, mode: bool = True) -> None:
+        r"""Set the training mode."""
+        self.mode = mode
+
+    def generate(self) -> Iterator[None]:
+        r"""Implement a generator method."""
+        yield
 
 
 class UninspectableCallable:
@@ -1481,75 +1521,119 @@ class UninspectableCallable:
 
     __signature__ = 1
 
-    def __init__(self, calls: list[dict[str, Any]]) -> None:
-        self._calls = calls
-
     def __call__(self, context: Context) -> None:
-        self._calls.append(dict(context))
+        r"""Implement a handler."""
 
 
-def test_needs_context_no_parameter() -> None:
-    assert not _needs_context(hello_handler)
+@pytest.mark.parametrize(
+    "func",
+    [
+        hello_handler,
+        ModelStandIn().train,
+        lambda i=1: i,
+        keyword_default_handler,
+        functools.partial(keyword_default_handler, value=2),
+        default_handler,
+        functools.partial(positional_handler, Context()),
+        functools.partial(positional_handler, context=Context()),
+        CustomCondition(),
+        ModelStandIn,
+        async_no_parameter_handler,
+        create_autospec(noop_handler),
+    ],
+)
+def test_needs_context_no_argument(func: Callable[..., object]) -> None:
+    assert not _needs_context(func, "handler")
 
 
-def test_needs_context_positional_or_keyword() -> None:
-    assert _needs_context(positional_handler)
+@pytest.mark.parametrize(
+    "func",
+    [
+        positional_handler,
+        positional_only_handler,
+        context_then_default_handler,
+        context_then_keyword_default_handler,
+        lambda context: context,
+        lambda context, i=1: (context, i),
+        CallableRecorder([]),
+        CallableRecorder,
+        functools.partial(named_handler, "John"),
+        async_context_handler,
+        wrapping_handler,
+        create_autospec(read_epoch),
+    ],
+)
+def test_needs_context_one_argument(func: Callable[..., object]) -> None:
+    assert _needs_context(func, "handler")
 
 
-def test_needs_context_positional_only() -> None:
-    assert _needs_context(positional_only_handler)
+REJECTED_SIGNATURES = [
+    var_positional_handler,
+    var_keyword_handler,
+    var_handler,
+    context_and_var_positional_handler,
+    print,
+    functools.partial(print, "Hello!"),
+    Mock(),
+    AsyncMock(),
+    max,
+    dict.update,
+    UninspectableCallable(),
+    named_handler,
+    keyword_only_handler,
+    context_and_keyword_only_handler,
+    functools.partial(named_handler, first_name="John"),
+]
 
 
-def test_needs_context_parameter_with_default() -> None:
-    assert _needs_context(default_handler)
+@pytest.mark.parametrize("func", REJECTED_SIGNATURES)
+def test_needs_context_rejected_signature(func: Callable[..., object]) -> None:
+    with pytest.raises(TypeError, match=r"^handler .+ must need no argument or only the context"):
+        _needs_context(func, "handler")
 
 
-def test_needs_context_var_positional() -> None:
-    assert _needs_context(var_positional_handler)
+@pytest.mark.parametrize(
+    "func",
+    [
+        generator_handler,
+        generator_context_handler,
+        async_generator_handler,
+        functools.partial(generator_handler),
+        ModelStandIn().generate,
+    ],
+)
+def test_needs_context_generator_function(func: Callable[..., object]) -> None:
+    with pytest.raises(TypeError, match=r"^handler must not be a generator function, but got"):
+        _needs_context(func, "handler")
 
 
-def test_needs_context_keyword_only() -> None:
-    assert not _needs_context(keyword_only_handler)
+def test_needs_context_error_names_the_argument_and_the_function() -> None:
+    with pytest.raises(
+        TypeError,
+        match=r"^condition named_handler must need no argument or only the context; "
+        r"wrap it in a function or a lambda$",
+    ):
+        _needs_context(named_handler, "condition")
 
 
-def test_needs_context_var_keyword() -> None:
-    assert not _needs_context(kwargs_handler)
+def test_needs_context_generator_error_names_the_argument_and_the_function() -> None:
+    with pytest.raises(
+        TypeError,
+        match=r"^condition must not be a generator function, but got generator_handler$",
+    ):
+        _needs_context(generator_handler, "condition")
 
 
-def test_needs_context_uninspectable() -> None:
-    assert _needs_context(UninspectableCallable([]))
+def test_needs_context_error_ignores_repr_of_bound_arguments() -> None:
+    func = functools.partial(var_positional_handler, BadReprCallable())
+    with pytest.raises(TypeError, match=r"^handler var_positional_handler must need"):
+        _needs_context(func, "handler")
 
 
-def test_needs_context_two_parameters() -> None:
-    assert _needs_context(named_handler)
-
-
-def test_needs_context_partial_binding_the_only_positional_argument() -> None:
-    assert not _needs_context(functools.partial(positional_handler, Context()))
-
-
-def test_needs_context_partial_binding_one_of_two_positional_arguments() -> None:
-    assert _needs_context(functools.partial(named_handler, "John"))
-
-
-def test_needs_context_partial_binding_keyword_argument_of_the_context() -> None:
-    assert not _needs_context(functools.partial(positional_handler, context=Context()))
-
-
-def test_needs_context_method() -> None:
-    assert _needs_context(CallableRecorder([]))
-
-
-def test_needs_context_bound_method_without_parameter() -> None:
-    assert not _needs_context(CustomCondition())
-
-
-def test_needs_context_lambda_without_parameter() -> None:
-    assert not _needs_context(lambda: None)
-
-
-def test_needs_context_lambda_with_parameter() -> None:
-    assert _needs_context(lambda context: context)
+def test_needs_context_uninspectable_error_has_the_cause() -> None:
+    with pytest.raises(TypeError, match=r"must need no argument or only the context") as exc_info:
+        _needs_context(UninspectableCallable(), "handler")
+    assert isinstance(exc_info.value.__cause__, TypeError)
 
 
 # The module has no ``from __future__ import annotations``, so Python 3.14+ evaluates the
@@ -1582,17 +1666,17 @@ def unresolved_function(path: Path, name: str) -> Callable[..., Any]:
 
 @requires_lazy_annotations
 def test_needs_context_unresolved_return_annotation(tmp_path: Path) -> None:
-    assert not _needs_context(unresolved_function(tmp_path, "no_parameter"))
+    assert not _needs_context(unresolved_function(tmp_path, "no_parameter"), "handler")
 
 
 @requires_lazy_annotations
 def test_needs_context_unresolved_parameter_annotation(tmp_path: Path) -> None:
-    assert _needs_context(unresolved_function(tmp_path, "one_parameter"))
+    assert _needs_context(unresolved_function(tmp_path, "one_parameter"), "handler")
 
 
 def test_needs_context_before_python_3_14(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(sys, "version_info", (3, 13, 0))
-    assert _needs_context(positional_handler)
+    assert _needs_context(positional_handler, "handler")
 
 
 @requires_lazy_annotations
@@ -1607,6 +1691,104 @@ def test_event_manager_add_event_handler_condition_unresolved_annotation(tmp_pat
     condition = unresolved_function(tmp_path, "no_parameter")
     subscription = EventManager().add_event_handler("my_event", noop_handler, condition=condition)
     assert subscription.active
+
+
+######################################################
+#     Tests for the signatures of a registration     #
+######################################################
+
+
+@pytest.mark.parametrize("handler", [print, named_handler, generator_handler])
+def test_event_manager_add_event_handler_rejected_handler_leaves_manager_unchanged(
+    handler: Callable[..., object],
+) -> None:
+    manager = EventManager()
+    with pytest.raises(TypeError, match=r"^handler "):
+        manager.add_event_handler("my_event", handler)
+    assert len(manager) == 0
+
+
+@pytest.mark.parametrize("condition", [Mock(), named_handler, generator_handler])
+def test_event_manager_add_event_handler_rejected_condition_leaves_manager_unchanged(
+    condition: Any,
+) -> None:
+    manager = EventManager()
+    with pytest.raises(TypeError, match=r"^condition "):
+        manager.add_event_handler("my_event", noop_handler, condition=condition)
+    assert len(manager) == 0
+
+
+def test_event_manager_on_rejected_signature() -> None:
+    manager = EventManager()
+    decorator = manager.on("my_event")
+    with pytest.raises(TypeError, match=r"^handler named_handler must need no argument"):
+        decorator(named_handler)
+    assert len(manager) == 0
+
+
+def test_event_manager_on_rejected_condition_signature() -> None:
+    manager = EventManager()
+    decorator = manager.on("my_event", condition=Mock())
+    with pytest.raises(TypeError, match=r"^condition Mock must need no argument"):
+        decorator(noop_handler)
+    assert len(manager) == 0
+
+
+def test_subscription_rejected_signature() -> None:
+    with pytest.raises(TypeError, match=r"^handler print must need no argument"):
+        Subscription(EventManager(), "my_event", print)
+
+
+def test_event_manager_trigger_event_keeps_the_default_of_a_bound_method() -> None:
+    model = ModelStandIn()
+    manager = EventManager()
+    manager.add_event_handler("my_event", model.train)
+    manager.trigger_event("my_event", {"epoch": 3})
+    assert model.mode is True
+
+
+def test_event_manager_trigger_event_keeps_the_default_arguments_of_lambdas() -> None:
+    values: list[object] = []
+    manager = EventManager()
+    manager.add_event_handler("my_event", lambda i=0: values.append(i))
+    manager.add_event_handler("my_event", lambda i=1: values.append(i))
+    manager.trigger_event("my_event", {"epoch": 3})
+    assert values == [0, 1]
+
+
+def test_event_manager_trigger_event_condition_keeps_its_default_argument() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", hello_handler, condition=lambda flag=False: flag)
+    manager.trigger_event("my_event", {"epoch": 3})
+    assert hello_handler.call_count == 0
+
+
+def test_event_manager_trigger_event_optional_parameter_does_not_receive_the_context() -> None:
+    values: list[object] = []
+
+    def handler(context: object = None) -> None:
+        values.append(context)
+
+    manager = EventManager()
+    manager.add_event_handler("my_event", handler)
+    manager.trigger_event("my_event", {"epoch": 3})
+    assert values == [None]
+
+
+def test_event_manager_trigger_event_context_before_a_default_argument() -> None:
+    values: list[object] = []
+    manager = EventManager()
+    manager.add_event_handler("my_event", lambda context, i=1: values.append((dict(context), i)))
+    manager.trigger_event("my_event", {"epoch": 3})
+    assert values == [({"epoch": 3}, 1)]
+
+
+def test_event_manager_trigger_event_autospec_handler() -> None:
+    handler = create_autospec(read_epoch)
+    manager = EventManager()
+    manager.add_event_handler("my_event", handler)
+    manager.trigger_event("my_event", {"epoch": 3})
+    handler.assert_called_once_with({"epoch": 3})
 
 
 #################################

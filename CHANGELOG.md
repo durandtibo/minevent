@@ -30,6 +30,23 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
   - `class H(BaseEventHandler): def handle(self, /, **payload)` becomes
     `class H: def __call__(self, context)`, and `async def ahandle` becomes `async def __call__`.
 
+- **Breaking**: a handler and a condition are called as `f()` or `f(context)`, and a parameter that
+  has a default keeps it (#PR). `add_event_handler` and `on` raise a `TypeError` for a signature that
+  needs anything else (`*args`, `**kwargs`, two arguments, a keyword-only argument, a signature
+  that cannot be inspected) and for a generator or async generator function, which did nothing:
+
+  | Before                                             | After                                                      |
+  | -------------------------------------------------- | ---------------------------------------------------------- |
+  | `def f(context=None)`, receiving the context       | `def f(context)`, or register `lambda context: f(context)` |
+  | `lambda i=i: ...`, where `i` received the context  | unchanged code, now called as `f()`                        |
+  | `add_event_handler("e", print)`                    | `lambda context: print(context)`                           |
+  | `functools.partial(print, "Hello!")`               | `lambda: print("Hello!")`                                  |
+  | `def f(*args)`, `def f(**kwargs)`                  | `def f(context)` or `def f()`                              |
+  | an uninspectable callable (`max`, `dict.update`)   | `lambda context: ...`                                      |
+  | `Mock()` or `AsyncMock()` as a handler             | `create_autospec(func)`                                    |
+  | a handler with two required parameters (it raised) | bind all but the context with `functools.partial`          |
+  | a generator handler (it did nothing)               | a function that iterates                                   |
+
 - **Breaking**: the handlers receive the payload of `trigger_event` in a read-only `Context` instead
   of as keyword arguments (#840, #841, #842). `filter_payload` (added after `0.5.0`, never released) is
   removed:
@@ -41,10 +58,9 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
   | `add_event_handler("e", f, filter_payload=True)` | `add_event_handler("e", f)` with `def f(context)`            |
   | `def f(**kwargs): ...`                           | `def f(context): ...` (`dict(context)` gives the old kwargs) |
   | `functools.partial(f, "a", k=1)`                 | unchanged, the context is passed after the bound arguments   |
-  - A handler that has a parameter that accepts a positional argument (or `*args`), or whose
-    signature cannot be inspected, is called as `handler(context)`. The check counts the parameters,
-    once, at registration, and never matches keys. A callable like `print` (it accepts `*args`)
-    receives the context: use a lambda or a function without parameter.
+  - A handler that has a parameter without default is called as `handler(context)`, and the other
+    handlers as `handler()` (see the next item). The check is done once, at registration, and never
+    matches keys.
   - `context[key]` raises a `KeyError` that lists the available keys (a missing key was a `TypeError`
     of Python), and `context.get(key, default)` reads an optional value. A key that the handler does
     not read never breaks it.
@@ -75,10 +91,10 @@ condition=AfterNCondition(2)` runs once, on the third trigger (it never ran). A 
   read-only `Context` (#841, #849). A dict and a `Context` are both accepted:
   `trigger_event("e", {"k": 1})` and `trigger_event("e", Context({"k": 1}))`. A `Context` is passed
   as is, and `None` means no data.
-- A condition that has a parameter is called with the `Context` of the trigger, with the rule of the
-  handlers (`condition(context)`, or `condition()` without parameter), so it can depend on the
-  payload. `Condition` is `Callable[[], bool] | Callable[[Context], bool]`. Existing conditions are
-  unchanged (#847).
+- A condition that has a parameter without default is called with the `Context` of the trigger, with
+  the rule of the handlers (`condition(context)`, or `condition()` otherwise), so it can depend on
+  the payload. `Condition` is `Callable[[], bool] | Callable[[Context], bool]`. Existing conditions
+  are unchanged (#847).
 - `minevent.Context`, an immutable mapping from `str` to values: `context[key]`, `get`, `in`,
   `len`, iteration and `==`, as for a `collections.abc.Mapping` (#840).
 - `add_event_handler` returns a `Subscription` and has a `once` option.

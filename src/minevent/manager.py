@@ -42,41 +42,65 @@ def _check_event(event: object) -> None:
         raise TypeError(msg)
 
 
-def _needs_context(func: Callable[..., object]) -> bool:
-    r"""Indicate if a handler must be called with the context.
+def _needs_context(func: Callable[..., object], name: str) -> bool:
+    r"""Indicate if a handler or a condition must be called with the
+    context.
 
-    The check counts parameters and never matches keys: a handler
-    receives the context if it has a parameter that accepts a
-    positional argument (a positional-only, a positional-or-keyword or
-    a ``*args`` parameter), and it is called without argument
-    otherwise. A callable whose signature cannot be inspected receives
-    the context. The signature of a ``functools.partial`` does not
-    contain the positional arguments that it binds. The annotations
-    are not needed, so they do not have to be resolvable: on Python
-    3.14+, a name that is only imported under ``TYPE_CHECKING`` is
-    kept as a forward reference instead of raising a ``NameError``.
+    A callable is called as ``func()`` or ``func(context)``. A
+    parameter that has a default keeps it: the manager never fills it.
+    The callable is called as ``func()`` if no other parameter is left,
+    and as ``func(context)`` if exactly one is left and it is positional.
+    Names and annotations are not checked. Any other signature is
+    rejected, including ``*args`` and ``**kwargs`` (they do not say
+    whether the context is expected), and so is a callable whose
+    signature cannot be inspected. A generator function or an async
+    generator function is rejected too, because calling it runs none of
+    its code. The signature is the one that ``inspect.signature``
+    reports: it does not contain the positional arguments that a
+    ``functools.partial`` binds, and it is the one of the wrapped
+    function for a decorator that uses ``functools.wraps``. The
+    annotations do not have to be resolvable: on Python 3.14+, a name
+    that is only imported under ``TYPE_CHECKING`` is kept as a forward
+    reference instead of raising a ``NameError``.
 
     Args:
         func: The callable to inspect.
+        name: The name of the argument that receives ``func``, used in
+            the error messages.
 
     Returns:
         ``True`` if ``func`` is called as ``func(context)``, and
             ``False`` if it is called as ``func()``.
 
+    Raises:
+        TypeError: if ``func`` is a generator function, if its
+            signature cannot be inspected, or if it needs another
+            argument than the context.
+
     Example:
         ```pycon
         >>> from minevent.manager import _needs_context
         >>> def func(): ...
-        >>> _needs_context(func)
+        >>> _needs_context(func, "handler")
         False
         >>> def func(context): ...
-        >>> _needs_context(func)
+        >>> _needs_context(func, "handler")
         True
+        >>> def func(mode=True): ...
+        >>> _needs_context(func, "handler")
+        False
 
         ```
     """
     import inspect  # noqa: PLC0415
 
+    if inspect.isgeneratorfunction(func) or inspect.isasyncgenfunction(func):
+        msg = f"{name} must not be a generator function, but got {_describe(func)}"
+        raise TypeError(msg)
+    msg = (
+        f"{name} {_describe(func)} must need no argument or only the context; "
+        "wrap it in a function or a lambda"
+    )
     try:
         if sys.version_info >= (3, 14):
             # The annotations are evaluated lazily, and an unresolved name must not raise.
@@ -85,17 +109,17 @@ def _needs_context(func: Callable[..., object]) -> bool:
             signature = inspect.signature(func, annotation_format=annotationlib.Format.FORWARDREF)
         else:
             signature = inspect.signature(func)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError) as exc:
+        raise TypeError(msg) from exc
+    # The parameters that have a default keep it: only the others need a value. A ``*args`` or a
+    # ``**kwargs`` parameter has no default.
+    required = [param for param in signature.parameters.values() if param.default is param.empty]
+    if not required:
+        return False
+    positional = (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+    if len(required) == 1 and required[0].kind in positional:
         return True
-    return any(
-        param.kind
-        in (
-            inspect.Parameter.POSITIONAL_ONLY,
-            inspect.Parameter.POSITIONAL_OR_KEYWORD,
-            inspect.Parameter.VAR_POSITIONAL,
-        )
-        for param in signature.parameters.values()
-    )
+    raise TypeError(msg)
 
 
 _EMPTY_CONTEXT = Context()
@@ -230,12 +254,17 @@ class Subscription:
     Args:
         manager: The event manager that stores the registration.
         event: The event name of the registration.
-        handler: The registered handler: any callable.
+        handler: The registered handler: a callable.
         once: If ``True``, the registration is removed just before
             its first execution. Default is ``False``.
         condition: The condition evaluated before the handler, or
             ``None`` if the handler always runs. It is called with the
-            context if it has a parameter. Default is ``None``.
+            context if it has a parameter without default. Default is
+            ``None``.
+
+    Raises:
+        TypeError: if the signature of ``handler`` or ``condition``
+            is rejected (see ``EventManager.add_event_handler``).
 
     Example:
         ```pycon
@@ -284,8 +313,10 @@ class Subscription:
         self._once = once
         self._condition = condition
         # The check is done once, at registration.
-        self._with_context = _needs_context(handler)
-        self._condition_with_context = condition is not None and _needs_context(condition)
+        self._with_context = _needs_context(handler, "handler")
+        self._condition_with_context = condition is not None and _needs_context(
+            condition, "condition"
+        )
         # The same condition, typed for the two ways to call it.
         self._condition_call: Callable[..., object] | None = condition
         # Set to False by the manager when the registration leaves its registry.
@@ -374,14 +405,9 @@ class Subscription:
         threads. A condition that is ``False`` (or that raises) does
         not consume a ``once`` registration.
 
-        The condition is called as ``condition(context)`` if it has
-        a parameter that accepts a positional argument, and as
-        ``condition()`` otherwise.
-
-        The handler is called as ``handler(context)`` if it has a
-        parameter that accepts a positional argument (or if its
-        signature cannot be inspected), and as ``handler()``
-        otherwise.
+        The condition and the handler are called with the context if
+        they have a parameter without default, and without argument
+        otherwise (see ``_needs_context``).
 
         Args:
             context: The context built from the payload given to
@@ -445,13 +471,15 @@ class EventManager:
     ``event in manager`` and ``len(manager)`` inspect the registry, and
     ``clear_event`` and ``reset`` empty it.
 
-    A handler is any callable. It is called as ``handler(context)``
-    with a read-only ``Context`` that holds the payload of the trigger
-    if it has a parameter that accepts a positional argument, and as
-    ``handler()`` otherwise. The options of a registration (``once``
-    and ``condition``) are the keyword-only arguments of
-    ``add_event_handler`` and ``on``. Use ``functools.partial`` to bind
-    other arguments.
+    A handler is a callable that needs no argument or only the
+    context. It is called as ``handler(context)``, with a read-only
+    ``Context`` that holds the payload of the trigger, if it has a
+    parameter without default, and as ``handler()`` otherwise: a
+    parameter that has a default keeps it. The options of a
+    registration (``once`` and ``condition``) are the keyword-only
+    arguments of ``add_event_handler`` and ``on``. Use
+    ``functools.partial``, a function or a lambda to give other
+    arguments.
 
     Error policy: handlers run fail-fast. If a handler raises, the
     exception propagates to the caller of ``trigger_event`` (or
@@ -592,15 +620,19 @@ class EventManager:
         r"""Add a handler to an event.
 
         The handler will be called every time the specified event is
-        triggered. It is called as ``handler(context)``, where
+        triggered, as ``handler()`` or ``handler(context)``, where
         ``context`` is the read-only ``Context`` built from the payload
-        of the trigger, if it has a parameter that accepts a
-        positional argument (or if its signature cannot be
-        inspected), and as ``handler()`` otherwise. This is checked
-        once, at registration, and it never matches keys. Multiple
-        handlers can be registered to the same event, and they will be
-        executed in the order they were added. Use
-        ``functools.partial`` to bind other arguments.
+        of the trigger. A parameter that has a default keeps it: the
+        manager never fills it. If no other parameter is left, the
+        handler is called as ``handler()``; if exactly one positional
+        parameter is left, it is called as ``handler(context)``; and
+        any other signature is rejected, including ``*args``,
+        ``**kwargs`` and a signature that cannot be inspected. This is
+        checked once, at registration, and it never matches names or
+        annotations. Wrap a rejected callable, such as ``print``, in a
+        function or a lambda. Multiple handlers can be registered to
+        the same event, and they will be executed in the order they
+        were added. Use ``functools.partial`` to bind other arguments.
 
         Args:
             event: The event name (case-sensitive string) to which
@@ -615,11 +647,10 @@ class EventManager:
             condition: An optional condition: a function that returns
                 a boolean. It is called each time the event is
                 triggered, before the handler, and the handler runs
-                only if it returns ``True``. Like a handler, it is
-                called as ``condition(context)`` if it has a
-                parameter that accepts a positional argument (or if
-                its signature cannot be inspected), and as
-                ``condition()`` otherwise. If
+                only if it returns ``True``. It is called as
+                ``condition()`` or ``condition(context)``, with the
+                rule of the handlers: a parameter that has a default
+                keeps it. If
                 ``None``, the handler always runs. An exception
                 raised by the condition propagates to the caller of
                 ``trigger_event``. A stateful condition, such as
@@ -632,8 +663,11 @@ class EventManager:
 
         Raises:
             TypeError: if ``event`` is not a string, if ``handler``
-                is not callable, or if ``condition`` is neither
-                ``None`` nor callable. The manager is unchanged.
+                is not callable, if ``condition`` is neither ``None``
+                nor callable, or if ``handler`` or ``condition`` is a
+                generator function, needs another argument than the
+                context, or has a signature that cannot be inspected.
+                The manager is unchanged.
 
         Example:
             ```pycon
@@ -713,10 +747,11 @@ class EventManager:
             The decorator.
 
         Raises:
-            TypeError: if ``event`` is not a string, if ``condition``
-                is neither ``None`` nor callable, or, when the
-                decorator is applied, if the decorated object is not
-                callable.
+            TypeError: if ``event`` is not a string, or, when the
+                decorator is applied, if ``condition`` is neither
+                ``None`` nor callable, if the decorated object is not
+                callable, or if ``add_event_handler`` rejects the
+                signature of the function or of the condition.
 
         Example:
             ```pycon
@@ -797,9 +832,10 @@ class EventManager:
         the handlers. A ``Context`` is passed as is (it is immutable,
         so it can be reused for several triggers), and ``None`` means
         no data. A handler that has a parameter
-        that accepts a positional argument is called as
-        ``handler(context)``, and the other handlers are called as
-        ``handler()``. A handler reads the keys it needs and decides
+        without default is called as ``handler(context)``, and the
+        other handlers are called as ``handler()`` (see
+        ``add_event_handler``). A handler reads the keys it needs and
+        decides
         what to do when one is missing: ``context["key"]`` raises a
         ``KeyError``, and ``context.get("key", default)`` returns a
         default. Extra keys never break a handler. The keys can be any
