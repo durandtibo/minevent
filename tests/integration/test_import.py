@@ -47,15 +47,15 @@ def test_import_minevent_has_no_output() -> None:
     assert (result.stdout, result.stderr) == ("", "")
 
 
-def test_filter_payload_works_after_a_cheap_import() -> None:
-    """Test that ``filter_payload=True`` imports ``inspect`` when it is
-    used and still passes the accepted keys only."""
+def test_handler_with_context_works_after_a_cheap_import() -> None:
+    """Test that registering a handler imports ``inspect`` when it is
+    used and still passes the context to a handler that needs it."""
     code = (
         "import sys\n"
         "from minevent import EventManager\n"
         "assert 'inspect' not in sys.modules\n"
         "manager = EventManager()\n"
-        "manager.add_event_handler('e', lambda epoch: print(epoch), filter_payload=True)\n"
+        "manager.add_event_handler('e', lambda context: print(context['epoch']))\n"
         "manager.trigger_event('e', epoch=3, loss=0.5)\n"
     )
     assert run_python(code).stdout.strip() == "3"

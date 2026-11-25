@@ -39,9 +39,7 @@ def test_add_event_handler_options_benchmark(benchmark: BenchmarkFixture) -> Non
     manager = EventManager()
 
     def add_and_remove() -> None:
-        manager.add_event_handler(
-            "e", no_argument, once=True, condition=lambda: True, filter_payload=True
-        ).remove()
+        manager.add_event_handler("e", no_argument, once=True, condition=lambda: True).remove()
 
     benchmark(add_and_remove)
 

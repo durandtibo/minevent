@@ -13,16 +13,17 @@ from unittest.mock import Mock
 import pytest
 
 from minevent import (
+    Context,
     EventManager,
     PeriodicCondition,
     Subscription,
 )
 from minevent.manager import (
-    _accepted_keywords,
     _add_error_note,
     _check_event,
     _check_not_awaitable,
     _describe,
+    _needs_context,
 )
 from tests.unit.utils import raised, trace
 
@@ -38,6 +39,16 @@ def fail() -> None:
     r"""Implements a handler that raises a ``ValueError``."""
     msg = "boom"
     raise ValueError(msg)
+
+
+def read_epoch(context: Context) -> object:
+    r"""Implement a handler that reads the required key ``epoch``."""
+    return context["epoch"]
+
+
+def copy_context(context: Context) -> dict[str, object]:
+    r"""Implement a handler that returns a copy of the context."""
+    return dict(context)
 
 
 def registered_subscription(manager: EventManager) -> Subscription:
@@ -353,21 +364,23 @@ def test_event_manager_add_event_handler_partial_binds_positional_argument() -> 
     manager = EventManager()
     manager.add_event_handler("my_event", functools.partial(payload_handler, 1, 2))
     manager.trigger_event("my_event", epoch=3)
-    assert (payload_handler.args, payload_handler.kwargs) == ((1, 2), {"epoch": 3})
+    assert payload_handler.args == (1, 2, {"epoch": 3})
 
 
 def test_event_manager_add_event_handler_partial_binds_keyword_argument() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", functools.partial(payload_handler, k=1))
     manager.trigger_event("my_event", epoch=3)
-    assert payload_handler.kwargs == {"k": 1, "epoch": 3}
+    assert (payload_handler.args, payload_handler.kwargs) == (({"epoch": 3},), {"k": 1})
 
 
-def test_event_manager_add_event_handler_payload_overrides_keyword_bound_by_partial() -> None:
+def test_event_manager_add_event_handler_payload_does_not_override_keyword_bound_by_partial() -> (
+    None
+):
     manager = EventManager()
     manager.add_event_handler("my_event", functools.partial(payload_handler, k=1))
     manager.trigger_event("my_event", k=2)
-    assert payload_handler.kwargs == {"k": 2}
+    assert (payload_handler.args, payload_handler.kwargs) == (({"k": 2},), {"k": 1})
 
 
 def test_event_manager_add_event_handler_condition_false_does_not_run_handler() -> None:
@@ -384,50 +397,6 @@ def test_event_manager_add_event_handler_condition_true_runs_handler() -> None:
     assert hello_handler.call_count == 1
 
 
-def test_event_manager_add_event_handler_filter_payload_passes_accepted_keys_only() -> None:
-    manager = EventManager()
-    epochs: list[int] = []
-
-    def log_epoch(epoch: int) -> None:
-        epochs.append(epoch)
-
-    manager.add_event_handler("my_event", log_epoch, filter_payload=True)
-    manager.trigger_event("my_event", epoch=3, loss=0.5)
-    assert epochs == [3]
-
-
-def test_event_manager_add_event_handler_filter_payload_drops_key_bound_by_partial() -> None:
-    manager = EventManager()
-    calls: list[tuple[int, int]] = []
-
-    def record(a: int, b: int) -> None:
-        calls.append((a, b))
-
-    manager.add_event_handler("my_event", functools.partial(record, 1), filter_payload=True)
-    manager.trigger_event("my_event", a=9, b=2)
-    assert calls == [(1, 2)]
-
-
-def test_event_manager_add_event_handler_filter_payload_keyword_bound_by_partial_is_overridden() -> (
-    None
-):
-    manager = EventManager()
-    calls: list[tuple[int, int]] = []
-
-    def record(a: int, b: int) -> None:
-        calls.append((a, b))
-
-    manager.add_event_handler("my_event", functools.partial(record, b=1), filter_payload=True)
-    manager.trigger_event("my_event", a=9, b=2)
-    assert calls == [(9, 2)]
-
-
-def test_event_manager_add_event_handler_filter_payload_default_is_false() -> None:
-    manager = EventManager()
-    manager.add_event_handler("my_event", hello_handler)
-    assert not registered_subscription(manager).filter_payload
-
-
 def test_event_manager_add_event_handler_condition_default_is_none() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", hello_handler)
@@ -438,36 +407,33 @@ def test_event_manager_add_event_handler_options_reach_subscription() -> None:
     manager = EventManager()
     condition = PeriodicCondition(freq=2)
     subscription = manager.add_event_handler(
-        "my_event", hello_handler, once=True, condition=condition, filter_payload=True
+        "my_event", hello_handler, once=True, condition=condition
     )
     assert {
         "event": subscription.event,
         "handler": subscription.handler,
         "once": subscription.once,
         "condition": subscription.condition,
-        "filter_payload": subscription.filter_payload,
     } == {
         "event": "my_event",
         "handler": hello_handler,
         "once": True,
         "condition": condition,
-        "filter_payload": True,
     }
 
 
 def test_event_manager_on_and_add_event_handler_give_same_options() -> None:
     manager = EventManager()
     condition = PeriodicCondition(freq=2)
-    manager.on("my_event", once=True, condition=condition, filter_payload=True)(hello_handler)
+    manager.on("my_event", once=True, condition=condition)(hello_handler)
     subscription = manager.add_event_handler(
-        "my_event", hello_handler, once=True, condition=condition, filter_payload=True
+        "my_event", hello_handler, once=True, condition=condition
     )
     first = registered_subscription(manager)
-    assert (first.handler, first.once, first.condition, first.filter_payload) == (
+    assert (first.handler, first.once, first.condition) == (
         subscription.handler,
         subscription.once,
         subscription.condition,
-        subscription.filter_payload,
     )
 
 
@@ -561,7 +527,7 @@ def test_event_manager_trigger_event_payload() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", payload_handler)
     manager.trigger_event("my_event", epoch=3, loss=0.5)
-    assert payload_handler.kwargs == {"epoch": 3, "loss": 0.5}
+    assert payload_handler.args == ({"epoch": 3, "loss": 0.5},)
 
 
 def test_event_manager_trigger_event_payload_all_handlers() -> None:
@@ -576,13 +542,81 @@ def test_event_manager_trigger_event_without_payload() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", payload_handler)
     manager.trigger_event("my_event")
-    assert payload_handler.kwargs == {}
+    assert payload_handler.args == ({},)
 
 
-def test_event_manager_trigger_event_payload_not_accepted_by_handler() -> None:
+def test_event_manager_trigger_event_payload_is_a_context() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", payload_handler)
+    manager.trigger_event("my_event", epoch=3)
+    assert isinstance(payload_handler.args[0], Context)
+
+
+def test_event_manager_trigger_event_payload_ignored_by_handler_without_parameter() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", hello_handler)
-    with pytest.raises(TypeError, match=r"unexpected keyword argument 'epoch'"):
+    manager.trigger_event("my_event", epoch=3)
+    assert hello_handler.call_count == 1
+
+
+def test_event_manager_trigger_event_handler_without_parameter_called_without_argument() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", hello_handler)
+    manager.trigger_event("my_event", epoch=3)
+    assert (hello_handler.args, hello_handler.kwargs) == ((), {})
+
+
+def test_event_manager_trigger_event_handlers_read_different_keys() -> None:
+    manager = EventManager()
+    calls: list[object] = []
+    manager.add_event_handler("my_event", lambda context: calls.append(context["epoch"]))
+    manager.add_event_handler("my_event", lambda context: calls.append(context["loss"]))
+    manager.trigger_event("my_event", epoch=3, loss=0.5)
+    assert calls == [3, 0.5]
+
+
+def test_event_manager_trigger_event_handler_missing_key_raises_key_error() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", read_epoch)
+    with pytest.raises(KeyError, match=r"key 'epoch' not found in the context") as exc_info:
+        manager.trigger_event("my_event", loss=0.5)
+    assert exc_info.value.__notes__ == ["raised by read_epoch while handling the event 'my_event'"]
+
+
+def test_event_manager_trigger_event_handler_missing_key_with_default() -> None:
+    manager = EventManager()
+    calls: list[object] = []
+    manager.add_event_handler("my_event", lambda context: calls.append(context.get("epoch", -1)))
+    manager.trigger_event("my_event", loss=0.5)
+    assert calls == [-1]
+
+
+def test_event_manager_trigger_event_all_handlers_share_one_context() -> None:
+    manager = EventManager()
+    contexts: list[Context] = []
+    manager.add_event_handler("my_event", contexts.append)
+    manager.add_event_handler("my_event", contexts.append)
+    manager.trigger_event("my_event", epoch=3)
+    assert contexts[0] is contexts[1]
+
+
+def test_event_manager_trigger_event_new_context_for_each_trigger() -> None:
+    manager = EventManager()
+    contexts: list[Context] = []
+    manager.add_event_handler("my_event", contexts.append)
+    manager.trigger_event("my_event", epoch=1)
+    manager.trigger_event("my_event", epoch=2)
+    assert contexts == [{"epoch": 1}, {"epoch": 2}]
+
+
+def test_event_manager_trigger_event_context_is_read_only() -> None:
+    manager = EventManager()
+
+    def handler(context: Any) -> None:
+        context["epoch"] = 0
+
+    manager.add_event_handler("my_event", handler)
+    with pytest.raises(TypeError, match=r"does not support item assignment"):
         manager.trigger_event("my_event", epoch=3)
 
 
@@ -608,8 +642,8 @@ class CallableRecorder:
     def __init__(self, calls: list[dict[str, Any]]) -> None:
         self._calls = calls
 
-    def __call__(self, **payload: Any) -> None:
-        self._calls.append(payload)
+    def __call__(self, context: Context) -> None:
+        self._calls.append(dict(context))
 
 
 def test_event_manager_trigger_event_unknown_event_does_not_register_it() -> None:
@@ -648,28 +682,28 @@ def test_event_manager_trigger_event_payload_with_event_and_self_keys() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", payload_handler)
     manager.trigger_event("my_event", event="batch_end", self=1)
-    assert payload_handler.kwargs == {"event": "batch_end", "self": 1}
+    assert payload_handler.args == ({"event": "batch_end", "self": 1},)
 
 
 async def test_event_manager_atrigger_event_payload_with_event_and_self_keys() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", payload_handler)
     await manager.atrigger_event("my_event", event="batch_end", self=1)
-    assert payload_handler.kwargs == {"event": "batch_end", "self": 1}
+    assert payload_handler.args == ({"event": "batch_end", "self": 1},)
 
 
 def test_event_manager_trigger_event_once_payload_with_self_key() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", payload_handler, once=True)
     manager.trigger_event("my_event", self=1)
-    assert payload_handler.kwargs == {"self": 1}
+    assert payload_handler.args == ({"self": 1},)
 
 
 async def test_event_manager_atrigger_event_once_payload_with_self_key() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", payload_handler, once=True)
     await manager.atrigger_event("my_event", self=1)
-    assert payload_handler.kwargs == {"self": 1}
+    assert payload_handler.args == ({"self": 1},)
 
 
 ########################################
@@ -855,7 +889,7 @@ def test_event_manager_on_passes_payload() -> None:
     manager = EventManager()
     manager.on("my_event")(payload_handler)
     manager.trigger_event("my_event", epoch=3)
-    assert payload_handler.kwargs == {"epoch": 3}
+    assert payload_handler.args == ({"epoch": 3},)
 
 
 def test_event_manager_on_once() -> None:
@@ -870,30 +904,6 @@ def test_event_manager_on_event_registered() -> None:
     manager = EventManager()
     manager.on("my_event")(hello_handler)
     assert manager.events == ["my_event"]
-
-
-def test_event_manager_on_filter_payload_passes_accepted_keys_only() -> None:
-    manager = EventManager()
-    epochs: list[int] = []
-
-    @manager.on("my_event", filter_payload=True)
-    def log_epoch(epoch: int) -> None:
-        epochs.append(epoch)
-
-    manager.trigger_event("my_event", epoch=3, loss=0.5)
-    assert epochs == [3]
-
-
-def test_event_manager_on_filter_payload_default_is_false() -> None:
-    manager = EventManager()
-    manager.on("my_event")(hello_handler)
-    assert not registered_subscription(manager).filter_payload
-
-
-def test_event_manager_on_filter_payload_reaches_subscription() -> None:
-    manager = EventManager()
-    manager.on("my_event", filter_payload=True)(hello_handler)
-    assert registered_subscription(manager).filter_payload
 
 
 def test_event_manager_on_condition_reaches_subscription() -> None:
@@ -939,7 +949,7 @@ def test_event_manager_on_condition_returns_function_unchanged() -> None:
 
 def test_event_manager_on_once_with_options() -> None:
     manager = EventManager()
-    manager.on("my_event", once=True, condition=lambda: True, filter_payload=True)(hello_handler)
+    manager.on("my_event", once=True, condition=lambda: True)(hello_handler)
     manager.trigger_event("my_event")
     manager.trigger_event("my_event")
     assert hello_handler.call_count == 1
@@ -955,21 +965,6 @@ def test_event_manager_on_condition_not_callable() -> None:
 def test_event_manager_on_event_must_be_str(event: Any) -> None:
     with pytest.raises(TypeError, match=r"event must be a str"):
         EventManager().on(event)
-
-
-def test_event_manager_trigger_event_filter_payload_shares_event() -> None:
-    manager = EventManager()
-    manager.add_event_handler("my_event", hello_handler, filter_payload=True)
-    manager.add_event_handler("my_event", payload_handler)
-    manager.trigger_event("my_event", epoch=3, loss=0.5)
-    assert payload_handler.kwargs == {"epoch": 3, "loss": 0.5}
-
-
-def test_event_manager_trigger_event_filter_payload_does_not_fail_other_handler() -> None:
-    manager = EventManager()
-    manager.add_event_handler("my_event", hello_handler, filter_payload=True)
-    manager.trigger_event("my_event", epoch=3)
-    assert hello_handler.call_count == 1
 
 
 def test_event_manager_get_subscriptions_event_handler() -> None:
@@ -1150,30 +1145,23 @@ def test_subscription_condition() -> None:
     )
 
 
-def test_subscription_filter_payload_default() -> None:
-    assert not Subscription(EventManager(), "my_event", print).filter_payload
-
-
-def test_subscription_filter_payload_true() -> None:
-    assert Subscription(EventManager(), "my_event", print, filter_payload=True).filter_payload
-
-
 def test_subscription_call_returns_handler_result() -> None:
-    assert Subscription(EventManager(), "my_event", lambda **payload: payload)._call({"a": 1}) == {
-        "a": 1
-    }
+    context = Context({"a": 1})
+    assert (
+        Subscription(EventManager(), "my_event", lambda context: context)._call(context) is context
+    )
 
 
 def test_subscription_call_removed_returns_none() -> None:
     subscription = EventManager().add_event_handler("my_event", hello_handler)
     subscription.remove()
-    assert subscription._call({}) is None
+    assert subscription._call(Context()) is None
 
 
 def test_subscription_call_removed_does_not_call_handler() -> None:
     subscription = EventManager().add_event_handler("my_event", hello_handler)
     subscription.remove()
-    subscription._call({})
+    subscription._call(Context())
     assert hello_handler.call_count == 0
 
 
@@ -1181,29 +1169,29 @@ def test_subscription_call_removed_does_not_evaluate_condition() -> None:
     condition = Mock(return_value=True)
     subscription = EventManager().add_event_handler("my_event", hello_handler, condition=condition)
     subscription.remove()
-    subscription._call({})
+    subscription._call(Context())
     assert condition.call_count == 0
 
 
 def test_subscription_call_condition_false_returns_none() -> None:
     subscription = Subscription(EventManager(), "my_event", lambda: 1, condition=lambda: False)
-    assert subscription._call({}) is None
+    assert subscription._call(Context()) is None
 
 
 def test_subscription_call_condition_false_does_not_call_handler() -> None:
     subscription = Subscription(EventManager(), "my_event", hello_handler, condition=lambda: False)
-    subscription._call({})
+    subscription._call(Context())
     assert hello_handler.call_count == 0
 
 
 def test_subscription_call_condition_true_calls_handler() -> None:
     subscription = Subscription(EventManager(), "my_event", lambda: 1, condition=lambda: True)
-    assert subscription._call({}) == 1
+    assert subscription._call(Context()) == 1
 
 
 def test_subscription_call_condition_is_called_once() -> None:
     condition = Mock(return_value=True)
-    Subscription(EventManager(), "my_event", hello_handler, condition=condition)._call({})
+    Subscription(EventManager(), "my_event", hello_handler, condition=condition)._call(Context())
     assert condition.call_count == 1
 
 
@@ -1216,14 +1204,14 @@ def test_subscription_options_are_keyword_only() -> None:
 def test_subscription_call_once_removes_registration() -> None:
     manager = EventManager()
     subscription = manager.add_event_handler("my_event", hello_handler, once=True)
-    subscription._call({})
+    subscription._call(Context())
     assert not subscription.active
 
 
 def test_subscription_call_once_calls_handler() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", lambda: 1, once=True)
-    assert manager.get_subscriptions("my_event")[0]._call({}) == 1
+    assert manager.get_subscriptions("my_event")[0]._call(Context()) == 1
 
 
 def test_subscription_call_once_lost_claim_returns_none() -> None:
@@ -1237,7 +1225,7 @@ def test_subscription_call_once_lost_claim_returns_none() -> None:
     subscriptions.append(
         manager.add_event_handler("my_event", lambda: 1, condition=condition, once=True)
     )
-    assert subscriptions[0]._call({}) is None
+    assert subscriptions[0]._call(Context()) is None
 
 
 def test_subscription_call_once_lost_claim_does_not_call_handler() -> None:
@@ -1251,7 +1239,7 @@ def test_subscription_call_once_lost_claim_does_not_call_handler() -> None:
     subscriptions.append(
         manager.add_event_handler("my_event", hello_handler, condition=condition, once=True)
     )
-    subscriptions[0]._call({})
+    subscriptions[0]._call(Context())
     assert hello_handler.call_count == 0
 
 
@@ -1259,47 +1247,32 @@ def test_subscription_call_once_removed_does_not_call_handler() -> None:
     manager = EventManager()
     subscription = manager.add_event_handler("my_event", hello_handler, once=True)
     subscription.remove()
-    subscription._call({})
+    subscription._call(Context())
     assert hello_handler.call_count == 0
 
 
 def test_subscription_call_not_once_keeps_registration() -> None:
     manager = EventManager()
     subscription = manager.add_event_handler("my_event", hello_handler)
-    subscription._call({})
+    subscription._call(Context())
     assert subscription.active
 
 
-def test_subscription_call_does_not_filter_by_default() -> None:
-    subscription = Subscription(EventManager(), "my_event", lambda **payload: payload)
-    assert subscription._call({"a": 1, "b": 2}) == {"a": 1, "b": 2}
+def test_subscription_call_passes_the_whole_context() -> None:
+    subscription = Subscription(EventManager(), "my_event", copy_context)
+    assert subscription._call(Context({"a": 1, "b": 2})) == {"a": 1, "b": 2}
 
 
-def test_subscription_call_filters_payload() -> None:
-    def handler(a: int) -> int:
-        return a
-
-    subscription = Subscription(EventManager(), "my_event", handler, filter_payload=True)
-    assert subscription._call({"a": 1, "b": 2}) == 1
+def test_subscription_call_without_parameter_calls_handler_without_argument() -> None:
+    subscription = Subscription(EventManager(), "my_event", lambda: "called")
+    assert subscription._call(Context({"a": 1})) == "called"
 
 
-def test_subscription_call_filter_does_not_mutate_payload() -> None:
-    payload: dict[str, object] = {"a": 1, "b": 2}
-    Subscription(EventManager(), "my_event", lambda a: a, filter_payload=True)._call(payload)
-    assert payload == {"a": 1, "b": 2}
-
-
-def test_subscription_call_filter_keeps_all_keys_for_var_keyword() -> None:
-    subscription = Subscription(
-        EventManager(), "my_event", lambda **payload: payload, filter_payload=True
-    )
-    assert subscription._call({"a": 1, "b": 2}) == {"a": 1, "b": 2}
-
-
-def test_subscription_call_filter_keeps_all_keys_for_uninspectable_handler() -> None:
+def test_subscription_call_uninspectable_handler_receives_context() -> None:
     calls: list[dict[str, Any]] = []
-    handler = UninspectableCallable(calls)
-    Subscription(EventManager(), "my_event", handler, filter_payload=True)._call({"a": 1, "b": 2})
+    Subscription(EventManager(), "my_event", UninspectableCallable(calls))._call(
+        Context({"a": 1, "b": 2})
+    )
     assert calls == [{"a": 1, "b": 2}]
 
 
@@ -1324,19 +1297,13 @@ def test_check_event_error_names_the_type() -> None:
         _check_event(b"e")
 
 
-########################################
-#     Tests for _accepted_keywords     #
-########################################
+####################################
+#     Tests for _needs_context     #
+####################################
 
 
-@trace
-def epoch_handler(epoch: int) -> None:
-    logger.info("epoch %s", epoch)
-
-
-@trace
-def keyword_only_handler(*, loss: float) -> None:
-    logger.info("loss %s", loss)
+def positional_handler(context: Context) -> None:
+    logger.info("context %s", context)
 
 
 def named_handler(first_name: str, last_name: str) -> None:
@@ -1344,8 +1311,16 @@ def named_handler(first_name: str, last_name: str) -> None:
     logger.info("Hello. I am %s %s", first_name, last_name)
 
 
-def positional_only_handler(epoch: int, /) -> None:
-    logger.info("epoch %s", epoch)
+def positional_only_handler(context: Context, /) -> None:
+    logger.info("context %s", context)
+
+
+def default_handler(context: Context | None = None) -> None:
+    logger.info("context %s", context)
+
+
+def keyword_only_handler(*, loss: float) -> None:
+    logger.info("loss %s", loss)
 
 
 def kwargs_handler(**kwargs: Any) -> None:
@@ -1360,93 +1335,72 @@ class UninspectableCallable:
     def __init__(self, calls: list[dict[str, Any]]) -> None:
         self._calls = calls
 
-    def __call__(self, **kwargs: Any) -> None:
-        self._calls.append(kwargs)
+    def __call__(self, context: Context) -> None:
+        self._calls.append(dict(context))
 
 
-def test_accepted_keywords_uninspectable() -> None:
-    assert _accepted_keywords(UninspectableCallable([])) is None
+def test_needs_context_no_parameter() -> None:
+    assert not _needs_context(hello_handler)
 
 
-def test_accepted_keywords_var_keyword() -> None:
-    assert _accepted_keywords(kwargs_handler) is None
+def test_needs_context_positional_or_keyword() -> None:
+    assert _needs_context(positional_handler)
 
 
-def test_accepted_keywords_positional_or_keyword() -> None:
-    assert _accepted_keywords(epoch_handler) == frozenset({"epoch"})
+def test_needs_context_positional_only() -> None:
+    assert _needs_context(positional_only_handler)
 
 
-def test_accepted_keywords_keyword_only() -> None:
-    assert _accepted_keywords(keyword_only_handler) == frozenset({"loss"})
+def test_needs_context_parameter_with_default() -> None:
+    assert _needs_context(default_handler)
 
 
-def test_accepted_keywords_positional_only() -> None:
-    assert _accepted_keywords(positional_only_handler) == frozenset()
+def test_needs_context_var_positional() -> None:
+    assert _needs_context(payload_handler)
 
 
-def test_accepted_keywords_no_parameter() -> None:
-    assert _accepted_keywords(hello_handler) == frozenset()
+def test_needs_context_keyword_only() -> None:
+    assert not _needs_context(keyword_only_handler)
 
 
-def test_accepted_keywords_mixed() -> None:
-    assert _accepted_keywords(named_handler) == frozenset({"first_name", "last_name"})
+def test_needs_context_var_keyword() -> None:
+    assert not _needs_context(kwargs_handler)
 
 
-def test_accepted_keywords_partial_binding_positional_argument() -> None:
-    assert _accepted_keywords(functools.partial(named_handler, "John")) == frozenset({"last_name"})
+def test_needs_context_uninspectable() -> None:
+    assert _needs_context(UninspectableCallable([]))
 
 
-def test_accepted_keywords_partial_binding_keyword_argument() -> None:
-    assert _accepted_keywords(functools.partial(named_handler, last_name="Doe")) == frozenset(
-        {"first_name", "last_name"}
-    )
+def test_needs_context_two_parameters() -> None:
+    assert _needs_context(named_handler)
 
 
-####################################################
-#     Tests for filter_payload in the manager      #
-####################################################
+def test_needs_context_partial_binding_the_only_positional_argument() -> None:
+    assert not _needs_context(functools.partial(positional_handler, Context()))
 
 
-def test_event_manager_filter_payload_false_raises_for_unknown_key() -> None:
-    manager = EventManager()
-    manager.add_event_handler("my_event", epoch_handler)
-    with pytest.raises(TypeError, match=r"unexpected keyword argument 'loss'"):
-        manager.trigger_event("my_event", epoch=3, loss=0.5)
+def test_needs_context_partial_binding_one_of_two_positional_arguments() -> None:
+    assert _needs_context(functools.partial(named_handler, "John"))
 
 
-def test_event_manager_filter_payload_keeps_accepted_keys() -> None:
-    manager = EventManager()
-    manager.add_event_handler("my_event", epoch_handler, filter_payload=True)
-    manager.trigger_event("my_event", epoch=3, loss=0.5)
-    assert epoch_handler.kwargs == {"epoch": 3}
+def test_needs_context_partial_binding_keyword_argument_of_the_context() -> None:
+    assert not _needs_context(functools.partial(positional_handler, context=Context()))
 
 
-def test_event_manager_filter_payload_no_parameter() -> None:
-    manager = EventManager()
-    manager.add_event_handler("my_event", hello_handler, filter_payload=True)
-    manager.trigger_event("my_event", epoch=3)
-    assert hello_handler.call_count == 1
+def test_needs_context_method() -> None:
+    assert _needs_context(CallableRecorder([]))
 
 
-def test_event_manager_filter_payload_keyword_only_parameter() -> None:
-    manager = EventManager()
-    manager.add_event_handler("my_event", keyword_only_handler, filter_payload=True)
-    manager.trigger_event("my_event", epoch=3, loss=0.5)
-    assert keyword_only_handler.kwargs == {"loss": 0.5}
+def test_needs_context_bound_method_without_parameter() -> None:
+    assert not _needs_context(CustomCondition())
 
 
-def test_event_manager_filter_payload_missing_key_still_raises() -> None:
-    manager = EventManager()
-    manager.add_event_handler("my_event", epoch_handler, filter_payload=True)
-    with pytest.raises(TypeError, match=r"missing 1 required positional argument: 'epoch'"):
-        manager.trigger_event("my_event", loss=0.5)
+def test_needs_context_lambda_without_parameter() -> None:
+    assert not _needs_context(lambda: None)
 
 
-def test_event_manager_filter_payload_positional_only_not_passed() -> None:
-    manager = EventManager()
-    manager.add_event_handler("my_event", positional_only_handler, filter_payload=True)
-    with pytest.raises(TypeError, match=r"missing 1 required positional argument"):
-        manager.trigger_event("my_event", epoch=3)
+def test_needs_context_lambda_with_parameter() -> None:
+    assert _needs_context(lambda context: context)
 
 
 def test_subscription_active_after_add() -> None:

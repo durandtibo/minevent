@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from minevent import AfterNCondition, EventManager, PeriodicCondition
+from minevent import AfterNCondition, Context, EventManager, PeriodicCondition
 from tests.integration.helpers import run_threads
 
 if TYPE_CHECKING:
@@ -198,30 +198,27 @@ def test_remove_from_threads_registrations_added_by_other_threads() -> None:
 
 
 def test_add_event_handler_options_from_threads() -> None:
-    """Test that registrations with a stateful condition, a payload
-    filter and a partial, added from several threads, all run with the
-    right arguments."""
+    """Test that registrations with a stateful condition and a partial,
+    added from several threads, all run with the right arguments."""
     manager = EventManager()
-    calls: list[tuple[int, int]] = []
+    calls: list[tuple[int, object]] = []
     lock = threading.Lock()
 
-    def record(index: int, epoch: int) -> None:
+    def record(index: int, context: Context) -> None:
         with lock:
-            calls.append((index, epoch))
+            calls.append((index, context["epoch"]))
 
     def work(index: int) -> None:
         manager.add_event_handler(
             "my_event",
             functools.partial(record, index),
             condition=PeriodicCondition(freq=1),
-            filter_payload=True,
         )
         manager.add_event_handler(
             "my_event",
             functools.partial(record, index),
             once=True,
             condition=AfterNCondition(n=0),
-            filter_payload=True,
         )
 
     run_threads(work, NUM_THREADS)

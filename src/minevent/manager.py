@@ -15,6 +15,8 @@ import threading
 from collections.abc import Awaitable, Coroutine
 from typing import TYPE_CHECKING
 
+from minevent.context import Context
+
 if TYPE_CHECKING:
     from collections.abc import Callable
     from types import TracebackType
@@ -39,28 +41,33 @@ def _check_event(event: object) -> None:
         raise TypeError(msg)
 
 
-def _accepted_keywords(func: Callable[..., object]) -> frozenset[str] | None:
-    r"""Get the keyword arguments that a callable accepts.
+def _needs_context(func: Callable[..., object]) -> bool:
+    r"""Indicate if a handler must be called with the context.
+
+    The check counts parameters and never matches keys: a handler
+    receives the context if it has a parameter that accepts a
+    positional argument (a positional-only, a positional-or-keyword or
+    a ``*args`` parameter), and it is called without argument
+    otherwise. A callable whose signature cannot be inspected receives
+    the context. The signature of a ``functools.partial`` does not
+    contain the positional arguments that it binds.
 
     Args:
         func: The callable to inspect.
 
     Returns:
-        The names of the parameters that can be passed by keyword,
-            or ``None`` if the callable accepts any keyword (it has a
-            ``**kwargs`` parameter) or if its signature cannot be
-            inspected. The signature of a ``functools.partial`` does
-            not contain the positional arguments that it binds.
+        ``True`` if ``func`` is called as ``func(context)``, and
+            ``False`` if it is called as ``func()``.
 
     Example:
         ```pycon
-        >>> from minevent.manager import _accepted_keywords
-        >>> def func(a, /, b, *, c, **kwargs): ...
-        >>> _accepted_keywords(func) is None
+        >>> from minevent.manager import _needs_context
+        >>> def func(): ...
+        >>> _needs_context(func)
+        False
+        >>> def func(context): ...
+        >>> _needs_context(func)
         True
-        >>> def func(a, /, b, *, c): ...
-        >>> sorted(_accepted_keywords(func))
-        ['b', 'c']
 
         ```
     """
@@ -69,13 +76,15 @@ def _accepted_keywords(func: Callable[..., object]) -> frozenset[str] | None:
     try:
         parameters = inspect.signature(func).parameters.values()
     except (TypeError, ValueError):
-        return None
-    if any(param.kind is inspect.Parameter.VAR_KEYWORD for param in parameters):
-        return None
-    return frozenset(
-        param.name
+        return True
+    return any(
+        param.kind
+        in (
+            inspect.Parameter.POSITIONAL_ONLY,
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            inspect.Parameter.VAR_POSITIONAL,
+        )
         for param in parameters
-        if param.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY)
     )
 
 
@@ -175,8 +184,6 @@ class Subscription:
             its first execution. Default is ``False``.
         condition: The condition evaluated before the handler, or
             ``None`` if the handler always runs. Default is ``None``.
-        filter_payload: If ``True``, only the payload keys that the
-            handler accepts are passed to it. Default is ``False``.
 
     Example:
         ```pycon
@@ -215,16 +222,14 @@ class Subscription:
         *,
         once: bool = False,
         condition: Condition | None = None,
-        filter_payload: bool = False,
     ) -> None:
         self._manager = manager
         self._event = event
         self._handler = handler
         self._once = once
         self._condition = condition
-        self._filter_payload = filter_payload
-        # The accepted keys are computed once, at registration.
-        self._payload_keys = _accepted_keywords(handler) if filter_payload else None
+        # The check is done once, at registration.
+        self._with_context = _needs_context(handler)
         # Set to False by the manager when the registration leaves its registry.
         self._active = True
 
@@ -284,17 +289,6 @@ class Subscription:
         return self._condition
 
     @property
-    def filter_payload(self) -> bool:
-        r"""Indicate if the payload is filtered by the signature of the
-        handler.
-
-        Returns:
-            ``True`` if only the payload keys accepted by the handler
-                are passed to it, otherwise ``False``.
-        """
-        return self._filter_payload
-
-    @property
     def active(self) -> bool:
         r"""Indicate if the registration is still registered.
 
@@ -308,9 +302,9 @@ class Subscription:
         """
         return self._active
 
-    def _call(self, payload: dict[str, object]) -> object:
-        r"""Run the registration: removal check, condition, once claim,
-        payload filter and handler.
+    def _call(self, context: Context) -> object:
+        r"""Run the registration: removal check, condition, once claim
+        and handler.
 
         A registration that was removed before its turn (by
         ``remove``, ``clear_event``, ``reset`` or a ``once`` claim)
@@ -322,9 +316,14 @@ class Subscription:
         threads. A condition that is ``False`` (or that raises) does
         not consume a ``once`` registration.
 
+        The handler is called as ``handler(context)`` if it has a
+        parameter that accepts a positional argument (or if its
+        signature cannot be inspected), and as ``handler()``
+        otherwise.
+
         Args:
-            payload: The payload given to ``trigger_event`` or
-                ``atrigger_event``.
+            context: The context built from the payload given to
+                ``trigger_event`` or ``atrigger_event``.
 
         Returns:
             The value returned by the handler, or ``None`` if the
@@ -338,9 +337,9 @@ class Subscription:
             return None
         if self._once and not self.remove():
             return None
-        if self._payload_keys is not None:
-            payload = {key: value for key, value in payload.items() if key in self._payload_keys}
-        return self._handler(**payload)
+        if self._with_context:
+            return self._handler(context)
+        return self._handler()
 
     def remove(self) -> bool:
         r"""Remove the registration.
@@ -380,9 +379,11 @@ class EventManager:
     ``event in manager`` and ``len(manager)`` inspect the registry, and
     ``clear_event`` and ``reset`` empty it.
 
-    A handler is any callable, called as ``handler(**payload)``. The
-    options of a registration (``once``, ``condition`` and
-    ``filter_payload``) are the keyword-only arguments of
+    A handler is any callable. It is called as ``handler(context)``
+    with a read-only ``Context`` that holds the payload of the trigger
+    if it has a parameter that accepts a positional argument, and as
+    ``handler()`` otherwise. The options of a registration (``once``
+    and ``condition``) are the keyword-only arguments of
     ``add_event_handler`` and ``on``. Use ``functools.partial`` to bind
     other arguments.
 
@@ -519,15 +520,19 @@ class EventManager:
         *,
         once: bool = False,
         condition: Condition | None = None,
-        filter_payload: bool = False,
     ) -> Subscription:
         r"""Add a handler to an event.
 
         The handler will be called every time the specified event is
-        triggered, as ``handler(**payload)``. Multiple handlers can be
-        registered to the same event, and they will be executed in the
-        order they were added. Use ``functools.partial`` to bind
-        other arguments.
+        triggered. It is called as ``handler(context)``, where
+        ``context`` is the read-only ``Context`` built from the payload
+        of the trigger, if it has a parameter that accepts a
+        positional argument (or if its signature cannot be
+        inspected), and as ``handler()`` otherwise. This is checked
+        once, at registration, and it never matches keys. Multiple
+        handlers can be registered to the same event, and they will be
+        executed in the order they were added. Use
+        ``functools.partial`` to bind other arguments.
 
         Args:
             event: The event name (case-sensitive string) to which
@@ -548,16 +553,6 @@ class EventManager:
                 ``trigger_event``. A stateful condition, such as
                 ``PeriodicCondition``, must not be shared between
                 registrations. Default is ``None``.
-            filter_payload: If ``True``, only the payload keys that
-                the signature of the handler accepts are passed to
-                it, so handlers with different needs can share an
-                event without ``**kwargs``. The accepted keys are
-                computed once, at registration. A handler with a
-                ``**kwargs`` parameter, or whose signature cannot be
-                inspected, receives the whole payload. The signature
-                of a ``functools.partial`` does not contain the
-                positional arguments that it binds. Default is
-                ``False``.
 
         Returns:
             A subscription whose ``remove`` method removes this
@@ -586,7 +581,12 @@ class EventManager:
             >>> manager.trigger_event("my_event")
             Hello!
             >>> manager.trigger_event("my_event")
-            >>> _ = manager.add_event_handler("greet", functools.partial(print, "Hello!"))
+            >>> def greet_handler(message):
+            ...     print(message)
+            ...
+            >>> _ = manager.add_event_handler(
+            ...     "greet", functools.partial(greet_handler, "Hello!")
+            ... )
             >>> manager.trigger_event("greet")
             Hello!
             >>> _ = manager.add_event_handler(
@@ -595,10 +595,10 @@ class EventManager:
             >>> manager.trigger_event("tick")
             Hello!
             >>> manager.trigger_event("tick")
-            >>> def epoch_handler(epoch):
-            ...     print(f"epoch {epoch}")
+            >>> def epoch_handler(context):
+            ...     print(f"epoch {context['epoch']}")
             ...
-            >>> _ = manager.add_event_handler("epoch_end", epoch_handler, filter_payload=True)
+            >>> _ = manager.add_event_handler("epoch_end", epoch_handler)
             >>> manager.trigger_event("epoch_end", epoch=3, loss=0.5)
             epoch 3
 
@@ -611,9 +611,7 @@ class EventManager:
         if condition is not None and not callable(condition):
             msg = f"condition must be callable, but got {condition!r}"
             raise TypeError(msg)
-        subscription = Subscription(
-            self, event, handler, once=once, condition=condition, filter_payload=filter_payload
-        )
+        subscription = Subscription(self, event, handler, once=once, condition=condition)
         with self._lock:
             self._subscriptions.setdefault(event, {})[subscription] = None
         return subscription
@@ -624,13 +622,12 @@ class EventManager:
         *,
         once: bool = False,
         condition: Condition | None = None,
-        filter_payload: bool = False,
     ) -> Callable[[_F], _F]:
         r"""Create a decorator that registers a function as a handler.
 
         The decorated function is registered with
-        ``add_event_handler(event, func, once=once, condition=condition,
-        filter_payload=filter_payload)`` and returned unchanged. Use
+        ``add_event_handler(event, func, once=once, condition=condition)``
+        and returned unchanged. Use
         ``add_event_handler`` if you need the ``Subscription``.
 
         Args:
@@ -639,9 +636,6 @@ class EventManager:
                 ``add_event_handler``. Default is ``False``.
             condition: An optional condition evaluated before the
                 handler. See ``add_event_handler``. Default is ``None``.
-            filter_payload: If ``True``, only the payload keys that
-                the function accepts are passed to it. See
-                ``add_event_handler``. Default is ``False``.
 
         Returns:
             The decorator.
@@ -657,16 +651,16 @@ class EventManager:
             >>> from minevent import EventManager
             >>> manager = EventManager()
             >>> @manager.on("my_event")
-            ... def hello_handler(name):
-            ...     print(f"Hello {name}!")
+            ... def hello_handler(context):
+            ...     print(f"Hello {context['name']}!")
             ...
             >>> manager.trigger_event("my_event", name="Bob")
             Hello Bob!
-            >>> hello_handler("Alice")
+            >>> hello_handler({"name": "Alice"})
             Hello Alice!
-            >>> @manager.on("epoch_end", filter_payload=True)
-            ... def log_epoch(epoch):
-            ...     print(f"epoch {epoch}")
+            >>> @manager.on("epoch_end")
+            ... def log_epoch(context):
+            ...     print(f"epoch {context['epoch']}")
             ...
             >>> manager.trigger_event("epoch_end", epoch=3, loss=0.5)
             epoch 3
@@ -676,9 +670,7 @@ class EventManager:
         _check_event(event)
 
         def decorator(func: _F) -> _F:
-            self.add_event_handler(
-                event, func, once=once, condition=condition, filter_payload=filter_payload
-            )
+            self.add_event_handler(event, func, once=once, condition=condition)
             return func
 
         return decorator
@@ -727,14 +719,18 @@ class EventManager:
         triggers its own event raises a ``RecursionError``. Guard the
         recursive trigger with a condition or a flag.
 
-        The keyword arguments ``payload`` are passed to every
-        handler as ``handler(**payload)``. Without payload, handlers
-        are called without argument. A handler that does not accept
-        the payload raises a ``TypeError``, unless it was registered
-        with ``filter_payload=True``, which passes only the keys that
-        its signature accepts. The payload can use any key, including
-        ``event`` and ``self``, because ``event`` is positional-only.
-        All the handlers receive the same payload objects.
+        The keyword arguments ``payload`` are copied into one
+        read-only ``Context`` that is built once per trigger and
+        shared by all the handlers. A handler that has a parameter
+        that accepts a positional argument is called as
+        ``handler(context)``, and the other handlers are called as
+        ``handler()``. A handler reads the keys it needs and decides
+        what to do when one is missing: ``context["key"]`` raises a
+        ``KeyError``, and ``context.get("key", default)`` returns a
+        default. Extra keys never break a handler. The payload can
+        use any key, including ``event`` and ``self``, because
+        ``event`` is positional-only. All the handlers receive the
+        same payload objects.
 
         Before its handler, a registration evaluates its condition
         (the handler is skipped if it is ``False``), and a ``once``
@@ -742,8 +738,8 @@ class EventManager:
 
         Args:
             event: The event name (case-sensitive string) to trigger.
-            **payload: The data passed to the handlers as keyword
-                arguments.
+            **payload: The data passed to the handlers in the
+                ``Context``.
 
         Raises:
             TypeError: if ``event`` is not a string, or if a handler
@@ -764,8 +760,8 @@ class EventManager:
             >>> _ = manager.add_event_handler("my_event", hello_handler)
             >>> manager.trigger_event("my_event")
             Hello!
-            >>> def epoch_handler(epoch):
-            ...     print(f"epoch {epoch}")
+            >>> def epoch_handler(context):
+            ...     print(f"epoch {context['epoch']}")
             ...
             >>> _ = manager.add_event_handler("epoch_end", epoch_handler)
             >>> manager.trigger_event("epoch_end", epoch=3)
@@ -774,9 +770,10 @@ class EventManager:
             ```
         """
         subscriptions = self.get_subscriptions(event)
+        context = Context(payload)
         for subscription in subscriptions:
             try:
-                _check_not_awaitable(subscription._call(payload), subscription.handler)
+                _check_not_awaitable(subscription._call(context), subscription.handler)
             except Exception as exc:
                 _add_error_note(exc, event, subscription.handler)
                 raise
@@ -798,8 +795,8 @@ class EventManager:
 
         Args:
             event: The event name (case-sensitive string) to trigger.
-            **payload: The data passed to the handlers as keyword
-                arguments.
+            **payload: The data passed to the handlers in the
+                ``Context``.
 
         Raises:
             TypeError: if ``event`` is not a string. Any exception
@@ -810,8 +807,8 @@ class EventManager:
             >>> import asyncio
             >>> from minevent import EventManager
             >>> manager = EventManager()
-            >>> async def hello_handler(name):
-            ...     print(f"Hello {name}!")
+            >>> async def hello_handler(context):
+            ...     print(f"Hello {context['name']}!")
             ...
             >>> _ = manager.add_event_handler("my_event", hello_handler)
             >>> asyncio.run(manager.atrigger_event("my_event", name="John"))
@@ -820,9 +817,10 @@ class EventManager:
             ```
         """
         subscriptions = self.get_subscriptions(event)
+        context = Context(payload)
         for subscription in subscriptions:
             try:
-                result = subscription._call(payload)
+                result = subscription._call(context)
                 if result is not None and isinstance(result, Awaitable):
                     await result
             except Exception as exc:
