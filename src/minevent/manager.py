@@ -11,6 +11,7 @@ from __future__ import annotations
 __all__ = ["EventManager", "Subscription"]
 
 import functools
+import sys
 import threading
 from collections.abc import Awaitable, Coroutine, Mapping
 from typing import TYPE_CHECKING
@@ -50,7 +51,10 @@ def _needs_context(func: Callable[..., object]) -> bool:
     a ``*args`` parameter), and it is called without argument
     otherwise. A callable whose signature cannot be inspected receives
     the context. The signature of a ``functools.partial`` does not
-    contain the positional arguments that it binds.
+    contain the positional arguments that it binds. The annotations
+    are not needed, so they do not have to be resolvable: on Python
+    3.14+, a name that is only imported under ``TYPE_CHECKING`` is
+    kept as a forward reference instead of raising a ``NameError``.
 
     Args:
         func: The callable to inspect.
@@ -74,7 +78,13 @@ def _needs_context(func: Callable[..., object]) -> bool:
     import inspect  # noqa: PLC0415
 
     try:
-        parameters = inspect.signature(func).parameters.values()
+        if sys.version_info >= (3, 14):
+            # The annotations are evaluated lazily, and an unresolved name must not raise.
+            import annotationlib  # noqa: PLC0415
+
+            signature = inspect.signature(func, annotation_format=annotationlib.Format.FORWARDREF)
+        else:
+            signature = inspect.signature(func)
     except (TypeError, ValueError):
         return True
     return any(
@@ -84,7 +94,7 @@ def _needs_context(func: Callable[..., object]) -> bool:
             inspect.Parameter.POSITIONAL_OR_KEYWORD,
             inspect.Parameter.VAR_POSITIONAL,
         )
-        for param in parameters
+        for param in signature.parameters.values()
     )
 
 

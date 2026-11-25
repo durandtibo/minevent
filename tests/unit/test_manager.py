@@ -5,6 +5,8 @@ import functools
 import inspect
 import logging
 import pickle
+import runpy
+import sys
 import threading
 from collections.abc import Awaitable
 from types import MappingProxyType
@@ -31,6 +33,7 @@ from tests.unit.utils import raised, trace
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+    from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -1517,6 +1520,63 @@ def test_needs_context_lambda_without_parameter() -> None:
 
 def test_needs_context_lambda_with_parameter() -> None:
     assert _needs_context(lambda context: context)
+
+
+# The module has no ``from __future__ import annotations``, so Python 3.14+ evaluates the
+# annotations when ``inspect.signature`` reads them.
+UNRESOLVED_ANNOTATIONS = """
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from decimal import Decimal
+
+
+def no_parameter() -> Decimal: ...
+
+
+def one_parameter(context: Decimal) -> None: ...
+"""
+
+requires_lazy_annotations = pytest.mark.skipif(
+    sys.version_info < (3, 14),
+    reason="the annotations are evaluated at definition before Python 3.14",
+)
+
+
+def unresolved_function(path: Path, name: str) -> Callable[..., Any]:
+    r"""Define a function whose annotations cannot be resolved."""
+    module = path / "unresolved.py"
+    module.write_text(UNRESOLVED_ANNOTATIONS)
+    return runpy.run_path(str(module))[name]
+
+
+@requires_lazy_annotations
+def test_needs_context_unresolved_return_annotation(tmp_path: Path) -> None:
+    assert not _needs_context(unresolved_function(tmp_path, "no_parameter"))
+
+
+@requires_lazy_annotations
+def test_needs_context_unresolved_parameter_annotation(tmp_path: Path) -> None:
+    assert _needs_context(unresolved_function(tmp_path, "one_parameter"))
+
+
+def test_needs_context_before_python_3_14(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(sys, "version_info", (3, 13, 0))
+    assert _needs_context(positional_handler)
+
+
+@requires_lazy_annotations
+def test_event_manager_add_event_handler_unresolved_annotation(tmp_path: Path) -> None:
+    handler = unresolved_function(tmp_path, "no_parameter")
+    subscription = EventManager().add_event_handler("my_event", handler)
+    assert subscription.active
+
+
+@requires_lazy_annotations
+def test_event_manager_add_event_handler_condition_unresolved_annotation(tmp_path: Path) -> None:
+    condition = unresolved_function(tmp_path, "no_parameter")
+    subscription = EventManager().add_event_handler("my_event", print, condition=condition)
+    assert subscription.active
 
 
 #################################

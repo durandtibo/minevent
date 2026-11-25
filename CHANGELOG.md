@@ -94,6 +94,8 @@ condition=AfterNCondition(2)` runs once, on the third trigger (it never ran). A 
 
 ### Fixed
 
+- Registering a handler or a condition annotated with a name that is only imported under
+  `TYPE_CHECKING` no longer raises a `NameError` on Python 3.14+ (#852).
 - The note added to the exception of a handler is added once per distinct event and handler: an
   exception instance raised again, or a handler that triggers its own event, no longer accumulates
   identical notes (#766).
