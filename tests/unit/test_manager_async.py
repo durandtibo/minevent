@@ -340,3 +340,28 @@ async def test_event_manager_atrigger_event_condition_reads_the_payload() -> Non
     await manager.atrigger_event("my_event", {"epoch": 0})
     await manager.atrigger_event("my_event", {"epoch": 1})
     assert values == [1]
+
+
+async def async_never() -> bool:
+    r"""Implement an async condition that is ``False``."""
+    return False
+
+
+async def test_event_manager_atrigger_event_condition_returns_awaitable() -> None:
+    manager = EventManager()
+    condition: Any = async_never
+    manager.add_event_handler("my_event", async_handler, condition=condition)
+    with pytest.raises(TypeError, match=r"condition async_never returned an awaitable"):
+        await manager.atrigger_event("my_event")
+    assert async_handler.call_count == 0
+
+
+async def test_event_manager_atrigger_event_condition_awaitable_keeps_once_registration() -> None:
+    manager = EventManager()
+    condition: Any = async_never
+    subscription = manager.add_event_handler(
+        "my_event", async_handler, once=True, condition=condition
+    )
+    with pytest.raises(TypeError, match=r"returned an awaitable"):
+        await manager.atrigger_event("my_event")
+    assert subscription.active

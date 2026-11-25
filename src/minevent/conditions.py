@@ -7,7 +7,9 @@ conditions of this module. It is called as ``condition()``, or as
 it has a parameter without default, so it can depend on the payload:
 ``lambda context: context.get("epoch", 0) > 5``. Like a handler, it
 keeps the values of the parameters that have a default, and any other
-signature is rejected at registration.
+signature is rejected at registration. A condition is synchronous, in
+``atrigger_event`` too: the trigger raises a ``TypeError`` if it
+returns an awaitable.
 ``Condition`` is the type alias
 ``Callable[[], bool] | Callable[[Context], bool]``. A condition is
 called each time the event is triggered, before the handler, and the

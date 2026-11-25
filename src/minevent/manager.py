@@ -403,7 +403,9 @@ class Subscription:
         registration is removed by an atomic claim just before its
         handler, so it runs at most once whatever the number of
         threads. A condition that is ``False`` (or that raises) does
-        not consume a ``once`` registration.
+        not consume a ``once`` registration. A condition is
+        synchronous: if it returns an awaitable, a coroutine is closed,
+        a ``TypeError`` is raised, and the handler is not called.
 
         The condition and the handler are called with the context if
         they have a parameter without default, and without argument
@@ -418,15 +420,28 @@ class Subscription:
                 registration was removed, if the condition is
                 ``False`` or if the registration lost the claim. It is
                 awaitable if the handler is a coroutine function.
+
+        Raises:
+            TypeError: if the condition returns an awaitable. Any
+                exception raised by the condition or the handler also
+                propagates.
         """
         if not self._active:
             return None
-        if self._condition_call is not None and not (
-            self._condition_call(context)
-            if self._condition_with_context
-            else self._condition_call()
-        ):
-            return None
+        if self._condition_call is not None:
+            result = (
+                self._condition_call(context)
+                if self._condition_with_context
+                else self._condition_call()
+            )
+            # A coroutine is truthy, so an async condition would always run the handler.
+            if result is not True and isinstance(result, Awaitable):
+                if isinstance(result, Coroutine):
+                    result.close()
+                msg = f"condition {_describe(self._condition_call)} returned an awaitable"
+                raise TypeError(msg)
+            if not result:
+                return None
         if self._once and not self.remove():
             return None
         if self._with_context:
@@ -644,8 +659,10 @@ class EventManager:
                 is ``False`` does not consume the registration: it
                 waits for the first time the condition is ``True``.
                 Default is ``False``.
-            condition: An optional condition: a function that returns
-                a boolean. It is called each time the event is
+            condition: An optional condition: a synchronous function
+                that returns a boolean (a condition that returns an
+                awaitable, such as a coroutine function, makes the
+                trigger raise a ``TypeError``). It is called each time the event is
                 triggered, before the handler, and the handler runs
                 only if it returns ``True``. It is called as
                 ``condition()`` or ``condition(context)``, with the
@@ -854,7 +871,8 @@ class EventManager:
 
         Raises:
             TypeError: if ``event`` is not a string, if ``context`` is
-                neither ``None`` nor a mapping with ``str`` keys, or if a handler
+                neither ``None`` nor a mapping with ``str`` keys, if a
+                condition returns an awaitable, or if a handler
                 returns an awaitable (use ``atrigger_event`` for
                 coroutine handlers). Any exception raised by a
                 handler or a condition also propagates, including a
@@ -916,8 +934,10 @@ class EventManager:
                 not modified. Default is ``None``.
 
         Raises:
-            TypeError: if ``event`` is not a string, or if ``context``
-                is neither ``None`` nor a mapping with ``str`` keys. Any exception
+            TypeError: if ``event`` is not a string, if ``context``
+                is neither ``None`` nor a mapping with ``str`` keys, or
+                if a condition returns an awaitable (the conditions
+                are synchronous and are never awaited). Any exception
                 raised by a handler or a condition also propagates.
 
         Example:
