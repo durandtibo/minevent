@@ -450,7 +450,7 @@ so. Each step updates the docstrings, the property it changes in `architecture.m
 | 1    | `bugfix/fix-removal-thread-test`            | Assert what P9 guarantees: `once=True` in the test              | no       | F5       | #864         |
 | 2    | `bugfix/count-condition-calls-exactly`      | The shared counter and its lock (4.4, without `start`)          | no       | F4       | #865         |
 | 3    | `perf/read-missing-context-keys`            | `get` and `__contains__` (4.5), a benchmark                     | no       | F6       | #867         |
-| 4    | `refactor/add-calls-module`                 | Move the helpers to `calls.py` and split `test_manager.py`      | no       | F12      |              |
+| 4    | `refactor/add-calls-module`                 | Move the helpers to `calls.py` and split `test_manager.py`      | no       | F12      | #868         |
 | 5    | `bugfix/name-failing-condition` (on 4)      | `_claim`, `_invoke`, the notes (4.1, 4.2)                       | note     | F1, F3   |              |
 | 6    | `feat/reject-async-conditions` (on 5)       | The check of 4.3                                                | **yes**  | F2       |              |
 | 7    | `bugfix/release-handlers-outside-lock`      | 4.7                                                             | no       | F9       |              |

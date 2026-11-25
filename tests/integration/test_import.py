@@ -35,8 +35,9 @@ def test_import_minevent_does_not_import_typing_name(name: str) -> None:
     """Test that the modules of ``minevent`` create no ``typing`` object
     at import: the names are read under ``TYPE_CHECKING`` only."""
     code = (
-        "import minevent.conditions, minevent.manager\n"
-        f"print({name!r} in vars(minevent.manager) or {name!r} in vars(minevent.conditions))"
+        "import minevent.calls, minevent.conditions, minevent.manager\n"
+        "modules = (minevent.calls, minevent.conditions, minevent.manager)\n"
+        f"print(any({name!r} in vars(module) for module in modules))"
     )
     assert run_python(code).stdout.strip() == "False"
 
