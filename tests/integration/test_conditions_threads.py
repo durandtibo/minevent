@@ -46,6 +46,13 @@ def test_periodic_condition_counts_every_call_from_threads() -> None:
     assert count_true_calls(PeriodicCondition(freq=2)) == 80_000
 
 
+def test_periodic_condition_with_start_counts_every_call_from_threads() -> None:
+    """Test that a ``PeriodicCondition`` with a ``start``, called from
+    several threads, is true for exactly one call in ``freq`` after
+    ``start``."""
+    assert count_true_calls(PeriodicCondition(freq=2, start=100_000)) == 30_000
+
+
 def test_after_n_condition_counts_every_call_from_threads() -> None:
     """Test that an ``AfterNCondition`` called from several threads is
     false for exactly ``n`` calls."""
@@ -55,7 +62,7 @@ def test_after_n_condition_counts_every_call_from_threads() -> None:
 @pytest.mark.parametrize(
     ("condition_class", "expected"),
     [
-        (PeriodicCondition, "PeriodicCondition(freq=2, skip_first=False, step=160,000)"),
+        (PeriodicCondition, "PeriodicCondition(freq=2, start=0, step=160,000)"),
         (AfterNCondition, "AfterNCondition(n=2, step=160,000)"),
     ],
 )
@@ -93,7 +100,7 @@ def test_condition_of_a_trigger_counts_every_trigger_from_threads() -> None:
 @pytest.mark.parametrize(
     ("condition_class", "expected"),
     [
-        (PeriodicCondition, "PeriodicCondition(freq=2, skip_first=False, step=1)"),
+        (PeriodicCondition, "PeriodicCondition(freq=2, start=0, step=1)"),
         (AfterNCondition, "AfterNCondition(n=2, step=1)"),
     ],
 )

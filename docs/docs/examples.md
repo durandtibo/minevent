@@ -37,7 +37,8 @@ The first call of `train` prints nothing because no handler is registered.
 ## Run a handler every N epochs
 
 Give the registration a condition. `PeriodicCondition(freq=3)` is `True` on the first call and then
-every three calls; `skip_first=True` skips the first call:
+every three calls. `start` is the index (from 0) of the first call that is `True`: `start=3` skips
+the first call:
 
 ```pycon
 >>> from minevent import EventManager, PeriodicCondition
@@ -45,12 +46,29 @@ every three calls; `skip_first=True` skips the first call:
 >>> _ = manager.add_event_handler(
 ...     "epoch_end",
 ...     lambda context: print(f"checkpoint at epoch {context['epoch']}"),
-...     condition=PeriodicCondition(freq=3, skip_first=True),
+...     condition=PeriodicCondition(freq=3, start=3),
 ... )
 >>> for epoch in range(7):
 ...     manager.trigger_event("epoch_end", {"epoch": epoch})
 checkpoint at epoch 3
 checkpoint at epoch 6
+
+```
+
+With the epochs counted from 0, `start=2` runs the handler at the end of every third epoch:
+
+```pycon
+>>> from minevent import EventManager, PeriodicCondition
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler(
+...     "epoch_end",
+...     lambda context: print(f"evaluate at epoch {context['epoch']}"),
+...     condition=PeriodicCondition(freq=3, start=2),
+... )
+>>> for epoch in range(7):
+...     manager.trigger_event("epoch_end", {"epoch": epoch})
+evaluate at epoch 2
+evaluate at epoch 5
 
 ```
 

@@ -56,12 +56,31 @@ def test_periodic_condition_incorrect_freq_type(freq: Any) -> None:
         PeriodicCondition(freq)
 
 
-def test_periodic_condition_skip_first_default() -> None:
-    assert not PeriodicCondition(3).skip_first
+def test_periodic_condition_start_default() -> None:
+    assert PeriodicCondition(3).start == 0
 
 
-def test_periodic_condition_skip_first_true() -> None:
-    assert PeriodicCondition(3, skip_first=True).skip_first
+@pytest.mark.parametrize("start", [0, 1, 3, 100])
+def test_periodic_condition_start(start: int) -> None:
+    assert PeriodicCondition(3, start=start).start == start
+
+
+@pytest.mark.parametrize("start", [-1, -3])
+def test_periodic_condition_incorrect_start_value(start: int) -> None:
+    with pytest.raises(ValueError, match=r"start must be greater than or equal to 0, got -"):
+        PeriodicCondition(3, start=start)
+
+
+@pytest.mark.parametrize("start", [2.9, "3", None, True, False])
+def test_periodic_condition_incorrect_start_type(start: Any) -> None:
+    with pytest.raises(TypeError, match=r"start must be an integer, got "):
+        PeriodicCondition(3, start=start)
+
+
+def test_periodic_condition_start_is_keyword_only() -> None:
+    args: list[Any] = [3, 1]
+    with pytest.raises(TypeError, match=r"positional argument"):
+        PeriodicCondition(*args)
 
 
 def test_periodic_condition_call_sequence() -> None:
@@ -77,22 +96,22 @@ def test_periodic_condition_call_sequence() -> None:
     ]
 
 
-def test_periodic_condition_call_skip_first_sequence() -> None:
-    condition = PeriodicCondition(3, skip_first=True)
-    assert [condition() for _ in range(7)] == [
-        False,
-        False,
-        False,
-        True,
-        False,
-        False,
-        True,
-    ]
-
-
-def test_periodic_condition_call_freq_1_skip_first() -> None:
-    condition = PeriodicCondition(1, skip_first=True)
-    assert [condition() for _ in range(3)] == [False, True, True]
+@pytest.mark.parametrize(
+    ("freq", "start", "expected"),
+    [
+        (3, 0, "TFFTFFTFFT"),
+        (3, 2, "FFTFFTFFTF"),
+        (3, 3, "FFFTFFTFFT"),
+        (3, 5, "FFFFFTFFTF"),
+        (2, 7, "FFFFFFFTFT"),
+        (1, 0, "TTTTTTTTTT"),
+        (1, 1, "FTTTTTTTTT"),
+        (4, 20, "FFFFFFFFFF"),
+    ],
+)
+def test_periodic_condition_call_start(freq: int, start: int, expected: str) -> None:
+    condition = PeriodicCondition(freq, start=start)
+    assert "".join("T" if condition() else "F" for _ in range(10)) == expected
 
 
 def test_periodic_condition_reset() -> None:
@@ -103,16 +122,21 @@ def test_periodic_condition_reset() -> None:
     assert condition()
 
 
-def test_periodic_condition_reset_skip_first() -> None:
-    condition = PeriodicCondition(3, skip_first=True)
+def test_periodic_condition_reset_start() -> None:
+    condition = PeriodicCondition(3, start=1)
+    condition()
     condition()
     condition.reset()
-    assert not condition()
+    assert [condition() for _ in range(2)] == [False, True]
 
 
 def test_periodic_condition_repr() -> None:
-    assert repr(PeriodicCondition(3, skip_first=True)) == (
-        "PeriodicCondition(freq=3, skip_first=True, step=0)"
+    assert repr(PeriodicCondition(3, start=2)) == "PeriodicCondition(freq=3, start=2, step=0)"
+
+
+def test_periodic_condition_repr_large_values() -> None:
+    assert repr(PeriodicCondition(1000, start=2000)) == (
+        "PeriodicCondition(freq=1,000, start=2,000, step=0)"
     )
 
 
@@ -218,9 +242,9 @@ def test_counting_condition_reset_releases_the_lock() -> None:
 
 
 def test_counting_condition_getstate() -> None:
-    condition = PeriodicCondition(3, skip_first=True)
+    condition = PeriodicCondition(3, start=2)
     condition()
-    assert condition.__getstate__() == {"_step": 1, "_freq": 3, "_skip_first": True}
+    assert condition.__getstate__() == {"_step": 1, "_freq": 3, "_start": 2}
 
 
 def test_counting_condition_getstate_does_not_remove_the_lock() -> None:
@@ -254,7 +278,7 @@ def test_condition_pickle(
 @pytest.mark.parametrize(
     ("condition_class", "expected"),
     [
-        (PeriodicCondition, "PeriodicCondition(freq=3, skip_first=False, step=1)"),
+        (PeriodicCondition, "PeriodicCondition(freq=3, start=0, step=1)"),
         (AfterNCondition, "AfterNCondition(n=3, step=1)"),
     ],
 )
