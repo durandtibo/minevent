@@ -70,6 +70,10 @@ The trigger of a reusable workflow is `workflow_call`: it runs when another work
 All the workflows can also be triggered manually (`workflow_dispatch`), except the reusable ones
 that need inputs and the pull request security review.
 
+The two benchmark workflows compare the median of each benchmark with the one of the last run of
+`main` that finished, successful or not, and fail if it is more than 50% slower. A regression
+therefore fails one run: the next one compares with it.
+
 ## Composite actions vs. reusable workflows
 
 - **`.github/actions/*`** (composite actions): used when the shared unit is a

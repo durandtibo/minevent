@@ -30,10 +30,16 @@ jobs:
         continue-on-error: true # there is no previous run the first time
         env:
           GH_TOKEN: ${{ github.token }}
+        # The baseline is the last run of main that finished, successful or not: a regression then
+        # fails one run, and the next run compares with it. A run that failed before it uploaded its
+        # results is skipped, so the history is not lost.
         run: |
-          run_id=$(gh run list --workflow ci-benchmark.yaml --status success --limit 1 \
-            --json databaseId --jq '.[0].databaseId')
-          gh run download "$run_id" --name benchmark-results --dir .benchmarks
+          run_ids=$(gh run list --workflow ci-benchmark.yaml --branch main --limit 20 \
+            --json databaseId,conclusion \
+            --jq '.[] | select(.conclusion == "success" or .conclusion == "failure") | .databaseId')
+          for run_id in $run_ids; do
+            gh run download "$run_id" --name benchmark-results --dir .benchmarks && break
+          done
 
       - name: Run benchmarks
         # Save the results and fail if the median of a benchmark is more than 50% slower than in the previous
