@@ -1009,7 +1009,7 @@ decides what to do when a value is missing.</p>
 
     <div class="doc doc-contents ">
             <p class="doc doc-class-bases">
-              Bases: <code><span title="collections.abc.Mapping">Mapping</span>[<span title="str">str</span>, <span title="object">object</span>]</code></p>
+              Bases: <code><span title="collections.abc.Mapping">Mapping</span>[<span title="str">str</span>, &#39;Any&#39;]</code></p>
 
 
 
@@ -1021,6 +1021,8 @@ nor a handler can change what the next handler sees. The values
 themselves are not copied: a mutable value stays mutable. A context
 can be copied, deep-copied and pickled (with the protocol 2 or
 higher, like the default one) if its values can.</p>
+<p>The values are typed <code>Any</code>: a type checker lets a handler use a
+value without a cast, and it does not check how the value is used.</p>
 <p><code>context[key]</code> reads a required value and raises a <code>KeyError</code>
 if it is missing. <code>context.get(key, default)</code> reads an optional
 value. <code>key in context</code>, <code>len</code>, iteration, <code>keys</code>, <code>items</code>,

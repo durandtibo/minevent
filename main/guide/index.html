@@ -1638,6 +1638,7 @@ event and an extra key never breaks a handler:</p>
 <ul>
 <li><code>context["loss"]</code> reads a required value and raises a <code>KeyError</code> that lists the available keys.</li>
 <li><code>context.get("loss", 0.0)</code> reads an optional value.</li>
+<li>The values are typed <code>Any</code>, so <code>context["epoch"] + 1</code> type checks without a cast.</li>
 <li><code>"loss" in context</code>, <code>len(context)</code>, <code>context.items()</code> and <code>dict(context)</code> work as for a mapping.</li>
 <li><code>copy.deepcopy(context)</code> takes a snapshot of the payload, and a context can be pickled (to send it
   to a worker process, for example) if its values can.</li>
