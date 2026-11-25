@@ -17,7 +17,7 @@ signature of a handler is coupled to the payload of the trigger:
   special cases: `**kwargs` means "everything", `functools.partial` hides bound arguments, and a
   callable that cannot be inspected receives everything [reading].
 - A key that the trigger does not provide is a `TypeError` at call time (`missing required
-  argument`), raised by Python, not by `minevent`. The handler cannot choose a default or a
+argument`), raised by Python, not by `minevent`. The handler cannot choose a default or a
   fallback unless it declares one in its signature.
 - The whole behaviour is decided by two mechanisms (the signature of the handler and the
   `filter_payload` flag) that the reader of the handler must combine in their head.
@@ -71,11 +71,11 @@ trigger and shares it with all the handlers (safe because it is immutable).
 
 As asked, the registration only checks **whether the handler needs the context**:
 
-| Handler signature            | Called as           |
-| ---------------------------- | ------------------- |
-| no parameter, e.g. `def f()` | `handler()`         |
-| one positional parameter     | `handler(context)`  |
-| cannot be inspected          | `handler(context)`  |
+| Handler signature            | Called as          |
+| ---------------------------- | ------------------ |
+| no parameter, e.g. `def f()` | `handler()`        |
+| one positional parameter     | `handler(context)` |
+| cannot be inspected          | `handler(context)` |
 
 The check is done once at registration (like `_accepted_keywords` today) and replaces it. It
 counts parameters, with no key matching and no `**kwargs`/`partial` special cases for keys. A
@@ -97,21 +97,21 @@ this document does not propose it.
 
 ## 3. Comparison with the current design
 
-| Aspect                                   | Current (`**payload`, `filter_payload`)                                           | Proposed (`Context`)                                                         |
-| ---------------------------------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| Handler signature                        | `def f(epoch, loss)`: self-documenting, checked by Python                         | `def f(context)`: the keys are read in the body                              |
-| Handlers that need different subsets     | Needs `filter_payload=True` or `**kwargs` on each                                 | Natural: each handler reads what it needs, no option                         |
-| Missing value                            | `TypeError` from Python, unless a default is in the signature                     | The handler chooses: `context["k"]` (`KeyError`), `get("k", d)`, `"k" in`    |
-| Extra value the handler ignores          | `TypeError` unless filtered                                                       | Always fine                                                                  |
-| Signature inspection                     | Key names, `**kwargs`, `partial`, uninspectable fallback (`_accepted_keywords`)   | Parameter count only (0 or 1)                                                |
-| Options on the registration              | `once`, `condition`, `filter_payload`                                             | `once`, `condition` (A) or plus `with_context` (B)                           |
-| Third-party or generic handlers          | Must match key names or use `**kwargs`                                            | One uniform shape, `handler(context)`                                        |
-| Static typing of the keys                | Partial: a type checker sees `epoch: int` in the handler, not against the trigger | None: `context["epoch"]` is `object`; the handler must narrow or cast        |
-| Sharing between handlers                 | Each handler gets its own `dict` of the same objects                              | One immutable `Context` shared; same objects, no way to rebind a key         |
-| Future metadata (event name, trigger id) | Cannot be added without colliding with payload keys                               | Can be added as attributes of `Context`                                      |
-| Public surface                           | 5 names                                                                           | 6 names (`Context`)                                                          |
-| Error message for a missing key          | Python's, no list of available keys                                               | `KeyError` can list the available keys                                       |
-| Cost                                     | Unpack `**payload` per handler                                                    | One `Context` per trigger; not measured                                      |
+| Aspect                                   | Current (`**payload`, `filter_payload`)                                           | Proposed (`Context`)                                                      |
+| ---------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Handler signature                        | `def f(epoch, loss)`: self-documenting, checked by Python                         | `def f(context)`: the keys are read in the body                           |
+| Handlers that need different subsets     | Needs `filter_payload=True` or `**kwargs` on each                                 | Natural: each handler reads what it needs, no option                      |
+| Missing value                            | `TypeError` from Python, unless a default is in the signature                     | The handler chooses: `context["k"]` (`KeyError`), `get("k", d)`, `"k" in` |
+| Extra value the handler ignores          | `TypeError` unless filtered                                                       | Always fine                                                               |
+| Signature inspection                     | Key names, `**kwargs`, `partial`, uninspectable fallback (`_accepted_keywords`)   | Parameter count only (0 or 1)                                             |
+| Options on the registration              | `once`, `condition`, `filter_payload`                                             | `once`, `condition` (A) or plus `with_context` (B)                        |
+| Third-party or generic handlers          | Must match key names or use `**kwargs`                                            | One uniform shape, `handler(context)`                                     |
+| Static typing of the keys                | Partial: a type checker sees `epoch: int` in the handler, not against the trigger | None: `context["epoch"]` is `object`; the handler must narrow or cast     |
+| Sharing between handlers                 | Each handler gets its own `dict` of the same objects                              | One immutable `Context` shared; same objects, no way to rebind a key      |
+| Future metadata (event name, trigger id) | Cannot be added without colliding with payload keys                               | Can be added as attributes of `Context`                                   |
+| Public surface                           | 5 names                                                                           | 6 names (`Context`)                                                       |
+| Error message for a missing key          | Python's, no list of available keys                                               | `KeyError` can list the available keys                                    |
+| Cost                                     | Unpack `**payload` per handler                                                    | One `Context` per trigger; not measured                                   |
 
 ### Where the current design is better
 
@@ -134,7 +134,7 @@ this document does not propose it.
 
 ### Pros and cons of the proposal
 
-**Pros**
+#### Pros
 
 - No `filter_payload` option and no key matching: a handler can no longer receive fewer keys than
   the trigger sends without the reader knowing why.
@@ -151,7 +151,7 @@ this document does not propose it.
 - A `KeyError` from the context can list the available keys, which is a better message than
   Python's `missing required argument`.
 
-**Cons**
+#### Cons
 
 - The typed, self-documenting signature is lost: `def f(epoch: int)` becomes `context["epoch"]`,
   typed as `object`, and a typo in a key is found at run time, not by `ty`.
@@ -170,13 +170,13 @@ this document does not propose it.
 This is a breaking change of the handler contract. The README says the API is unstable before 1.0
 and `CHANGELOG.md` already has a migration section, so it fits that section.
 
-| Before                                                      | After                                                        |
-| ----------------------------------------------------------- | ------------------------------------------------------------ |
-| `def f(): ...`                                              | unchanged                                                    |
-| `def f(epoch): ...`                                         | `def f(context): epoch = context["epoch"]`                   |
-| `add_event_handler("e", f, filter_payload=True)`            | `add_event_handler("e", f)` with `f(context)`                |
-| `def f(**kwargs): ...`                                      | `def f(context): ...` (`dict(context)` gives the old kwargs) |
-| `functools.partial(f, "a", k=1)`                            | unchanged (the partial must still accept zero or one context)|
+| Before                                           | After                                                         |
+| ------------------------------------------------ | ------------------------------------------------------------- |
+| `def f(): ...`                                   | unchanged                                                     |
+| `def f(epoch): ...`                              | `def f(context): epoch = context["epoch"]`                    |
+| `add_event_handler("e", f, filter_payload=True)` | `add_event_handler("e", f)` with `f(context)`                 |
+| `def f(**kwargs): ...`                           | `def f(context): ...` (`dict(context)` gives the old kwargs)  |
+| `functools.partial(f, "a", k=1)`                 | unchanged (the partial must still accept zero or one context) |
 
 A bridge for the migration, if wanted: `lambda context: f(**context)` registers an old handler
 unchanged. No built-in adapter is proposed (a second way to register would keep the old design
