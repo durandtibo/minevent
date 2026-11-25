@@ -32,10 +32,13 @@ class Context(Mapping[str, "Any"]):
 
     ``context[key]`` reads a required value and raises a ``KeyError``
     if it is missing. ``context.get(key, default)`` reads an optional
-    value. ``key in context``, ``len``, iteration, ``keys``, ``items``,
-    ``values`` and ``==`` are inherited from
+    value. ``get`` and ``key in context`` do not build the message of
+    that error, so they cost the same for a present key and a missing
+    one, whatever the number of keys. ``len``, iteration, ``keys``,
+    ``items``, ``values`` and ``==`` behave like those of any
     ``collections.abc.Mapping``, so ``dict(context)`` is a valid
-    ``**kwargs``.
+    ``**kwargs``. A subclass that overrides ``__getitem__`` must
+    override ``get`` and ``__contains__`` too.
 
     Args:
         data: The mapping to copy, or ``None`` for an empty context.
@@ -87,6 +90,9 @@ class Context(Mapping[str, "Any"]):
             msg = f"key {key!r} not found in the context; available keys: {list(self._data)!r}"
             raise KeyError(msg) from None
 
+    def __contains__(self, key: object) -> bool:
+        return key in self._data
+
     def __iter__(self) -> Iterator[str]:
         return iter(self._data)
 
@@ -95,3 +101,35 @@ class Context(Mapping[str, "Any"]):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__qualname__}({self._data!r})"
+
+    def get(self, key: object, default: object = None) -> Any:
+        r"""Get an optional value.
+
+        Unlike ``context[key]``, a missing key costs the same as a
+        present one: no error message is built.
+
+        Args:
+            key: The key to read. A key that is not a ``str`` is never
+                present.
+            default: The value returned if ``key`` is missing. Default
+                is ``None``.
+
+        Returns:
+            The value of ``key``, or ``default`` if it is missing.
+
+        Raises:
+            TypeError: if ``key`` is not hashable.
+
+        Example:
+            ```pycon
+            >>> from minevent import Context
+            >>> context = Context({"epoch": 3})
+            >>> context.get("epoch")
+            3
+            >>> context.get("lr", 0.1)
+            0.1
+
+            ```
+        """
+        # ``Mapping.get`` calls ``__getitem__``, which lists the keys of a missing key.
+        return self._data.get(key, default)

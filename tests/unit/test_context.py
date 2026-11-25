@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import copy
+import operator
 import pickle
 import threading
 from collections.abc import Mapping
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 
@@ -45,12 +47,76 @@ def test_context_get_falsy_value() -> None:
     assert Context({"a": 0}).get("a", 5) == 0
 
 
+def test_context_get_none_value() -> None:
+    assert Context({"a": None}).get("a", 5) is None
+
+
+def test_context_get_empty_context() -> None:
+    assert Context().get("a", 5) == 5
+
+
+@pytest.mark.parametrize("key", [1, None, ("a",), b"a"])
+def test_context_get_key_not_str(key: object) -> None:
+    assert Context({"a": 1}).get(key, 5) == 5
+
+
+def test_context_get_returns_the_value_object() -> None:
+    value = [1, 2]
+    assert Context({"a": value}).get("a") is value
+
+
+def test_context_get_returns_the_default_object() -> None:
+    default = [1, 2]
+    assert Context().get("a", default) is default
+
+
+def test_context_get_unhashable_key() -> None:
+    with pytest.raises(TypeError, match=r"unhashable type"):
+        Context({"a": 1}).get([])
+
+
+def test_context_get_does_not_add_the_key() -> None:
+    context = Context({"a": 1})
+    context.get("b", 5)
+    assert dict(context) == {"a": 1}
+
+
+def test_context_get_missing_does_not_format_keys() -> None:
+    with patch.object(Context, "__getitem__", autospec=True) as getitem:
+        Context({"a": 1}).get("b")
+    getitem.assert_not_called()
+
+
 def test_context_contains_true() -> None:
     assert "a" in Context({"a": 1})
 
 
 def test_context_contains_false() -> None:
     assert "b" not in Context({"a": 1})
+
+
+@pytest.mark.parametrize("key", [1, None, ("a",), b"a"])
+def test_context_contains_key_not_str(key: object) -> None:
+    assert key not in Context({"a": 1})
+
+
+def test_context_contains_empty_context() -> None:
+    assert "a" not in Context()
+
+
+def test_context_contains_none_value() -> None:
+    assert "a" in Context({"a": None})
+
+
+def test_context_contains_unhashable_key() -> None:
+    with pytest.raises(TypeError, match=r"unhashable type"):
+        operator.contains(Context({"a": 1}), [])
+
+
+def test_context_contains_missing_does_not_format_keys() -> None:
+    with patch.object(Context, "__getitem__", autospec=True) as getitem:
+        operator.contains(Context({"a": 1}), "b")
+    getitem.assert_not_called()
 
 
 def test_context_len() -> None:
