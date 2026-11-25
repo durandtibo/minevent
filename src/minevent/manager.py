@@ -10,12 +10,11 @@ from __future__ import annotations
 
 __all__ = ["EventManager", "Subscription"]
 
-import functools
-import sys
 import threading
-from collections.abc import Awaitable, Coroutine, Mapping
+from collections.abc import Awaitable, Mapping
 from typing import TYPE_CHECKING
 
+from minevent.calls import add_error_note, describe, needs_context, reject_awaitable
 from minevent.context import Context
 
 if TYPE_CHECKING:
@@ -40,86 +39,6 @@ def _check_event(event: object) -> None:
     if not isinstance(event, str):
         msg = f"event must be a str, but got {type(event).__qualname__}"
         raise TypeError(msg)
-
-
-def _needs_context(func: Callable[..., object], name: str) -> bool:
-    r"""Indicate if a handler or a condition must be called with the
-    context.
-
-    A callable is called as ``func()`` or ``func(context)``. A
-    parameter that has a default keeps it: the manager never fills it.
-    The callable is called as ``func()`` if no other parameter is left,
-    and as ``func(context)`` if exactly one is left and it is positional.
-    Names and annotations are not checked. Any other signature is
-    rejected, including ``*args`` and ``**kwargs`` (they do not say
-    whether the context is expected), and so is a callable whose
-    signature cannot be inspected. A generator function or an async
-    generator function is rejected too, because calling it runs none of
-    its code. The signature is the one that ``inspect.signature``
-    reports: it does not contain the positional arguments that a
-    ``functools.partial`` binds, and it is the one of the wrapped
-    function for a decorator that uses ``functools.wraps``. The
-    annotations do not have to be resolvable: on Python 3.14+, a name
-    that is only imported under ``TYPE_CHECKING`` is kept as a forward
-    reference instead of raising a ``NameError``.
-
-    Args:
-        func: The callable to inspect.
-        name: The name of the argument that receives ``func``, used in
-            the error messages.
-
-    Returns:
-        ``True`` if ``func`` is called as ``func(context)``, and
-            ``False`` if it is called as ``func()``.
-
-    Raises:
-        TypeError: if ``func`` is a generator function, if its
-            signature cannot be inspected, or if it needs another
-            argument than the context.
-
-    Example:
-        ```pycon
-        >>> from minevent.manager import _needs_context
-        >>> def func(): ...
-        >>> _needs_context(func, "handler")
-        False
-        >>> def func(context): ...
-        >>> _needs_context(func, "handler")
-        True
-        >>> def func(mode=True): ...
-        >>> _needs_context(func, "handler")
-        False
-
-        ```
-    """
-    import inspect  # noqa: PLC0415
-
-    if inspect.isgeneratorfunction(func) or inspect.isasyncgenfunction(func):
-        msg = f"{name} must not be a generator function, but got {_describe(func)}"
-        raise TypeError(msg)
-    msg = (
-        f"{name} {_describe(func)} must need no argument or only the context; "
-        "wrap it in a function or a lambda"
-    )
-    try:
-        if sys.version_info >= (3, 14):
-            # The annotations are evaluated lazily, and an unresolved name must not raise.
-            import annotationlib  # noqa: PLC0415
-
-            signature = inspect.signature(func, annotation_format=annotationlib.Format.FORWARDREF)
-        else:
-            signature = inspect.signature(func)
-    except (TypeError, ValueError) as exc:
-        raise TypeError(msg) from exc
-    # The parameters that have a default keep it: only the others need a value. A ``*args`` or a
-    # ``**kwargs`` parameter has no default.
-    required = [param for param in signature.parameters.values() if param.default is param.empty]
-    if not required:
-        return False
-    positional = (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
-    if len(required) == 1 and required[0].kind in positional:
-        return True
-    raise TypeError(msg)
 
 
 _EMPTY_CONTEXT = Context()
@@ -161,77 +80,6 @@ def _as_context(context: object) -> Context:
         msg = f"context must be a mapping or None, but got {type(context).__qualname__}"
         raise TypeError(msg)
     return Context(context)
-
-
-def _check_not_awaitable(result: object, handler: Callable[..., object]) -> None:
-    r"""Check that a handler did not return an awaitable.
-
-    A coroutine is closed, so it does not emit a ``RuntimeWarning``
-    because it was never awaited.
-
-    Args:
-        result: The value returned by the handler.
-        handler: The handler that returned ``result``. The error
-            names its function, never its arguments.
-
-    Raises:
-        TypeError: if ``result`` is an awaitable.
-    """
-    if result is not None and isinstance(result, Awaitable):
-        if isinstance(result, Coroutine):
-            result.close()
-        msg = f"{_describe(handler)} returned an awaitable; use atrigger_event"
-        raise TypeError(msg)
-
-
-def _describe(handler: Callable[..., object]) -> str:
-    r"""Name a handler without calling the ``repr`` of its data.
-
-    The ``repr`` of a handler can contain its arguments, which can be
-    large or raise, so it is not used in the note of an exception.
-
-    Args:
-        handler: The callable to name.
-
-    Returns:
-        The qualified name of the function under a
-            ``functools.partial`` (nested partials are unwrapped), or
-            the qualified name of the class of the handler if it has
-            no name (for example a callable object).
-
-    Example:
-        ```pycon
-        >>> import functools
-        >>> from minevent.manager import _describe
-        >>> _describe(print)
-        'print'
-        >>> _describe(functools.partial(print, "Hello!"))
-        'print'
-
-        ```
-    """
-    while isinstance(handler, functools.partial):
-        handler = handler.func
-    return getattr(handler, "__qualname__", type(handler).__qualname__)
-
-
-def _add_error_note(exc: Exception, event: str, handler: Callable[..., object]) -> None:
-    r"""Add a note to the exception raised by an event handler.
-
-    The note names the event and the function of the handler, never
-    its arguments. The note is not added if the exception already has
-    it, so an exception instance that is raised again (or a handler
-    that triggers its own event) has one note per distinct pair of
-    event and handler.
-
-    Args:
-        exc: The exception raised by the event handler.
-        event: The event that was triggered.
-        handler: The handler that raised the exception.
-    """
-    note = f"raised by {_describe(handler)} while handling the event {event!r}"
-    if note not in getattr(exc, "__notes__", ()):
-        exc.add_note(note)
 
 
 class Subscription:
@@ -313,8 +161,8 @@ class Subscription:
         self._once = once
         self._condition = condition
         # The check is done once, at registration.
-        self._with_context = _needs_context(handler, "handler")
-        self._condition_with_context = condition is not None and _needs_context(
+        self._with_context = needs_context(handler, "handler")
+        self._condition_with_context = condition is not None and needs_context(
             condition, "condition"
         )
         # The same condition, typed for the two ways to call it.
@@ -336,7 +184,7 @@ class Subscription:
     def __repr__(self) -> str:
         return (
             f"{self.__class__.__qualname__}"
-            f"(event={self._event!r}, handler={_describe(self._handler)!r})"
+            f"(event={self._event!r}, handler={describe(self._handler)!r})"
         )
 
     @property
@@ -409,7 +257,7 @@ class Subscription:
 
         The condition and the handler are called with the context if
         they have a parameter without default, and without argument
-        otherwise (see ``_needs_context``).
+        otherwise (see ``minevent.calls.needs_context``).
 
         Args:
             context: The context built from the payload given to
@@ -436,10 +284,8 @@ class Subscription:
             )
             # A coroutine is truthy, so an async condition would always run the handler.
             if result is not True and isinstance(result, Awaitable):
-                if isinstance(result, Coroutine):
-                    result.close()
-                msg = f"condition {_describe(self._condition_call)} returned an awaitable"
-                raise TypeError(msg)
+                msg = f"condition {describe(self._condition_call)} returned an awaitable"
+                reject_awaitable(result, msg)
             if not result:
                 return None
         if self._once and not self.remove():
@@ -906,9 +752,13 @@ class EventManager:
         context = _as_context(context)
         for subscription in subscriptions:
             try:
-                _check_not_awaitable(subscription._call(context), subscription.handler)
+                result = subscription._call(context)
+                if result is not None and isinstance(result, Awaitable):
+                    name = describe(subscription.handler)
+                    msg = f"{name} returned an awaitable; use atrigger_event"
+                    reject_awaitable(result, msg)
             except Exception as exc:
-                _add_error_note(exc, event, subscription.handler)
+                add_error_note(exc, event, subscription.handler)
                 raise
 
     async def atrigger_event(
@@ -963,7 +813,7 @@ class EventManager:
                 if result is not None and isinstance(result, Awaitable):
                     await result
             except Exception as exc:
-                _add_error_note(exc, event, subscription.handler)
+                add_error_note(exc, event, subscription.handler)
                 raise
 
     def clear_event(self, event: str) -> None:
