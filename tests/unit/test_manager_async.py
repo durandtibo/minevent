@@ -76,7 +76,9 @@ async def test_event_manager_atrigger_event_mixes_sync_and_async_in_order() -> N
 
 
 async def test_event_manager_atrigger_event_without_event_handler() -> None:
-    await EventManager().atrigger_event("my_event")
+    manager = EventManager()
+    await manager.atrigger_event("my_event")
+    assert manager.events == []
 
 
 async def test_event_manager_atrigger_event_fail_fast() -> None:
