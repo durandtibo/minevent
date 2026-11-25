@@ -133,7 +133,6 @@ condition=AfterNCondition(2)` runs once, on the third trigger (it never ran). A 
 
 - Development: the removal of a registration has its own tests, and two tests follow the rules of
   `CLAUDE.md` (an assertion, no loop) (#860).
-- `import minevent` no longer imports `typing`, which was a third of its cost (#859).
 - The values of a `Context` are typed `Any` instead of `object`, so a handler that computes with a
   value, such as `context["epoch"] + 1`, type checks without a cast (#857).
 - `bool(EventManager())` is always `True` (it was `False` for an empty manager), so

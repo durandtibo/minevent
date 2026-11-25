@@ -332,11 +332,12 @@ Use a new `EventManager` in each test, and `manager.reset()` if the manager is s
 
 ## Performance
 
-`import minevent` is cheap: it imports the standard library modules `threading`, `functools` and
-`collections.abc` only, and not `logging`, `inspect`, `asyncio`, `typing` or `importlib.metadata`
-(`inspect` is imported when the first handler is registered, and `importlib.metadata` when
-`__version__` is read). It takes a few milliseconds, so a script can import it without a measurable
-cost.
+`import minevent` is cheap: it imports the standard library modules `threading`, `functools`,
+`collections.abc` and `typing` only, and not `logging`, `inspect`, `asyncio` or
+`importlib.metadata` (`inspect` is imported when the first handler is registered, and
+`importlib.metadata` when `__version__` is read). It creates no `typing` object (`Protocol`,
+`NamedTuple`, `TypeVar`). It takes a few milliseconds, so a script can import it without a
+measurable cost.
 
 The cost of `trigger_event` is the cost of the handlers: about 0.33 µs for a manager with one
 trivial handler and no data, 0.7 µs with a small dict (it is copied into a `Context`), and about 0.1
