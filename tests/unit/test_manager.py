@@ -23,9 +23,11 @@ from minevent.manager import _as_context, _check_event
 from tests.unit.handlers import (
     AsyncConditionMethod,
     AsyncConditionObject,
+    AsyncGeneratorObject,
     AwaitableResult,
     CallableRecorder,
     CustomCondition,
+    GeneratorObject,
     ModelStandIn,
     UnnameableCallable,
     async_condition,
@@ -1210,9 +1212,33 @@ def test_event_manager_add_event_handler_rejected_condition_leaves_manager_uncha
     assert len(manager) == 0
 
 
+def test_event_manager_add_event_handler_async_callable_condition() -> None:
+    manager = EventManager()
+    condition: Any = AsyncConditionObject()
+    with pytest.raises(
+        TypeError, match=r"^condition must be synchronous, but got AsyncConditionObject$"
+    ):
+        manager.add_event_handler("my_event", noop_handler, condition=condition)
+    assert len(manager) == 0
+
+
+@pytest.mark.parametrize("handler", [GeneratorObject(), AsyncGeneratorObject()])
+def test_event_manager_add_event_handler_generator_object(handler: Any) -> None:
+    manager = EventManager()
+    with pytest.raises(TypeError, match=r"^handler must not be a generator function, but got "):
+        manager.add_event_handler("my_event", handler)
+    assert len(manager) == 0
+
+
 @pytest.mark.parametrize(
     "condition",
-    [async_condition, AsyncConditionMethod().check, functools.partial(async_condition)],
+    [
+        async_condition,
+        AsyncConditionMethod().check,
+        functools.partial(async_condition),
+        AsyncConditionObject(),
+        functools.partial(AsyncConditionObject()),
+    ],
 )
 def test_event_manager_add_event_handler_async_condition(condition: Any) -> None:
     manager = EventManager()
@@ -1304,7 +1330,7 @@ def test_event_manager_trigger_event_autospec_handler() -> None:
 ############################################
 
 
-@pytest.mark.parametrize("condition", [AsyncConditionObject(), condition_returning_a_coroutine])
+@pytest.mark.parametrize("condition", [AwaitableResult, condition_returning_a_coroutine])
 def test_event_manager_trigger_event_condition_returns_awaitable(condition: Any) -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", hello_handler, condition=condition)

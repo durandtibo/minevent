@@ -29,12 +29,14 @@ the new API are in the
 - **Calling rule**: a parameter of a handler or of a condition that has a default keeps it, and a
   callable that needs anything else than nothing or the context raises a `TypeError` at registration
   (`*args`, `**kwargs`, two parameters, a keyword-only parameter, a signature that cannot be
-  inspected), as does a generator or async generator function.
+  inspected), as does a generator or async generator function, or a callable object whose
+  `__call__` is one.
 - **Conditions**: `BaseCondition` (with `evaluate` and `equal`) is removed. A condition is a
   function that returns a boolean: implement `__call__` instead of `evaluate`, and call
   `condition()` instead of `condition.evaluate()`. Combine conditions with a function, for example
-  `lambda: a() and b()`. A coroutine function used as a condition raises a `TypeError` at
-  registration, and a condition that returns an awaitable another way raises it at the trigger.
+  `lambda: a() and b()`. A coroutine function, or an object with `async def __call__`, used as a
+  condition raises a `TypeError` at registration, and a condition that returns an awaitable another
+  way raises it at the trigger.
 - **Registrations**: `EventManager.has_event_handler` and `remove_event_handler` are removed, and so
   is the comparison of handlers and conditions with `equal` and `==`. Keep the `Subscription`
   returned by `add_event_handler` and call `subscription.remove()` (it returns `False` when the

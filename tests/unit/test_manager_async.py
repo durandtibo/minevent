@@ -10,7 +10,7 @@ from minevent import (
     Context,
     EventManager,
 )
-from tests.unit.handlers import AsyncConditionObject, condition_returning_a_coroutine
+from tests.unit.handlers import AwaitableResult, condition_returning_a_coroutine
 from tests.unit.utils import trace
 
 logger = logging.getLogger(__name__)
@@ -392,7 +392,7 @@ async def test_event_manager_atrigger_event_condition_reads_the_payload() -> Non
     assert values == [1]
 
 
-@pytest.mark.parametrize("condition", [AsyncConditionObject(), condition_returning_a_coroutine])
+@pytest.mark.parametrize("condition", [AwaitableResult, condition_returning_a_coroutine])
 async def test_event_manager_atrigger_event_condition_returns_awaitable(condition: Any) -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", async_handler, condition=condition)

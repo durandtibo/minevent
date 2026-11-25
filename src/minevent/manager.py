@@ -16,7 +16,14 @@ import threading
 from collections.abc import Awaitable, Mapping
 from typing import TYPE_CHECKING, NoReturn, Self, TypeVar
 
-from minevent.calls import Handler, adapt_call, add_error_note, describe, reject_awaitable
+from minevent.calls import (
+    Handler,
+    adapt_call,
+    add_error_note,
+    describe,
+    has_kind,
+    reject_awaitable,
+)
 from minevent.context import Context
 
 if TYPE_CHECKING:
@@ -155,7 +162,7 @@ class Subscription:
         self._handler_call = adapt_call(handler, "handler")
         self._condition_call = None if condition is None else adapt_call(condition, "condition")
         # The condition is rejected now, not at the first trigger, which can be much later.
-        if condition is not None and inspect.iscoroutinefunction(condition):
+        if condition is not None and has_kind(condition, inspect.iscoroutinefunction):
             msg = f"condition must be synchronous, but got {describe(condition)}"
             raise TypeError(msg)
         # A trigger only calls ``_claim`` for these registrations: the others save a method call.
@@ -511,7 +518,8 @@ class EventManager:
                 ``handler`` or ``condition`` is a generator function, needs
                 another argument than the context, or has a signature that
                 cannot be inspected, or if ``condition`` is a coroutine
-                function. The manager is unchanged.
+                function. A callable object is judged by its ``__call__``.
+                The manager is unchanged.
 
         Example:
             ```pycon

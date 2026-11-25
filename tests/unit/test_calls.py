@@ -14,14 +14,20 @@ from unittest.mock import AsyncMock, Mock, create_autospec
 import pytest
 
 from minevent import Context, calls
-from minevent.calls import adapt_call, add_error_note, describe, reject_awaitable
+from minevent.calls import adapt_call, add_error_note, describe, has_kind, reject_awaitable
 from tests.unit.handlers import (
+    AsyncConditionMethod,
+    AsyncConditionObject,
+    AsyncGeneratorObject,
     BadReprCallable,
     CallableRecorder,
     CustomCondition,
+    GeneratorObject,
     ModelStandIn,
     UnnameableCallable,
     UnreadableClass,
+    async_condition,
+    condition_returning_a_coroutine,
     fail,
     generator_handler,
     hello_handler,
@@ -251,6 +257,9 @@ def test_adapt_call_rejected_signature(func: Callable[..., object]) -> None:
         async_generator_handler,
         functools.partial(generator_handler),
         ModelStandIn().generate,
+        GeneratorObject(),
+        AsyncGeneratorObject(),
+        functools.partial(GeneratorObject()),
     ],
 )
 def test_adapt_call_generator_function(func: Callable[..., object]) -> None:
@@ -315,6 +324,85 @@ def test_calls_does_not_import_annotationlib_before_python_3_14(
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     assert not hasattr(module, "annotationlib")
+
+
+##############################
+#     Tests for has_kind     #
+##############################
+
+
+@pytest.mark.parametrize(
+    "func",
+    [
+        async_condition,
+        AsyncConditionMethod().check,
+        AsyncConditionObject(),
+        functools.partial(async_condition),
+        functools.partial(functools.partial(AsyncConditionObject())),
+        AsyncMock(),
+    ],
+)
+def test_has_kind_coroutine_function(func: Callable[..., object]) -> None:
+    assert has_kind(func, inspect.iscoroutinefunction)
+
+
+@pytest.mark.parametrize(
+    "func",
+    [
+        noop_handler,
+        ModelStandIn().train,
+        functools.partial(noop_handler),
+        CustomCondition(),
+        AsyncConditionObject,
+        condition_returning_a_coroutine,
+        print,
+        Mock(),
+        generator_handler,
+        async_generator_handler,
+    ],
+)
+def test_has_kind_not_coroutine_function(func: Callable[..., object]) -> None:
+    assert not has_kind(func, inspect.iscoroutinefunction)
+
+
+@pytest.mark.parametrize(
+    ("func", "predicate"),
+    [
+        (GeneratorObject(), inspect.isgeneratorfunction),
+        (AsyncGeneratorObject(), inspect.isasyncgenfunction),
+    ],
+)
+def test_has_kind_generator_object(
+    func: Callable[..., object], predicate: Callable[[object], bool]
+) -> None:
+    assert has_kind(func, predicate)
+
+
+@pytest.mark.parametrize("func", [GeneratorObject, noop_handler, AsyncGeneratorObject()])
+def test_has_kind_not_generator_function(func: Callable[..., object]) -> None:
+    assert not has_kind(func, inspect.isgeneratorfunction)
+
+
+def mark_coroutine_function(func: Callable[..., object]) -> None:
+    r"""Mark ``func`` as a coroutine function (Python 3.12+)."""
+    if sys.version_info >= (3, 12):
+        inspect.markcoroutinefunction(func)
+
+
+@pytest.mark.skipif(sys.version_info < (3, 12), reason="markcoroutinefunction is new in 3.12")
+def test_has_kind_marked_coroutine_function() -> None:
+    def func() -> object:
+        return async_condition()
+
+    mark_coroutine_function(func)
+    assert has_kind(func, inspect.iscoroutinefunction)
+
+
+@pytest.mark.skipif(sys.version_info < (3, 12), reason="markcoroutinefunction is new in 3.12")
+def test_has_kind_marked_callable_object() -> None:
+    func = CustomCondition()
+    mark_coroutine_function(func)
+    assert has_kind(func, inspect.iscoroutinefunction)
 
 
 ##############################

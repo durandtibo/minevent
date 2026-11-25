@@ -119,14 +119,14 @@ in a function or a lambda, or bind the extra arguments with `functools.partial` 
 
 ### `TypeError: ... must not be a generator function`
 
-Calling a function with `yield` runs none of its code. Register a function that iterates over the
-generator.
+Calling a function with `yield`, or an object whose `__call__` has one, runs none of its code.
+Register a function that iterates over the generator.
 
 ### `TypeError: condition must be synchronous` and `condition ... returned an awaitable`
 
-The condition is asynchronous: a coroutine function is rejected at registration, and a condition
-that returns an awaitable another way (a lambda that returns a coroutine, an object with
-`async def __call__`) fails at the trigger. Compute the value before the trigger and pass it in the
+The condition is asynchronous: a coroutine function, or an object with `async def __call__`, is
+rejected at registration, and a condition that returns an awaitable another way (a lambda that
+returns a coroutine) fails at the trigger. Compute the value before the trigger and pass it in the
 payload, or decide inside a coroutine handler.
 
 ### `TypeError: ... returned an awaitable; use atrigger_event`
