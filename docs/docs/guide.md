@@ -110,7 +110,8 @@ no option to collect the errors of all the handlers (see the non-goals in the ar
 `trigger_event` is synchronous. A handler that returns an awaitable (a coroutine function) raises a
 `TypeError` there, instead of silently dropping the coroutine. Use `atrigger_event` to await the
 handlers, one after the other, in the registration order. Synchronous handlers can be mixed with
-coroutine handlers, and they block the event loop while they run.
+coroutine handlers, and they block the event loop while they run. The conditions are synchronous in
+both methods.
 
 ## Conditions
 
@@ -383,6 +384,12 @@ nothing, or bind the extra arguments with `functools.partial`.
 
 Calling a generator function (a function with `yield`) runs none of its code. Register a function
 that iterates over the generator.
+
+### `TypeError: condition ... returned an awaitable`
+
+A condition is synchronous, in `atrigger_event` too: a coroutine is truthy, so an async condition
+would always run the handler. Compute the value before the trigger and pass it in the payload, or
+decide inside a coroutine handler.
 
 ### `TypeError: ... returned an awaitable; use atrigger_event`
 

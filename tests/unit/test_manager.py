@@ -32,7 +32,7 @@ from minevent.manager import (
 from tests.unit.utils import raised, trace
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Callable, Iterator
+    from collections.abc import AsyncIterator, Callable, Generator, Iterator
     from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -1319,6 +1319,79 @@ def test_subscription_call_condition_is_called_once() -> None:
     assert condition.call_count == 1
 
 
+async def async_condition() -> bool:
+    r"""Implement an async condition that is ``False``."""
+    return False
+
+
+class AsyncConditionObject:
+    r"""Implement a condition with an async ``__call__``."""
+
+    async def __call__(self) -> bool:
+        return False
+
+
+class AwaitableResult:
+    r"""Implement an awaitable that is not a coroutine."""
+
+    def __await__(self) -> Generator[None, None, bool]:
+        yield
+        return False
+
+
+def condition_returning_a_coroutine() -> object:
+    r"""Implement a synchronous condition that returns a coroutine."""
+    return async_condition()
+
+
+def condition_of_context_returning_a_coroutine(context: Context) -> object:
+    r"""Implement a synchronous condition of the context that returns a
+    coroutine."""
+    logger.info("context %s", context)
+    return async_condition()
+
+
+@pytest.mark.parametrize(
+    "condition",
+    [
+        async_condition,
+        AsyncConditionObject(),
+        condition_returning_a_coroutine,
+        condition_of_context_returning_a_coroutine,
+        AwaitableResult,
+    ],
+)
+def test_subscription_call_condition_returns_awaitable(condition: Any) -> None:
+    subscription = Subscription(EventManager(), "my_event", hello_handler, condition=condition)
+    with pytest.raises(TypeError, match=r"^condition .+ returned an awaitable$"):
+        subscription._call(Context())
+    assert hello_handler.call_count == 0
+
+
+def test_subscription_call_condition_returns_awaitable_closes_the_coroutine() -> None:
+    coroutine = async_condition()
+
+    def condition() -> Any:
+        return coroutine
+
+    subscription = Subscription(EventManager(), "my_event", hello_handler, condition=condition)
+    with pytest.raises(TypeError, match=r"returned an awaitable"):
+        subscription._call(Context())
+    assert inspect.getcoroutinestate(coroutine) == inspect.CORO_CLOSED
+
+
+@pytest.mark.parametrize("result", [1, "yes", [0]])
+def test_subscription_call_condition_truthy_non_bool(result: Any) -> None:
+    subscription = Subscription(EventManager(), "my_event", lambda: 2, condition=lambda: result)
+    assert subscription._call(Context()) == 2
+
+
+@pytest.mark.parametrize("result", [0, "", [], None])
+def test_subscription_call_condition_falsy_non_bool(result: Any) -> None:
+    subscription = Subscription(EventManager(), "my_event", lambda: 2, condition=lambda: result)
+    assert subscription._call(Context()) is None
+
+
 def test_subscription_options_are_keyword_only() -> None:
     args: list[Any] = [EventManager(), "my_event", noop_handler, True]
     with pytest.raises(TypeError, match=r"positional arguments"):
@@ -1691,6 +1764,40 @@ def test_event_manager_add_event_handler_condition_unresolved_annotation(tmp_pat
     condition = unresolved_function(tmp_path, "no_parameter")
     subscription = EventManager().add_event_handler("my_event", noop_handler, condition=condition)
     assert subscription.active
+
+
+############################################
+#     Tests for an awaitable condition     #
+############################################
+
+
+def test_event_manager_trigger_event_condition_returns_awaitable() -> None:
+    manager = EventManager()
+    condition: Any = async_condition
+    manager.add_event_handler("my_event", hello_handler, condition=condition)
+    with pytest.raises(TypeError, match=r"condition async_condition returned an awaitable"):
+        manager.trigger_event("my_event")
+    assert hello_handler.call_count == 0
+
+
+def test_event_manager_trigger_event_condition_awaitable_keeps_once_registration() -> None:
+    manager = EventManager()
+    condition: Any = async_condition
+    subscription = manager.add_event_handler(
+        "my_event", hello_handler, once=True, condition=condition
+    )
+    with pytest.raises(TypeError, match=r"returned an awaitable"):
+        manager.trigger_event("my_event")
+    assert subscription.active
+
+
+def test_event_manager_trigger_event_condition_awaitable_has_note() -> None:
+    manager = EventManager()
+    condition: Any = async_condition
+    manager.add_event_handler("my_event", noop_handler, condition=condition)
+    assert raised(manager.trigger_event, "my_event").__notes__ == [
+        "raised by noop_handler while handling the event 'my_event'"
+    ]
 
 
 ######################################################
