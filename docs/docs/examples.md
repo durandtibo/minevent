@@ -302,9 +302,7 @@ cannot change:
 >>> from minevent import EventManager
 >>> snapshots = []
 >>> manager = EventManager()
->>> _ = manager.add_event_handler(
-...     "epoch_end", lambda context: snapshots.append(copy.deepcopy(context))
-... )
+>>> _ = manager.add_event_handler("epoch_end", lambda context: snapshots.append(copy.deepcopy(context)))
 >>> _ = manager.add_event_handler("epoch_end", lambda context: context["losses"].append(0.1))
 >>> manager.trigger_event("epoch_end", {"losses": [0.5]})
 >>> snapshots
@@ -383,6 +381,7 @@ handler receives the context:
 ...     def wrapper(*args):
 ...         print(f"calling {handler.__name__}")
 ...         return handler(*args)
+...
 ...     return wrapper
 >>> def log_epoch(context: Context) -> None:
 ...     print(f"epoch {context['epoch']}")
