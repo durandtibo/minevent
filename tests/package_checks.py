@@ -80,12 +80,18 @@ def check_async_trigger() -> None:
 
 def check_no_third_party_import() -> None:
     logger.info("Checking that minevent imports no third-party package...")
-    third_party = {
-        name.split(".")[0]
-        for name in sys.modules
-        if name.split(".")[0] not in sys.stdlib_module_names and not name.startswith("_")
-    } - {"minevent", "tests"}
-    assert not third_party, f"third-party modules imported: {sorted(third_party)}"
+    # Only the modules loaded by the import are checked: the interpreter can load third-party
+    # modules at startup (for example the sitecustomize module of some distributions).
+    code = (
+        "import sys\n"
+        "before = set(sys.modules)\n"
+        "import minevent\n"
+        "names = {name.split('.')[0] for name in set(sys.modules) - before}\n"
+        "third_party = {n for n in names - set(sys.stdlib_module_names) if not n.startswith('_')}\n"
+        "third_party -= {'minevent'}\n"
+        "assert not third_party, f'third-party modules imported: {sorted(third_party)}'"
+    )
+    subprocess.run([sys.executable, "-c", code], check=True)  # noqa: S603
 
 
 def check_lazy_imports() -> None:
