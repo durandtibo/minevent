@@ -79,13 +79,13 @@ the counter of a stateful condition is not protected. See
 
 ### Can I create custom handlers and conditions?
 
-Yes. A handler is any callable: write a class with a `__call__(self, **payload)` method (or
+Yes. A handler is any callable: write a class with a `__call__(self, context)` method (or
 `async def __call__` for `atrigger_event`). A condition is any function without argument that
 returns a boolean, or a class with `__call__`.
 
 ### What is the overhead?
 
-About 0.35 µs per trigger with one trivial handler. See [performance](guide.md#performance).
+About 0.65 µs per trigger with one trivial handler. See [performance](guide.md#performance).
 
 ## Help
 
