@@ -20,16 +20,37 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
   by a handler take effect at the next trigger.
 - Reading the manager (`trigger_event`, `get_subscriptions`, ...) no longer creates events.
 - `EventHandler`, `BaseEventHandler` (and `ConditionalEventHandler`) are removed (#808). A handler is
-  any callable, called as `handler(**payload)`, and the options of a registration are the
-  keyword-only arguments of `add_event_handler` and `on`:
+  any callable, called as `handler(context)` or `handler()` (see the `Context` item below), and the
+  options of a registration are the keyword-only arguments of `add_event_handler` and `on`:
 
   - `add_event_handler("e", EventHandler(f))` becomes `add_event_handler("e", f)`.
   - `EventHandler(f, ["a"], {"k": 1})` becomes `functools.partial(f, "a", k=1)`. A payload key that
     repeats a bound keyword overrides it (it raised a `TypeError` for `handler_kwargs`).
-  - `EventHandler(f, condition=c, filter_payload=True)` becomes
-    `add_event_handler("e", f, condition=c, filter_payload=True)`.
+  - `EventHandler(f, condition=c)` becomes `add_event_handler("e", f, condition=c)`.
   - `class H(BaseEventHandler): def handle(self, /, **payload)` becomes
-    `class H: def __call__(self, **payload)`, and `async def ahandle` becomes `async def __call__`.
+    `class H: def __call__(self, context)`, and `async def ahandle` becomes `async def __call__`.
+
+- **Breaking**: the handlers receive the payload of `trigger_event` in a read-only `Context` instead
+  of as keyword arguments (#840, #841, #842). `filter_payload` (added after `0.5.0`, never released) is
+  removed:
+
+  | Before                                           | After                                                        |
+  | ------------------------------------------------ | ------------------------------------------------------------ |
+  | `def f(): ...`                                   | unchanged: a handler without parameter is called as `f()`    |
+  | `def f(epoch): ...`                              | `def f(context): epoch = context["epoch"]`                   |
+  | `add_event_handler("e", f, filter_payload=True)` | `add_event_handler("e", f)` with `def f(context)`            |
+  | `def f(**kwargs): ...`                           | `def f(context): ...` (`dict(context)` gives the old kwargs) |
+  | `functools.partial(f, "a", k=1)`                 | unchanged, the context is passed after the bound arguments   |
+  - A handler that has a parameter that accepts a positional argument (or `*args`), or whose
+    signature cannot be inspected, is called as `handler(context)`. The check counts the parameters,
+    once, at registration, and never matches keys. A callable like `print` (it accepts `*args`)
+    receives the context: use a lambda or a function without parameter.
+  - `context[key]` raises a `KeyError` that lists the available keys (a missing key was a `TypeError`
+    of Python), and `context.get(key, default)` reads an optional value. A key that the handler does
+    not read never breaks it.
+  - A bridge for an old handler: `lambda context: f(**context)` registers it unchanged.
+  - A trigger costs about 0.3 µs more (it builds one `Context`): 0.65 µs for one trivial handler
+    (0.34 µs before, Python 3.14, laptop).
 
 - `BaseCondition` (with `evaluate` and `equal`) is removed. A condition is a function without
   argument that returns a boolean: implement `__call__` instead of `evaluate`, and call `condition()`
@@ -47,7 +68,10 @@ condition=AfterNCondition(2)` runs once, on the third trigger (it never ran). A 
 ### Added
 
 - `EventManager.events`, `__contains__`, `clear_event` and `reset`.
-- `trigger_event(event, **payload)` passes the keyword arguments to the handlers.
+- `trigger_event(event, **payload)` passes the keyword arguments to the handlers in a read-only
+  `Context` (#841).
+- `minevent.Context`, an immutable mapping from `str` to values: `context[key]`, `get`, `in`,
+  `len`, iteration and `==`, as for a `collections.abc.Mapping` (#840).
 - `add_event_handler` returns a `Subscription` and has a `once` option.
 - `atrigger_event` to await coroutine handlers.
 - Built-in condition `AfterNCondition`. A condition is any function without
@@ -56,8 +80,7 @@ condition=AfterNCondition(2)` runs once, on the third trigger (it never ran). A 
 - `AfterNCondition.reset` restarts the counter, like `PeriodicCondition.reset` (#775).
 - `EventManager.get_subscriptions`, `__len__` and the `on` decorator.
 - `Subscription` is a context manager and has an `active` property.
-- `EventManager.on(event, *, once, condition, filter_payload)` forwards the options of the handler (#767).
-- `add_event_handler(..., filter_payload=True)` passes only the payload keys the handler accepts.
+- `EventManager.on(event, *, once, condition)` forwards the options of the handler (#767).
 - The exception of a handler has a note (`__notes__`) with the event and the handler that raised it.
 
 ### Fixed
@@ -91,12 +114,12 @@ condition=AfterNCondition(2)` runs once, on the third trigger (it never ran). A 
   subscription that was never registered in its manager.
 - Stricter type hints (`Callable[..., object]`, payload typed `object`).
 - The `Subscription` owns the options of its registration: its internal constructor takes
-  `once`, `condition` and `filter_payload` as keyword-only arguments (it took a private `_Options`
+  `once` and `condition` as keyword-only arguments (it took a private `_Options`
   tuple, now removed), and the trigger no longer reads the `once` flag of a subscription. No
   behaviour change.
 - `minevent.__version__` is resolved lazily from the package metadata.
 - `import minevent` is cheap: the `DEBUG` logs of the `minevent.manager` logger are removed and
-  `inspect` is imported when `filter_payload=True` is used, so `import minevent` no longer imports
+  `inspect` is imported when the first handler is registered, so `import minevent` no longer imports
   `logging`, `inspect`, `asyncio` or `importlib.metadata` (it loaded 40 modules in 16 ms, and it
   loads about a third of them in about 6 ms, Python 3.14). To trace a registration, read
   `manager.get_subscriptions(event)` or wrap the handler (#810).
@@ -109,12 +132,12 @@ condition=AfterNCondition(2)` runs once, on the third trigger (it never ran). A 
 - The package has no `all` extra (it had no optional dependency). The classifiers are
   `Development Status :: 3 - Alpha` and `Operating System :: OS Independent`.
 - `EventManager.add_event_handler` accepts any callable, and has the keyword-only options
-  `condition` and `filter_payload` next to `once`. It raises a `TypeError` for a `handler` that is
+  `condition` next to `once`. It raises a `TypeError` for a `handler` that is
   not callable or a `condition` that is neither `None` nor callable (a bare function used to fail at
   the first trigger with an `AttributeError`). `EventManager.on` is the decorator form of
   `add_event_handler` (#807).
 - `Subscription.event_handler` is renamed `Subscription.handler`, and `Subscription` has the read-only
-  properties `condition` and `filter_payload` (#807).
+  property `condition` (#807).
 - The note of the exception of a handler names the function under a `functools.partial` (it was
   `partial`) (#807).
 - The awaitable check of a handler result uses `collections.abc` instead of `inspect`: each handler
@@ -139,10 +162,10 @@ condition=AfterNCondition(2)` runs once, on the third trigger (it never ran). A 
   `EventManager`, "Design Decisions" and "Conclusion" are removed, `CONTRIBUTING.md` uses the invoke
   tasks, and `review/suggestions.md` is deleted (#770).
 - Documentation: the docstrings of the package, `EventManager.trigger_event` (the payload, the
-  `filter_payload` option, the conditions and the `RecursionError`), `EventManager.on`,
+  context, the conditions and the `RecursionError`), `EventManager.on`,
   `add_event_handler` and `Subscription` are up to date, the README has a usage example and lists
-  the decorator, the payload filter and the debugging notes, and the quickstart no longer mentions a
+  the decorator, the context and the debugging notes, and the quickstart no longer mentions a
   list of registrations or arguments given at registration.
 - Documentation: the new `examples.md` page shows how to use the package (training loop, conditions,
-  stateful handlers, `filter_payload`, `on`, `once`, subscriptions, plugins, coroutine handlers,
+  stateful handlers, the context, `on`, `once`, subscriptions, plugins, coroutine handlers,
   async code, errors and tests).

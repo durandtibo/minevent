@@ -30,10 +30,11 @@ my_event = "training completed"
 
 In `minevent`, an event handler is a piece of code that is executed when an event happens.
 
-An event handler is any callable. It is called as `handler(**payload)`, where `payload` is the data
-given when the event is triggered (see [Fire an event](#fire-an-event)). A coroutine function is a
-handler of `atrigger_event`. The options of a registration (`once`, `condition` and
-`filter_payload`) are the keyword-only arguments of `EventManager.add_event_handler`.
+An event handler is any callable. It is called as `handler(context)` if it has a parameter, and as
+`handler()` otherwise, where `context` is a read-only `Context` that holds the data given when the
+event is triggered (see [Fire an event](#fire-an-event)). A coroutine function is a handler of
+`atrigger_event`. The options of a registration (`once` and `condition`) are the keyword-only
+arguments of `EventManager.add_event_handler`.
 
 ### Basic event handler
 
@@ -101,13 +102,14 @@ Hello Bob! Happy Monday!
 ```
 
 It is possible to define event handlers with a large range of functions.
-For example, it is possible to implement the same logic by using directly `print`:
+For example, it is possible to implement the same logic with a lambda function. Note that a callable
+that accepts `*args`, like `print`, receives the context as an argument, so a handler that does not
+need the context must not have a parameter:
 
 ```pycon
->>> import functools
 >>> from minevent import EventManager
 >>> manager = EventManager()
->>> _ = manager.add_event_handler("my_event", functools.partial(print, "Hello Bob! Happy Monday!"))
+>>> _ = manager.add_event_handler("my_event", lambda: print("Hello Bob! Happy Monday!"))
 >>> manager.trigger_event("my_event")
 Hello Bob! Happy Monday!
 
@@ -189,9 +191,11 @@ same counter. Create one instance per handler (a small factory function is enoug
 >>> import functools
 >>> from minevent import EventManager, PeriodicCondition
 >>> manager = EventManager()
+>>> def say(name):
+...     print(name)
 >>> def register(name):
 ...     manager.add_event_handler(
-...         name, functools.partial(print, name), condition=PeriodicCondition(freq=2)
+...         name, functools.partial(say, name), condition=PeriodicCondition(freq=2)
 ...     )
 >>> register("first")
 >>> register("second")
@@ -394,21 +398,19 @@ Hello!
 
 A `Subscription` is a context manager that removes the registration when the block exits, and its
 `active` property tells if the handler is still registered. `EventManager.on` is a decorator that
-registers a function and returns it unchanged. It takes the options `once`, `condition` and
-`filter_payload`:
+registers a function and returns it unchanged. It takes the options `once` and `condition`:
 
 ```pycon
->>> import functools
->>> from minevent import EventManager
+>>> from minevent import Context, EventManager
 >>> manager = EventManager()
->>> with manager.add_event_handler("my_event", functools.partial(print, "Hello!")) as sub:
+>>> with manager.add_event_handler("my_event", lambda: print("Hello!")) as sub:
 ...     manager.trigger_event("my_event")
 Hello!
 >>> sub.active
 False
 >>> @manager.on("epoch_end")
-... def log_epoch(epoch):
-...     print(f"epoch {epoch}")
+... def log_epoch(context: Context) -> None:
+...     print(f"epoch {context['epoch']}")
 >>> manager.trigger_event("epoch_end", epoch=1)
 epoch 1
 
@@ -437,9 +439,9 @@ EventManager(events={'my_event': 1})
 ```
 
 Triggering an event does not change the manager: the representation above is the same before and
-after. A handler is called as `handler(**payload)`, where `payload` is the keyword arguments given
-to `trigger_event` (see below). The arguments that do not come from the payload are bound with
-`functools.partial`.
+after. A handler is called as `handler(context)`, where `context` holds the keyword arguments given
+to `trigger_event` (see below), or as `handler()` if it has no parameter. The arguments that do not
+come from the payload are bound with `functools.partial`.
 
 ```pycon
 >>> import functools
@@ -499,27 +501,25 @@ The `trigger_event` method does nothing if there is no event handler registered 
 
 ### Share an event between handlers that need different payload keys
 
-Every handler receives the whole payload, so a handler that does not accept a key raises a
-`TypeError`. Either accept the extra keys with `**_`, or register the handler with
-`filter_payload=True` to pass only the keys its signature accepts:
+The keyword arguments of `trigger_event` are copied into one read-only `Context` that is shared by
+the handlers. Each handler reads the keys it needs: `context["key"]` raises a `KeyError` (that lists
+the available keys) if the key is missing, and `context.get("key", default)` returns a default. An
+extra key never breaks a handler:
 
 ```pycon
->>> from minevent import EventManager
->>> def log_loss(loss):
-...     print(f"loss {loss}")
->>> def log_epoch(epoch):
-...     print(f"epoch {epoch}")
+>>> from minevent import Context, EventManager
+>>> def log_loss(context: Context) -> None:
+...     print(f"loss {context['loss']}")
+>>> def log_epoch(context: Context) -> None:
+...     print(f"epoch {context['epoch']}, lr {context.get('lr', 0.1)}")
 >>> manager = EventManager()
->>> _ = manager.add_event_handler("epoch_end", log_loss, filter_payload=True)
->>> _ = manager.add_event_handler("epoch_end", log_epoch, filter_payload=True)
+>>> _ = manager.add_event_handler("epoch_end", log_loss)
+>>> _ = manager.add_event_handler("epoch_end", log_epoch)
 >>> manager.trigger_event("epoch_end", epoch=3, loss=0.5)
 loss 0.5
-epoch 3
+epoch 3, lr 0.1
 
 ```
-
-The `on` decorator takes the same option, so the short form works for this case too:
-`@manager.on("epoch_end", filter_payload=True)`.
 
 ### Fire an event with coroutine handlers
 
@@ -530,9 +530,9 @@ also runs synchronous handlers) one after the other, in the order they were adde
 
 ```pycon
 >>> import asyncio
->>> from minevent import EventManager
->>> async def hello_handler(name: str) -> None:
-...     print(f"Hello {name}!")
+>>> from minevent import Context, EventManager
+>>> async def hello_handler(context: Context) -> None:
+...     print(f"Hello {context['name']}!")
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("my_event", hello_handler)
 >>> asyncio.run(manager.atrigger_event("my_event", name="John"))

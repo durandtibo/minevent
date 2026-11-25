@@ -25,12 +25,13 @@ they were registered, so register them in the order they must run.
 
 ### Pass the data as a payload
 
-The keyword arguments of `trigger_event` are passed to every handler:
+The keyword arguments of `trigger_event` are copied into a read-only `Context`, which is built once
+per trigger and passed to every handler that has a parameter:
 
 ```pycon
->>> from minevent import EventManager
->>> def log_epoch(epoch: int, loss: float) -> None:
-...     print(f"epoch {epoch}: {loss}")
+>>> from minevent import Context, EventManager
+>>> def log_epoch(context: Context) -> None:
+...     print(f"epoch {context['epoch']}: {context['loss']}")
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("epoch_end", log_epoch)
 >>> manager.trigger_event("epoch_end", epoch=3, loss=0.5)
@@ -38,23 +39,37 @@ epoch 3: 0.5
 
 ```
 
-Every handler of the event receives the whole payload, and a handler that does not accept a key
-raises a `TypeError`. Use `filter_payload=True` to give each handler only the keys of its signature,
-so handlers with different needs can share an event:
+A `Context` is a read-only mapping from `str` to values: a handler cannot change what the next
+handler sees (the values are not copied, so a mutable value stays mutable). Each handler reads the
+keys it needs and decides what to do when one is missing, so handlers with different needs share an
+event and an extra key never breaks a handler:
+
+- `context["loss"]` reads a required value and raises a `KeyError` that lists the available keys.
+- `context.get("loss", 0.0)` reads an optional value.
+- `"loss" in context`, `len(context)`, `context.items()` and `dict(context)` work as for a mapping.
 
 ```pycon
->>> from minevent import EventManager
->>> def log_epoch(epoch: int) -> None:
-...     print(f"epoch {epoch}")
+>>> from minevent import Context, EventManager
+>>> def log_epoch(context: Context) -> None:
+...     print(f"epoch {context['epoch']}, loss {context.get('loss', 'unknown')}")
+>>> def say_hello() -> None:
+...     print("Hello!")
 >>> manager = EventManager()
->>> _ = manager.add_event_handler("epoch_end", log_epoch, filter_payload=True)
->>> manager.trigger_event("epoch_end", epoch=3, loss=0.5)
-epoch 3
+>>> _ = manager.add_event_handler("epoch_end", log_epoch)
+>>> _ = manager.add_event_handler("epoch_end", say_hello)
+>>> manager.trigger_event("epoch_end", epoch=3)
+epoch 3, loss unknown
+Hello!
 
 ```
 
-Bind the arguments that do not come from the payload with `functools.partial`. A payload key that
-repeats a keyword bound by the partial overrides it, as it does for any call of a partial.
+A handler that has a parameter that accepts a positional argument (or a `*args`) is called as
+`handler(context)`, and a handler without parameter is called as `handler()`. This is decided once,
+when the handler is registered, from the number of parameters: the names are never matched. A
+callable whose signature cannot be inspected is called as `handler(context)`.
+
+Bind the arguments that do not come from the payload with `functools.partial`: the context is passed
+after the bound positional arguments.
 
 ### Handle the exceptions
 
@@ -134,22 +149,24 @@ you pass; use `len(manager)` for the number of registrations. A manager cannot b
 
 ### Register any callable
 
-`add_event_handler` accepts any callable, called as `handler(**payload)`: a function, a method, a
-callable object or a `functools.partial`. The options of the registration are its keyword-only
-arguments: `once`, `condition` and `filter_payload`. Use `functools.partial` to bind the arguments
-that do not come from the payload.
+`add_event_handler` accepts any callable, called as `handler(context)` or `handler()` (see
+[Pass the data as a payload](#pass-the-data-as-a-payload)): a function, a method, a callable object
+or a `functools.partial`. The options of the registration are its keyword-only arguments: `once`
+and `condition`. Use `functools.partial` to bind the arguments that do not come from the payload.
 
 ```pycon
 >>> import functools
->>> from minevent import EventManager, PeriodicCondition
+>>> from minevent import Context, EventManager, PeriodicCondition
+>>> def greet(name: str) -> None:
+...     print(f"Hello {name}!")
 >>> manager = EventManager()
->>> _ = manager.add_event_handler("my_event", functools.partial(print, "Hello!"))
+>>> _ = manager.add_event_handler("my_event", functools.partial(greet, "Bob"))
 >>> manager.trigger_event("my_event")
-Hello!
->>> def log_epoch(epoch):
-...     print(f"epoch {epoch}")
+Hello Bob!
+>>> def log_epoch(context: Context) -> None:
+...     print(f"epoch {context['epoch']}")
 >>> _ = manager.add_event_handler(
-...     "epoch_end", log_epoch, condition=PeriodicCondition(freq=2), filter_payload=True
+...     "epoch_end", log_epoch, condition=PeriodicCondition(freq=2)
 ... )
 >>> manager.trigger_event("epoch_end", epoch=1, loss=0.5)
 epoch 1
@@ -157,9 +174,8 @@ epoch 1
 
 ```
 
-With `filter_payload=True`, the signature of a `functools.partial` does not contain the positional
-arguments it binds, so a payload key with the same name is dropped. A payload key that repeats a
-keyword bound by the partial overrides it.
+The signature of a `functools.partial` does not contain the arguments that it binds: a partial that
+binds the only positional parameter of a function is called as `handler()`.
 
 ### Keep the subscription
 
@@ -187,8 +203,8 @@ False
 - `manager.get_subscriptions(event)` lists the registrations of an event if you did not keep them,
   and `subscription.handler` gives the handler.
 - `@manager.on("event")` registers a function as a handler and returns it unchanged. It takes
-  `once`, `condition` and `filter_payload`, as in `@manager.on("epoch_end", filter_payload=True)`,
-  which are also the keyword-only arguments of `add_event_handler`. Use `add_event_handler` if you
+  `once` and `condition`, as in `@manager.on("epoch_end", once=True)`, which are also the
+  keyword-only arguments of `add_event_handler`. Use `add_event_handler` if you
   need the `Subscription`.
 - `once=True` runs the handler the first time its condition is `True` (at the next trigger if it has
   no condition), then removes the registration. A condition that is `False` does not consume it.
@@ -255,7 +271,7 @@ class LoggingPlugin:
 
 ### Custom handlers and conditions
 
-Write a class with a `__call__(self, **payload)` method for a handler with its own state (use
+Write a class with a `__call__(self, context)` method for a handler with its own state (use
 `async def __call__` for a coroutine). A condition is any class with a `__call__(self) -> bool`
 method.
 
@@ -272,7 +288,7 @@ def test_epoch_end_calls_handler():
     mock = Mock()
     manager.add_event_handler("epoch_end", mock)
     manager.trigger_event("epoch_end", epoch=1)
-    mock.assert_called_once_with(epoch=1)
+    mock.assert_called_once_with({"epoch": 1})
 
 
 def test_handler_directly():
@@ -286,14 +302,15 @@ Use a new `EventManager` in each test, and `manager.reset()` if the manager is s
 
 `import minevent` is cheap: it imports the standard library modules `threading`, `functools`,
 `collections.abc` and `typing` only, and not `logging`, `inspect`, `asyncio` or
-`importlib.metadata` (`inspect` is imported when `filter_payload=True` is used, and
+`importlib.metadata` (`inspect` is imported when the first handler is registered, and
 `importlib.metadata` when `__version__` is read). It creates no `typing` object (`Protocol`,
 `NamedTuple`, `TypeVar`). It takes a few milliseconds, so a script can import it without a
 measurable cost.
 
-The cost of `trigger_event` is the cost of the handlers: about 0.35 µs for a manager with one trivial
-handler, and about 0.1 µs for each additional handler on a laptop. A condition avoids the work of
-an expensive handler (`PeriodicCondition`). To find a slow handler, time it or wrap it (see [Debug](#debug)).
+The cost of `trigger_event` is the cost of the handlers: about 0.65 µs for a manager with one trivial
+handler (it builds one `Context`), and about 0.1 µs for each additional handler on a laptop. A
+condition avoids the work of an expensive handler (`PeriodicCondition`). To find a slow handler,
+time it or wrap it (see [Debug](#debug)).
 
 A handler that is slow blocks the caller. Hand the work to an executor in the handler if the caller
 must not wait.
@@ -306,8 +323,9 @@ must not wait.
   the trigger starts are visited. A registration removed before its turn does not run, whatever
   removes it (`remove()`, `clear_event`, `reset`). A `remove()` from another thread cannot stop a
   handler that the trigger is about to call.
-- **The payload is shared**: all handlers get the same objects. A handler that mutates a payload
-  object is seen by the next handlers.
+- **The payload is shared**: all handlers get the same `Context`, which is read-only, and the same
+  value objects. A handler that mutates a mutable value (a list, for example) is seen by the next
+  handlers.
 - **Threads**: the registry is thread-safe, the handlers run in the thread that triggers the event,
   concurrently if several threads trigger it. A handler that shares state must protect it.
 
@@ -321,9 +339,16 @@ must not wait.
 4. It was not registered with `once=True` and already consumed: `subscription.active` is `False`.
 5. A handler of the same event ahead of it raised: the next handlers are skipped.
 
-### `TypeError: ... got an unexpected keyword argument`
+### `KeyError: "key 'epoch' not found in the context; ..."`
 
-The payload is given to every handler. Accept `**kwargs` or use `filter_payload=True`.
+The trigger did not give the key that the handler requires. The message lists the available keys.
+Read an optional value with `context.get("epoch", default)`, or check `"epoch" in context`.
+
+### `TypeError: ... takes 0 positional arguments but 1 was given`
+
+The handler has no parameter that accepts the context, but its signature cannot be inspected, so it
+is called as `handler(context)`. Wrap it in a function without parameter, or in a function that
+takes the context.
 
 ### `TypeError: ... returned an awaitable; use atrigger_event`
 
@@ -342,10 +367,14 @@ The registration is already removed. This is not an error: `remove()` is idempot
 - `minevent` does not log. Wrap a handler to trace it (the wrapper is a plain callable):
 
   ```python
+  import functools
+
+
   def traced(handler):
-      def wrapper(**payload):
+      @functools.wraps(handler)  # the signature of the handler decides if it gets the context
+      def wrapper(*args):
           print(f"calling {handler.__qualname__}")
-          return handler(**payload)
+          return handler(*args)
 
       return wrapper
 
@@ -356,5 +385,5 @@ The registration is already removed. This is not an error: `remove()` is idempot
 - Register a handler that prints the payload while you investigate:
 
   ```python
-  manager.add_event_handler("batch_end", lambda **payload: print(payload))
+  manager.add_event_handler("batch_end", lambda context: print(dict(context)))
   ```

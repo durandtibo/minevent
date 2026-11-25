@@ -1,6 +1,8 @@
 # Design: pass a read-only `Context` to the handlers instead of the payload as keywords
 
-Status: proposal, for discussion. Nothing in `src`, `tests` or `docs` is changed by this document.
+Status: implemented with option A (#840, #841, #842, and the integration tests of step 4). The
+body below is the proposal as it was written, and is not updated.
+Nothing in `src`, `tests` or `docs` is changed by this document.
 Items are tagged **[reading]** (from the code on `main`, `2f28f29`) or **[proposal]** (a design
 choice, not measured). No prototype was built, so no cost or speed claim is made.
 

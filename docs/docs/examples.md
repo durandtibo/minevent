@@ -20,7 +20,9 @@ happens, so logging, checkpointing or monitoring is added without changing the l
 >>> manager = EventManager()
 >>> train(manager, epochs=2)
 >>> _ = manager.add_event_handler("training_start", lambda: print("Training started"))
->>> _ = manager.add_event_handler("epoch_end", lambda epoch, loss: print(f"epoch {epoch}: loss={loss}"))
+>>> _ = manager.add_event_handler(
+...     "epoch_end", lambda context: print(f"epoch {context['epoch']}: loss={context['loss']}")
+... )
 >>> _ = manager.add_event_handler("training_end", lambda: print("Training ended"))
 >>> train(manager, epochs=2)
 Training started
@@ -42,7 +44,7 @@ every three calls; `skip_first=True` skips the first call:
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler(
 ...     "epoch_end",
-...     lambda epoch: print(f"checkpoint at epoch {epoch}"),
+...     lambda context: print(f"checkpoint at epoch {context['epoch']}"),
 ...     condition=PeriodicCondition(freq=3, skip_first=True),
 ... )
 >>> for epoch in range(7):
@@ -58,7 +60,9 @@ checkpoint at epoch 6
 >>> from minevent import AfterNCondition, EventManager
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler(
-...     "epoch_end", lambda epoch: print(f"validate at epoch {epoch}"), condition=AfterNCondition(2)
+...     "epoch_end",
+...     lambda context: print(f"validate at epoch {context['epoch']}"),
+...     condition=AfterNCondition(2),
 ... )
 >>> for epoch in range(4):
 ...     manager.trigger_event("epoch_end", epoch=epoch)
@@ -94,17 +98,17 @@ To combine conditions, write a function, for example `condition=lambda: a() and 
 
 ## Keep a state in a handler
 
-A class with a `__call__(self, **payload)` method is a handler with its own state. This one
+A class with a `__call__(self, context)` method is a handler with its own state. This one
 collects the losses and is read after the training:
 
 ```pycon
->>> from minevent import EventManager
+>>> from minevent import Context, EventManager
 >>> class LossHistory:
 ...     def __init__(self) -> None:
 ...         self.losses = []
 ...
-...     def __call__(self, loss: float, **kwargs) -> None:
-...         self.losses.append(loss)
+...     def __call__(self, context: Context) -> None:
+...         self.losses.append(context["loss"])
 >>> history = LossHistory()
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("epoch_end", history)
@@ -115,26 +119,26 @@ collects the losses and is read after the training:
 
 ```
 
-The `**kwargs` accepts the payload keys that the handler does not use. Another way is
-`filter_payload=True`, which passes only the keys of the signature.
+The handler ignores the keys that it does not read, here `epoch`.
 
 ## Share an event between handlers with different needs
 
-With `filter_payload=True`, each handler receives only the payload keys that it accepts, so
-handlers do not need `**kwargs`:
+Each handler receives the same read-only `Context` and reads the keys that it needs. A handler
+decides what to do with a missing key: `context["lr"]` raises a `KeyError`, and
+`context.get("lr", 0.1)` returns a default:
 
 ```pycon
->>> from minevent import EventManager
->>> def log_loss(loss: float) -> None:
-...     print(f"loss {loss}")
->>> def log_epoch(epoch: int) -> None:
-...     print(f"epoch {epoch}")
+>>> from minevent import Context, EventManager
+>>> def log_loss(context: Context) -> None:
+...     print(f"loss {context['loss']}")
+>>> def log_epoch(context: Context) -> None:
+...     print(f"epoch {context['epoch']}, lr {context.get('lr', 0.1)}")
 >>> manager = EventManager()
->>> _ = manager.add_event_handler("epoch_end", log_loss, filter_payload=True)
->>> _ = manager.add_event_handler("epoch_end", log_epoch, filter_payload=True)
+>>> _ = manager.add_event_handler("epoch_end", log_loss)
+>>> _ = manager.add_event_handler("epoch_end", log_epoch)
 >>> manager.trigger_event("epoch_end", epoch=3, loss=0.5)
 loss 0.5
-epoch 3
+epoch 3, lr 0.1
 
 ```
 
@@ -144,29 +148,30 @@ epoch 3
 takes the same options as `add_event_handler`:
 
 ```pycon
->>> from minevent import EventManager, PeriodicCondition
+>>> from minevent import Context, EventManager, PeriodicCondition
 >>> manager = EventManager()
->>> @manager.on("epoch_end", condition=PeriodicCondition(freq=2), filter_payload=True)
-... def log_epoch(epoch: int) -> None:
-...     print(f"epoch {epoch}")
+>>> @manager.on("epoch_end", condition=PeriodicCondition(freq=2))
+... def log_epoch(context: Context) -> None:
+...     print(f"epoch {context['epoch']}")
 >>> for epoch in range(3):
 ...     manager.trigger_event("epoch_end", epoch=epoch)
 epoch 0
 epoch 2
->>> log_epoch(10)
+>>> log_epoch(Context({"epoch": 10}))
 epoch 10
 
 ```
 
 ## Bind fixed arguments
 
-Use `functools.partial` for the arguments that do not come from the payload:
+Use `functools.partial` for the arguments that do not come from the payload. The context is passed
+after the bound arguments:
 
 ```pycon
 >>> import functools
->>> from minevent import EventManager
->>> def save(path: str, epoch: int) -> None:
-...     print(f"save epoch {epoch} to {path}")
+>>> from minevent import Context, EventManager
+>>> def save(path: str, context: Context) -> None:
+...     print(f"save epoch {context['epoch']} to {path}")
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("epoch_end", functools.partial(save, "model.pt"))
 >>> manager.trigger_event("epoch_end", epoch=4)
@@ -220,7 +225,7 @@ A plugin registers its handlers when it is set up, and keeps the subscriptions t
 it is torn down:
 
 ```pycon
->>> from minevent import EventManager
+>>> from minevent import Context, EventManager
 >>> class ProgressPlugin:
 ...     def setup(self, manager: EventManager) -> None:
 ...         self.subscriptions = [
@@ -232,11 +237,11 @@ it is torn down:
 ...         for subscription in self.subscriptions:
 ...             subscription.remove()
 ...
-...     def on_epoch_start(self, epoch: int) -> None:
-...         print(f"start {epoch}")
+...     def on_epoch_start(self, context: Context) -> None:
+...         print(f"start {context['epoch']}")
 ...
-...     def on_epoch_end(self, epoch: int) -> None:
-...         print(f"end {epoch}")
+...     def on_epoch_end(self, context: Context) -> None:
+...         print(f"end {context['epoch']}")
 >>> manager = EventManager()
 >>> plugin = ProgressPlugin()
 >>> plugin.setup(manager)
@@ -257,12 +262,12 @@ other, in the registration order. `trigger_event` raises a `TypeError` for a cor
 
 ```pycon
 >>> import asyncio
->>> from minevent import EventManager
->>> async def notify(epoch: int) -> None:
+>>> from minevent import Context, EventManager
+>>> async def notify(context: Context) -> None:
 ...     await asyncio.sleep(0)
-...     print(f"notified epoch {epoch}")
+...     print(f"notified epoch {context['epoch']}")
 >>> manager = EventManager()
->>> _ = manager.add_event_handler("epoch_end", lambda epoch: print(f"epoch {epoch}"))
+>>> _ = manager.add_event_handler("epoch_end", lambda context: print(f"epoch {context['epoch']}"))
 >>> _ = manager.add_event_handler("epoch_end", notify)
 >>> asyncio.run(manager.atrigger_event("epoch_end", epoch=1))
 epoch 1
@@ -277,17 +282,19 @@ one after the other, so the next step starts when every handler is done:
 
 ```pycon
 >>> import asyncio
->>> from minevent import EventManager
+>>> from minevent import Context, EventManager
 >>> async def fetch_all(manager: EventManager, urls: list[str]) -> None:
 ...     await manager.atrigger_event("fetch_start", count=len(urls))
 ...     for url in urls:
 ...         await asyncio.sleep(0)  # a real program awaits a request here
 ...         await manager.atrigger_event("fetch_done", url=url)
 ...     await manager.atrigger_event("fetch_end")
->>> async def log_done(url: str) -> None:
-...     print(f"fetched {url}")
+>>> async def log_done(context: Context) -> None:
+...     print(f"fetched {context['url']}")
 >>> manager = EventManager()
->>> _ = manager.add_event_handler("fetch_start", lambda count: print(f"fetching {count} urls"))
+>>> _ = manager.add_event_handler(
+...     "fetch_start", lambda context: print(f"fetching {context['count']} urls")
+... )
 >>> _ = manager.add_event_handler("fetch_done", log_done)
 >>> _ = manager.add_event_handler("fetch_end", lambda: print("done"))
 >>> asyncio.run(fetch_all(manager, ["a.com", "b.com"]))
@@ -300,17 +307,17 @@ done
 
 ## Use options with coroutine handlers
 
-`once`, `condition`, `filter_payload` and the `on` decorator work the same way with coroutine
+`once`, `condition` and the `on` decorator work the same way with coroutine
 handlers:
 
 ```pycon
 >>> import asyncio
->>> from minevent import EventManager, PeriodicCondition
+>>> from minevent import Context, EventManager, PeriodicCondition
 >>> manager = EventManager()
->>> @manager.on("epoch_end", condition=PeriodicCondition(freq=2), filter_payload=True)
-... async def upload(epoch: int) -> None:
+>>> @manager.on("epoch_end", condition=PeriodicCondition(freq=2))
+... async def upload(context: Context) -> None:
 ...     await asyncio.sleep(0)
-...     print(f"uploaded epoch {epoch}")
+...     print(f"uploaded epoch {context['epoch']}")
 >>> async def main() -> None:
 ...     for epoch in range(3):
 ...         await manager.atrigger_event("epoch_end", epoch=epoch, loss=0.5)
@@ -327,12 +334,12 @@ awaitables at the same time, use `asyncio.gather` inside one handler:
 
 ```pycon
 >>> import asyncio
->>> from minevent import EventManager
+>>> from minevent import Context, EventManager
 >>> async def upload(name: str) -> str:
 ...     await asyncio.sleep(0)
 ...     return name
->>> async def upload_all(files: list[str]) -> None:
-...     done = await asyncio.gather(*(upload(name) for name in files))
+>>> async def upload_all(context: Context) -> None:
+...     done = await asyncio.gather(*(upload(name) for name in context["files"]))
 ...     print(f"uploaded {done}")
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("training_end", upload_all)
@@ -400,7 +407,7 @@ def test_epoch_end_calls_the_handler():
     handler = Mock()
     manager.add_event_handler("epoch_end", handler)
     manager.trigger_event("epoch_end", epoch=1)
-    handler.assert_called_once_with(epoch=1)
+    handler.assert_called_once_with({"epoch": 1})
 ```
 
 An async handler is tested with `asyncio.run` (or the async support of your test framework):
@@ -417,5 +424,5 @@ def test_epoch_end_awaits_the_handler():
     handler = AsyncMock()
     manager.add_event_handler("epoch_end", handler)
     asyncio.run(manager.atrigger_event("epoch_end", epoch=1))
-    handler.assert_awaited_once_with(epoch=1)
+    handler.assert_awaited_once_with({"epoch": 1})
 ```
