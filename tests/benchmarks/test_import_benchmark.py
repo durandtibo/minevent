@@ -53,13 +53,20 @@ def run_import(statement: str) -> dict[str, float]:
 
 
 def benchmark_import(benchmark: BenchmarkFixture, statement: str) -> None:
-    r"""Benchmark ``statement`` and save the details in
-    ``extra_info``."""
+    r"""Benchmark ``statement`` and save the details in ``extra_info``.
+
+    Args:
+        benchmark: The benchmark fixture. With
+            ``--benchmark-disable``, it runs the statement once,
+            without the warm-up run.
+        statement: The code to time.
+    """
     results: list[dict[str, float]] = []
     benchmark.pedantic(
         lambda: results.append(run_import(statement)), rounds=10, warmup_rounds=1, iterations=1
     )
-    seconds = [r["seconds"] for r in results[1:]]  # the first run is the warm-up
+    # The first run is the warm-up, unless it is the only run (--benchmark-disable).
+    seconds = [r["seconds"] for r in results[1:] or results]
     benchmark.extra_info.update(
         {
             "import_seconds_min": min(seconds),

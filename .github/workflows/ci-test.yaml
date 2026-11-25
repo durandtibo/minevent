@@ -60,7 +60,7 @@ jobs:
         run: |
           inv test.integration --cov
       # Run each benchmark once, without measure, so a change of the API cannot leave one
-      # behind. The import benchmarks need the statistics, so they only run on a schedule.
+      # behind.
       - name: Check the benchmarks
         run: |
-          pytest tests/benchmarks --benchmark-disable --ignore=tests/benchmarks/test_import_benchmark.py
+          pytest tests/benchmarks --benchmark-disable
