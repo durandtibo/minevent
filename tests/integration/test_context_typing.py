@@ -23,6 +23,21 @@ def test_typed_handler_computes_with_the_values() -> None:
     assert results == [(4, 1.0, "TRAIN")]
 
 
+def test_typed_handler_reads_optional_values() -> None:
+    """Test that an annotated handler reads optional values with ``get``
+    without a cast, for the type checker and at run time."""
+    manager = EventManager()
+    results: list[tuple[int, int | None]] = []
+
+    def handler(context: Context) -> None:
+        batch: int = context.get("batch", 0) + 1
+        results.append((batch, context.get("lr")))
+
+    manager.add_event_handler("epoch_end", handler)
+    manager.trigger_event("epoch_end", {"epoch": 3})
+    assert results == [(1, None)]
+
+
 def test_typed_condition_compares_the_values() -> None:
     """Test that an annotated condition compares a value of the context
     without a cast, for the type checker and at run time."""

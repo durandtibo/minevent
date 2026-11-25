@@ -49,6 +49,28 @@ def test_missing_key_with_get_uses_the_default() -> None:
     assert calls == [0.1]
 
 
+class ReprRaises(str):
+    r"""Implement a key whose ``repr`` raises."""
+
+    __slots__ = ()
+
+    def __repr__(self) -> str:
+        msg = "the keys were formatted"
+        raise AssertionError(msg)
+
+
+def test_handler_reads_a_missing_key_without_formatting_the_keys() -> None:
+    """Test that a handler that reads a missing key with ``get`` and
+    ``in`` never runs the ``repr`` of the keys of the context."""
+    manager = EventManager()
+    results: list[tuple[object, bool]] = []
+    manager.add_event_handler(
+        "epoch_end", lambda context: results.append((context.get("lr", 0.1), "lr" in context))
+    )
+    manager.trigger_event("epoch_end", {ReprRaises("epoch"): 3})
+    assert results == [(0.1, False)]
+
+
 def test_missing_key_with_getitem_raises_key_error_and_skips_next_handlers() -> None:
     """Test that a handler that reads a missing key with ``[]`` raises a
     ``KeyError`` that lists the available keys, and that the next
