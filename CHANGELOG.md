@@ -72,7 +72,7 @@ the new API are in the
 - `import minevent` is cheap: it does not import `logging`, `inspect`, `asyncio` or
   `importlib.metadata`, and `__version__` is read from the package metadata when it is used.
 - Documentation: a new [examples page](https://durandtibo.github.io/minevent/examples/) and a user
-  guide. The architecture page is the reference of the rules, and the FAQ is removed (#PR).
+  guide. The architecture page is the reference of the rules, and the FAQ is removed (#861).
 - Packaging: the classifiers are `Development Status :: 3 - Alpha` and
   `Operating System :: OS Independent`, and there is no `all` extra.
 - Development: each pull request runs `tests/package_checks.py` and each benchmark once, except the
