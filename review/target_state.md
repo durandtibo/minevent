@@ -453,7 +453,7 @@ so. Each step updates the docstrings, the property it changes in `architecture.m
 | 4    | `refactor/add-calls-module`                 | Move the helpers to `calls.py` and split `test_manager.py`      | no       | F12      | #868         |
 | 5    | `bugfix/name-failing-condition` (on 4)      | `_claim`, `_invoke`, the notes (4.1, 4.2)                       | note     | F1, F3   | #869         |
 | 6    | `feat/reject-async-conditions` (on 5)       | The check of 4.3                                                | **yes**  | F2       | #870         |
-| 7    | `bugfix/release-handlers-outside-lock`      | 4.7                                                             | no       | F9       |              |
+| 7    | `bugfix/release-handlers-outside-lock`      | 4.7                                                             | no       | F9       | #871         |
 | 8    | `feat/add-handler-type` (on 4)              | `Handler` (4.6), a typed sample checked by `ty`                 | types    | F8       |              |
 | 9    | `feat/replace-skip-first-with-start` (on 2) | `start` (4.4)                                                   | **yes**  | F7       |              |
 | 10   | `test/run-every-benchmark`                  | The import benchmarks work when disabled; CI drops `--ignore`   | no       | F11      |              |
