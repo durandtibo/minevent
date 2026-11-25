@@ -508,8 +508,9 @@ class EventManager:
     triggered from worker threads. The handlers themselves run in the
     thread that triggers the event, concurrently if several threads
     trigger the same event, so a handler that shares state must be
-    thread-safe. The mutable state of a condition, such as the
-    counter of ``PeriodicCondition``, is not protected.
+    thread-safe. The built-in conditions protect their counter (see
+    ``minevent.conditions``), and the state of another condition is not
+    protected.
 
     A manager is a service, not a collection: ``bool(manager)`` is
     always ``True``, even when it has no handler, so ``manager or

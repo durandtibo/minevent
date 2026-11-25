@@ -69,8 +69,8 @@ The cost of a trigger is mostly the cost of the handlers (see P16 in the
 - **Mutating a value of the payload**: the values are not copied, so the next handlers see the
   change.
 - **An optional parameter**: `def f(context=None)` never receives the context.
-- **Threads**: a handler that shares state must protect it, and a stateful condition should be
-  called from one thread.
+- **Threads**: a handler that shares state must protect it, and so must a stateful condition that
+  you write. The built-in conditions protect their counter.
 
 ## Troubleshooting
 

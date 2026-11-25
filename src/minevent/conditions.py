@@ -49,6 +49,7 @@ from __future__ import annotations
 
 __all__ = ["AfterNCondition", "Condition", "PeriodicCondition"]
 
+import threading
 from collections.abc import Callable
 
 from minevent.context import Context
@@ -58,7 +59,87 @@ Condition = Callable[[], bool] | Callable[[Context], bool]
 with the ``Context`` of the trigger."""
 
 
-class PeriodicCondition:
+class _CountingCondition:
+    r"""Implement the call counter of the built-in conditions.
+
+    The counter is protected by a lock, so every call is counted once,
+    from any number of threads, with and without the GIL. A lock cannot
+    be copied or pickled: a copy of a condition (``copy.copy``,
+    ``copy.deepcopy`` or ``pickle``) starts at the same step, and then
+    has its own counter and lock.
+
+    A subclass implements ``__call__`` and calls ``_next_step`` once
+    per call.
+
+    Example:
+        ```pycon
+        >>> import copy
+        >>> from minevent import AfterNCondition
+        >>> condition = AfterNCondition(2)
+        >>> condition()
+        False
+        >>> clone = copy.deepcopy(condition)
+        >>> clone(), clone()
+        (False, True)
+        >>> condition
+        AfterNCondition(n=2, step=1)
+
+        ```
+    """
+
+    def __init__(self) -> None:
+        self._step = 0
+        self._lock = threading.Lock()
+
+    def __getstate__(self) -> dict[str, object]:
+        return {key: value for key, value in self.__dict__.items() if key != "_lock"}
+
+    def __setstate__(self, state: dict[str, object]) -> None:
+        self.__dict__.update(state)
+        self._lock = threading.Lock()
+
+    def _next_step(self) -> int:
+        r"""Count one call.
+
+        Returns:
+            The index of the call, from 0 for the first call after the
+                creation of the condition or its last ``reset``.
+
+        Example:
+            ```pycon
+            >>> from minevent import PeriodicCondition
+            >>> condition = PeriodicCondition(freq=2)
+            >>> condition._next_step(), condition._next_step()
+            (0, 1)
+
+            ```
+        """
+        with self._lock:
+            step = self._step
+            self._step = step + 1
+        return step
+
+    def reset(self) -> None:
+        r"""Reset the internal counter, as if the condition was just
+        created.
+
+        Example:
+            ```pycon
+            >>> from minevent import PeriodicCondition
+            >>> condition = PeriodicCondition(freq=2)
+            >>> condition(), condition()
+            (True, False)
+            >>> condition.reset()
+            >>> condition()
+            True
+
+            ```
+        """
+        with self._lock:
+            self._step = 0
+
+
+class PeriodicCondition(_CountingCondition):
     r"""Implement a periodic condition.
 
     This condition evaluates to ``True`` on the first call and then every ``freq`` calls. It
@@ -68,9 +149,9 @@ class PeriodicCondition:
     Note that a call is not idempotent: each call advances the
     counter, so the condition is stateful. Do not share one instance
     between several handlers, because they would advance the same
-    counter. Use ``reset`` to restart the counter. The counter is not
-    protected by a lock, so a condition should be called from one
-    thread.
+    counter. Use ``reset`` to restart the counter. Every call is
+    counted once, from any number of threads, and the condition can be
+    copied and pickled.
 
     Args:
         freq: The frequency (interval) at which the condition
@@ -103,9 +184,9 @@ class PeriodicCondition:
         if freq < 1:
             msg = f"freq must be greater than or equal to 1, got {freq}"
             raise ValueError(msg)
+        super().__init__()
         self._freq = freq
         self._skip_first = bool(skip_first)
-        self._step = 0
 
     def __repr__(self) -> str:
         return (
@@ -114,9 +195,8 @@ class PeriodicCondition:
         )
 
     def __call__(self) -> bool:
-        condition = self._step % self._freq == 0 and not (self._skip_first and self._step == 0)
-        self._step += 1
-        return condition
+        step = self._next_step()
+        return step % self._freq == 0 and not (self._skip_first and step == 0)
 
     @property
     def freq(self) -> int:
@@ -138,33 +218,16 @@ class PeriodicCondition:
         """
         return self._skip_first
 
-    def reset(self) -> None:
-        r"""Reset the internal counter, as if the condition was just
-        created.
 
-        Example:
-            ```pycon
-            >>> from minevent import PeriodicCondition
-            >>> condition = PeriodicCondition(freq=2)
-            >>> condition(), condition()
-            (True, False)
-            >>> condition.reset()
-            >>> condition()
-            True
-
-            ```
-        """
-        self._step = 0
-
-
-class AfterNCondition:
+class AfterNCondition(_CountingCondition):
     r"""Implement a condition that is ``False`` for the first ``n``
     calls and ``True`` afterwards.
 
     The condition is stateful, like ``PeriodicCondition``: each call
     advances the counter, so do not share one instance between
-    several handlers, and call it from one thread because the counter
-    is not protected by a lock. Use ``reset`` to restart the counter.
+    several handlers. Use ``reset`` to restart the counter. Every call
+    is counted once, from any number of threads, and the condition can
+    be copied and pickled.
 
     Args:
         n: The number of calls to skip. Must be a non-negative
@@ -191,34 +254,14 @@ class AfterNCondition:
         if n < 0:
             msg = f"n must be greater than or equal to 0, got {n}"
             raise ValueError(msg)
+        super().__init__()
         self._n = n
-        self._step = 0
 
     def __repr__(self) -> str:
         return f"{self.__class__.__qualname__}(n={self._n:,}, step={self._step:,})"
 
     def __call__(self) -> bool:
-        condition = self._step >= self._n
-        self._step += 1
-        return condition
-
-    def reset(self) -> None:
-        r"""Reset the internal counter, as if the condition was just
-        created.
-
-        Example:
-            ```pycon
-            >>> from minevent import AfterNCondition
-            >>> condition = AfterNCondition(1)
-            >>> condition(), condition()
-            (False, True)
-            >>> condition.reset()
-            >>> condition()
-            False
-
-            ```
-        """
-        self._step = 0
+        return self._next_step() >= self._n
 
     @property
     def n(self) -> int:
