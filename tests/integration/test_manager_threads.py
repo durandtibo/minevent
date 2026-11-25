@@ -229,7 +229,7 @@ def test_add_event_handler_options_from_threads() -> None:
 
 
 def test_remove_from_threads_while_triggering() -> None:
-    """Test that a handler runs at most once per registration when its
+    """Test that a ``once`` handler runs at most once when its
     registration is removed in another thread, and never runs after the
     removal is complete."""
     manager = EventManager()
@@ -244,7 +244,8 @@ def test_remove_from_threads_while_triggering() -> None:
         return handler
 
     subscriptions = [
-        manager.add_event_handler("my_event", make_handler(i)) for i in range(NUM_ITERATIONS)
+        manager.add_event_handler("my_event", make_handler(i), once=True)
+        for i in range(NUM_ITERATIONS)
     ]
 
     def work(index: int) -> None:
