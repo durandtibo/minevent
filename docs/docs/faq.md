@@ -29,7 +29,8 @@ Yes. `minevent` does not depend on any ML framework.
 ### How do I pass data to the handlers?
 
 As a dict, the second argument of `trigger_event`:
-`manager.trigger_event("epoch_end", {"epoch": 3})`. See
+`manager.trigger_event("epoch_end", {"epoch": 3})`, or as a `Context`, which is reused as is:
+`manager.trigger_event("epoch_end", Context({"epoch": 3}))`. See
 [the payload](guide.md#pass-the-data-as-a-payload). Use `functools.partial` for the
 arguments that are fixed at registration.
 

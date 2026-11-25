@@ -190,6 +190,28 @@ epoch 10
 
 ```
 
+## Pass a dict or a Context
+
+`trigger_event` takes the data of the trigger as a dict, or as a `Context`. Both give the handlers
+the same read-only `Context`. A dict is copied and validated at each trigger, while a `Context` is
+validated once, when it is built, and is passed as is, so build it once to reuse it:
+
+```pycon
+>>> from minevent import Context, EventManager
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler(
+...     "epoch_end", lambda context: print(f"epoch {context['epoch']}, loss {context['loss']}")
+... )
+>>> manager.trigger_event("epoch_end", {"epoch": 3, "loss": 0.5})
+epoch 3, loss 0.5
+>>> context = Context({"epoch": 4, "loss": 0.4})
+>>> manager.trigger_event("epoch_end", context)
+epoch 4, loss 0.4
+>>> manager.trigger_event("epoch_end", context)
+epoch 4, loss 0.4
+
+```
+
 ## Bind fixed arguments
 
 Use `functools.partial` for the arguments that do not come from the payload. The context is passed

@@ -88,9 +88,9 @@ It allows you to customize the function `say_something` without changing its imp
 
 - **Minimal and Lightweight**: No dependency, keeping your project dependencies clean
 - **Simple API**: Easy to learn and use with intuitive event registration and triggering
-- **Payload**: `trigger_event("epoch_end", {"epoch": 3})` passes the dict to the handlers in
-  a read-only `Context`: each handler reads the keys it needs, with `context["epoch"]` or
-  `context.get("loss")`
+- **Payload**: `trigger_event("epoch_end", {"epoch": 3})` passes a dict (or a `Context`) to the
+  handlers in a read-only `Context`: each handler reads the keys it needs, with `context["epoch"]`
+  or `context.get("loss")`
 - **Subscriptions**: `add_event_handler` returns a `Subscription` to remove exactly that
   registration (it is also a context manager), and `once=True` runs a handler at most once
 - **Decorator**: `@manager.on("epoch_end")` registers a function as a handler
@@ -108,10 +108,10 @@ It allows you to customize the function `say_something` without changing its imp
 
 ## Usage
 
-The second argument of `trigger_event` (a dict) is the payload. The handlers receive it in a
-read-only `Context`: a handler that has a parameter is called as `handler(context)`, and a handler
-without parameter is called as `handler()`. The options of a registration (`once`, `condition`) are
-keyword-only arguments of `add_event_handler` and of its decorator form `on`:
+The second argument of `trigger_event` (a dict, or a `Context`) is the payload. The handlers receive
+it in a read-only `Context`: a handler that has a parameter is called as `handler(context)`, and a
+handler without parameter is called as `handler()`. The options of a registration (`once`,
+`condition`) are keyword-only arguments of `add_event_handler` and of its decorator form `on`:
 
 ```pycon
 >>> from minevent import Context, EventManager, PeriodicCondition

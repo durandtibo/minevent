@@ -72,7 +72,9 @@ condition=AfterNCondition(2)` runs once, on the third trigger (it never ran). A 
 
 - `EventManager.events`, `__contains__`, `clear_event` and `reset`.
 - `trigger_event(event, context=None, /)` passes the mapping `context` to the handlers in a
-  read-only `Context` (#841, #849). A `Context` is passed as is, and `None` means no data.
+  read-only `Context` (#841, #849). A dict and a `Context` are both accepted:
+  `trigger_event("e", {"k": 1})` and `trigger_event("e", Context({"k": 1}))`. A `Context` is passed
+  as is, and `None` means no data.
 - A condition that has a parameter is called with the `Context` of the trigger, with the rule of the
   handlers (`condition(context)`, or `condition()` without parameter), so it can depend on the
   payload. `Condition` is `Callable[[], bool] | Callable[[Context], bool]`. Existing conditions are

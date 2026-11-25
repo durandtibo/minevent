@@ -518,10 +518,11 @@ The `trigger_event` method does nothing if there is no event handler registered 
 
 ### Share an event between handlers that need different payload keys
 
-The dict given to `trigger_event` is copied into one read-only `Context` that is shared by
-the handlers. Each handler reads the keys it needs: `context["key"]` raises a `KeyError` (that lists
-the available keys) if the key is missing, and `context.get("key", default)` returns a default. An
-extra key never breaks a handler:
+The dict given to `trigger_event` is copied into one read-only `Context` that is shared by the
+handlers. You can also give a `Context` yourself, `trigger_event("epoch_end", Context({...}))`: it
+is passed as is, so it can be reused for several triggers. Each handler reads the keys it needs:
+`context["key"]` raises a `KeyError` (that lists the available keys) if the key is missing, and
+`context.get("key", default)` returns a default. An extra key never breaks a handler:
 
 ```pycon
 >>> from minevent import Context, EventManager
