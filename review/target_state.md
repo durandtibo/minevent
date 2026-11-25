@@ -417,7 +417,7 @@ for what it changes.
 | 7    | `feat/detect-async-callables` (on 6)      | `has_kind` for the generators and the conditions (4.2)                                             | **yes**  | F3     | #886         |
 | 8    | `feat/reject-async-handlers-early` (on 7) | The pre-pass of `trigger_event` (4.3), a benchmark                                                 | **yes**  | F2     | #887         |
 | 9    | `ci/fix-benchmark-baseline`               | The baseline and the median (4.6), `GUIDELINES.md`                                                 | no       | F8     | #878         |
-| 10   | `ci/check-published-package`              | The checks of the installed version (4.6), `GUIDELINES.md`                                         | no       | F9     |              |
+| 10   | `ci/check-published-package`              | The checks of the installed version (4.6), `GUIDELINES.md`                                         | no       | F9     | #888         |
 
 Order of value if only part is taken: **9** (without it no later cost or regression can be seen),
 then **1, 7 and 8** (a program does something other than what was asked), then **2 to 4** (the errors),
