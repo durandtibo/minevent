@@ -10,17 +10,18 @@ from __future__ import annotations
 __all__ = ["Context"]
 
 from collections.abc import Iterator, Mapping
-from types import MappingProxyType
 
 
 class Context(Mapping[str, object]):
     r"""Implement a read-only mapping of the payload of a trigger.
 
-    The data is copied at construction and held in a read-only view, so
-    neither the code that built the context nor a handler can change
-    what the next handler sees. The values themselves are not copied: a
-    mutable value stays mutable. A context has no method that changes
-    it (no ``__setitem__``, ``update`` or ``pop``).
+    The data is copied at construction into a private dict, and a
+    context has no method that changes it (no ``__setitem__``,
+    ``update`` or ``pop``), so neither the code that built the context
+    nor a handler can change what the next handler sees. The values
+    themselves are not copied: a mutable value stays mutable. A context
+    can be copied, deep-copied and pickled (with the protocol 2 or
+    higher, like the default one) if its values can.
 
     ``context[key]`` reads a required value and raises a ``KeyError``
     if it is missing. ``context.get(key, default)`` reads an optional
@@ -51,6 +52,9 @@ class Context(Mapping[str, object]):
         2
         >>> context
         Context({'epoch': 3, 'loss': 0.5})
+        >>> import copy
+        >>> copy.deepcopy(context)
+        Context({'epoch': 3, 'loss': 0.5})
 
         ```
     """
@@ -67,7 +71,7 @@ class Context(Mapping[str, object]):
             if not isinstance(key, str):
                 msg = f"the keys of data must be str, but got {key!r}"
                 raise TypeError(msg)
-        self._data = MappingProxyType(dict(data))
+        self._data = dict(data)
 
     def __getitem__(self, key: str) -> object:
         try:
@@ -83,4 +87,4 @@ class Context(Mapping[str, object]):
         return len(self._data)
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__qualname__}({dict(self._data)!r})"
+        return f"{self.__class__.__qualname__}({self._data!r})"

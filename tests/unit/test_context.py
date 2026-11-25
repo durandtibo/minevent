@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import copy
+import pickle
+import threading
 from collections.abc import Mapping
 from typing import Any
 
@@ -170,3 +173,39 @@ def test_context_invalid_data(data: Any) -> None:
 def test_context_invalid_key(key: Any) -> None:
     with pytest.raises(TypeError, match=r"the keys of data must be str, but got"):
         Context({key: 1})
+
+
+@pytest.mark.parametrize("protocol", range(2, pickle.HIGHEST_PROTOCOL + 1))
+def test_context_pickle(protocol: int) -> None:
+    assert pickle.dumps(Context({"epoch": 3, "losses": [0.5]}), protocol)
+
+
+def test_context_pickle_empty() -> None:
+    assert pickle.dumps(Context())
+
+
+def test_context_pickle_unpicklable_value() -> None:
+    with pytest.raises(TypeError, match=r"cannot pickle"):
+        pickle.dumps(Context({"lock": threading.Lock()}))
+
+
+def test_context_deepcopy() -> None:
+    assert copy.deepcopy(Context({"a": [1]})) == Context({"a": [1]})
+
+
+def test_context_deepcopy_returns_a_context() -> None:
+    assert isinstance(copy.deepcopy(Context({"a": 1})), Context)
+
+
+def test_context_deepcopy_copies_the_values() -> None:
+    value = [1, 2]
+    assert copy.deepcopy(Context({"a": value}))["a"] is not value
+
+
+def test_context_copy() -> None:
+    assert copy.copy(Context({"a": 1})) == Context({"a": 1})
+
+
+def test_context_copy_does_not_copy_the_values() -> None:
+    value = [1, 2]
+    assert copy.copy(Context({"a": value}))["a"] is value
