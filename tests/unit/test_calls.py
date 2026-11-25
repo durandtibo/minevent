@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import dataclasses
 import functools
+import importlib.util
 import inspect
 import logging
 import sys
@@ -12,7 +13,7 @@ from unittest.mock import AsyncMock, Mock, create_autospec
 
 import pytest
 
-from minevent import Context
+from minevent import Context, calls
 from minevent.calls import add_error_note, describe, needs_context, reject_awaitable
 from tests.unit.handlers import (
     BadReprCallable,
@@ -267,6 +268,19 @@ def test_needs_context_unresolved_parameter_annotation(tmp_path: Path) -> None:
 def test_needs_context_before_python_3_14(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(sys, "version_info", (3, 13, 0))
     assert needs_context(positional_handler, "handler")
+
+
+def test_calls_does_not_import_annotationlib_before_python_3_14(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(sys, "version_info", (3, 13, 0))
+    # A fresh copy of the module: ``minevent.calls`` is left as it is.
+    spec = importlib.util.spec_from_file_location("calls_copy", calls.__file__)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert not hasattr(module, "annotationlib")
 
 
 ##############################

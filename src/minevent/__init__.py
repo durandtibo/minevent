@@ -36,6 +36,8 @@ __all__ = [
     "__version__",
 ]
 
+from importlib.metadata import PackageNotFoundError, version
+
 from minevent.calls import Handler
 from minevent.conditions import (
     AfterNCondition,
@@ -45,24 +47,7 @@ from minevent.conditions import (
 from minevent.context import Context
 from minevent.manager import EventManager, Subscription
 
-
-def __getattr__(name: str) -> object:
-    # PEP 562: the version is read from the metadata of the installed package the first time
-    # it is used, because ``importlib.metadata`` is slow to import.
-    if name == "__version__":
-        from importlib.metadata import PackageNotFoundError, version  # noqa: PLC0415
-
-        try:
-            value = version(__name__)
-        except PackageNotFoundError:
-            # Package is not installed, fallback if needed
-            value = "0.0.0"
-        globals()["__version__"] = value
-        return value
-    msg = f"module {__name__!r} has no attribute {name!r}"
-    raise AttributeError(msg)
-
-
-def __dir__() -> list[str]:
-    # A set: ``__version__`` is in the globals once it has been read.
-    return sorted({*globals(), "__version__"})
+try:
+    __version__ = version(__name__)
+except PackageNotFoundError:  # the package is not installed
+    __version__ = "0.0.0"

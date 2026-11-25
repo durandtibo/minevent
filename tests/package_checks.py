@@ -108,15 +108,6 @@ def check_no_third_party_import() -> None:
     subprocess.run([sys.executable, "-c", code], check=True)  # noqa: S603
 
 
-def check_lazy_imports() -> None:
-    r"""Check that ``import minevent`` does not load the modules that
-    are imported lazily."""
-    logger.info("Checking that minevent does not import logging, inspect, asyncio...")
-    modules = ["logging", "inspect", "asyncio", "importlib.metadata"]
-    code = f"import sys, minevent; assert not set({modules!r}) & set(sys.modules)"
-    subprocess.run([sys.executable, "-c", code], check=True)  # noqa: S603
-
-
 def check_exports() -> None:
     r"""Check that every name of ``__all__`` exists."""
     logger.info("Checking exports...")
@@ -136,7 +127,6 @@ def main() -> None:
     A failed check raises.
     """
     check_no_third_party_import()
-    check_lazy_imports()
     check_exports()
     check_version()
     check_event_manager()

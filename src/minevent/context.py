@@ -11,17 +11,14 @@ __all__ = ["Context"]
 
 import reprlib
 from collections.abc import Iterator, Mapping
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from typing import Any
+from typing import Any
 
 # The list of the keys in the message of a missing key: at most 20 of them.
 _KEYS_REPR = reprlib.Repr()
 _KEYS_REPR.maxlist = 20
 
 
-class Context(Mapping[str, "Any"]):
+class Context(Mapping[str, Any]):
     r"""Implement a read-only mapping of the payload of a trigger.
 
     The data is copied at construction into a private dict, whose keys

@@ -14,10 +14,14 @@ __all__ = ["Handler", "add_error_note", "describe", "needs_context", "reject_awa
 
 import contextlib
 import functools
+import inspect
 import sys
 from collections.abc import Awaitable, Callable, Coroutine
 
 from minevent.context import Context
+
+if sys.version_info >= (3, 14):
+    import annotationlib
 
 Handler = Callable[[], object] | Callable[[Context], object]
 """A handler: a function without parameter or with the ``Context`` of
@@ -74,8 +78,6 @@ def needs_context(func: Callable[..., object], name: str) -> bool:
 
         ```
     """
-    import inspect  # noqa: PLC0415
-
     if inspect.isgeneratorfunction(func) or inspect.isasyncgenfunction(func):
         msg = f"{name} must not be a generator function, but got {describe(func)}"
         raise TypeError(msg)
@@ -86,8 +88,6 @@ def needs_context(func: Callable[..., object], name: str) -> bool:
     try:
         if sys.version_info >= (3, 14):
             # The annotations are evaluated lazily, and an unresolved name must not raise.
-            import annotationlib  # noqa: PLC0415
-
             signature = inspect.signature(func, annotation_format=annotationlib.Format.FORWARDREF)
         else:
             signature = inspect.signature(func)

@@ -187,10 +187,9 @@ first, without default: `lambda context, i=i: print(i, context["epoch"])`.
 
 ### Import and typing
 
-- `minevent` uses the standard library only. `import minevent` starts no thread, reads no file,
-  emits no warning, writes no log, and does not import `logging`, `inspect`, `asyncio` or
-  `importlib.metadata`: `inspect` is imported at the first registration, and the version is read at
-  the first access of `__version__`.
+- `minevent` uses the standard library only. `import minevent` starts no thread, emits no warning
+  and writes no output and no log. It reads `__version__` from the metadata of the installed
+  package.
 - The package is fully typed (`py.typed`). A handler argument is typed `Handler`, so a type checker
   reports a callable that needs two arguments, a keyword-only argument or an argument of another
   type than `Context`. The run-time check of the calling rule stays the authority. The values of a
