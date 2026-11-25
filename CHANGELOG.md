@@ -40,6 +40,9 @@ the new API are in the
   returned by `add_event_handler` and call `subscription.remove()` (it returns `False` when the
   registration is already removed, where `remove_event_handler` raised a `RuntimeError`), or use
   `manager.get_subscriptions(event)`.
+- **Typing**: a handler argument is typed `Handler`, so a type checker reports a handler that needs
+  two arguments, a keyword-only argument or an argument of another type. Annotate the parameter of a
+  handler `Context` (or `Mapping`).
 - **Events**: an event name must be a `str` (other types raise a `TypeError`; they were converted
   with `str` at registration).
 - **Dispatch**: a trigger runs the registrations that exist when it starts: a handler added by a
@@ -67,7 +70,7 @@ the new API are in the
 - `EventManager.events`, `get_subscriptions`, `clear_event`, `__len__` and `__contains__`. A manager
   is always truthy.
 - `AfterNCondition`, and the `skip_first` option and the `reset` method of `PeriodicCondition`,
-  which now validates `freq`. The type alias `Condition`.
+  which now validates `freq`. The type aliases `Handler` and `Condition`.
 - The registry of `EventManager` is thread-safe, and a removal is O(1). The handlers, the
   conditions and the finalizers of the removed handlers run outside its lock.
 - `PeriodicCondition` and `AfterNCondition` count every call once from any number of threads, with

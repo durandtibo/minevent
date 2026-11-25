@@ -1165,8 +1165,9 @@ def test_event_manager_on_async_condition() -> None:
 def test_event_manager_on_rejected_signature() -> None:
     manager = EventManager()
     decorator = manager.on("my_event")
+    handler: Any = named_handler
     with pytest.raises(TypeError, match=r"^handler named_handler must need no argument"):
-        decorator(named_handler)
+        decorator(handler)
     assert len(manager) == 0
 
 

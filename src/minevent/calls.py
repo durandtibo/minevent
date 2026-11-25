@@ -1,24 +1,27 @@
 r"""Implement how the code of a user is called.
 
-``needs_context`` says how a handler or a condition is called,
-``describe`` names it, ``reject_awaitable`` rejects the awaitable result
-of a synchronous call, and ``add_error_note`` completes the exception
-that it raises. These helpers are used by ``minevent.manager``, and
-``minevent`` does not export them.
+``Handler`` is the type of a handler. ``needs_context`` says how a
+handler or a condition is called, ``describe`` names it,
+``reject_awaitable`` rejects the awaitable result of a synchronous call,
+and ``add_error_note`` completes the exception that it raises. These
+helpers are used by ``minevent.manager``, and ``minevent`` exports
+``Handler`` only.
 """
 
 from __future__ import annotations
 
-__all__ = ["add_error_note", "describe", "needs_context", "reject_awaitable"]
+__all__ = ["Handler", "add_error_note", "describe", "needs_context", "reject_awaitable"]
 
 import contextlib
 import functools
 import sys
-from collections.abc import Awaitable, Coroutine
-from typing import TYPE_CHECKING
+from collections.abc import Awaitable, Callable, Coroutine
 
-if TYPE_CHECKING:
-    from collections.abc import Callable
+from minevent.context import Context
+
+Handler = Callable[[], object] | Callable[[Context], object]
+"""A handler: a function without parameter or with the ``Context`` of
+the trigger."""
 
 
 def needs_context(func: Callable[..., object], name: str) -> bool:
