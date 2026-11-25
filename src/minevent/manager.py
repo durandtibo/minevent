@@ -36,6 +36,13 @@ def _check_event(event: object) -> None:
 
     Raises:
         TypeError: if ``event`` is not a ``str``.
+
+    Example:
+        ```pycon
+        >>> from minevent.manager import _check_event
+        >>> _check_event("epoch_end")
+
+        ```
     """
     if not isinstance(event, str):
         msg = f"event must be a str, but got {type(event).__qualname__}"
@@ -186,6 +193,15 @@ class Subscription:
 
         Returns:
             The event name.
+
+        Example:
+            ```pycon
+            >>> from minevent import EventManager
+            >>> manager = EventManager()
+            >>> manager.add_event_handler("epoch_end", lambda: None).event
+            'epoch_end'
+
+            ```
         """
         return self._event
 
@@ -195,6 +211,16 @@ class Subscription:
 
         Returns:
             The handler given to ``add_event_handler``.
+
+        Example:
+            ```pycon
+            >>> from minevent import EventManager
+            >>> manager = EventManager()
+            >>> def handler() -> None: ...
+            >>> manager.add_event_handler("epoch_end", handler).handler is handler
+            True
+
+            ```
         """
         return self._handler
 
@@ -206,6 +232,15 @@ class Subscription:
         Returns:
             ``True`` if the event handler runs at most once, otherwise
                 ``False``.
+
+        Example:
+            ```pycon
+            >>> from minevent import EventManager
+            >>> manager = EventManager()
+            >>> manager.add_event_handler("epoch_end", lambda: None, once=True).once
+            True
+
+            ```
         """
         return self._once
 
@@ -215,6 +250,15 @@ class Subscription:
 
         Returns:
             The condition, or ``None`` if the handler always runs.
+
+        Example:
+            ```pycon
+            >>> from minevent import EventManager
+            >>> manager = EventManager()
+            >>> print(manager.add_event_handler("epoch_end", lambda: None).condition)
+            None
+
+            ```
         """
         return self._condition
 
@@ -226,6 +270,19 @@ class Subscription:
             ``True`` until the registration is removed, by whatever means
                 (``remove``, ``clear_event``, ``reset`` or the claim of a
                 ``once`` registration), then ``False``.
+
+        Example:
+            ```pycon
+            >>> from minevent import EventManager
+            >>> manager = EventManager()
+            >>> subscription = manager.add_event_handler("epoch_end", lambda: None)
+            >>> subscription.active
+            True
+            >>> manager.reset()
+            >>> subscription.active
+            False
+
+            ```
         """
         return self._active
 
@@ -314,6 +371,18 @@ class Subscription:
         Returns:
             ``True`` if the registration was removed, ``False`` if it was
                 already removed.
+
+        Example:
+            ```pycon
+            >>> from minevent import EventManager
+            >>> manager = EventManager()
+            >>> subscription = manager.add_event_handler("epoch_end", lambda: None)
+            >>> subscription.remove()
+            True
+            >>> subscription.remove()
+            False
+
+            ```
         """
         return self._manager._remove(self)
 
@@ -321,14 +390,17 @@ class Subscription:
 class EventManager:
     r"""Implement an event manager.
 
-    ``add_event_handler`` (or the ``on`` decorator) registers a handler to
-    an event, a case-sensitive string, and returns the ``Subscription``
-    that removes it. ``trigger_event`` and ``atrigger_event`` run the
-    handlers of an event in the order they were added. The registry is
-    thread-safe. A manager is always truthy (``len`` gives the number of
-    registrations), and it cannot be copied or pickled. The properties
-    that it guarantees, and its limits, are in the architecture page of
-    the documentation.
+    ``add_event_handler`` registers a handler to an event, a
+    case-sensitive string, and returns the ``Subscription`` that removes
+    it. The ``on`` decorator registers the function that it decorates.
+    ``trigger_event`` and ``atrigger_event`` run the handlers of an event
+    in the order they were added, and ``clear_event`` and ``reset``
+    remove registrations. ``events``, ``get_subscriptions``,
+    ``event in manager`` and ``len(manager)`` (the number of
+    registrations) read the registry, which is thread-safe. A manager is
+    always truthy. Copying or pickling it raises a ``TypeError``. The
+    guarantees and the limits are in the "How It Works" page of the
+    documentation, and the reasons in its "Design Choices" page.
 
     Example:
         ```pycon
@@ -551,6 +623,8 @@ class EventManager:
         _check_event(event)
 
         def decorator(func: _F) -> _F:
+            r"""Register ``func`` and return it unchanged (see
+            ``on``)."""
             self.add_event_handler(event, func, once=once, condition=condition)
             return func
 
@@ -565,6 +639,16 @@ class EventManager:
         Returns:
             ``True`` if the registration was removed, ``False`` if it
                 was already removed.
+
+        Example:
+            ```pycon
+            >>> from minevent import EventManager
+            >>> manager = EventManager()
+            >>> subscription = manager.add_event_handler("epoch_end", lambda: None)
+            >>> manager._remove(subscription), manager._remove(subscription)
+            (True, False)
+
+            ```
         """
         with self._lock:
             subs = self._subscriptions.get(subscription.event)
@@ -580,8 +664,9 @@ class EventManager:
         r"""Run the handlers of an event, in the order they were added.
 
         The handlers registered when the trigger starts run one after the
-        other, and a registration removed before its turn does not run.
-        Nothing happens if the event has no handler. The trigger is fail-fast:
+        other, and a registration removed before its turn does not run. The
+        condition of a registration is evaluated just before its handler.
+        No handler runs if the event has none. The trigger is fail-fast:
         an exception of a handler or a condition propagates unwrapped, with a
         note that says what raised it, and the next handlers are skipped.
 

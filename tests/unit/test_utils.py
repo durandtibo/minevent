@@ -8,6 +8,7 @@ from tests.unit.utils import Tracer, raised, reset_traced, trace
 
 
 def add(a: int, b: int = 0) -> int:
+    r"""Add two integers."""
     return a + b
 
 
@@ -96,6 +97,7 @@ def test_reset_traced_does_not_reset_unregistered_tracer() -> None:
 
 
 def raise_value_error(message: str = "boom") -> None:
+    r"""Raise a ``ValueError`` with ``message``."""
     raise ValueError(message)
 
 

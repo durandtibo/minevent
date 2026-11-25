@@ -2,7 +2,7 @@
 
 This page shows how to use `minevent` in practical situations. The `pycon` examples run as written.
 The [quickstart](quickstart.md) shows the basics, the [user guide](guide.md) lists the
-recommendations and the [architecture page](architecture.md) states the rules.
+recommendations and the [how it works page](architecture.md) states the rules.
 
 ## Add logging to a training loop
 
@@ -108,6 +108,23 @@ A class with `__call__` is useful when a condition has a state or reads another 
 >>> verbose.enabled = True
 >>> manager.trigger_event("batch_end")
 batch done
+
+```
+
+## Restart a condition
+
+`reset()` restarts the counter of a built-in condition, for example at the start of a new training:
+
+```pycon
+>>> from minevent import AfterNCondition, EventManager
+>>> warmup = AfterNCondition(1)
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler("epoch_end", lambda: print("validate"), condition=warmup)
+>>> for _ in range(2):
+...     manager.trigger_event("epoch_end")
+validate
+>>> warmup.reset()
+>>> manager.trigger_event("epoch_end")
 
 ```
 
@@ -446,6 +463,33 @@ end 0
 >>> plugin.teardown()
 >>> len(manager)
 0
+
+```
+
+## Trigger events from several threads
+
+The manager can be shared between threads. The handlers run in the thread that triggers the event,
+possibly at the same time, so a handler protects the state that it shares:
+
+```pycon
+>>> import threading
+>>> from minevent import Context, EventManager
+>>> total, lock = [0], threading.Lock()
+>>> def add(context: Context) -> None:
+...     with lock:
+...         total[0] += context["value"]
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler("item_done", add)
+>>> threads = [
+...     threading.Thread(target=manager.trigger_event, args=("item_done", {"value": i}))
+...     for i in range(10)
+... ]
+>>> for thread in threads:
+...     thread.start()
+>>> for thread in threads:
+...     thread.join()
+>>> total
+[45]
 
 ```
 

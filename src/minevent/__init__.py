@@ -3,10 +3,11 @@ r"""Contain the main features of the ``minevent`` package.
 ``minevent`` is a minimal event system with three concepts: an event (a
 case-sensitive string), a handler (``Handler``) and an event manager
 (``EventManager``) that registers the handlers and triggers the events.
-A registration returns a ``Subscription``, the handlers receive the
-payload of a trigger in a read-only ``Context``, and a ``Condition``,
-such as ``PeriodicCondition`` or ``AfterNCondition``, controls when a
-handler runs.
+A registration returns a ``Subscription``, the handlers and the
+conditions that take a parameter receive the payload of a trigger in a
+read-only ``Context``, and a ``Condition``, such as
+``PeriodicCondition`` or ``AfterNCondition``, controls when a handler
+runs.
 
 The package has no dependency, and ``__version__`` is the version of the
 installed package.

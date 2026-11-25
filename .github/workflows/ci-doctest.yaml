@@ -1,5 +1,6 @@
 # Documentation testing workflow.
-# Runs doctests on code examples in docstrings to ensure they work correctly.
+# Runs doctests on the code examples of the docstrings and of the Markdown
+# files to ensure they work correctly.
 # Also validates that the documentation can be built without errors.
 
 name: Doctest

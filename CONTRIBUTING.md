@@ -16,14 +16,17 @@ Once you implement and test your feature or bug-fix, please submit a Pull Reques
 
 We actively welcome your pull requests.
 
-1. Fork the repo and create your branch from `main`.
+1. Fork the repo and create your branch from `main`. Set up the environment as described in
+   [Get Started](https://durandtibo.github.io/minevent/main/get_started/#installing-from-source).
 2. If you've added code that should be tested, add tests.
-3. If you've changed APIs, update the documentation.
+3. If you've changed APIs, update the docstrings, the documentation and `CHANGELOG.md`.
 4. Ensure the test suite passes. You can use the following command to run the tests:
 
    ```shell
    source .venv/bin/activate && inv test.unit --cov
+   source .venv/bin/activate && inv test.integration
    source .venv/bin/activate && inv test.doctest
+   source .venv/bin/activate && inv doc.build  # needs the docs dependencies
    ```
 
 5. Make sure your code lints. The following commands can help you to format the code:
@@ -38,7 +41,7 @@ We actively welcome your pull requests.
 ## Issues
 
 We use GitHub issues to track public bugs or feature requests.
-For bugs, please ensure your description is clear and concise description, and has sufficient
+For bugs, please ensure your description is clear and concise, and has sufficient
 information to be easily reproducible.
 For feature request, please add a clear and concise description of the feature proposal.
 Please outline the motivation for the proposal.

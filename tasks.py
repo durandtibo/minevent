@@ -11,7 +11,11 @@ ns = make_ns()
 
 
 def benchmark_import(c: Context) -> None:
-    r"""Run the import time benchmarks."""
+    r"""Run the import time benchmarks.
+
+    Args:
+        c: The invoke context.
+    """
     c.run(
         "python -m pytest tests/benchmarks/test_import_benchmark.py --benchmark-only",
         pty=True,

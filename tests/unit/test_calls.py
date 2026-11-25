@@ -44,50 +44,62 @@ class CallableObject:
 
 
 def positional_handler(context: Context) -> None:
+    r"""Implement a handler with one positional parameter."""
     logger.info("context %s", context)
 
 
 def positional_only_handler(context: Context, /) -> None:
+    r"""Implement a handler with one positional-only parameter."""
     logger.info("context %s", context)
 
 
 def default_handler(context: Context | None = None) -> None:
+    r"""Implement a handler with an optional context."""
     logger.info("context %s", context)
 
 
 def context_then_default_handler(context: Context, verbose: bool = False) -> None:
+    r"""Implement a handler with the context then a default."""
     logger.info("context %s %s", context, verbose)
 
 
 def context_then_keyword_default_handler(context: Context, *, verbose: bool = False) -> None:
+    r"""Implement a handler with the context then a keyword default."""
     logger.info("context %s %s", context, verbose)
 
 
 def keyword_default_handler(*, value: int = 1) -> None:
+    r"""Implement a handler with a keyword-only default."""
     logger.info("value %s", value)
 
 
 def keyword_only_handler(*, loss: float) -> None:
+    r"""Implement a handler with a required keyword-only parameter."""
     logger.info("loss %s", loss)
 
 
 def context_and_keyword_only_handler(context: Context, *, loss: float) -> None:
+    r"""Implement a handler with the context and a keyword."""
     logger.info("context %s %s", context, loss)
 
 
 def var_positional_handler(*args: object) -> None:
+    r"""Implement a handler with ``*args``."""
     logger.info("Args: %s", args)
 
 
 def var_keyword_handler(**kwargs: object) -> None:
+    r"""Implement a handler with ``**kwargs``."""
     logger.info("Kwargs: %s", kwargs)
 
 
 def var_handler(*args: object, **kwargs: object) -> None:
+    r"""Implement a handler with ``*args`` and ``**kwargs``."""
     logger.info("Args: %s %s", args, kwargs)
 
 
 def context_and_var_positional_handler(context: Context, *args: object) -> None:
+    r"""Implement a handler with the context and ``*args``."""
     logger.info("context %s %s", context, args)
 
 

@@ -6,8 +6,8 @@ We release patches for security vulnerabilities in the following versions:
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 0.4.x   | :white_check_mark: |
-| < 0.4   | :x:                |
+| 0.5.x   | :white_check_mark: |
+| < 0.5   | :x:                |
 
 ## Reporting a Vulnerability
 
@@ -27,16 +27,18 @@ Please report security bugs in third-party modules to the person or team maintai
 
 When using `minevent`, please follow these security best practices:
 
-### 1. Validate Event Handler Inputs
+### 1. Validate the Payload
 
-Always validate inputs to event handlers to prevent injection attacks or unexpected behavior:
+The values of a `Context` are not checked by `minevent`. If the data of a trigger comes from an
+untrusted source, validate it in the handler to prevent injection attacks or unexpected behavior:
 
 ```python
-from minevent import EventManager
+from minevent import Context, EventManager
 
 
-def safe_handler(user_input: str) -> None:
+def safe_handler(context: Context) -> None:
     # Validate input before processing
+    user_input = context["user_input"]
     if not isinstance(user_input, str):
         raise TypeError("Expected string input")
     # Additional validation...
@@ -45,6 +47,7 @@ def safe_handler(user_input: str) -> None:
 
 manager = EventManager()
 manager.add_event_handler("user_action", safe_handler)
+manager.trigger_event("user_action", {"user_input": "hello"})
 ```
 
 ### 2. Be Cautious with Dynamic Handler Creation
@@ -68,7 +71,7 @@ if user_choice in allowed_handlers:
 
 ### 3. Keep Dependencies Updated
 
-Regularly update `minevent` and its dependencies to get the latest security patches:
+`minevent` has no dependency. Regularly update it to get the latest security patches:
 
 ```shell
 uv pip install --upgrade minevent

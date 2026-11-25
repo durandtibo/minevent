@@ -41,6 +41,7 @@ def read_secret(secret: str) -> None:
 
 
 def failing_handler() -> None:
+    r"""Implement a handler that raises a ``RuntimeError``."""
     msg = "handler failed"
     raise RuntimeError(msg)
 

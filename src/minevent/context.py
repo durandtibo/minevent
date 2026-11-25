@@ -37,8 +37,9 @@ class Context(Mapping[str, "Any"]):
     one, whatever the number of keys. ``len``, iteration, ``keys``,
     ``items``, ``values`` and ``==`` behave like those of any
     ``collections.abc.Mapping``, so ``dict(context)`` is a valid
-    ``**kwargs``. A subclass that overrides ``__getitem__`` must
-    override ``get`` and ``__contains__`` too.
+    ``**kwargs``. A context is equal to a mapping that has the same
+    items, and it is not hashable. A subclass that overrides
+    ``__getitem__`` must override ``get`` and ``__contains__`` too.
 
     Args:
         data: The mapping to copy, or ``None`` for an empty context.

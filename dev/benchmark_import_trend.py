@@ -1,8 +1,8 @@
 r"""Script to show the trend of the import time over the past days.
 
 It reads the pytest-benchmark results saved by the daily import time
-benchmark workflow, deletes the results older than the window, and prints a
-Markdown table.
+benchmark workflow and prints a Markdown table. With ``--prune``, it
+also deletes the results older than the window.
 
 Example:
     python dev/benchmark_import_trend.py .benchmarks --days 90

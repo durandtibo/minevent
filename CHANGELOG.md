@@ -7,7 +7,7 @@ All notable changes to `minevent` are documented in this file. The releases are 
 
 Changes since `0.5.0` (the pull request numbers are in the commit history of `main`). The rules of
 the new API are in the
-[architecture page](https://durandtibo.github.io/minevent/architecture/).
+[how it works page](https://durandtibo.github.io/minevent/main/architecture/).
 
 ### Migration from `0.5.0`
 
@@ -79,7 +79,7 @@ the new API are in the
   handler, or the condition and its handler. Adding the note never replaces the exception.
 - `import minevent` is cheap: it does not import `logging`, `inspect`, `asyncio` or
   `importlib.metadata`, and `__version__` is read from the package metadata when it is used.
-- Documentation: a new [examples page](https://durandtibo.github.io/minevent/examples/) and a user
+- Documentation: a new [examples page](https://durandtibo.github.io/minevent/main/examples/) and a user
   guide. The architecture page is the reference of the rules, and the FAQ is removed (#861).
 - Packaging: the classifiers are `Development Status :: 3 - Alpha` and
   `Operating System :: OS Independent`, and there is no `all` extra.
