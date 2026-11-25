@@ -83,5 +83,5 @@ the new API are in the
   guide. The architecture page is the reference of the rules, and the FAQ is removed (#861).
 - Packaging: the classifiers are `Development Status :: 3 - Alpha` and
   `Operating System :: OS Independent`, and there is no `all` extra.
-- Development: each pull request runs `tests/package_checks.py` and each benchmark once, except the
-  import benchmarks (#851).
+- Development: each pull request runs `tests/package_checks.py` (#851), and the benchmarks run
+  nightly only.
