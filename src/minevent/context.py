@@ -10,8 +10,9 @@ from __future__ import annotations
 __all__ = ["Context"]
 
 from collections.abc import Iterator, Mapping
-from typing import TYPE_CHECKING
 
+# The type checkers know the name, so ``typing`` is not imported at run time.
+TYPE_CHECKING = False
 if TYPE_CHECKING:
     from typing import Any
 

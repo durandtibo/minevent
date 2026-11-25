@@ -14,10 +14,11 @@ import functools
 import sys
 import threading
 from collections.abc import Awaitable, Coroutine, Mapping
-from typing import TYPE_CHECKING
 
 from minevent.context import Context
 
+# The type checkers know the name, so ``typing`` is not imported at run time.
+TYPE_CHECKING = False
 if TYPE_CHECKING:
     from collections.abc import Callable
     from types import TracebackType
