@@ -32,28 +32,28 @@ construction. "Status" compares the row with `docs/docs/architecture.md` today: 
 **changed** (the statement changes), **fixed** (the statement is already claimed but is not true
 today) or **new**.
 
-| #   | Property                     | Statement                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Status  | Enforced by                                                             |
-| --- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ----------------------------------------------------------------------- |
-| P1  | Small surface                | Events are strings, handlers are plain callables, the manager connects them. Six exported names and `__version__` (`EventManager`, `Subscription`, `Context`, `Condition`, `PeriodicCondition`, `AfterNCondition`). `EventManager` has 8 public members (`events`, `get_subscriptions`, `add_event_handler`, `on`, `trigger_event`, `atrigger_event`, `clear_event`, `reset`) and `__len__`, `__contains__`.                                                                                 | same    | `test_init.py`                                                          |
-| P2  | Cheap import                 | `import minevent` has no side effect (no thread, file, warning or log) and uses the standard library only. It does not import `logging`, `inspect`, `asyncio`, `importlib.metadata` or **`typing`**.                                                                                                                                                                                                                                                                                         | changed | `test_import.py`                                                        |
-| P3  | Events are strings           | An event name is a case-sensitive `str`; any other type raises `TypeError`. The empty string is valid. Reading the manager never creates an event.                                                                                                                                                                                                                                                                                                                                           | same    | `test_manager.py`                                                       |
-| P4  | Validated at the door        | `add_event_handler` and `on` reject, with a `TypeError` that names the argument and the value: a non-`str` event, a non-callable handler or condition, a signature that is not one of the two of P13, and a generator or async generator function. A rejected registration leaves the manager unchanged.                                                                                                                                                                                     | changed | `add_event_handler`, `_needs_context`, `test_manager.py`                |
-| P5  | Registration identity        | `add_event_handler` returns a new `Subscription` every time; the same callable can be registered several times. `remove()` removes that registration only: `True` the first time, then `False`. `active` is `True` until the registration is removed, by whatever means.                                                                                                                                                                                                                     | same    | `Subscription`, `test_manager.py`                                       |
-| P6  | Registration order           | The handlers of an event run in the order they were registered, one after the other, in the calling thread.                                                                                                                                                                                                                                                                                                                                                                                  | same    | the ordered `dict`, `test_manager.py`                                   |
-| P7  | Snapshot dispatch            | A trigger visits the registrations that exist when it starts. A registration **added** by a running handler takes effect at the next trigger. A registration **removed** before its turn does not run.                                                                                                                                                                                                                                                                                       | same    | `Subscription._call`, `test_manager.py`                                 |
-| P8  | Fail-fast with context       | An exception of a handler or a condition propagates unchanged; the remaining handlers are skipped. It carries a note with the event and the function of the handler, once per distinct pair. No message and no `repr` of the package runs the `repr` of user data to name a handler.                                                                                                                                                                                                         | same    | `_describe`, `_add_error_note`, `test_manager.py`                       |
-| P9  | `once` is at-most-once       | A `once` registration is removed by an atomic claim just before its handler is called, after its condition, so it is called at most once whatever the number of threads. A false or raising condition does not consume it; a handler that raises does.                                                                                                                                                                                                                                       | same    | `Subscription._call`, `test_manager_once.py`, `test_manager_threads.py` |
-| P10 | Synchronous by default       | `trigger_event` never awaits; a handler that returns an awaitable raises `TypeError`. `atrigger_event` awaits the handlers one after the other. **Conditions are synchronous in both**: a condition that returns an awaitable raises `TypeError`. A coroutine that is rejected is closed.                                                                                                                                                                                                    | changed | `_check_not_awaitable`, `test_manager_async.py`                         |
-| P11 | Thread-safe registry         | The registry is protected by a reentrant lock. Handlers, conditions and the `repr` of user objects run outside the lock, so a handler can use the manager.                                                                                                                                                                                                                                                                                                                                   | same    | `EventManager._lock`, `test_manager_threads.py`                         |
-| P12 | No hidden state              | No global manager, no discovery, no side effect of a read. Zero runtime dependency. A manager cannot be copied or pickled.                                                                                                                                                                                                                                                                                                                                                                   | same    | `__reduce__`, `test_manager.py`                                         |
-| P13 | Two signatures               | A handler and a condition are `f()` or `f(context)`: **no parameter**, or **exactly one positional parameter without default**, which receives the `Context`. The name and the annotation of the parameter are not checked. Any other signature, or one that cannot be inspected, is rejected (P4). The signature is the one that `inspect.signature` reports (so without `self`, and without the arguments that a `functools.partial` binds by position). It is read once, at registration. | changed | `_needs_context`, `test_manager.py`                                     |
-| P14 | Payload is data              | `trigger_event(event, context=None, /)` copies a mapping with `str` keys, or reuses a `Context` as is, into one read-only `Context` per trigger, shared by the handlers and the conditions. A `Context` can be **copied, deep-copied and pickled** if its values can. The values are not copied.                                                                                                                                                                                             | changed | `Context`, `test_context.py`                                            |
-| P15 | Typed                        | Fully typed, `py.typed`, `ty check` clean. The values of a `Context` are `Any`, so the documented handlers type check in the code of a user.                                                                                                                                                                                                                                                                                                                                                 | changed | `ty check` in CI, a typed sample                                        |
-| P16 | Fast and linear              | About 0.3 µs for a trigger with one trivial handler, 0.1 µs for each extra one, 0.7 µs with a small dict, and 4.5 µs for a registration plus its removal (the signature is inspected there, never in a trigger). Registering _k_ handlers and removing them in any order costs O(_k_).                                                                                                                                                                                                       | fixed   | `tests/benchmarks/`                                                     |
-| P17 | A manager is a service       | `bool(manager)` is always `True`; `len(manager)` is the number of registrations.                                                                                                                                                                                                                                                                                                                                                                                                             | same    | `__bool__`, `test_manager.py`                                           |
-| P18 | One way to do each thing     | One way to register (`add_event_handler`, with `on` as its decorator form), one way to adapt a callable (give it the signature `f()` or `f(context)` with a function, a lambda or a positional `functools.partial`), one way to run once (`once=True`), one way to extend (write a callable). No handler base class. **One page states each rule.**                                                                                                                                          | changed | the signatures, the documents                                           |
-| P19 | Debuggable without a logger  | `repr(subscription)` names the event and the handler function, `repr(manager)` counts the registrations per event. The library logs nothing.                                                                                                                                                                                                                                                                                                                                                 | same    | `__repr__`, `test_manager.py`                                           |
-| P20 | Everything that runs, is run | Each pull request runs the unit and integration tests, the doctests, `tests/package_checks.py` and one pass of every benchmark, so a change of the API cannot leave one of them behind.                                                                                                                                                                                                                                                                                                      | new     | CI (section 4.5)                                                        |
+| #   | Property                     | Statement                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Status  | Enforced by                                                             |
+| --- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ----------------------------------------------------------------------- |
+| P1  | Small surface                | Events are strings, handlers are plain callables, the manager connects them. Six exported names and `__version__` (`EventManager`, `Subscription`, `Context`, `Condition`, `PeriodicCondition`, `AfterNCondition`). `EventManager` has 8 public members (`events`, `get_subscriptions`, `add_event_handler`, `on`, `trigger_event`, `atrigger_event`, `clear_event`, `reset`) and `__len__`, `__contains__`.                                                                                                                 | same    | `test_init.py`                                                          |
+| P2  | Cheap import                 | `import minevent` has no side effect (no thread, file, warning or log) and uses the standard library only. It does not import `logging`, `inspect`, `asyncio`, `importlib.metadata` or **`typing`**.                                                                                                                                                                                                                                                                                                                         | changed | `test_import.py`                                                        |
+| P3  | Events are strings           | An event name is a case-sensitive `str`; any other type raises `TypeError`. The empty string is valid. Reading the manager never creates an event.                                                                                                                                                                                                                                                                                                                                                                           | same    | `test_manager.py`                                                       |
+| P4  | Validated at the door        | `add_event_handler` and `on` reject, with a `TypeError` that names the argument and the value: a non-`str` event, a non-callable handler or condition, a signature that P13 rejects, and a generator or async generator function. A rejected registration leaves the manager unchanged.                                                                                                                                                                                                                                      | changed | `add_event_handler`, `_needs_context`, `test_manager.py`                |
+| P5  | Registration identity        | `add_event_handler` returns a new `Subscription` every time; the same callable can be registered several times. `remove()` removes that registration only: `True` the first time, then `False`. `active` is `True` until the registration is removed, by whatever means.                                                                                                                                                                                                                                                     | same    | `Subscription`, `test_manager.py`                                       |
+| P6  | Registration order           | The handlers of an event run in the order they were registered, one after the other, in the calling thread.                                                                                                                                                                                                                                                                                                                                                                                                                  | same    | the ordered `dict`, `test_manager.py`                                   |
+| P7  | Snapshot dispatch            | A trigger visits the registrations that exist when it starts. A registration **added** by a running handler takes effect at the next trigger. A registration **removed** before its turn does not run.                                                                                                                                                                                                                                                                                                                       | same    | `Subscription._call`, `test_manager.py`                                 |
+| P8  | Fail-fast with context       | An exception of a handler or a condition propagates unchanged; the remaining handlers are skipped. It carries a note with the event and the function of the handler, once per distinct pair. No message and no `repr` of the package runs the `repr` of user data to name a handler.                                                                                                                                                                                                                                         | same    | `_describe`, `_add_error_note`, `test_manager.py`                       |
+| P9  | `once` is at-most-once       | A `once` registration is removed by an atomic claim just before its handler is called, after its condition, so it is called at most once whatever the number of threads. A false or raising condition does not consume it; a handler that raises does.                                                                                                                                                                                                                                                                       | same    | `Subscription._call`, `test_manager_once.py`, `test_manager_threads.py` |
+| P10 | Synchronous by default       | `trigger_event` never awaits; a handler that returns an awaitable raises `TypeError`. `atrigger_event` awaits the handlers one after the other. **Conditions are synchronous in both**: a condition that returns an awaitable raises `TypeError`. A coroutine that is rejected is closed.                                                                                                                                                                                                                                    | changed | `_check_not_awaitable`, `test_manager_async.py`                         |
+| P11 | Thread-safe registry         | The registry is protected by a reentrant lock. Handlers, conditions and the `repr` of user objects run outside the lock, so a handler can use the manager.                                                                                                                                                                                                                                                                                                                                                                   | same    | `EventManager._lock`, `test_manager_threads.py`                         |
+| P12 | No hidden state              | No global manager, no discovery, no side effect of a read. Zero runtime dependency. A manager cannot be copied or pickled.                                                                                                                                                                                                                                                                                                                                                                                                   | same    | `__reduce__`, `test_manager.py`                                         |
+| P13 | Two calls                    | A handler and a condition are called as `f()` or `f(context)`. **A parameter that has a default keeps it: the manager never fills it.** A callable whose other parameters are none is called as `f()`; one with exactly one other parameter, positional, is called as `f(context)`; any other signature (including `*args` and `**kwargs`), or one that cannot be inspected, is rejected (P4). Names and annotations are not checked. The signature is the one that `inspect.signature` reports, read once, at registration. | changed | `_needs_context`, `test_manager.py`                                     |
+| P14 | Payload is data              | `trigger_event(event, context=None, /)` copies a mapping with `str` keys, or reuses a `Context` as is, into one read-only `Context` per trigger, shared by the handlers and the conditions. A `Context` can be **copied, deep-copied and pickled** if its values can. The values are not copied.                                                                                                                                                                                                                             | changed | `Context`, `test_context.py`                                            |
+| P15 | Typed                        | Fully typed, `py.typed`, `ty check` clean. The values of a `Context` are `Any`, so the documented handlers type check in the code of a user.                                                                                                                                                                                                                                                                                                                                                                                 | changed | `ty check` in CI, a typed sample                                        |
+| P16 | Fast and linear              | About 0.3 µs for a trigger with one trivial handler, 0.1 µs for each extra one, 0.7 µs with a small dict, and 4.5 µs for a registration plus its removal (the signature is inspected there, never in a trigger). Registering _k_ handlers and removing them in any order costs O(_k_).                                                                                                                                                                                                                                       | fixed   | `tests/benchmarks/`                                                     |
+| P17 | A manager is a service       | `bool(manager)` is always `True`; `len(manager)` is the number of registrations.                                                                                                                                                                                                                                                                                                                                                                                                                                             | same    | `__bool__`, `test_manager.py`                                           |
+| P18 | One way to do each thing     | One way to register (`add_event_handler`, with `on` as its decorator form), one way to adapt a callable (wrap it in a function, a lambda or a `functools.partial` that needs nothing or only the context), one way to run once (`once=True`), one way to extend (write a callable). No handler base class. **One page states each rule.**                                                                                                                                                                                    | changed | the signatures, the documents                                           |
+| P19 | Debuggable without a logger  | `repr(subscription)` names the event and the handler function, `repr(manager)` counts the registrations per event. The library logs nothing.                                                                                                                                                                                                                                                                                                                                                                                 | same    | `__repr__`, `test_manager.py`                                           |
+| P20 | Everything that runs, is run | Each pull request runs the unit and integration tests, the doctests, `tests/package_checks.py` and one pass of every benchmark, so a change of the API cannot leave one of them behind.                                                                                                                                                                                                                                                                                                                                      | new     | CI (section 4.5)                                                        |
 
 Not guaranteed, and documented as such:
 
@@ -65,6 +65,8 @@ Not guaranteed, and documented as such:
   do nothing. Only generator _functions_ are rejected (P4) and awaitables detected (P10).
 - **A coroutine handler registered with `once=True` and triggered with `trigger_event`** is consumed:
   the `TypeError` is raised after the call. It is a programming error that is reported loudly.
+- **An optional parameter never receives the context.** `def f(context=None)` is called as `f()`
+  and gets `None`, without an error: the context needs a parameter without default.
 - **A decorated function** is judged by the signature that `inspect.signature` reports: with
   `functools.wraps`, that is the signature of the wrapped function.
 - **An exception class that forbids new attributes** (a `frozen=True` dataclass exception) is
@@ -85,7 +87,7 @@ Not guaranteed, and documented as such:
 5. **Settled decisions stay settled** unless a defect is shown: sequential async, fail-fast, the
    snapshot, a lock in the manager and none in the conditions, the note without `repr`, a `dict` as
    an ordered set, a truthy and non-copyable manager, and the calling rule inferred from the
-   signature (option A of `context_object_design.md`, narrowed to two signatures by D1).
+   signature (option A of `context_object_design.md`, narrowed by D1).
 
 ## 3. What differs today
 
@@ -111,27 +113,30 @@ function; the lazy `inspect` and `__version__`; 100% coverage.
 
 ## 4. Target design
 
-### 4.1 Two signatures (P4, P13)
+### 4.1 Two calls (P4, P13)
 
-A handler is `def g()` or `def g(context: Context)`. Conditions follow the same rule, with a boolean
-result. The same function checks both, once, at registration. Nothing is guessed.
+A handler is written as `def g()` or `def g(context: Context)`, and any callable that can be called
+in one of these two ways works: **the parameters that have a default are ignored.** `model.train`
+(`def train(self, mode=True)`) is called as `model.train()`. To set a default, wrap the call:
+`lambda: model.train(mode=True)`. Conditions follow the same rule, with a boolean result. The same
+function checks both, once, at registration.
 
-| Signature                             | Example                             | Today            | Target       |
-| ------------------------------------- | ----------------------------------- | ---------------- | ------------ |
-| no parameter                          | `def g()`                           | `g()`            | `g()`        |
-| one positional parameter, no default  | `def g(context)`                    | `g(context)`     | `g(context)` |
-| one positional parameter with default | `model.train`, `lambda i=i: ...`    | `g(context)`     | `TypeError`  |
-| context and optional parameters       | `def g(context, verbose=False)`     | `g(context)`     | `TypeError`  |
-| `*args`, with or without `**kwargs`   | `print`, `Mock()`, `AsyncMock()`    | `g(context)`     | `TypeError`  |
-| cannot be inspected                   | `max`, `dict.update`                | `g(context)`     | `TypeError`  |
-| keyword-only with default, `**kwargs` | `def g(**kw)`, `partial(f, name=1)` | `g()`            | `TypeError`  |
-| two or more required positional       | `def g(a, b)`                       | fails at trigger | `TypeError`  |
-| required keyword-only                 | `def g(*, epoch)`                   | fails at trigger | `TypeError`  |
-| generator or async generator function | `def g(): yield`                    | does nothing     | `TypeError`  |
+| Parameters without default            | Example                            | Today            | Target       |
+| ------------------------------------- | ---------------------------------- | ---------------- | ------------ |
+| none: no parameter                    | `def g()`                          | `g()`            | `g()`        |
+| none: only positional with defaults   | `model.train`, `lambda i=i: ...`   | `g(context)`     | `g()`        |
+| none: only keyword-only with defaults | `def g(*, v=1)`, `partial(f, v=1)` | `g()`            | `g()`        |
+| one, positional                       | `def g(context)`                   | `g(context)`     | `g(context)` |
+| one, positional, then defaults        | `def g(context, verbose=False)`    | `g(context)`     | `g(context)` |
+| `*args`, with or without `**kwargs`   | `print`, `Mock()`, `AsyncMock()`   | `g(context)`     | `TypeError`  |
+| `**kwargs`                            | `def g(**kw)`                      | `g()`            | `TypeError`  |
+| cannot be inspected                   | `max`, `dict.update`               | `g(context)`     | `TypeError`  |
+| two or more                           | `def g(a, b)`                      | fails at trigger | `TypeError`  |
+| one, keyword-only                     | `def g(*, epoch)`                  | fails at trigger | `TypeError`  |
+| generator or async generator function | `def g(): yield`                   | does nothing     | `TypeError`  |
 
-Coroutine functions, bound methods, callable objects, classes and `functools.partial` objects are
-accepted when the signature that remains is one of the two. The core of the prototype (the docstring
-is omitted):
+Coroutine functions, bound methods, callable objects, classes and `functools.partial` objects follow
+the same table. The core of the prototype (the docstring is omitted):
 
 ```python
 def _needs_context(func: Callable[..., object], name: str) -> bool:
@@ -146,35 +151,35 @@ def _needs_context(func: Callable[..., object], name: str) -> bool:
 
         options["annotation_format"] = annotationlib.Format.FORWARDREF
     msg = (
-        f"{name} {_describe(func)} must have the signature f() or f(context); "
-        "wrap it in a function or a lambda with one of these signatures"
+        f"{name} {_describe(func)} must need no argument or only the context; "
+        "wrap it in a function or a lambda"
     )
     try:
-        parameters = list(inspect.signature(func, **options).parameters.values())
+        parameters = inspect.signature(func, **options).parameters.values()
     except (TypeError, ValueError) as exc:
         raise TypeError(msg) from exc
-    if not parameters:
+    # The parameters that have a default keep it: only the others need a value.
+    required = [param for param in parameters if param.default is param.empty]
+    if not required:
         return False
-    param = parameters[0]
-    positional = (param.POSITIONAL_ONLY, param.POSITIONAL_OR_KEYWORD)
-    if len(parameters) == 1 and param.kind in positional and param.default is param.empty:
+    positional = (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+    if len(required) == 1 and required[0].kind in positional:
         return True
     raise TypeError(msg)
 ```
 
-A rejected callable is adapted by the user, who says what is meant:
+Examples:
 
 ```python
-manager.add_event_handler("epoch_start", lambda: model.train())  # a method with defaults
-manager.add_event_handler("batch_end", lambda: bar.update())
+manager.add_event_handler("epoch_start", model.train)  # model.train()
+manager.add_event_handler("epoch_start", lambda: model.train(mode=True))  # a chosen value
+manager.add_event_handler("batch_end", bar.update)  # bar.update()
 manager.add_event_handler("e", lambda context: print(context))  # print
 manager.add_event_handler("e", lambda: print("Hello!"))  # partial(print, "Hello!")
-manager.add_event_handler("e", lambda: greet(name="Bob"))  # partial(greet, name="Bob")
-manager.add_event_handler("e", functools.partial(save, "model.pt"))  # save(path, context): kept
+manager.add_event_handler("e", functools.partial(save, "model.pt"))  # save(path, context)
 ```
 
-A loop variable is bound by a factory function or by `functools.partial(out.append, i)`. In a test,
-`unittest.mock.create_autospec(func)` replaces `Mock()`: it has the signature of `func`
+In a test, `unittest.mock.create_autospec(func)` replaces `Mock()`: it has the signature of `func`
 [verified]. `on` applies the rule when the decorator is applied, as it applies the callable check
 today.
 
@@ -276,21 +281,19 @@ with subscription: ...  # removed on exit
 
 ### Migration
 
-| Before                                                    | After                                             |
-| --------------------------------------------------------- | ------------------------------------------------- |
-| `add_event_handler("e", print)`                           | `lambda context: print(context)`                  |
-| `functools.partial(print, "Hello!")`                      | `lambda: print("Hello!")`                         |
-| `functools.partial(f, name="Bob")`                        | `lambda: f(name="Bob")`                           |
-| `def f(context=None)` or `def f(context, v=1)`            | `def f(context)`, or `lambda context: f(context)` |
-| `def f(*args)`, `def f(**kwargs)`                         | `def f(context)` or `def f()`                     |
-| `add_event_handler("e", obj.method)` with defaults        | `lambda: obj.method()`                            |
-| `lambda i=i: ...`                                         | a factory function, or a positional `partial`     |
-| an uninspectable callable (`max`, `dict.update`)          | `lambda context: ...`                             |
-| `Mock()` or `AsyncMock()` as a handler                    | `create_autospec(func)`                           |
-| a handler with two required parameters (it always raised) | bind all but the context by position              |
-| an async condition (it was always true)                   | compute the value before the trigger, pass it in  |
-| a generator handler (it did nothing)                      | a function that iterates                          |
-| `isinstance` or casts on context values for the checker   | not needed any more                               |
+| Before                                                    | After                                                      |
+| --------------------------------------------------------- | ---------------------------------------------------------- |
+| `def f(context=None)`, receiving the context              | `def f(context)`, or register `lambda context: f(context)` |
+| `lambda i=i: ...`, where `i` received the context         | unchanged code, now called as `f()`                        |
+| `add_event_handler("e", print)`                           | `lambda context: print(context)`                           |
+| `functools.partial(print, "Hello!")`                      | `lambda: print("Hello!")`                                  |
+| `def f(*args)`, `def f(**kwargs)`                         | `def f(context)` or `def f()`                              |
+| an uninspectable callable (`max`, `dict.update`)          | `lambda context: ...`                                      |
+| `Mock()` or `AsyncMock()` as a handler                    | `create_autospec(func)`                                    |
+| a handler with two required parameters (it always raised) | bind all but the context with `functools.partial`          |
+| an async condition (it was always true)                   | compute the value before the trigger, pass it in           |
+| a generator handler (it did nothing)                      | a function that iterates                                   |
+| `isinstance` or casts on context values for the checker   | not needed any more                                        |
 
 ## 6. Evidence
 
@@ -299,40 +302,41 @@ documents.
 
 **Behaviour** [verified]:
 
-| Probe                                                | `main`                      | Prototype                   |
-| ---------------------------------------------------- | --------------------------- | --------------------------- |
-| `lambda i=i` registered for `i` in 0, 1, 2           | three `Context` objects     | `TypeError` at registration |
-| `model.train` as a handler                           | mode set to a `Context`     | `TypeError` at registration |
-| `functools.partial(greet, name="Bob")`               | called without argument     | `TypeError` at registration |
-| `functools.partial(greet, "Bob", "Monday")`          | called without argument     | same                        |
-| `print`, `Mock()`, `AsyncMock()`, `max`              | receive the context         | `TypeError` at registration |
-| `create_autospec(func)`, a callable object, a method | follow their signature      | same                        |
-| async condition returning `False`                    | the handler runs            | `TypeError` at the trigger  |
-| generator and async generator handlers               | nothing happens             | `TypeError` at registration |
-| `def f() -> Decimal` (`TYPE_CHECKING` import)        | `NameError` at registration | registered (3.14 and 3.15)  |
-| `copy.deepcopy` and `pickle` of a `Context`          | `TypeError`                 | round trip                  |
-| `context["epoch"] + 1` with an annotated handler     | `ty` error                  | clean                       |
+| Probe                                            | `main`                      | Prototype                   |
+| ------------------------------------------------ | --------------------------- | --------------------------- |
+| `model.train` as a handler                       | mode set to a `Context`     | `train()`: mode is `True`   |
+| `lambda i=i` registered for `i` in 0, 1, 2       | three `Context` objects     | `0, 1, 2`                   |
+| condition `lambda flag=flag: flag`, `flag=False` | the handler runs            | the handler is skipped      |
+| `def f(context=None)`                            | receives the context        | receives `None`             |
+| `functools.partial(model.train, mode=True)`      | called without argument     | same                        |
+| `print`, `Mock()`, `AsyncMock()`, `max`          | receive the context         | `TypeError` at registration |
+| `create_autospec(func)`, a callable object       | follow their signature      | same                        |
+| async condition returning `False`                | the handler runs            | `TypeError` at the trigger  |
+| generator and async generator handlers           | nothing happens             | `TypeError` at registration |
+| `def f() -> Decimal` (`TYPE_CHECKING` import)    | `NameError` at registration | registered (3.14 and 3.15)  |
+| `copy.deepcopy` and `pickle` of a `Context`      | `TypeError`                 | round trip                  |
+| `context["epoch"] + 1` with an annotated handler | `ty` error                  | clean                       |
 
-**What the two signatures break in the repository** [verified, prototype, with a default for the new
-`name` argument of the helper]:
+**What the rule breaks in the repository** [verified, prototype, with a default for the new `name`
+argument of the helper]:
 
-- 394 tests pass and 93 fail. The failures are tests of the old rule and tests whose handler has a
+- 395 tests pass and 92 fail. The failures are tests of the old rule and tests whose handler has a
   rejected shape: `print` and one `(*args, **kwargs)` helper account for 68 of them.
-- Examples of the README, `quickstart.md` and `guide.md` fail (`print` and `functools.partial` with
-  keywords), and 4 of the 19 doctests of `src` (xdoctest).
-- `test_add_event_handler_partial_benchmark` fails, besides the 2 benchmarks of F1.
+- Examples of the README, `quickstart.md` and `guide.md` fail because they register `print`, and 4 of
+  the 19 doctests of `src` (xdoctest) fail.
+- No benchmark fails besides the 2 of F1.
 
 **Speed** (Python 3.14.10, best of 7, mean of two runs) [verified]:
 
 | Case                          | `main` (µs) | Prototype (µs) |
 | ----------------------------- | ----------: | -------------: |
-| trigger, no handler           |       0.188 |          0.187 |
-| trigger, 1 handler            |       0.312 |          0.314 |
-| trigger, 10 handlers          |       1.097 |          1.100 |
-| trigger, 1 handler, dict      |       0.771 |          0.731 |
-| trigger, 1 handler, `Context` |       0.327 |          0.327 |
-| trigger, 1 handler, condition |       0.334 |          0.341 |
-| registration plus removal     |         3.4 |            4.5 |
+| trigger, no handler           |       0.186 |          0.187 |
+| trigger, 1 handler            |       0.311 |          0.314 |
+| trigger, 10 handlers          |       1.091 |          1.099 |
+| trigger, 1 handler, dict      |       0.765 |          0.735 |
+| trigger, 1 handler, `Context` |       0.326 |          0.326 |
+| trigger, 1 handler, condition |       0.333 |          0.338 |
+| registration plus removal     |         3.5 |            4.4 |
 
 A trigger is unchanged within noise. A registration costs about 1 µs more, once per handler.
 
@@ -351,8 +355,8 @@ it says so.
 | ---- | ------------------------------------------------ | --------------------------------------------------------------------- | -------- | ---------- |
 | 1    | `bugfix/fix-package-checks`                      | Fix the two checks and the two benchmarks, add the gates of 4.5       | no       | F1         |
 | 2    | `bugfix/forward-ref-annotations`                 | Do not evaluate the annotations on 3.14+                              | no       | F6         |
-| 3    | `refactor/use-two-handler-signatures` (on 2)     | Tests, benchmarks, docstrings and documents use `f()` or `f(context)` | no       | -          |
-| 4    | `feat/two-handler-signatures` (on step 3)        | The rule of 4.1, generator functions rejected, documents of the rule  | **yes**  | F2, F4, F5 |
+| 3    | `refactor/use-accepted-signatures` (on 2)        | Tests, docstrings and documents register only accepted shapes         | no       | -          |
+| 4    | `feat/two-handler-calls` (on step 3)             | The rule of 4.1, generator functions rejected, documents of the rule  | **yes**  | F2, F4, F5 |
 | 5    | `bugfix/reject-awaitable-conditions` (on step 4) | The check of 4.2                                                      | **yes**  | F3         |
 | 6    | `bugfix/picklable-context`                       | A plain `dict` in the `Context`                                       | no       | F7         |
 | 7    | `feat/context-values-any` (on step 6)            | `Mapping[str, Any]`, P15, a typed sample checked by `ty`              | no       | F8         |
@@ -393,16 +397,14 @@ compared with `main` for steps 4, 5 and 6 (P16).
 
 ## 9. Decisions for the maintainers
 
-- **D1. Which signatures are accepted?** _Decided: only `f()` and `f(context)`_, and a `TypeError`
-  for anything else. It replaces two wider rules that were considered: raise only for the ambiguous
-  and impossible signatures (`print`, `Mock()` and keyword `partial` keep working), or never let the
-  context replace a default (`model.train` is called without argument). The chosen rule is the
-  shortest to state and to implement. Its cost is the migration of section 5. Two consequences to
-  confirm:
-  - _Conditions follow the same rule_, so there is one rule to learn.
-  - _`functools.partial` binds by position only_: a bound keyword stays in the signature as an
-    optional parameter, so it is rejected. Alternative: ignore the keyword-only parameters that have
-    a default; it keeps `partial(f, name="Bob")`, and also accepts `def g(*, verbose=False)`.
+- **D1. How is a callable called?** _Decided: as `f()` or `f(context)`, and a parameter that has a
+  default keeps it._ `model.train`, `bar.update`, the `lambda i=i` idiom and keyword `partial` work
+  as written. The cost: `def f(context=None)` is called without the context and without an error.
+  Alternatives that were considered: reject every optional parameter (`model.train` then needs a
+  wrapper), or fill the first one with the context (today).
+  - _To confirm:_ `*args` and `**kwargs` are rejected, because neither says whether the context is
+    expected, so `print` and `Mock()` need a wrapper. Alternative: ignore them like the parameters
+    that have a default; `print` is then called without argument and prints an empty line.
 - **D2. Drop the inference and always call `handler(context)`?**
   _Recommended: no._ It deletes `inspect` and the whole rule, but every handler without data becomes
   `lambda _: ...`.
@@ -427,7 +429,7 @@ compared with `main` for steps 4, 5 and 6 (P16).
   collecting errors) and concurrent async dispatch: unchanged.
 - **Return values of handlers**: `trigger_event` returns `None`.
 - **Typed payloads** (a `TypedDict` per event): needs its own design if users ask.
-- **Static types of the two signatures** (`Callable[[], object] | Callable[[Context], object]` for
+- **Static types of the two calls** (`Callable[[], object] | Callable[[Context], object]` for
   the handler argument), so that a type checker reports a wrong signature: not prototyped.
 - **`_check_event`** is a validator of one `isinstance`, which `CLAUDE.md` discourages. It has four
   callers, so inlining it would repeat the message four times. It is kept.
