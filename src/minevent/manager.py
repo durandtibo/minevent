@@ -10,6 +10,7 @@ from __future__ import annotations
 
 __all__ = ["EventManager", "Subscription"]
 
+import reprlib
 import threading
 from collections.abc import Awaitable, Mapping
 from typing import TYPE_CHECKING
@@ -571,10 +572,10 @@ class EventManager:
         """
         _check_event(event)
         if not callable(handler):
-            msg = f"handler must be callable, but got {handler!r}"
+            msg = f"handler must be callable, but got {reprlib.repr(handler)}"
             raise TypeError(msg)
         if condition is not None and not callable(condition):
-            msg = f"condition must be callable, but got {condition!r}"
+            msg = f"condition must be callable, but got {reprlib.repr(condition)}"
             raise TypeError(msg)
         subscription = Subscription(self, event, handler, once=once, condition=condition)
         with self._lock:

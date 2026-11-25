@@ -11,6 +11,7 @@ from unittest.mock import patch
 import pytest
 
 from minevent import Context
+from tests.unit.handlers import BadReprCallable
 
 #############################
 #     Tests for Context     #
@@ -29,6 +30,41 @@ def test_context_getitem_missing_key() -> None:
 def test_context_getitem_missing_key_empty_context() -> None:
     with pytest.raises(KeyError, match=r"key 'a' not found in the context.*\[\]"):
         Context()["a"]
+
+
+def test_context_getitem_many_keys() -> None:
+    context = Context({f"k{i}": i for i in range(100)})
+    with pytest.raises(KeyError, match=r"key 'missing' not found in the context") as exc_info:
+        context["missing"]
+    message = (
+        "key 'missing' not found in the context; available keys: ['k0', 'k1', 'k2', 'k3', 'k4', "
+        "'k5', 'k6', 'k7', 'k8', 'k9', 'k10', 'k11', 'k12', 'k13', 'k14', 'k15', 'k16', 'k17', "
+        "'k18', 'k19', ...]"
+    )
+    assert exc_info.value.args == (message,)
+
+
+def test_context_getitem_twenty_keys_lists_all() -> None:
+    context = Context({f"k{i}": i for i in range(20)})
+    with pytest.raises(KeyError, match=r"'k18', 'k19'\]"):
+        context["missing"]
+
+
+def test_context_getitem_long_keys_are_shortened() -> None:
+    context = Context({"a" * 100: 1})
+    with pytest.raises(KeyError, match=r"not found in the context") as exc_info:
+        context["b" * 100]
+    message = (
+        "key 'bbbbbbbbbbbb...bbbbbbbbbbbbb' not found in the context; "
+        "available keys: ['aaaaaaaaaaaa...aaaaaaaaaaaaa']"
+    )
+    assert exc_info.value.args == (message,)
+
+
+def test_context_getitem_missing_key_repr_raises() -> None:
+    key: Any = BadReprCallable()
+    with pytest.raises(KeyError, match=r"key <BadReprCallable instance at .+> not found"):
+        Context()[key]
 
 
 def test_context_get() -> None:
@@ -239,6 +275,21 @@ def test_context_invalid_data(data: Any) -> None:
 def test_context_invalid_key(key: Any) -> None:
     with pytest.raises(TypeError, match=r"the keys of data must be str, but got"):
         Context({key: 1})
+
+
+def test_context_invalid_long_key_message() -> None:
+    data: Any = {tuple(range(100)): 1}
+    with pytest.raises(
+        TypeError,
+        match=r"^the keys of data must be str, but got \(0, 1, 2, 3, 4, 5, \.\.\.\)$",
+    ):
+        Context(data)
+
+
+def test_context_invalid_key_repr_raises() -> None:
+    data: Any = {BadReprCallable(): 1}
+    with pytest.raises(TypeError, match=r"the keys of data must be str, but got <BadReprCallable"):
+        Context(data)
 
 
 @pytest.mark.parametrize("protocol", range(2, pickle.HIGHEST_PROTOCOL + 1))

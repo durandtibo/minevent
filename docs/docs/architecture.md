@@ -163,6 +163,9 @@ first, without default: `lambda context, i=i: print(i, context["epoch"])`.
 - The messages of `minevent` do not run the `repr` of your objects to name a callable. Naming one
   never raises in place of your exception: the name of its class is used if its own name cannot be
   read.
+- The messages of `minevent` stay short whatever the size of your data: a value is shown with
+  [`reprlib`](https://docs.python.org/3/library/reprlib.html), and the `KeyError` of a `Context`
+  lists at most 20 keys.
 
 ### Coroutines
 
@@ -214,6 +217,9 @@ first, without default: `lambda context, i=i: print(i, context["epoch"])`.
   between versions: `set.add` is rejected on Python 3.11 and 3.12, and accepted from 3.13.
 - **A condition counts its calls, not the triggers.** It is not called when an earlier handler
   raised, nor for a removed registration.
+- **A huge integer in a message** on Python 3.11 and 3.12: showing an integer of more than 4,300
+  digits (a value given as a handler, a key) raises the `ValueError` of Python instead of the error
+  of `minevent`.
 - **A mutable value of the payload** can be mutated by a handler, and the next ones see it.
 - **Delayed release.** A manager with registrations is in a reference cycle (manager, registry,
   `Subscription`, manager): `del manager` does not free it until the garbage collector runs.
@@ -228,7 +234,7 @@ The registry maps each event to an ordered `dict` of subscriptions, used as an o
 - the signature is inspected at registration, never during a trigger;
 - a mapping given to a trigger is copied (linear in its number of keys), while a `Context` is not;
 - `context.get(key, default)` and `key in context` cost the same for a present key and a missing
-  one. `context[key]` lists the available keys in its `KeyError`, so a missing key costs more.
+  one. `context[key]` lists up to 20 keys in its `KeyError`, so a missing key costs more.
 
 As an order of magnitude, measured on a laptop with Python 3.14: about 0.3 µs for a trigger with one
 trivial handler, 0.06 µs for each extra one, 0.9 µs with a small dict, and 4.5 µs for a registration

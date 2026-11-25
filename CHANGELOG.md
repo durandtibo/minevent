@@ -60,10 +60,11 @@ the new API are in the
 - `trigger_event(event, context=None, /)` passes the mapping `context` (a dict, or a `Context`) to
   the handlers and the conditions in one read-only `Context` per trigger.
 - `minevent.Context`, an immutable mapping from `str` to values: `context[key]` (a `KeyError` lists
-  the available keys), `get`, `in`, `len`, iteration and `==`. Its values are typed `Any`, and it
+  at most 20 of the available keys), `get`, `in`, `len`, iteration and `==`. Its values are typed `Any`, and it
   can be copied, deep-copied and pickled if its values can. `get` and `in` cost the same for a
   present key and a missing one, whatever the number of keys.
 - `atrigger_event` to await coroutine handlers.
+- The error messages stay short whatever the size of the data: values are shown with `reprlib`.
 - `add_event_handler` returns a `Subscription`, which removes exactly its registration, is a context
   manager and has the properties `event`, `handler`, `once`, `condition` and `active`.
 - The keyword-only options `once` (run at most once, the first time the condition is `True`, even
