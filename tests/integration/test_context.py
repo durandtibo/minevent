@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+import copy
+import multiprocessing
 import threading
+from concurrent.futures import ProcessPoolExecutor
 from typing import Any
 
 import pytest
@@ -167,8 +170,8 @@ def test_trigger_event_from_threads_gives_each_trigger_its_own_context() -> None
 
 
 def test_handlers_read_different_keys_from_threads() -> None:
-    """Test that handlers that read different keys, and one that reads
-    a missing key with ``get``, run once per trigger from several
+    """Test that handlers that read different keys, and one that reads a
+    missing key with ``get``, run once per trigger from several
     threads."""
     manager = EventManager()
     calls: list[tuple[str, object]] = []
@@ -249,7 +252,8 @@ def test_once_waits_for_a_condition_that_reads_the_payload() -> None:
 
 
 def test_condition_reads_the_payload_with_atrigger_event() -> None:
-    """Test that ``atrigger_event`` passes the context to a condition."""
+    """Test that ``atrigger_event`` passes the context to a
+    condition."""
     manager = EventManager()
     calls: list[str] = []
     manager.add_event_handler(
@@ -279,3 +283,29 @@ def test_condition_reads_the_payload_from_threads() -> None:
 
     run_threads(work, NUM_THREADS)
     assert len(calls) == NUM_THREADS // 2 * NUM_ITERATIONS
+
+
+def test_handler_snapshots_the_payload_with_deepcopy() -> None:
+    """Test that a handler keeps a deep copy of the context, which a
+    later handler that mutates a value does not change."""
+    manager = EventManager()
+    snapshots: list[Context] = []
+    manager.add_event_handler("epoch_end", lambda context: snapshots.append(copy.deepcopy(context)))
+    manager.add_event_handler("epoch_end", lambda context: context["losses"].append(0.1))
+    manager.trigger_event("epoch_end", {"losses": [0.5]})
+    assert snapshots == [{"losses": [0.5]}]
+
+
+def test_handler_sends_the_context_to_a_worker_process() -> None:
+    """Test that the context of a trigger is sent to a worker process
+    and comes back as an equal context."""
+    manager = EventManager()
+    results: list[object] = []
+    spawn = multiprocessing.get_context("spawn")
+    with ProcessPoolExecutor(max_workers=1, mp_context=spawn) as executor:
+        manager.add_event_handler(
+            "epoch_end",
+            lambda context: results.append(executor.submit(copy.copy, context).result()),
+        )
+        manager.trigger_event("epoch_end", {"epoch": 3, "losses": [0.5]})
+    assert results == [Context({"epoch": 3, "losses": [0.5]})]
