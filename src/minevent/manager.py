@@ -92,7 +92,8 @@ _EMPTY_CONTEXT = Context()
 
 
 def _make_context(subscriptions: tuple[Subscription, ...], payload: dict[str, object]) -> Context:
-    r"""Build the context of a trigger, only if a handler needs it.
+    r"""Build the context of a trigger, only if a handler or a condition
+    needs it.
 
     Args:
         subscriptions: The subscriptions that the trigger runs.
@@ -101,8 +102,8 @@ def _make_context(subscriptions: tuple[Subscription, ...], payload: dict[str, ob
 
     Returns:
         The context built from ``payload``, or a shared empty
-            context if no subscription has a handler that takes the
-            context (it is never passed to a handler).
+            context if no subscription has a handler or a condition that takes the
+            context (it is never passed to a handler or a condition).
 
     Example:
         ```pycon
@@ -119,7 +120,7 @@ def _make_context(subscriptions: tuple[Subscription, ...], payload: dict[str, ob
         ```
     """
     for subscription in subscriptions:
-        if subscription._with_context:
+        if subscription._with_context or subscription._condition_with_context:
             return Context.from_keywords(payload)
     return _EMPTY_CONTEXT
 
@@ -219,7 +220,8 @@ class Subscription:
         once: If ``True``, the registration is removed just before
             its first execution. Default is ``False``.
         condition: The condition evaluated before the handler, or
-            ``None`` if the handler always runs. Default is ``None``.
+            ``None`` if the handler always runs. It is called with the
+            context if it has a parameter. Default is ``None``.
 
     Example:
         ```pycon
@@ -266,6 +268,9 @@ class Subscription:
         self._condition = condition
         # The check is done once, at registration.
         self._with_context = _needs_context(handler)
+        self._condition_with_context = condition is not None and _needs_context(condition)
+        # The same condition, typed for the two ways to call it.
+        self._condition_call: Callable[..., object] | None = condition
         # Set to False by the manager when the registration leaves its registry.
         self._active = True
 
@@ -352,6 +357,10 @@ class Subscription:
         threads. A condition that is ``False`` (or that raises) does
         not consume a ``once`` registration.
 
+        The condition is called as ``condition(context)`` if it has
+        a parameter that accepts a positional argument, and as
+        ``condition()`` otherwise.
+
         The handler is called as ``handler(context)`` if it has a
         parameter that accepts a positional argument (or if its
         signature cannot be inspected), and as ``handler()``
@@ -369,7 +378,11 @@ class Subscription:
         """
         if not self._active:
             return None
-        if self._condition is not None and not self._condition():
+        if self._condition_call is not None and not (
+            self._condition_call(context)
+            if self._condition_with_context
+            else self._condition_call()
+        ):
             return None
         if self._once and not self.remove():
             return None
@@ -580,10 +593,14 @@ class EventManager:
                 is ``False`` does not consume the registration: it
                 waits for the first time the condition is ``True``.
                 Default is ``False``.
-            condition: An optional condition: a function without
-                argument that returns a boolean. It is called each
-                time the event is triggered, before the handler, and
-                the handler runs only if it returns ``True``. If
+            condition: An optional condition: a function that returns
+                a boolean. It is called each time the event is
+                triggered, before the handler, and the handler runs
+                only if it returns ``True``. Like a handler, it is
+                called as ``condition(context)`` if it has a
+                parameter that accepts a positional argument (or if
+                its signature cannot be inspected), and as
+                ``condition()`` otherwise. If
                 ``None``, the handler always runs. An exception
                 raised by the condition propagates to the caller of
                 ``trigger_event``. A stateful condition, such as

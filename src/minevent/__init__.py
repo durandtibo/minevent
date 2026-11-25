@@ -11,8 +11,8 @@ case-sensitive string), a handler (any callable) and an event manager
   were registered and passes its keyword arguments (the payload) to
   them in a read-only ``Context``. ``EventManager.atrigger_event`` also
   awaits the coroutine handlers.
-- A condition is any function without argument that returns a boolean
-  (``Condition``). ``PeriodicCondition`` and ``AfterNCondition`` are
+- A condition is any function that returns a boolean, without parameter
+  or with the ``Context`` of the trigger (``Condition``). ``PeriodicCondition`` and ``AfterNCondition`` are
   provided, and they control when a handler runs.
 
 The package has no dependency, and ``__version__`` is the version of the

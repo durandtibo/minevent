@@ -47,6 +47,12 @@ def read_epoch(context: Context) -> object:
     return context["epoch"]
 
 
+def has_payload(context: Context) -> bool:
+    r"""Implement a condition that is ``True`` if the context is not
+    empty."""
+    return bool(context)
+
+
 def copy_context(context: Context) -> dict[str, object]:
     r"""Implement a handler that returns a copy of the context."""
     return dict(context)
@@ -943,6 +949,31 @@ def test_event_manager_on_condition_evaluated_before_handler() -> None:
     assert calls == ["condition", "handler"]
 
 
+def test_event_manager_trigger_event_condition_reads_the_payload() -> None:
+    manager = EventManager()
+    manager.add_event_handler(
+        "my_event", hello_handler, condition=lambda context: context.get("epoch", 0) >= 2
+    )
+    for epoch in range(4):
+        manager.trigger_event("my_event", epoch=epoch)
+    assert hello_handler.call_count == 2
+
+
+def test_event_manager_on_condition_reads_the_payload() -> None:
+    manager = EventManager()
+    manager.on("my_event", condition=lambda context: context["go"])(hello_handler)
+    manager.trigger_event("my_event", go=True)
+    manager.trigger_event("my_event", go=False)
+    assert hello_handler.call_count == 1
+
+
+def test_event_manager_trigger_event_condition_with_parameter_and_handler_without() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", hello_handler, condition=has_payload)
+    manager.trigger_event("my_event")
+    assert hello_handler.call_count == 0
+
+
 def test_event_manager_on_condition_returns_function_unchanged() -> None:
     manager = EventManager()
     assert manager.on("my_event", condition=lambda: True)(hello_handler) is hello_handler
@@ -1190,6 +1221,76 @@ def test_subscription_call_condition_true_calls_handler() -> None:
     assert subscription._call(Context()) == 1
 
 
+def test_subscription_call_condition_without_parameter_is_called_without_argument() -> None:
+    subscription = Subscription(EventManager(), "my_event", lambda: 1, condition=lambda: True)
+    assert subscription._call(Context({"a": 1})) == 1
+
+
+def test_subscription_call_condition_with_parameter_receives_the_context() -> None:
+    contexts: list[Context] = []
+
+    def condition(context: Context) -> bool:
+        contexts.append(context)
+        return True
+
+    context = Context({"a": 1})
+    Subscription(EventManager(), "my_event", hello_handler, condition=condition)._call(context)
+    assert contexts == [context]
+
+
+def test_subscription_call_condition_with_parameter_true_calls_handler() -> None:
+    subscription = Subscription(
+        EventManager(), "my_event", lambda: 1, condition=lambda context: context["a"] == 1
+    )
+    assert subscription._call(Context({"a": 1})) == 1
+
+
+def test_subscription_call_condition_with_parameter_false_returns_none() -> None:
+    subscription = Subscription(
+        EventManager(), "my_event", lambda: 1, condition=lambda context: context["a"] == 2
+    )
+    assert subscription._call(Context({"a": 1})) is None
+
+
+def test_subscription_call_condition_with_parameter_false_does_not_call_handler() -> None:
+    Subscription(
+        EventManager(), "my_event", hello_handler, condition=lambda context: context["a"] == 2
+    )._call(Context({"a": 1}))
+    assert hello_handler.call_count == 0
+
+
+def test_subscription_call_condition_with_parameter_and_handler_with_parameter() -> None:
+    subscription = Subscription(
+        EventManager(), "my_event", copy_context, condition=lambda context: "a" in context
+    )
+    assert subscription._call(Context({"a": 1})) == {"a": 1}
+
+
+def test_subscription_call_condition_uninspectable_receives_the_context() -> None:
+    calls: list[dict[str, Any]] = []
+    Subscription(
+        EventManager(), "my_event", hello_handler, condition=UninspectableCondition(calls)
+    )._call(Context({"a": 1}))
+    assert calls == [{"a": 1}]
+
+
+def test_subscription_call_condition_with_parameter_does_not_consume_once() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler(
+        "my_event", hello_handler, once=True, condition=lambda context: context["go"]
+    )
+    subscription._call(Context({"go": False}))
+    assert subscription.active
+
+
+def test_subscription_call_condition_with_parameter_raises() -> None:
+    subscription = Subscription(
+        EventManager(), "my_event", hello_handler, condition=lambda context: context["missing"]
+    )
+    with pytest.raises(KeyError, match=r"key 'missing' not found in the context"):
+        subscription._call(Context({"a": 1}))
+
+
 def test_subscription_call_condition_is_called_once() -> None:
     condition = Mock(return_value=True)
     Subscription(EventManager(), "my_event", hello_handler, condition=condition)._call(Context())
@@ -1328,6 +1429,19 @@ def kwargs_handler(**kwargs: Any) -> None:
     logger.info("Kwargs: %s", kwargs)
 
 
+class UninspectableCondition:
+    r"""Implements a condition whose signature cannot be inspected."""
+
+    __signature__ = 1
+
+    def __init__(self, calls: list[dict[str, Any]]) -> None:
+        self._calls = calls
+
+    def __call__(self, context: Context) -> bool:
+        self._calls.append(dict(context))
+        return True
+
+
 class UninspectableCallable:
     r"""Implements a callable whose signature cannot be inspected."""
 
@@ -1421,6 +1535,20 @@ def test_make_context_is_a_context() -> None:
 
 def test_make_context_handler_without_parameter() -> None:
     subscriptions = (Subscription(EventManager(), "my_event", hello_handler),)
+    assert _make_context(subscriptions, {"a": 1}) == {}
+
+
+def test_make_context_condition_with_parameter() -> None:
+    subscriptions = (
+        Subscription(EventManager(), "my_event", hello_handler, condition=has_payload),
+    )
+    assert _make_context(subscriptions, {"a": 1}) == {"a": 1}
+
+
+def test_make_context_condition_without_parameter() -> None:
+    subscriptions = (
+        Subscription(EventManager(), "my_event", hello_handler, condition=lambda: True),
+    )
     assert _make_context(subscriptions, {"a": 1}) == {}
 
 

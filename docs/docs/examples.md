@@ -73,8 +73,9 @@ validate at epoch 3
 
 ## Write a custom condition
 
-A condition is any function without argument that returns a boolean. A class with `__call__` is
-useful when the condition has a state or reads another object:
+A condition is any function that returns a boolean, without parameter or with the `Context` of the
+trigger (see the next example). A class with `__call__` is useful when the condition has a state or
+reads another object:
 
 ```pycon
 >>> from minevent import EventManager
@@ -95,6 +96,33 @@ batch done
 ```
 
 To combine conditions, write a function, for example `condition=lambda: a() and b()`.
+
+## Decide from the payload
+
+A condition that has a parameter is called with the same read-only `Context` as the handlers, so it
+can depend on the payload of the trigger. A condition without parameter is called without argument.
+A handler and its condition can read different keys:
+
+```pycon
+>>> from minevent import Context, EventManager
+>>> def is_improving(context: Context) -> bool:
+...     return context.get("loss", 1.0) < 0.5
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler(
+...     "epoch_end",
+...     lambda context: print(f"save the model of epoch {context['epoch']}"),
+...     condition=is_improving,
+... )
+>>> for epoch, loss in enumerate([0.9, 0.4, 0.6, 0.3]):
+...     manager.trigger_event("epoch_end", epoch=epoch, loss=loss)
+save the model of epoch 1
+save the model of epoch 3
+
+```
+
+The built-in conditions (`PeriodicCondition`, `AfterNCondition`) take no parameter. To combine one
+with a condition on the payload, write a function that calls it:
+`condition=lambda context: periodic() and is_improving(context)`.
 
 ## Keep a state in a handler
 
