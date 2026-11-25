@@ -131,6 +131,8 @@ condition=AfterNCondition(2)` runs once, on the third trigger (it never ran). A 
 
 ### Changed
 
+- The values of a `Context` are typed `Any` instead of `object`, so a handler that computes with a
+  value, such as `context["epoch"] + 1`, type checks without a cast (#PR).
 - `bool(EventManager())` is always `True` (it was `False` for an empty manager), so
   `manager or default` is safe; use `len(manager) == 0` to test that a manager has no handler.
   `copy.copy`, `copy.deepcopy` and `pickle` of an `EventManager` raise a `TypeError` (`copy.copy`
@@ -145,7 +147,7 @@ condition=AfterNCondition(2)` runs once, on the third trigger (it never ran). A 
 - Removing a registration is O(1) instead of O(n): the registry of an event is an ordered `dict`
   (#765). `Subscription.remove()` returns `False`, and no longer raises `KeyError`, for a
   subscription that was never registered in its manager.
-- Stricter type hints (`Callable[..., object]`, payload typed `object`).
+- Stricter type hints (`Callable[..., object]`, a payload is a `Mapping[str, object]`).
 - The `Subscription` owns the options of its registration: its internal constructor takes
   `once` and `condition` as keyword-only arguments (it took a private `_Options`
   tuple, now removed), and the trigger no longer reads the `once` flag of a subscription. No

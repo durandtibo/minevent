@@ -10,9 +10,13 @@ from __future__ import annotations
 __all__ = ["Context"]
 
 from collections.abc import Iterator, Mapping
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import Any
 
 
-class Context(Mapping[str, object]):
+class Context(Mapping[str, "Any"]):
     r"""Implement a read-only mapping of the payload of a trigger.
 
     The data is copied at construction into a private dict, and a
@@ -22,6 +26,9 @@ class Context(Mapping[str, object]):
     themselves are not copied: a mutable value stays mutable. A context
     can be copied, deep-copied and pickled (with the protocol 2 or
     higher, like the default one) if its values can.
+
+    The values are typed ``Any``: a type checker lets a handler use a
+    value without a cast, and it does not check how the value is used.
 
     ``context[key]`` reads a required value and raises a ``KeyError``
     if it is missing. ``context.get(key, default)`` reads an optional
@@ -73,7 +80,7 @@ class Context(Mapping[str, object]):
                 raise TypeError(msg)
         self._data = dict(data)
 
-    def __getitem__(self, key: str) -> object:
+    def __getitem__(self, key: str) -> Any:
         try:
             return self._data[key]
         except KeyError:
