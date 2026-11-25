@@ -6,6 +6,7 @@ import functools
 import logging
 import pickle
 import threading
+from enum import Enum, StrEnum
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 from unittest.mock import Mock, create_autospec
@@ -137,6 +138,19 @@ def failing_condition() -> bool:
     r"""Implement a condition that raises a ``ValueError``."""
     msg = "boom"
     raise ValueError(msg)
+
+
+class StrEvent(StrEnum):
+    r"""Implement event names that are strings."""
+
+    EPOCH_END = "epoch_end"
+
+
+class PlainEvent(Enum):
+    r"""Implement event names with ``str`` values that are not
+    strings."""
+
+    EPOCH_END = "epoch_end"
 
 
 ##################################
@@ -519,6 +533,31 @@ def test_event_manager_events() -> None:
 
 def test_event_manager_contains_false_empty() -> None:
     assert "my_event" not in EventManager()
+
+
+def test_event_manager_contains_non_str() -> None:
+    manager = EventManager()
+    manager.add_event_handler("1", noop_handler)
+    assert 1 not in manager
+
+
+def test_event_manager_str_enum_event_is_kept_as_given() -> None:
+    manager = EventManager()
+    manager.add_event_handler(StrEvent.EPOCH_END, noop_handler)
+    assert manager.events[0] is StrEvent.EPOCH_END
+
+
+def test_event_manager_str_enum_event_matches_its_value() -> None:
+    manager = EventManager()
+    manager.add_event_handler(StrEvent.EPOCH_END, hello_handler)
+    manager.trigger_event("epoch_end")
+    assert hello_handler.call_count == 1
+
+
+def test_event_manager_plain_enum_event_is_rejected() -> None:
+    event: Any = PlainEvent.EPOCH_END
+    with pytest.raises(TypeError, match=r"^event must be a str, but got PlainEvent$"):
+        EventManager().add_event_handler(event, noop_handler)
 
 
 def test_event_manager_contains_true() -> None:

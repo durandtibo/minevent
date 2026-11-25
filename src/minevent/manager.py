@@ -86,64 +86,45 @@ def _as_context(context: object) -> Context:
 class Subscription:
     r"""Represent the registration of a handler to an event.
 
-    A subscription is returned by ``EventManager.add_event_handler``.
-    It is the registration itself: the manager stores it with the
-    options of the registration, and it removes exactly the
-    registration that created it. The handler does not need to be re-created to be unsubscribed,
-    other registrations of the same handler are not removed, and
-    registering the same handler twice creates two independent
-    subscriptions. Subscriptions are compared by identity.
+    ``EventManager.add_event_handler`` returns a subscription: it is the
+    registration itself, so ``remove`` removes that registration only,
+    even if the same handler is registered several times. Subscriptions
+    are compared by identity. A subscription is a context manager: the
+    registration is removed when the ``with`` block exits.
 
-    A subscription is a context manager: the registration is removed
-    when the ``with`` block exits.
-
-    The constructor is internal: subscriptions are created by the
-    event manager.
+    The constructor is internal: subscriptions are created by the event
+    manager.
 
     Args:
         manager: The event manager that stores the registration.
         event: The event name of the registration.
         handler: The registered handler (``Handler``).
-        once: If ``True``, the registration is removed just before
-            its first execution. Default is ``False``.
+        once: If ``True``, the handler runs at most once. Default is
+            ``False``.
         condition: The condition evaluated before the handler, or
-            ``None`` if the handler always runs. It is called with the
-            context if it has a parameter without default. Default is
-            ``None``.
+            ``None`` if the handler always runs. Default is ``None``.
 
     Raises:
-        TypeError: if the signature of ``handler`` or ``condition``
-            is rejected, or if ``condition`` is a coroutine function
-            (see ``EventManager.add_event_handler``).
+        TypeError: if ``EventManager.add_event_handler`` rejects
+            ``handler`` or ``condition``.
 
     Example:
         ```pycon
         >>> from minevent import EventManager
-        >>> def hello_handler():
-        ...     print("Hello!")
-        ...
         >>> manager = EventManager()
-        >>> subscription = manager.add_event_handler("my_event", hello_handler)
-        >>> subscription.event
-        'my_event'
-        >>> subscription.handler is hello_handler
-        True
-        >>> subscription.active
-        True
-        >>> subscription.remove()
-        True
-        >>> subscription.remove()
-        False
+        >>> subscription = manager.add_event_handler("my_event", lambda: None)
+        >>> subscription
+        Subscription(event='my_event', handler='<lambda>')
+        >>> subscription.remove(), subscription.remove()
+        (True, False)
         >>> subscription.active
         False
-        >>> manager.events
-        []
-        >>> with manager.add_event_handler("my_event", hello_handler):
-        ...     manager.events
+        >>> with manager.add_event_handler("my_event", lambda: None):
+        ...     len(manager)
         ...
-        ['my_event']
-        >>> manager.events
-        []
+        1
+        >>> len(manager)
+        0
 
         ```
     """
@@ -242,43 +223,31 @@ class Subscription:
         r"""Indicate if the registration is still registered.
 
         Returns:
-            ``True`` if the event handler is still registered,
-                ``False`` if it was removed (by this subscription, by
-                ``clear_event`` or ``reset``, or because it was a
-                ``once`` registration consumed by a trigger). The
-                manager sets the flag when the registration leaves
-                its registry.
+            ``True`` until the registration is removed, by whatever means
+                (``remove``, ``clear_event``, ``reset`` or the claim of a
+                ``once`` registration), then ``False``.
         """
         return self._active
 
     def _claim(self, context: Context) -> bool:
-        r"""Decide if a trigger calls the handler: condition, then once
-        claim.
+        r"""Decide if a trigger calls the handler: condition, then once claim.
 
-        The condition decides whether the handler would run, and the
-        claim of a ``once`` registration decides who runs it: the
-        registration is removed by an atomic claim, so its handler runs
-        at most once whatever the number of threads. A condition that
-        is ``False`` (or that raises) does not consume a ``once``
-        registration. A condition is synchronous: a coroutine function
-        is rejected at registration, and if a condition returns an
-        awaitable, a coroutine is closed and a ``TypeError`` is
-        raised.
+        The claim of a ``once`` registration is its atomic removal, so one
+        caller only gets ``True``. A condition that is ``False`` (or that
+        raises) does not consume the registration.
 
         Args:
-            context: The context of the trigger. The condition receives
-                it if it has a parameter without default (see
-                ``minevent.calls.needs_context``).
+            context: The context of the trigger, given to a condition that
+                needs it.
 
         Returns:
             ``True`` if the handler must be called, ``False`` if the
-                condition is ``False`` or if the registration lost the
-                claim.
+                condition is ``False`` or if the registration lost the claim.
 
         Raises:
-            TypeError: if the condition returns an awaitable. Any
-                exception of the condition also propagates. Both have a
-                note that names the condition and the handler.
+            TypeError: if the condition returns an awaitable (a coroutine is
+                closed). Any exception of the condition also propagates. Both
+                have a note that names the condition and the handler.
 
         Example:
             ```pycon
@@ -311,18 +280,15 @@ class Subscription:
         return not self._once or self.remove()
 
     def _invoke(self, context: Context) -> object:
-        r"""Call the handler.
-
-        It checks neither the removal, the condition nor ``once``: a
-        trigger does it first (see ``_claim``).
+        r"""Call the handler, without checking the removal, the condition or
+        ``once`` (see ``_claim``).
 
         Args:
-            context: The context of the trigger. The handler receives it
-                if it has a parameter without default.
+            context: The context of the trigger, given to a handler that
+                needs it.
 
         Returns:
-            The value returned by the handler. It is awaitable if the
-                handler is a coroutine function.
+            The value returned by the handler.
 
         Raises:
             Exception: any exception of the handler propagates.
@@ -340,21 +306,14 @@ class Subscription:
         return self._handler_call(context) if self._with_context else self._handler_call()
 
     def remove(self) -> bool:
-        r"""Remove the registration.
+        r"""Remove this registration.
 
-        Only this registration is removed, even if the same handler is
-        registered several times to the same event. Calling this
-        method again, or after the registration was removed another
-        way (``clear_event``, ``reset``, a ``once`` trigger), does
-        nothing. It never raises, even for a subscription that was
-        never registered in its manager. A registration that is
-        removed before its turn in a running trigger does not run.
-        The cost does not depend on the number of handlers of the
-        event.
+        It never raises, and its cost does not depend on the number of
+        handlers of the event.
 
         Returns:
-            ``True`` if the registration was removed, ``False`` if it
-                was already removed.
+            ``True`` if the registration was removed, ``False`` if it was
+                already removed.
         """
         return self._manager._remove(self)
 
@@ -362,66 +321,24 @@ class Subscription:
 class EventManager:
     r"""Implement an event manager.
 
-    This event manager allows registering event handlers and triggering
-    events. An event is represented by a case-sensitive string. Each
-    event can have multiple handlers attached, and all handlers are
-    executed in the order they were added when the event is triggered.
-
-    ``add_event_handler`` (or the ``on`` decorator) registers an event
-    handler and returns a ``Subscription`` that removes that
-    registration. ``trigger_event`` runs the handlers synchronously,
-    and ``atrigger_event`` awaits the coroutine handlers. The manager
-    has no global state: create one instance and pass it where it is
-    needed. Nothing is logged: to trace the registrations, read
-    ``get_subscriptions(event)``, or wrap the handler. ``events``,
-    ``event in manager`` and ``len(manager)`` inspect the registry, and
-    ``clear_event`` and ``reset`` empty it.
-
-    A handler is a callable that needs no argument or only the
-    context. It is called as ``handler(context)``, with a read-only
-    ``Context`` that holds the payload of the trigger, if it has a
-    parameter without default, and as ``handler()`` otherwise: a
-    parameter that has a default keeps it. The options of a
-    registration (``once`` and ``condition``) are the keyword-only
-    arguments of ``add_event_handler`` and ``on``. Use
-    ``functools.partial``, a function or a lambda to give other
-    arguments.
-
-    Error policy: handlers run fail-fast. If a handler raises, the
-    exception propagates to the caller of ``trigger_event`` (or
-    ``atrigger_event``) and the remaining handlers of that event are
-    not executed.
-
-    Thread safety: the registration, removal and inspection of
-    handlers are protected by a reentrant lock, and ``trigger_event``
-    runs the handlers on a snapshot taken under the lock, outside of
-    it. The removed handlers are released outside of it too. So handlers can be registered in one thread and events
-    triggered from worker threads. The handlers themselves run in the
-    thread that triggers the event, concurrently if several threads
-    trigger the same event, so a handler that shares state must be
-    thread-safe. The built-in conditions protect their counter (see
-    ``minevent.conditions``), and the state of another condition is not
-    protected.
-
-    A manager is a service, not a collection: ``bool(manager)`` is
-    always ``True``, even when it has no handler, so ``manager or
-    default`` means "is there a manager". Use ``len(manager)`` for the
-    number of registrations. A manager owns a lock and a registry, so
-    it cannot be copied or pickled (``copy.copy``, ``copy.deepcopy`` and
-    ``pickle`` raise a ``TypeError``): create a new one.
+    ``add_event_handler`` (or the ``on`` decorator) registers a handler to
+    an event, a case-sensitive string, and returns the ``Subscription``
+    that removes it. ``trigger_event`` and ``atrigger_event`` run the
+    handlers of an event in the order they were added. The registry is
+    thread-safe. A manager is always truthy (``len`` gives the number of
+    registrations), and it cannot be copied or pickled. The properties
+    that it guarantees, and its limits, are in the architecture page of
+    the documentation.
 
     Example:
         ```pycon
         >>> from minevent import EventManager
-        >>> def hello_handler():
-        ...     print("Hello!")
-        ...
         >>> manager = EventManager()
-        >>> bool(manager)
-        True
-        >>> _ = manager.add_event_handler("my_event", hello_handler)
+        >>> _ = manager.add_event_handler("my_event", lambda: print("Hello!"))
         >>> manager.trigger_event("my_event")
         Hello!
+        >>> manager
+        EventManager(events={'my_event': 1})
 
         ```
     """
@@ -526,99 +443,54 @@ class EventManager:
     ) -> Subscription:
         r"""Add a handler to an event.
 
-        The handler will be called every time the specified event is
-        triggered, as ``handler()`` or ``handler(context)``, where
-        ``context`` is the read-only ``Context`` built from the payload
-        of the trigger. A parameter that has a default keeps it: the
-        manager never fills it. If no other parameter is left, the
-        handler is called as ``handler()``; if exactly one positional
-        parameter is left, it is called as ``handler(context)``; and
-        any other signature is rejected, including ``*args``,
-        ``**kwargs`` and a signature that cannot be inspected. This is
-        checked once, at registration, and it never matches names or
-        annotations. Wrap a rejected callable, such as ``print``, in a
-        function or a lambda. Multiple handlers can be registered to
-        the same event, and they will be executed in the order they
-        were added. Use ``functools.partial`` to bind other arguments.
+        Each trigger of the event calls the handler after the handlers added
+        before it, as ``handler()``, or as ``handler(context)`` with the
+        read-only ``Context`` of the trigger if it has one parameter without
+        default. ``minevent.calls.needs_context`` states the whole rule. Use
+        a function, a lambda or a ``functools.partial`` to give other
+        arguments.
 
         Args:
-            event: The event name (case-sensitive string) to which
-                the handler should be attached.
+            event: The event name (case-sensitive string).
             handler: The callable to attach to the event (``Handler``).
-            once: If ``True``, the handler is removed just before its
-                first execution, so it runs at most once, even when
-                several threads trigger the event. A condition that
-                is ``False`` does not consume the registration: it
-                waits for the first time the condition is ``True``.
-                Default is ``False``.
-            condition: An optional condition: a synchronous function
-                that returns a boolean. A coroutine function is
-                rejected here, and a condition that returns an
-                awaitable another way (a lambda that returns a
-                coroutine, or an object with ``async def __call__``)
-                makes the trigger raise a ``TypeError``. It is called
-                each time the event is triggered, before the handler,
-                and the handler runs only if it returns ``True``. It is
-                called as ``condition()`` or ``condition(context)``,
-                with the rule of the handlers: a parameter that has a
-                default keeps it. If ``None``, the handler always
-                runs. An exception
-                raised by the condition propagates to the caller of
-                ``trigger_event``. A stateful condition, such as
-                ``PeriodicCondition``, must not be shared between
-                registrations. Default is ``None``.
+            once: If ``True``, the registration is removed just before the
+                first call of the handler, so it runs at most once, even when
+                several threads trigger the event. A condition that is
+                ``False`` does not consume it. Default is ``False``.
+            condition: A synchronous function that returns a boolean, called
+                like a handler before it: the handler runs only if the result
+                is true. A stateful condition, such as ``PeriodicCondition``,
+                must not be shared between registrations. If ``None``, the
+                handler always runs. Default is ``None``.
 
         Returns:
-            A subscription whose ``remove`` method removes this
-                registration only.
+            A subscription whose ``remove`` method removes this registration
+                only.
 
         Raises:
-            TypeError: if ``event`` is not a string, if ``handler``
-                is not callable, if ``condition`` is neither ``None``
-                nor callable, if ``handler`` or ``condition`` is a
-                generator function, needs another argument than the
-                context, or has a signature that cannot be inspected,
-                or if ``condition`` is a coroutine function. The
-                manager is unchanged.
+            TypeError: if ``event`` is not a string, if ``handler`` is not
+                callable, if ``condition`` is neither ``None`` nor callable, if
+                ``handler`` or ``condition`` is a generator function, needs
+                another argument than the context, or has a signature that
+                cannot be inspected, or if ``condition`` is a coroutine
+                function. The manager is unchanged.
 
         Example:
             ```pycon
-            >>> import functools
             >>> from minevent import EventManager, PeriodicCondition
-            >>> def hello_handler():
-            ...     print("Hello!")
-            ...
             >>> manager = EventManager()
-            >>> subscription = manager.add_event_handler("my_event", hello_handler)
-            >>> manager.trigger_event("my_event")
-            Hello!
-            >>> subscription.remove()
-            True
-            >>> manager.trigger_event("my_event")
-            >>> _ = manager.add_event_handler("my_event", hello_handler, once=True)
-            >>> manager.trigger_event("my_event")
-            Hello!
-            >>> manager.trigger_event("my_event")
-            >>> def greet_handler(message):
-            ...     print(message)
-            ...
             >>> _ = manager.add_event_handler(
-            ...     "greet", functools.partial(greet_handler, "Hello!")
+            ...     "epoch_end",
+            ...     lambda context: print(f"epoch {context['epoch']}"),
+            ...     condition=PeriodicCondition(freq=2),
             ... )
-            >>> manager.trigger_event("greet")
-            Hello!
-            >>> _ = manager.add_event_handler(
-            ...     "tick", hello_handler, condition=PeriodicCondition(freq=2)
-            ... )
-            >>> manager.trigger_event("tick")
-            Hello!
-            >>> manager.trigger_event("tick")
-            >>> def epoch_handler(context):
-            ...     print(f"epoch {context['epoch']}")
-            ...
-            >>> _ = manager.add_event_handler("epoch_end", epoch_handler)
-            >>> manager.trigger_event("epoch_end", {"epoch": 3, "loss": 0.5})
-            epoch 3
+            >>> _ = manager.add_event_handler("epoch_end", lambda: print("first"), once=True)
+            >>> manager.trigger_event("epoch_end", {"epoch": 0})
+            epoch 0
+            first
+            >>> manager.trigger_event("epoch_end", {"epoch": 1})
+            >>> manager.trigger_event("epoch_end", {"epoch": 2})
+            epoch 2
 
             ```
         """
@@ -645,26 +517,21 @@ class EventManager:
 
         The decorated function is registered with
         ``add_event_handler(event, func, once=once, condition=condition)``
-        and returned unchanged. Use
-        ``add_event_handler`` if you need the ``Subscription``.
+        and returned unchanged. Use ``add_event_handler`` if you need the
+        ``Subscription``.
 
         Args:
             event: The event name (case-sensitive string).
-            once: If ``True``, the handler runs at most once. See
-                ``add_event_handler``. Default is ``False``.
-            condition: An optional condition evaluated before the
-                handler. See ``add_event_handler``. Default is ``None``.
+            once: See ``add_event_handler``. Default is ``False``.
+            condition: See ``add_event_handler``. Default is ``None``.
 
         Returns:
             The decorator.
 
         Raises:
-            TypeError: if ``event`` is not a string, or, when the
-                decorator is applied, if ``condition`` is neither
-                ``None`` nor callable, if the decorated object is not
-                callable, if ``add_event_handler`` rejects the
-                signature of the function or of the condition, or if
-                ``condition`` is a coroutine function.
+            TypeError: if ``event`` is not a string, or, when the decorator is
+                applied, if ``add_event_handler`` rejects the decorated object
+                or the condition.
 
         Example:
             ```pycon
@@ -678,12 +545,6 @@ class EventManager:
             Hello Bob!
             >>> hello_handler({"name": "Alice"})
             Hello Alice!
-            >>> @manager.on("epoch_end")
-            ... def log_epoch(context):
-            ...     print(f"epoch {context['epoch']}")
-            ...
-            >>> manager.trigger_event("epoch_end", {"epoch": 3, "loss": 0.5})
-            epoch 3
 
             ```
         """
@@ -716,85 +577,39 @@ class EventManager:
         return True
 
     def trigger_event(self, event: str, context: Mapping[str, object] | None = None, /) -> None:
-        r"""Trigger the handler(s) for the given event.
+        r"""Run the handlers of an event, in the order they were added.
 
-        This method executes all event handlers registered for the
-        specified event in the order they were added. Nothing happens
-        if no handler is registered.
-
-        Handlers are executed fail-fast: if a handler raises, the
-        exception propagates and the remaining handlers are skipped.
-        The exception is not wrapped: it has a note (``__notes__``)
-        with the event and what raised it, the handler or the condition
-        and its handler.
-
-        The handlers are read from a snapshot taken when the event is
-        triggered. A handler added by a running handler takes effect
-        on the next trigger. A registration removed before its turn
-        (by ``remove``, ``clear_event`` or ``reset``) does not run.
-        A ``once`` registration is removed just before its handler
-        runs.
-
-        A handler can trigger events, including the event it handles,
-        but nothing stops the recursion: a handler that always
-        triggers its own event raises a ``RecursionError``. Guard the
-        recursive trigger with a condition or a flag.
-
-        The data ``context`` (a mapping from ``str`` to values, a
-        ``Context`` or ``None``) is copied into one read-only
-        ``Context`` that is built once per trigger and shared by all
-        the handlers. A ``Context`` is passed as is (it is immutable,
-        so it can be reused for several triggers), and ``None`` means
-        no data. A handler that has a parameter
-        without default is called as ``handler(context)``, and the
-        other handlers are called as ``handler()`` (see
-        ``add_event_handler``). A handler reads the keys it needs and
-        decides
-        what to do when one is missing: ``context["key"]`` raises a
-        ``KeyError``, and ``context.get("key", default)`` returns a
-        default. Extra keys never break a handler. The keys can be any
-        ``str``, they do not need to be valid identifiers. All the
-        handlers receive the same value objects.
-
-        Before its handler, a registration evaluates its condition
-        (the handler is skipped if it is ``False``), and a ``once``
-        registration is removed.
+        The handlers registered when the trigger starts run one after the
+        other, and a registration removed before its turn does not run.
+        Nothing happens if the event has no handler. The trigger is fail-fast:
+        an exception of a handler or a condition propagates unwrapped, with a
+        note that says what raised it, and the next handlers are skipped.
 
         Args:
             event: The event name (case-sensitive string) to trigger.
-            context: The data passed to the handlers: a mapping from
-                ``str`` to values, a ``Context`` or ``None``. It is
-                not modified. Default is ``None``.
+            context: The data of the trigger: a mapping from ``str`` to values,
+                a ``Context`` or ``None`` (no data). A mapping is copied into
+                one read-only ``Context`` shared by the handlers and the
+                conditions, and a ``Context`` is used as is. Default is
+                ``None``.
 
         Raises:
-            TypeError: if ``event`` is not a string, if ``context`` is
-                neither ``None`` nor a mapping with ``str`` keys, if a
-                condition returns an awaitable, or if a handler
-                returns an awaitable (use ``atrigger_event`` for
-                coroutine handlers). Any exception raised by a
-                handler or a condition also propagates, including a
-                ``RecursionError`` if a handler always triggers its
-                own event.
+            TypeError: if ``event`` is not a string, if ``context`` is neither
+                ``None`` nor a mapping with ``str`` keys, if a condition
+                returns an awaitable, or if a handler returns an awaitable
+                (use ``atrigger_event`` for coroutine handlers). Any exception
+                of a handler or a condition also propagates.
 
         Example:
             ```pycon
-            >>> from minevent import Context, EventManager
+            >>> from minevent import EventManager
             >>> manager = EventManager()
-            >>> manager.trigger_event("my_event")  # do nothing because there is no event handler
-            >>> def hello_handler():
-            ...     print("Hello!")
-            ...
-            >>> _ = manager.add_event_handler("my_event", hello_handler)
-            >>> manager.trigger_event("my_event")
-            Hello!
-            >>> def epoch_handler(context):
-            ...     print(f"epoch {context['epoch']}")
-            ...
-            >>> _ = manager.add_event_handler("epoch_end", epoch_handler)
+            >>> manager.trigger_event("epoch_end")  # no handler: nothing happens
+            >>> _ = manager.add_event_handler(
+            ...     "epoch_end", lambda context: print(f"epoch {context['epoch']}")
+            ... )
             >>> manager.trigger_event("epoch_end", {"epoch": 3})
             epoch 3
-            >>> manager.trigger_event("epoch_end", Context({"epoch": 4}))
-            epoch 4
 
             ```
         """
@@ -818,31 +633,22 @@ class EventManager:
     async def atrigger_event(
         self, event: str, context: Mapping[str, object] | None = None, /
     ) -> None:
-        r"""Trigger the handler(s) for the given event, awaiting the
-        coroutine handlers.
+        r"""Run the handlers of an event, awaiting the coroutine handlers.
 
-        This method behaves like ``trigger_event``, but the handlers
-        that are coroutine functions (or return an awaitable) are
-        awaited. Synchronous handlers can be mixed with coroutine
-        handlers. The handlers run one after the other, in the order they were
-        added, and they are fail-fast like in ``trigger_event``: the
-        exception is not wrapped and has the same note. The snapshot of the handlers, the ``once``
-        registrations and the context follow the rules of
-        ``trigger_event``. Synchronous handlers block the event loop
-        while they run.
+        It behaves like ``trigger_event``, but the awaitable that a handler
+        returns is awaited before the next handler. A synchronous handler
+        blocks the event loop while it runs.
 
         Args:
             event: The event name (case-sensitive string) to trigger.
-            context: The data passed to the handlers: a mapping from
-                ``str`` to values, a ``Context`` or ``None``. It is
-                not modified. Default is ``None``.
+            context: The data of the trigger, as in ``trigger_event``. Default
+                is ``None``.
 
         Raises:
-            TypeError: if ``event`` is not a string, if ``context``
-                is neither ``None`` nor a mapping with ``str`` keys, or
-                if a condition returns an awaitable (the conditions
-                are synchronous and are never awaited). Any exception
-                raised by a handler or a condition also propagates.
+            TypeError: if ``event`` is not a string, if ``context`` is neither
+                ``None`` nor a mapping with ``str`` keys, or if a condition
+                returns an awaitable (a condition is never awaited). Any
+                exception of a handler or a condition also propagates.
 
         Example:
             ```pycon
@@ -874,13 +680,10 @@ class EventManager:
                 raise
 
     def clear_event(self, event: str) -> None:
-        r"""Remove all the event handlers of a given event.
+        r"""Remove all the registrations of an event.
 
-        Nothing happens if the event has no registered handler. The
-        subscriptions of the removed handlers become inactive, and a
-        removed registration that has not run yet in a running trigger
-        does not run. The removed handlers are released outside the
-        lock of the manager, so their finalizers can use it.
+        Nothing happens if the event has no handler. The removed handlers are
+        released outside the lock, so their finalizers can use the manager.
 
         Args:
             event: The event name (case-sensitive string) to clear.
@@ -908,30 +711,16 @@ class EventManager:
         # finalizers can use the manager.
 
     def reset(self) -> None:
-        r"""Reset the event manager.
+        r"""Remove all the registrations of all the events.
 
-        This method removes all registered event handlers from the
-        event manager, so their subscriptions become inactive. After
-        calling this method, the event manager returns to its initial
-        state. A registration that has not run yet in a running
-        trigger does not run. The removed handlers are released outside
-        the lock of the manager, so their finalizers can use it.
+        The removed handlers are released outside the lock, so their
+        finalizers can use the manager.
 
         Example:
             ```pycon
-            >>> # Create an event manager
             >>> from minevent import EventManager
             >>> manager = EventManager()
-            >>> # Add an event handler
-            >>> def hello_handler():
-            ...     print("Hello!")
-            ...
-            >>> _ = manager.add_event_handler("my_event", hello_handler)
-            >>> manager.trigger_event("my_event")
-            Hello!
-            >>> len(manager)
-            1
-            >>> # Reset the event manager
+            >>> _ = manager.add_event_handler("my_event", lambda: None)
             >>> manager.reset()
             >>> len(manager)
             0

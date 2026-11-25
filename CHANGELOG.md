@@ -43,8 +43,8 @@ the new API are in the
 - **Typing**: a handler argument is typed `Handler`, so a type checker reports a handler that needs
   two arguments, a keyword-only argument or an argument of another type. Annotate the parameter of a
   handler `Context` (or `Mapping`).
-- **Events**: an event name must be a `str` (other types raise a `TypeError`; they were converted
-  with `str` at registration).
+- **Events**: an event name must be a `str`, such as a `StrEnum` member (other types, a member of
+  a plain `Enum` included, raise a `TypeError`; they were converted with `str` at registration).
 - **Dispatch**: a trigger runs the registrations that exist when it starts: a handler added by a
   running handler runs at the next trigger, and a registration removed before its turn does not
   run. Triggering an event without handler no longer creates it.

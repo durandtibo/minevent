@@ -31,3 +31,8 @@ def test_getattr_unknown_attribute() -> None:
 def test_dir_contains_version(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delitem(vars(minevent), "__version__", raising=False)
     assert "__version__" in dir(minevent)
+
+
+def test_dir_lists_version_once_after_it_is_read() -> None:
+    minevent.__getattr__("__version__")
+    assert dir(minevent).count("__version__") == 1

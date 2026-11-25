@@ -457,7 +457,7 @@ so. Each step updates the docstrings, the property it changes in `architecture.m
 | 8    | `feat/add-handler-type` (on 4)              | `Handler` (4.6), a typed sample checked by `ty`                       | types    | F8       | #872         |
 | 9    | `feat/replace-skip-first-with-start` (on 2) | `start` (4.4)                                                         | **yes**  | F7       | #873         |
 | 10   | `test/run-every-benchmark`                  | The import benchmarks work when disabled; benchmarks run nightly only | no       | F11      | #874         |
-| 11   | `docs/state-each-rule-once` (last)          | Short docstrings (4.8), the statements of F10, `dir`, changelog       | no       | F10, F12 |              |
+| 11   | `docs/state-each-rule-once` (last)          | Short docstrings (4.8), the statements of F10, `dir`, changelog       | no       | F10, F12 | #875         |
 
 Step 1 comes first: a test that fails at random hides the result of the other steps. Step 11 contains
 the one-line fix of `__dir__`; take it out as its own `bugfix/` pull request if the documentation

@@ -12,9 +12,9 @@ recipes, and the [architecture page](architecture.md) states the rules of the li
   `event1` or `done`.
 - Pick one convention for the whole project, for example `snake_case` (`batch_end`) or a namespace
   (`training.batch.end`). Names are only strings, so `minevent` has no notion of hierarchy.
-- Define the names in one place (constants or an `Enum` with `str` values) to avoid typos: the
-  events `"epoch_end"` and `"epoch-end"` are different, and triggering an event without handler does
-  nothing.
+- Define the names in one place (constants or a `StrEnum`) to avoid typos: the events
+  `"epoch_end"` and `"epoch-end"` are different, and triggering an event without handler does
+  nothing. A member of a plain `Enum` is not a `str`, so it is rejected.
 
 ### Handlers and payload
 
