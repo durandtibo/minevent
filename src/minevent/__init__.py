@@ -6,8 +6,8 @@ only the context) and an event manager (``EventManager``) that stores
 the handlers and triggers the events.
 
 - ``EventManager.add_event_handler`` (or the ``on`` decorator) registers
-  a handler and returns a ``Subscription``, the registration itself,
-  that removes exactly that registration.
+  a handler (``Handler``) and returns a ``Subscription``, the
+  registration itself, that removes exactly that registration.
 - ``EventManager.trigger_event`` runs the handlers in the order they
   were registered and passes its ``context`` argument (a mapping, the
   payload) to them in a read-only ``Context``. ``EventManager.atrigger_event`` also
@@ -37,11 +37,13 @@ __all__ = [
     "Condition",
     "Context",
     "EventManager",
+    "Handler",
     "PeriodicCondition",
     "Subscription",
     "__version__",
 ]
 
+from minevent.calls import Handler
 from minevent.conditions import (
     AfterNCondition,
     Condition,

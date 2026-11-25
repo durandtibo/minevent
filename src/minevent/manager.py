@@ -22,9 +22,10 @@ if TYPE_CHECKING:
     from types import TracebackType
     from typing import NoReturn, Self, TypeVar
 
+    from minevent.calls import Handler
     from minevent.conditions import Condition
 
-    _F = TypeVar("_F", bound=Callable[..., object])
+    _F = TypeVar("_F", bound=Handler)
 
 
 def _check_event(event: object) -> None:
@@ -102,7 +103,7 @@ class Subscription:
     Args:
         manager: The event manager that stores the registration.
         event: The event name of the registration.
-        handler: The registered handler: a callable.
+        handler: The registered handler (``Handler``).
         once: If ``True``, the registration is removed just before
             its first execution. Default is ``False``.
         condition: The condition evaluated before the handler, or
@@ -151,7 +152,7 @@ class Subscription:
         self,
         manager: EventManager,
         event: str,
-        handler: Callable[..., object],
+        handler: Handler,
         *,
         once: bool = False,
         condition: Condition | None = None,
@@ -173,7 +174,8 @@ class Subscription:
             if inspect.iscoroutinefunction(condition):
                 msg = f"condition must be synchronous, but got {describe(condition)}"
                 raise TypeError(msg)
-        # The same condition, typed for the two ways to call it.
+        # The same callables, typed for the two ways to call them.
+        self._handler_call: Callable[..., object] = handler
         self._condition_call: Callable[..., object] | None = condition
         # A trigger only calls ``_claim`` for these registrations: the others save a method call.
         self._guarded = bool(once) or condition is not None
@@ -207,7 +209,7 @@ class Subscription:
         return self._event
 
     @property
-    def handler(self) -> Callable[..., object]:
+    def handler(self) -> Handler:
         r"""Get the registered handler.
 
         Returns:
@@ -335,7 +337,7 @@ class Subscription:
 
             ```
         """
-        return self._handler(context) if self._with_context else self._handler()
+        return self._handler_call(context) if self._with_context else self._handler_call()
 
     def remove(self) -> bool:
         r"""Remove the registration.
@@ -517,7 +519,7 @@ class EventManager:
     def add_event_handler(
         self,
         event: str,
-        handler: Callable[..., object],
+        handler: Handler,
         *,
         once: bool = False,
         condition: Condition | None = None,
@@ -542,7 +544,7 @@ class EventManager:
         Args:
             event: The event name (case-sensitive string) to which
                 the handler should be attached.
-            handler: The callable to attach to the event.
+            handler: The callable to attach to the event (``Handler``).
             once: If ``True``, the handler is removed just before its
                 first execution, so it runs at most once, even when
                 several threads trigger the event. A condition that
