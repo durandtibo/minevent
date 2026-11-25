@@ -34,6 +34,7 @@ from __future__ import annotations
 __all__ = [
     "AfterNCondition",
     "Condition",
+    "Context",
     "EventManager",
     "PeriodicCondition",
     "Subscription",
@@ -45,6 +46,7 @@ from minevent.conditions import (
     Condition,
     PeriodicCondition,
 )
+from minevent.context import Context
 from minevent.manager import EventManager, Subscription
 
 
