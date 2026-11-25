@@ -1499,7 +1499,7 @@
 <tr>
 <td>P4</td>
 <td>Validated at the door</td>
-<td>A wrong type raises <code>TypeError</code> in the call that receives it, with a message that names the argument and the value: the event, the handler (must be callable) and the condition (<code>None</code> or callable) of <code>add_event_handler</code> and <code>on</code>. An invalid registration leaves the manager unchanged.</td>
+<td>A wrong type raises <code>TypeError</code> in the call that receives it, with a message that names the argument and the value: the event, the handler (must be callable) and the condition (<code>None</code> or callable) of <code>add_event_handler</code> and <code>on</code>. An invalid registration leaves the manager unchanged. The annotations of a handler or a condition do not have to be resolvable.</td>
 <td><code>add_event_handler</code>, <code>on</code>, <code>test_manager.py</code></td>
 </tr>
 <tr>
