@@ -37,6 +37,7 @@ class Context(Mapping[str, object]):
     def __getitem__(self, key: str) -> object: ...  # KeyError names the key and the available keys
     def __iter__(self) -> Iterator[str]: ...
     def __len__(self) -> int: ...
+
     # inherited from Mapping: get(key, default=None), __contains__, keys, items, values, ==
 ```
 

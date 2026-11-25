@@ -1,5 +1,5 @@
-"""A typed sample: ``ty check`` checks the annotated handlers that a user
-writes, and the tests run them."""
+"""A typed sample: ``ty check`` checks the annotated handlers that a
+user writes, and the tests run them."""
 
 from __future__ import annotations
 
