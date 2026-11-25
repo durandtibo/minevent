@@ -10,6 +10,7 @@ from minevent import (
     Context,
     EventManager,
 )
+from tests.unit.handlers import AsyncConditionObject, condition_returning_a_coroutine
 from tests.unit.utils import trace
 
 logger = logging.getLogger(__name__)
@@ -378,23 +379,18 @@ async def test_event_manager_atrigger_event_condition_reads_the_payload() -> Non
     assert values == [1]
 
 
-async def async_never() -> bool:
-    r"""Implement an async condition that is ``False``."""
-    return False
-
-
-async def test_event_manager_atrigger_event_condition_returns_awaitable() -> None:
+@pytest.mark.parametrize("condition", [AsyncConditionObject(), condition_returning_a_coroutine])
+async def test_event_manager_atrigger_event_condition_returns_awaitable(condition: Any) -> None:
     manager = EventManager()
-    condition: Any = async_never
     manager.add_event_handler("my_event", async_handler, condition=condition)
-    with pytest.raises(TypeError, match=r"condition async_never returned an awaitable"):
+    with pytest.raises(TypeError, match=r"^condition .+ returned an awaitable"):
         await manager.atrigger_event("my_event")
     assert async_handler.call_count == 0
 
 
 async def test_event_manager_atrigger_event_condition_awaitable_keeps_once_registration() -> None:
     manager = EventManager()
-    condition: Any = async_never
+    condition: Any = condition_returning_a_coroutine
     subscription = manager.add_event_handler(
         "my_event", async_handler, once=True, condition=condition
     )

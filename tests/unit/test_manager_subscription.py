@@ -15,10 +15,13 @@ from minevent import (
     Subscription,
 )
 from tests.unit.handlers import (
+    AsyncConditionMethod,
+    AsyncConditionObject,
     AwaitableResult,
     BadReprCallable,
     CallableRecorder,
     async_condition,
+    condition_returning_a_coroutine,
     copy_context,
     fail,
     has_payload,
@@ -40,18 +43,6 @@ def read_secret(secret: str) -> None:
 def failing_handler() -> None:
     msg = "handler failed"
     raise RuntimeError(msg)
-
-
-class AsyncConditionObject:
-    r"""Implement a condition with an async ``__call__``."""
-
-    async def __call__(self) -> bool:
-        return False
-
-
-def condition_returning_a_coroutine() -> object:
-    r"""Implement a synchronous condition that returns a coroutine."""
-    return async_condition()
 
 
 def condition_of_context_returning_a_coroutine(context: Context) -> object:
@@ -138,6 +129,44 @@ def test_subscription_options_are_keyword_only() -> None:
     args: list[Any] = [EventManager(), "my_event", noop_handler, True]
     with pytest.raises(TypeError, match=r"positional arguments"):
         Subscription(*args)
+
+
+@pytest.mark.parametrize(
+    "condition",
+    [async_condition, AsyncConditionMethod().check, functools.partial(async_condition)],
+)
+def test_subscription_async_condition(condition: Any) -> None:
+    with pytest.raises(TypeError, match=r"^condition must be synchronous, but got "):
+        Subscription(EventManager(), "my_event", noop_handler, condition=condition)
+
+
+def test_subscription_async_condition_with_parameter() -> None:
+    async def is_late(context: Context) -> bool:
+        return bool(context)
+
+    condition: Any = is_late
+    with pytest.raises(TypeError, match=r"^condition must be synchronous, but got .*is_late$"):
+        Subscription(EventManager(), "my_event", noop_handler, condition=condition)
+
+
+def test_subscription_async_condition_rejected_signature_first() -> None:
+    async def condition(first: int, second: int) -> bool:
+        return first < second
+
+    condition_any: Any = condition
+    with pytest.raises(TypeError, match=r"must need no argument or only the context"):
+        Subscription(EventManager(), "my_event", noop_handler, condition=condition_any)
+
+
+@pytest.mark.parametrize("condition", [AsyncConditionObject(), condition_returning_a_coroutine])
+def test_subscription_condition_that_returns_a_coroutine_is_accepted(condition: Any) -> None:
+    subscription = Subscription(EventManager(), "my_event", noop_handler, condition=condition)
+    assert subscription.condition is condition
+
+
+def test_subscription_async_handler_is_accepted() -> None:
+    subscription = Subscription(EventManager(), "my_event", async_condition)
+    assert subscription.handler is async_condition
 
 
 def test_subscription_rejected_signature() -> None:
@@ -467,7 +496,6 @@ def test_claim_condition_base_exception_has_no_note() -> None:
 @pytest.mark.parametrize(
     "condition",
     [
-        async_condition,
         AsyncConditionObject(),
         condition_returning_a_coroutine,
         condition_of_context_returning_a_coroutine,
