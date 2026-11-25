@@ -393,7 +393,7 @@ it says so.
 | 1    | `bugfix/fix-package-checks`                      | Fix the two checks and the two benchmarks, add the gates of 4.5       | no       | F1         | #851 |
 | 2    | `bugfix/forward-ref-annotations`                 | Do not evaluate the annotations on 3.14+                              | no       | F6         | #852 |
 | 3    | `refactor/use-accepted-signatures` (on 2)        | Tests, docstrings and documents register only accepted shapes         | no       | -          | #853 |
-| 4    | `feat/two-handler-calls` (on step 3)             | The rule of 4.1, generator functions rejected, documents of the rule  | **yes**  | F2, F4, F5 | #PR  |
+| 4    | `feat/two-handler-calls` (on step 3)             | The rule of 4.1, generator functions rejected, documents of the rule  | **yes**  | F2, F4, F5 | #854 |
 | 5    | `bugfix/reject-awaitable-conditions` (on step 4) | The check of 4.2                                                      | **yes**  | F3         | -    |
 | 6    | `bugfix/picklable-context`                       | A plain `dict` in the `Context`                                       | no       | F7         | -    |
 | 7    | `feat/context-values-any` (on step 6)            | `Mapping[str, Any]`, P15, a typed sample checked by `ty`              | no       | F8         | -    |
