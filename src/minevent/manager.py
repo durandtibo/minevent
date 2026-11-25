@@ -16,7 +16,7 @@ import threading
 from collections.abc import Awaitable, Mapping
 from typing import TYPE_CHECKING, NoReturn, Self, TypeVar
 
-from minevent.calls import Handler, add_error_note, describe, needs_context, reject_awaitable
+from minevent.calls import Handler, adapt_call, add_error_note, describe, reject_awaitable
 from minevent.context import Context
 
 if TYPE_CHECKING:
@@ -150,18 +150,14 @@ class Subscription:
         self._handler = handler
         self._once = once
         self._condition = condition
-        # The check is done once, at registration.
-        self._with_context = needs_context(handler, "handler")
-        self._condition_with_context = condition is not None and needs_context(
-            condition, "condition"
-        )
+        # The signatures are checked once, at registration: a trigger gives the context to the
+        # adapted callables.
+        self._handler_call = adapt_call(handler, "handler")
+        self._condition_call = None if condition is None else adapt_call(condition, "condition")
         # The condition is rejected now, not at the first trigger, which can be much later.
         if condition is not None and inspect.iscoroutinefunction(condition):
             msg = f"condition must be synchronous, but got {describe(condition)}"
             raise TypeError(msg)
-        # The same callables, typed for the two ways to call them.
-        self._handler_call: Callable[..., object] = handler
-        self._condition_call: Callable[..., object] | None = condition
         # A trigger only calls ``_claim`` for these registrations: the others save a method call.
         self._guarded = bool(once) or condition is not None
         # Set to False by the manager when the registration leaves its registry.
@@ -318,49 +314,19 @@ class Subscription:
         """
         if self._condition_call is not None:
             try:
-                result = (
-                    self._condition_call(context)
-                    if self._condition_with_context
-                    else self._condition_call()
-                )
+                result = self._condition_call(context)
                 # A coroutine is truthy: a condition that returns one would always run the handler.
                 if result is not True and result is not False:
-                    msg = f"condition {describe(self._condition_call)} returned an awaitable"
+                    msg = f"condition {describe(self._condition)} returned an awaitable"
                     reject_awaitable(result, msg)
                 if not result:
                     return False
             except Exception as exc:
-                condition = describe(self._condition_call)
+                condition = describe(self._condition)
                 source = f"the condition {condition} of {describe(self._handler)}"
                 add_error_note(exc, source, self._event)
                 raise
         return self.remove() if self._once else self._active
-
-    def _invoke(self, context: Context) -> object:
-        r"""Call the handler, without checking the removal, the condition or
-        ``once`` (see ``_claim``).
-
-        Args:
-            context: The context of the trigger, given to a handler that
-                needs it.
-
-        Returns:
-            The value returned by the handler.
-
-        Raises:
-            Exception: any exception of the handler propagates.
-
-        Example:
-            ```pycon
-            >>> from minevent import Context, EventManager
-            >>> manager = EventManager()
-            >>> subscription = manager.add_event_handler("my_event", lambda: "called")
-            >>> subscription._invoke(Context())
-            'called'
-
-            ```
-        """
-        return self._handler_call(context) if self._with_context else self._handler_call()
 
     def remove(self) -> bool:
         r"""Remove this registration.
@@ -518,7 +484,7 @@ class EventManager:
         Each trigger of the event calls the handler after the handlers added
         before it, as ``handler()``, or as ``handler(context)`` with the
         read-only ``Context`` of the trigger if it has one parameter without
-        default. ``minevent.calls.needs_context`` states the whole rule. Use
+        default. ``minevent.calls.adapt_call`` states the whole rule. Use
         a function, a lambda or a ``functools.partial`` to give other
         arguments.
 
@@ -707,7 +673,7 @@ class EventManager:
             ):
                 continue
             try:
-                result = subscription._invoke(context)
+                result = subscription._handler_call(context)
                 if result is not None and isinstance(result, Awaitable):
                     name = describe(subscription.handler)
                     msg = f"{name} returned an awaitable; use atrigger_event"
@@ -758,7 +724,7 @@ class EventManager:
             ):
                 continue
             try:
-                result = subscription._invoke(context)
+                result = subscription._handler_call(context)
                 if result is not None and isinstance(result, Awaitable):
                     await result
             except Exception as exc:

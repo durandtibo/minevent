@@ -14,7 +14,7 @@ from unittest.mock import AsyncMock, Mock, create_autospec
 import pytest
 
 from minevent import Context, calls
-from minevent.calls import add_error_note, describe, needs_context, reject_awaitable
+from minevent.calls import adapt_call, add_error_note, describe, reject_awaitable
 from tests.unit.handlers import (
     BadReprCallable,
     CallableRecorder,
@@ -139,9 +139,9 @@ class UninspectableCallable:
         r"""Implement a handler."""
 
 
-###################################
-#     Tests for needs_context     #
-###################################
+################################
+#     Tests for adapt_call     #
+################################
 
 
 @pytest.mark.parametrize(
@@ -161,8 +161,8 @@ class UninspectableCallable:
         create_autospec(noop_handler),
     ],
 )
-def test_needs_context_no_argument(func: Callable[..., object]) -> None:
-    assert not needs_context(func, "handler")
+def test_adapt_call_no_argument(func: Callable[..., object]) -> None:
+    assert adapt_call(func, "handler") is not func
 
 
 @pytest.mark.parametrize(
@@ -182,8 +182,40 @@ def test_needs_context_no_argument(func: Callable[..., object]) -> None:
         create_autospec(read_epoch),
     ],
 )
-def test_needs_context_one_argument(func: Callable[..., object]) -> None:
-    assert needs_context(func, "handler")
+def test_adapt_call_one_argument(func: Callable[..., object]) -> None:
+    assert adapt_call(func, "handler") is func
+
+
+def test_adapt_call_calls_without_argument() -> None:
+    func = create_autospec(noop_handler)
+    adapt_call(func, "handler")(Context({"a": 1}))
+    func.assert_called_once_with()
+
+
+def test_adapt_call_does_not_fill_a_default() -> None:
+    assert adapt_call(lambda i=1: i, "handler")(Context({"a": 1})) == 1
+
+
+def test_adapt_call_calls_with_the_context_object() -> None:
+    context = Context({"a": 1})
+    assert adapt_call(lambda context: context, "handler")(context) is context
+
+
+@pytest.mark.parametrize("func", [lambda: "called", lambda _context: "called"])
+def test_adapt_call_returns_the_result(func: Callable[..., object]) -> None:
+    assert adapt_call(func, "handler")(Context()) == "called"
+
+
+def test_adapt_call_does_not_call_func() -> None:
+    func = create_autospec(noop_handler)
+    adapt_call(func, "handler")
+    assert func.call_count == 0
+
+
+def test_adapt_call_propagates_the_exception_of_func() -> None:
+    adapted = adapt_call(fail, "handler")
+    with pytest.raises(ValueError, match=r"boom"):
+        adapted(Context())
 
 
 REJECTED_SIGNATURES = [
@@ -206,9 +238,9 @@ REJECTED_SIGNATURES = [
 
 
 @pytest.mark.parametrize("func", REJECTED_SIGNATURES)
-def test_needs_context_rejected_signature(func: Callable[..., object]) -> None:
+def test_adapt_call_rejected_signature(func: Callable[..., object]) -> None:
     with pytest.raises(TypeError, match=r"^handler .+ must need no argument or only the context"):
-        needs_context(func, "handler")
+        adapt_call(func, "handler")
 
 
 @pytest.mark.parametrize(
@@ -221,53 +253,55 @@ def test_needs_context_rejected_signature(func: Callable[..., object]) -> None:
         ModelStandIn().generate,
     ],
 )
-def test_needs_context_generator_function(func: Callable[..., object]) -> None:
+def test_adapt_call_generator_function(func: Callable[..., object]) -> None:
     with pytest.raises(TypeError, match=r"^handler must not be a generator function, but got"):
-        needs_context(func, "handler")
+        adapt_call(func, "handler")
 
 
-def test_needs_context_error_names_the_argument_and_the_function() -> None:
+def test_adapt_call_error_names_the_argument_and_the_function() -> None:
     with pytest.raises(
         TypeError,
         match=r"^condition named_handler must need no argument or only the context; "
         r"wrap it in a function or a lambda$",
     ):
-        needs_context(named_handler, "condition")
+        adapt_call(named_handler, "condition")
 
 
-def test_needs_context_generator_error_names_the_argument_and_the_function() -> None:
+def test_adapt_call_generator_error_names_the_argument_and_the_function() -> None:
     with pytest.raises(
         TypeError,
         match=r"^condition must not be a generator function, but got generator_handler$",
     ):
-        needs_context(generator_handler, "condition")
+        adapt_call(generator_handler, "condition")
 
 
-def test_needs_context_error_ignores_repr_of_bound_arguments() -> None:
+def test_adapt_call_error_ignores_repr_of_bound_arguments() -> None:
     func = functools.partial(var_positional_handler, BadReprCallable())
     with pytest.raises(TypeError, match=r"^handler var_positional_handler must need"):
-        needs_context(func, "handler")
+        adapt_call(func, "handler")
 
 
-def test_needs_context_uninspectable_error_has_the_cause() -> None:
+def test_adapt_call_uninspectable_error_has_the_cause() -> None:
     with pytest.raises(TypeError, match=r"must need no argument or only the context") as exc_info:
-        needs_context(UninspectableCallable(), "handler")
+        adapt_call(UninspectableCallable(), "handler")
     assert isinstance(exc_info.value.__cause__, TypeError)
 
 
 @requires_lazy_annotations
-def test_needs_context_unresolved_return_annotation(tmp_path: Path) -> None:
-    assert not needs_context(unresolved_function(tmp_path, "no_parameter"), "handler")
+def test_adapt_call_unresolved_return_annotation(tmp_path: Path) -> None:
+    func = unresolved_function(tmp_path, "no_parameter")
+    assert adapt_call(func, "handler") is not func
 
 
 @requires_lazy_annotations
-def test_needs_context_unresolved_parameter_annotation(tmp_path: Path) -> None:
-    assert needs_context(unresolved_function(tmp_path, "one_parameter"), "handler")
+def test_adapt_call_unresolved_parameter_annotation(tmp_path: Path) -> None:
+    func = unresolved_function(tmp_path, "one_parameter")
+    assert adapt_call(func, "handler") is func
 
 
-def test_needs_context_before_python_3_14(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_adapt_call_before_python_3_14(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(sys, "version_info", (3, 13, 0))
-    assert needs_context(positional_handler, "handler")
+    assert adapt_call(positional_handler, "handler") is positional_handler
 
 
 def test_calls_does_not_import_annotationlib_before_python_3_14(
