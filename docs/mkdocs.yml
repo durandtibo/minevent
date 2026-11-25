@@ -24,7 +24,6 @@ nav:
       - examples.md
       - architecture.md
       - guide.md
-      - faq.md
   - Reference:
       - refs/index.md
       - refs/manager.md

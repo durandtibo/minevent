@@ -35,7 +35,7 @@ today) or **new**.
 | #   | Property                     | Statement                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Status  | Enforced by                                                             |
 | --- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ----------------------------------------------------------------------- |
 | P1  | Small surface                | Events are strings, handlers are plain callables, the manager connects them. Six exported names and `__version__` (`EventManager`, `Subscription`, `Context`, `Condition`, `PeriodicCondition`, `AfterNCondition`). `EventManager` has 8 public members (`events`, `get_subscriptions`, `add_event_handler`, `on`, `trigger_event`, `atrigger_event`, `clear_event`, `reset`) and `__len__`, `__contains__`.                                                                                                                 | same    | `test_init.py`                                                          |
-| P2  | Cheap import                 | `import minevent` has no side effect (no thread, file, warning or log) and uses the standard library only. It does not import `logging`, `inspect`, `asyncio`, `importlib.metadata` or **`typing`**.                                                                                                                                                                                                                                                                                                                         | changed | `test_import.py`                                                        |
+| P2  | Cheap import                 | `import minevent` has no side effect (no thread, file, warning or log) and uses the standard library only. It does not import `logging`, `inspect`, `asyncio` or `importlib.metadata`.                                                                                                                                                                                                                                                                                                                                       | same    | `test_import.py`                                                        |
 | P3  | Events are strings           | An event name is a case-sensitive `str`; any other type raises `TypeError`. The empty string is valid. Reading the manager never creates an event.                                                                                                                                                                                                                                                                                                                                                                           | same    | `test_manager.py`                                                       |
 | P4  | Validated at the door        | `add_event_handler` and `on` reject, with a `TypeError` that names the argument and the value: a non-`str` event, a non-callable handler or condition, a signature that P13 rejects, and a generator or async generator function. A rejected registration leaves the manager unchanged.                                                                                                                                                                                                                                      | changed | `add_event_handler`, `_needs_context`, `test_manager.py`                |
 | P5  | Registration identity        | `add_event_handler` returns a new `Subscription` every time; the same callable can be registered several times. `remove()` removes that registration only: `True` the first time, then `False`. `active` is `True` until the registration is removed, by whatever means.                                                                                                                                                                                                                                                     | same    | `Subscription`, `test_manager.py`                                       |
@@ -256,6 +256,8 @@ The context stays read-only because it has no method that changes it and `_data`
 
 ### 4.4 `import minevent` loads no `typing` module (P2)
 
+**Declined** (see D5): `minevent` keeps `from typing import TYPE_CHECKING`.
+
 `TYPE_CHECKING = False` in `manager.py` and `context.py` replaces the import from `typing`. Type
 checkers recognise the idiom.
 
@@ -388,18 +390,22 @@ Not verified: Python 3.11 to 3.13 (not installed; they do not evaluate annotatio
 One branch and one pull request per step (`CLAUDE.md`), each green on its own and stacked where
 it says so.
 
-| Step | Branch                                           | Change                                                                | Breaking | Fixes      | PR   |
-| ---- | ------------------------------------------------ | --------------------------------------------------------------------- | -------- | ---------- | ---- |
-| 1    | `bugfix/fix-package-checks`                      | Fix the two checks and the two benchmarks, add the gates of 4.5       | no       | F1         | #851 |
-| 2    | `bugfix/forward-ref-annotations`                 | Do not evaluate the annotations on 3.14+                              | no       | F6         | #852 |
-| 3    | `refactor/use-accepted-signatures` (on 2)        | Tests, docstrings and documents register only accepted shapes         | no       | -          | #853 |
-| 4    | `feat/two-handler-calls` (on step 3)             | The rule of 4.1, generator functions rejected, documents of the rule  | **yes**  | F2, F4, F5 | #854 |
-| 5    | `bugfix/reject-awaitable-conditions` (on step 4) | The check of 4.2                                                      | **yes**  | F3         | #855 |
-| 6    | `bugfix/picklable-context`                       | A plain `dict` in the `Context`                                       | no       | F7         | #856 |
-| 7    | `feat/context-values-any` (on step 6)            | `Mapping[str, Any]`, P15, a typed sample checked by `ty`              | no       | F8         | #857 |
-| 8    | `perf/import-without-typing` (on step 7)         | `TYPE_CHECKING = False`, `typing` in `LAZY_MODULES`                   | no       | F12        | -    |
-| 9    | `test/follow-the-test-rules`                     | Tests of `_remove`, the missing assertion, the loop                   | no       | F11        | #860 |
-| 10   | `docs/one-home-per-fact` (last)                  | The table of 4.6, the changelog, the timings and the stale statements | no       | F9, F10    | -    |
+| Step | Branch                                           | Change                                                                | Breaking | Fixes      | PR              |
+| ---- | ------------------------------------------------ | --------------------------------------------------------------------- | -------- | ---------- | --------------- |
+| 1    | `bugfix/fix-package-checks`                      | Fix the two checks and the two benchmarks, add the gates of 4.5       | no       | F1         | #851            |
+| 2    | `bugfix/forward-ref-annotations`                 | Do not evaluate the annotations on 3.14+                              | no       | F6         | #852            |
+| 3    | `refactor/use-accepted-signatures` (on 2)        | Tests, docstrings and documents register only accepted shapes         | no       | -          | #853            |
+| 4    | `feat/two-handler-calls` (on step 3)             | The rule of 4.1, generator functions rejected, documents of the rule  | **yes**  | F2, F4, F5 | #854            |
+| 5    | `bugfix/reject-awaitable-conditions` (on step 4) | The check of 4.2                                                      | **yes**  | F3         | #855            |
+| 6    | `bugfix/picklable-context`                       | A plain `dict` in the `Context`                                       | no       | F7         | #856            |
+| 7    | `feat/context-values-any` (on step 6)            | `Mapping[str, Any]`, P15, a typed sample checked by `ty`              | no       | F8         | #857            |
+| 8    | `perf/import-without-typing` (on step 7)         | `TYPE_CHECKING = False`, `typing` in `LAZY_MODULES`                   | no       | F12        | declined (#859) |
+| 9    | `test/follow-the-test-rules`                     | Tests of `_remove`, the missing assertion, the loop                   | no       | F11        | #860            |
+| 10   | `docs/one-home-per-fact` (last)                  | The table of 4.6, the changelog, the timings and the stale statements | no       | F9, F10    | #PR             |
+
+Steps 1 to 7, 9 and 10 are implemented in the pull requests of the table. Step 8 is declined (D5),
+so the stack goes from step 7 to step 9. The sections above this one describe the code before these
+changes.
 
 Step 1 comes first: `main` is broken and the other steps need its gates. Step 3 passes on `main` as
 it is, so the breaking pull request (step 4) stays small. Each step updates the docstrings, the
@@ -450,8 +456,9 @@ compared with `main` for steps 4, 5 and 6 (P16).
 - **D4. Type the context values as `Any`?**
   _Recommended: yes._ `object` makes the user write casts that check nothing at run time. Alternative:
   keep `object` and show `isinstance` narrowing in every typed example.
-- **D5. `TYPE_CHECKING = False`?** _Recommended: yes_, one line per module for a third of the import
-  cost. Alternative: keep the usual idiom; if so, remove `typing` from this target (P2).
+- **D5. `TYPE_CHECKING = False`?** _Decided: no._ The usual import from `typing` is kept, so
+  `typing` is not part of P2 and F12 stays. The recommendation was to use the idiom, for a third of
+  the import cost.
 - **D6. Add the event name to the `Context`?** _Recommended: no._ A reused `Context` would need a copy
   per trigger. A handler registered on several events binds the name with `functools.partial`.
 - **D7. Merge `reset()` into `clear_event(None)`, or shorten `add_event_handler`?**
@@ -491,4 +498,4 @@ compared with `main` for steps 4, 5 and 6 (P16).
 | public names         | 6, `__version__` |      unchanged |                                                  |
 | `docs/docs` (lines)  |            2,102 |         ~1,500 | `faq.md` deleted, `quickstart.md` cut            |
 | runtime dependencies |                0 |              0 |                                                  |
-| `import minevent`    |           4.9 ms |        ~3.3 ms | no `typing` module                               |
+| `import minevent`    |           4.9 ms |      unchanged | step 8 is declined (D5)                          |

@@ -49,71 +49,32 @@ function that returns a boolean, so there is no base class to extend.
 It is possible to use all the components or just a subset based on the need.
 For example, a handler is a plain callable, so it can be tested without the event manager.
 
-- [Motivation](#motivation)
 - [Features](#features)
 - [Usage](#usage)
-- [Documentation](https://durandtibo.github.io/minevent/)
+- [Documentation](#documentation)
 - [Installation](#installation)
 - [Contributing](#contributing)
 - [Community and support](#community-and-support)
 - [API stability](#api-stability)
 - [License](#license)
 
-## Motivation
-
-`minevent` provides a minimal event system to customize a piece of code without changing its
-implementation.
-Below is an example on how to use `minevent` library.
-
-```pycon
->>> from minevent import EventManager
->>> def say_something(manager: EventManager) -> None:
-...     print("Hello, I am Bob!")
-...     manager.trigger_event("after")
->>> manager = EventManager()
->>> say_something(manager)
-Hello, I am Bob!
->>> def hello_handler() -> None:
-...     print("Hello!")
->>> _ = manager.add_event_handler("after", hello_handler)
->>> say_something(manager)
-Hello, I am Bob!
-Hello!
-
-```
-
-It allows you to customize the function `say_something` without changing its implementation.
-
 ## Features
 
-- **Minimal and Lightweight**: No dependency, keeping your project dependencies clean
-- **Simple API**: Easy to learn and use with intuitive event registration and triggering
-- **Payload**: `trigger_event("epoch_end", {"epoch": 3})` passes a dict (or a `Context`) to the
-  handlers in a read-only `Context`: each handler reads the keys it needs, with `context["epoch"]`
-  or `context.get("loss")`
-- **Subscriptions**: `add_event_handler` returns a `Subscription` to remove exactly that
-  registration (it is also a context manager), and `once=True` runs a handler at most once
-- **Decorator**: `@manager.on("epoch_end")` registers a function as a handler
-- **Conditional Handlers**: Any function that returns a boolean is a condition (it can read the
-  `Context` of the trigger), and `PeriodicCondition` and `AfterNCondition` are provided
-- **Async**: `atrigger_event` awaits coroutine handlers
-- **Debuggable**: an exception of a handler has a note that names the event and the handler, and
-  `manager.get_subscriptions(event)` lists the registrations
-- **Thread-safe registry**: register handlers and trigger events from different threads
-- **Extensible**: A handler is a callable and a condition is any function that returns a boolean,
-  so there is no base class to extend
-- **Type Hints**: Full type hint support for better IDE integration and code quality
-- **Well Tested**: Comprehensive test suite ensuring reliability
-- **Well Documented**: Extensive documentation with examples and a user guide
+- **No dependency**, standard library only
+- [Register handlers and trigger events](https://durandtibo.github.io/minevent/quickstart/), with a
+  payload, conditions, `once`, a decorator and removable subscriptions
+- [Coroutine handlers](https://durandtibo.github.io/minevent/quickstart/#coroutine-handlers) with
+  `atrigger_event`
+- [One rule to call the handlers](https://durandtibo.github.io/minevent/architecture/#the-calling-rule),
+  checked at registration
+- [Documented guarantees and limits](https://durandtibo.github.io/minevent/architecture/), including
+  the thread safety and the debugging notes
+- Fully typed
 
 ## Usage
 
-The second argument of `trigger_event` (a dict, or a `Context`) is the payload. The handlers receive
-it in a read-only `Context`: a handler is called as `handler(context)` if it has a parameter without
-default, and as `handler()` otherwise (a parameter that has a default keeps it). A callable that
-needs other arguments, or that accepts `*args` or `**kwargs` like `print`, is rejected at
-registration: wrap it in a function or a lambda. The options of a registration (`once`,
-`condition`) are keyword-only arguments of `add_event_handler` and of its decorator form `on`:
+A handler is a callable that needs no argument or only the context, which holds the data of the
+trigger:
 
 ```pycon
 >>> from minevent import Context, EventManager, PeriodicCondition
@@ -125,28 +86,16 @@ registration: wrap it in a function or a lambda. The options of a registration (
 ...     manager.trigger_event("epoch_end", {"epoch": epoch, "loss": 0.5})
 epoch 0, loss 0.5
 epoch 2, loss 0.5
->>> subscription = manager.add_event_handler("epoch_end", log_epoch, once=True)
->>> subscription.active
-True
->>> subscription.remove()
-True
 
 ```
 
-A handler that raises stops the dispatch: the exception reaches the caller of `trigger_event` with
-a note that names the event and the handler. Coroutine handlers need `atrigger_event`. See the
-[user guide](https://durandtibo.github.io/minevent/guide/) for the details.
+## Documentation
 
-## Quick Links
-
-- **Documentation**:
-  [https://durandtibo.github.io/minevent/](https://durandtibo.github.io/minevent/)
-- **Quickstart Guide**:
-  [https://durandtibo.github.io/minevent/quickstart/](https://durandtibo.github.io/minevent/quickstart/)
-- **FAQ**: [https://durandtibo.github.io/minevent/faq/](https://durandtibo.github.io/minevent/faq/)
-- **Examples**: [https://durandtibo.github.io/minevent/examples/](https://durandtibo.github.io/minevent/examples/)
-- **User guide**:
-  [https://durandtibo.github.io/minevent/guide/](https://durandtibo.github.io/minevent/guide/)
+- [Quickstart](https://durandtibo.github.io/minevent/quickstart/): the first contact
+- [Examples](https://durandtibo.github.io/minevent/examples/): runnable recipes
+- [Architecture](https://durandtibo.github.io/minevent/architecture/): the rules of the library
+- [User guide](https://durandtibo.github.io/minevent/guide/): recommendations and troubleshooting
+- [Reference](https://durandtibo.github.io/minevent/refs/): the classes and their arguments
 
 ## Installation
 

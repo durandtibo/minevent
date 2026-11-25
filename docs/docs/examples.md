@@ -1,8 +1,8 @@
 # Examples
 
-This page shows how to use `minevent` in practical situations. Every example runs as written: the
-[quickstart](quickstart.md) explains the API step by step, and the [user guide](guide.md) lists the
-recommendations.
+This page shows how to use `minevent` in practical situations. The `pycon` examples run as written.
+The [quickstart](quickstart.md) shows the basics, the [user guide](guide.md) lists the
+recommendations and the [architecture page](architecture.md) states the rules.
 
 ## Add logging to a training loop
 
@@ -73,9 +73,7 @@ validate at epoch 3
 
 ## Write a custom condition
 
-A condition is any function that returns a boolean, without parameter or with the `Context` of the
-trigger (see the next example). A class with `__call__` is useful when the condition has a state or
-reads another object:
+A class with `__call__` is useful when a condition has a state or reads another object:
 
 ```pycon
 >>> from minevent import EventManager
@@ -95,14 +93,55 @@ batch done
 
 ```
 
-To combine conditions, write a function, for example `condition=lambda: a() and b()`.
+## Combine conditions
+
+Write a function. `all([a(), b()])` evaluates every condition at each call, so stateful conditions
+advance together:
+
+```pycon
+>>> from minevent import AfterNCondition, EventManager, PeriodicCondition
+>>> after_one, periodic = AfterNCondition(1), PeriodicCondition(2)
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler(
+...     "epoch_end",
+...     lambda: print("validate"),
+...     condition=lambda: all([after_one(), periodic()]),
+... )
+>>> for _ in range(5):
+...     manager.trigger_event("epoch_end")
+validate
+validate
+
+```
+
+## Use one condition per handler
+
+A stateful condition keeps its counter in the instance, so create one per registration, for example
+with a function:
+
+```pycon
+>>> import functools
+>>> from minevent import EventManager, PeriodicCondition
+>>> manager = EventManager()
+>>> def say(name: str) -> None:
+...     print(name)
+>>> def register(name: str) -> None:
+...     manager.add_event_handler(
+...         name, functools.partial(say, name), condition=PeriodicCondition(freq=2)
+...     )
+>>> register("first")
+>>> register("second")
+>>> manager.trigger_event("first")
+first
+>>> manager.trigger_event("second")
+second
+
+```
 
 ## Decide from the payload
 
-A condition that has a parameter without default is called with the same read-only `Context` as the
-handlers, so it can depend on the payload of the trigger. The other conditions are called without
-argument.
-A handler and its condition can read different keys:
+A condition with a parameter reads the payload of the trigger. A handler and its condition can read
+different keys:
 
 ```pycon
 >>> from minevent import Context, EventManager
@@ -152,9 +191,7 @@ The handler ignores the keys that it does not read, here `epoch`.
 
 ## Share an event between handlers with different needs
 
-Each handler receives the same read-only `Context` and reads the keys that it needs. A handler
-decides what to do with a missing key: `context["lr"]` raises a `KeyError`, and
-`context.get("lr", 0.1)` returns a default:
+Each handler reads the keys that it needs and decides what to do with a missing one:
 
 ```pycon
 >>> from minevent import Context, EventManager
@@ -193,9 +230,8 @@ epoch 10
 
 ## Pass a dict or a Context
 
-`trigger_event` takes the data of the trigger as a dict, or as a `Context`. Both give the handlers
-the same read-only `Context`. A dict is copied and validated at each trigger, while a `Context` is
-validated once, when it is built, and is passed as is, so build it once to reuse it:
+A dict is copied and validated at each trigger, while a `Context` is passed as is, so build it once
+to reuse it:
 
 ```pycon
 >>> from minevent import Context, EventManager
@@ -215,8 +251,7 @@ epoch 4, loss 0.4
 
 ## Bind fixed arguments
 
-Use `functools.partial` for the arguments that do not come from the payload. The context is passed
-after the bound arguments:
+Use `functools.partial` for the arguments that do not come from the payload:
 
 ```pycon
 >>> import functools
@@ -227,6 +262,53 @@ after the bound arguments:
 >>> _ = manager.add_event_handler("epoch_end", functools.partial(save, "model.pt"))
 >>> manager.trigger_event("epoch_end", {"epoch": 4})
 save epoch 4 to model.pt
+
+```
+
+## Register methods that have default arguments
+
+A parameter that has a default keeps it, so a method such as `model.train(mode=True)` is registered
+as it is, and a lambda chooses another value. A default also saves the value of a loop variable:
+
+```pycon
+>>> from minevent import EventManager
+>>> class Model:
+...     def train(self, mode: bool = True) -> None:
+...         print(f"train mode: {mode}")
+>>> model = Model()
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler("epoch_start", model.train)
+>>> _ = manager.add_event_handler("validation_start", lambda: model.train(mode=False))
+>>> manager.trigger_event("epoch_start", {"epoch": 0})
+train mode: True
+>>> manager.trigger_event("validation_start")
+train mode: False
+>>> for i in range(3):
+...     _ = manager.add_event_handler("batch_end", lambda i=i: print(i))
+>>> manager.trigger_event("batch_end")
+0
+1
+2
+
+```
+
+## Keep a snapshot of the payload
+
+The values of a `Context` are not copied. `copy.deepcopy` takes a snapshot that the next handlers
+cannot change:
+
+```pycon
+>>> import copy
+>>> from minevent import EventManager
+>>> snapshots = []
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler(
+...     "epoch_end", lambda context: snapshots.append(copy.deepcopy(context))
+... )
+>>> _ = manager.add_event_handler("epoch_end", lambda context: context["losses"].append(0.1))
+>>> manager.trigger_event("epoch_end", {"losses": [0.5]})
+>>> snapshots
+[Context({'losses': [0.5]})]
 
 ```
 
@@ -268,7 +350,51 @@ profiling
 ```
 
 `manager.clear_event("batch_end")` removes all the handlers of an event, and `manager.reset()`
-removes all the handlers of all the events.
+removes all the handlers of all the events, for example in a `finally` block at the end of a program.
+
+## Register a handler only once
+
+Registering the same handler twice runs it twice. Look at the registrations to add it only if it is
+not there:
+
+```pycon
+>>> from minevent import EventManager
+>>> def hello_handler() -> None:
+...     print("Hello!")
+>>> manager = EventManager()
+>>> for _ in range(3):
+...     if not any(s.handler is hello_handler for s in manager.get_subscriptions("my_event")):
+...         _ = manager.add_event_handler("my_event", hello_handler)
+>>> len(manager)
+1
+
+```
+
+## Trace the handlers
+
+Wrap a handler to see its calls. `functools.wraps` keeps the signature, which decides whether the
+handler receives the context:
+
+```pycon
+>>> import functools
+>>> from minevent import Context, EventManager
+>>> def traced(handler):
+...     @functools.wraps(handler)
+...     def wrapper(*args):
+...         print(f"calling {handler.__name__}")
+...         return handler(*args)
+...     return wrapper
+>>> def log_epoch(context: Context) -> None:
+...     print(f"epoch {context['epoch']}")
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler("epoch_end", traced(log_epoch))
+>>> _ = manager.add_event_handler("epoch_end", lambda context: print(dict(context)))
+>>> manager.trigger_event("epoch_end", {"epoch": 1})
+calling log_epoch
+epoch 1
+{'epoch': 1}
+
+```
 
 ## Write a plugin
 
@@ -308,8 +434,7 @@ end 0
 
 ## Use coroutine handlers
 
-`atrigger_event` awaits the coroutine handlers and also runs the synchronous ones, one after the
-other, in the registration order. `trigger_event` raises a `TypeError` for a coroutine handler:
+`atrigger_event` awaits the coroutine handlers and also runs the synchronous ones:
 
 ```pycon
 >>> import asyncio
@@ -328,8 +453,8 @@ notified epoch 1
 
 ## Trigger events from an async function
 
-In an async program, `await` the trigger inside your coroutines. The handlers of an event still run
-one after the other, so the next step starts when every handler is done:
+In an async program, `await` the trigger inside your coroutines. The next step starts when every
+handler is done:
 
 ```pycon
 >>> import asyncio
@@ -399,13 +524,12 @@ uploaded ['a.pt', 'b.pt']
 
 ```
 
-A synchronous handler blocks the event loop while it runs: hand a long computation to an executor
-(`await loop.run_in_executor(...)` or `asyncio.to_thread`) from a coroutine handler.
+Hand a long computation to an executor (`await loop.run_in_executor(...)` or `asyncio.to_thread`)
+from a coroutine handler.
 
 ## Handle an async handler used with trigger_event
 
-`trigger_event` is synchronous, so it cannot await a coroutine. It closes the coroutine and raises a
-`TypeError` that names the handler, instead of silently dropping it:
+`trigger_event` cannot await a coroutine, and raises a `TypeError` that names the handler:
 
 ```pycon
 >>> from minevent import EventManager
@@ -423,8 +547,7 @@ notify returned an awaitable; use atrigger_event
 
 ## Handle the errors of a handler
 
-A handler that raises stops the dispatch, and the exception reaches the caller with a note that
-names the event and the handler:
+The exception of a handler reaches the caller with a note that names the event and the handler:
 
 ```pycon
 >>> from minevent import EventManager
