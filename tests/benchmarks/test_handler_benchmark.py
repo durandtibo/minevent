@@ -48,8 +48,8 @@ def test_periodic_condition_call_benchmark(benchmark: BenchmarkFixture) -> None:
     benchmark(PeriodicCondition(freq=10))
 
 
-def test_periodic_condition_skip_first_call_benchmark(benchmark: BenchmarkFixture) -> None:
-    benchmark(PeriodicCondition(freq=10, skip_first=True))
+def test_periodic_condition_start_call_benchmark(benchmark: BenchmarkFixture) -> None:
+    benchmark(PeriodicCondition(freq=10, start=10))
 
 
 def test_after_n_condition_call_benchmark(benchmark: BenchmarkFixture) -> None:

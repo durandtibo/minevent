@@ -455,7 +455,7 @@ so. Each step updates the docstrings, the property it changes in `architecture.m
 | 6    | `feat/reject-async-conditions` (on 5)       | The check of 4.3                                                | **yes**  | F2       | #870         |
 | 7    | `bugfix/release-handlers-outside-lock`      | 4.7                                                             | no       | F9       | #871         |
 | 8    | `feat/add-handler-type` (on 4)              | `Handler` (4.6), a typed sample checked by `ty`                 | types    | F8       | #872         |
-| 9    | `feat/replace-skip-first-with-start` (on 2) | `start` (4.4)                                                   | **yes**  | F7       |              |
+| 9    | `feat/replace-skip-first-with-start` (on 2) | `start` (4.4)                                                   | **yes**  | F7       | #873         |
 | 10   | `test/run-every-benchmark`                  | The import benchmarks work when disabled; CI drops `--ignore`   | no       | F11      |              |
 | 11   | `docs/state-each-rule-once` (last)          | Short docstrings (4.8), the statements of F10, `dir`, changelog | no       | F10, F12 |              |
 

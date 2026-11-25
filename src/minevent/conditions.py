@@ -143,9 +143,12 @@ class _CountingCondition:
 class PeriodicCondition(_CountingCondition):
     r"""Implement a periodic condition.
 
-    This condition evaluates to ``True`` on the first call and then every ``freq`` calls. It
-    maintains an internal counter that increments with each call. The condition is ``True`` when
-    the counter modulo ``freq`` equals zero.
+    This condition evaluates to ``True`` on one call in ``freq``, from the call of index
+    ``start`` (the first call has the index 0). It maintains an internal counter that increments
+    with each call. The condition is ``True`` when the counter minus ``start`` is not negative and
+    is a multiple of ``freq``. With ``freq=3``, ``start=0`` is ``True`` on the calls 0, 3 and 6,
+    ``start=3`` skips the first call (3, 6 and 9), and ``start=2`` is ``True`` at the end of every
+    third call (2, 5 and 8).
 
     Note that a call is not idempotent: each call advances the
     counter, so the condition is stateful. Do not share one instance
@@ -157,13 +160,14 @@ class PeriodicCondition(_CountingCondition):
     Args:
         freq: The frequency (interval) at which the condition
             evaluates to ``True``. Must be a positive integer.
-        skip_first: If ``True``, the first call evaluates to
-            ``False``, and then the condition evaluates to ``True``
-            every ``freq`` calls. Default is ``False``.
+        start: The index, from 0, of the first call that evaluates to
+            ``True``. Must be a non-negative integer. Default is
+            ``0``.
 
     Raises:
-        TypeError: if ``freq`` is not an integer.
-        ValueError: if ``freq`` is lower than 1.
+        TypeError: if ``freq`` or ``start`` is not an integer.
+        ValueError: if ``freq`` is lower than 1, or if ``start`` is
+            lower than 0.
 
     Example:
         ```pycon
@@ -171,33 +175,39 @@ class PeriodicCondition(_CountingCondition):
         >>> condition = PeriodicCondition(freq=3)
         >>> [condition() for _ in range(7)]
         [True, False, False, True, False, False, True]
-        >>> condition = PeriodicCondition(freq=2, skip_first=True)
-        >>> [condition() for _ in range(3)]
-        [False, False, True]
+        >>> condition = PeriodicCondition(freq=3, start=2)
+        >>> [condition() for _ in range(7)]
+        [False, False, True, False, False, True, False]
 
         ```
     """
 
-    def __init__(self, freq: int, *, skip_first: bool = False) -> None:
+    def __init__(self, freq: int, *, start: int = 0) -> None:
         if isinstance(freq, bool) or not isinstance(freq, int):
             msg = f"freq must be an integer, got {type(freq).__qualname__}"
             raise TypeError(msg)
         if freq < 1:
             msg = f"freq must be greater than or equal to 1, got {freq}"
             raise ValueError(msg)
+        if isinstance(start, bool) or not isinstance(start, int):
+            msg = f"start must be an integer, got {type(start).__qualname__}"
+            raise TypeError(msg)
+        if start < 0:
+            msg = f"start must be greater than or equal to 0, got {start}"
+            raise ValueError(msg)
         super().__init__()
         self._freq = freq
-        self._skip_first = bool(skip_first)
+        self._start = start
 
     def __repr__(self) -> str:
         return (
             f"{self.__class__.__qualname__}(freq={self._freq:,}, "
-            f"skip_first={self._skip_first}, step={self._step:,})"
+            f"start={self._start:,}, step={self._step:,})"
         )
 
     def __call__(self) -> bool:
-        step = self._next_step()
-        return step % self._freq == 0 and not (self._skip_first and step == 0)
+        offset = self._next_step() - self._start
+        return offset >= 0 and offset % self._freq == 0
 
     @property
     def freq(self) -> int:
@@ -210,14 +220,14 @@ class PeriodicCondition(_CountingCondition):
         return self._freq
 
     @property
-    def skip_first(self) -> bool:
-        r"""Indicate if the first call is skipped.
+    def start(self) -> int:
+        r"""Get the index of the first call that is ``True``.
 
         Returns:
-            ``True`` if the first call returns ``False``, otherwise
-                ``False``.
+            The index, from 0, of the first call that evaluates to
+                ``True``.
         """
-        return self._skip_first
+        return self._start
 
 
 class AfterNCondition(_CountingCondition):

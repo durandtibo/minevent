@@ -69,7 +69,7 @@ the new API are in the
   with several threads) and `condition` of `add_event_handler`, and the `on` decorator.
 - `EventManager.events`, `get_subscriptions`, `clear_event`, `__len__` and `__contains__`. A manager
   is always truthy.
-- `AfterNCondition`, and the `skip_first` option and the `reset` method of `PeriodicCondition`,
+- `AfterNCondition`, and the `start` option and the `reset` method of `PeriodicCondition`,
   which now validates `freq`. The type aliases `Handler` and `Condition`.
 - The registry of `EventManager` is thread-safe, and a removal is O(1). The handlers, the
   conditions and the finalizers of the removed handlers run outside its lock.
