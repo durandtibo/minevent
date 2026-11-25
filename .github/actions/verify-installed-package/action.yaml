@@ -4,7 +4,8 @@
 # package-level sanity checks used everywhere else, so the callers can't drift
 # on what "verify the package" means.
 # Requires uv and the package to already be installed, and the repository to
-# already be checked out (tests/package_checks.py must be present).
+# already be checked out. The caller chooses the version of
+# tests/package_checks.py: it must match the installed package.
 
 name: Verify installed package
 description: Show the dependency tree and run tests/package_checks.py against an installed package

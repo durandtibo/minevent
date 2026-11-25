@@ -28,6 +28,7 @@ jobs:
     uses: ./.github/workflows/nightly-test-package.yaml
     with:
       install-cmd: "uv pip install ${{ needs.get-metadata.outputs.normalized_name }}"
+      package-name: ${{ needs.get-metadata.outputs.normalized_name }}
       test-matrix: ${{ needs.get-matrix.outputs.test_matrix }}
 
   latest:
@@ -37,4 +38,5 @@ jobs:
     uses: ./.github/workflows/nightly-test-package.yaml
     with:
       install-cmd: "uv pip install --pre ${{ needs.get-metadata.outputs.normalized_name }}"
+      package-name: ${{ needs.get-metadata.outputs.normalized_name }}
       test-matrix: ${{ needs.get-matrix.outputs.test_matrix }}

@@ -74,6 +74,10 @@ The two benchmark workflows compare the median of each benchmark with the one of
 `main` that finished, successful or not, and fail if it is more than 50% slower. A regression
 therefore fails one run: the next one compares with it.
 
+`nightly-test-package.yaml` checks the published package with `tests/package_checks.py` of the tag
+`v<installed version>`, not of `main`, so each version is checked with its own checks. A published
+version without a tag fails the run.
+
 ## Composite actions vs. reusable workflows
 
 - **`.github/actions/*`** (composite actions): used when the shared unit is a

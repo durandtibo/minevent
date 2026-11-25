@@ -93,4 +93,4 @@ the new API are in the
   `Operating System :: OS Independent`, and there is no `all` extra.
 - Development: each pull request runs `tests/package_checks.py` (#851), and the benchmarks run
   nightly only. A benchmark run compares the medians with the ones of the last finished run of
-  `main`.
+  `main`. The nightly package test runs the checks of the tag of the installed version.
