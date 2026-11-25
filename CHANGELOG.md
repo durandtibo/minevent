@@ -31,7 +31,7 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
     `class H: def __call__(self, context)`, and `async def ahandle` becomes `async def __call__`.
 
 - **Breaking**: a handler and a condition are called as `f()` or `f(context)`, and a parameter that
-  has a default keeps it (#PR). `add_event_handler` and `on` raise a `TypeError` for a signature that
+  has a default keeps it (#854). `add_event_handler` and `on` raise a `TypeError` for a signature that
   needs anything else (`*args`, `**kwargs`, two arguments, a keyword-only argument, a signature
   that cannot be inspected) and for a generator or async generator function, which did nothing:
 
