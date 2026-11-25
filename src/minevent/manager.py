@@ -393,7 +393,7 @@ class EventManager:
     Thread safety: the registration, removal and inspection of
     handlers are protected by a reentrant lock, and ``trigger_event``
     runs the handlers on a snapshot taken under the lock, outside of
-    it. So handlers can be registered in one thread and events
+    it. The removed handlers are released outside of it too. So handlers can be registered in one thread and events
     triggered from worker threads. The handlers themselves run in the
     thread that triggers the event, concurrently if several threads
     trigger the same event, so a handler that shares state must be
@@ -877,7 +877,8 @@ class EventManager:
         Nothing happens if the event has no registered handler. The
         subscriptions of the removed handlers become inactive, and a
         removed registration that has not run yet in a running trigger
-        does not run.
+        does not run. The removed handlers are released outside the
+        lock of the manager, so their finalizers can use it.
 
         Args:
             event: The event name (case-sensitive string) to clear.
@@ -898,8 +899,11 @@ class EventManager:
         """
         _check_event(event)
         with self._lock:
-            for subscription in self._subscriptions.pop(event, ()):
+            removed = self._subscriptions.pop(event, {})
+            for subscription in removed:
                 subscription._active = False
+        # The handlers are released when this method returns, without the lock, so their
+        # finalizers can use the manager.
 
     def reset(self) -> None:
         r"""Reset the event manager.
@@ -908,7 +912,8 @@ class EventManager:
         event manager, so their subscriptions become inactive. After
         calling this method, the event manager returns to its initial
         state. A registration that has not run yet in a running
-        trigger does not run.
+        trigger does not run. The removed handlers are released outside
+        the lock of the manager, so their finalizers can use it.
 
         Example:
             ```pycon
@@ -932,7 +937,9 @@ class EventManager:
             ```
         """
         with self._lock:
-            for subs in self._subscriptions.values():
+            removed, self._subscriptions = self._subscriptions, {}
+            for subs in removed.values():
                 for subscription in subs:
                     subscription._active = False
-            self._subscriptions.clear()
+        # The handlers are released when this method returns, without the lock, so their
+        # finalizers can use the manager.
