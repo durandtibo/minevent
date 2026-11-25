@@ -412,7 +412,7 @@ for what it changes.
 | 2    | `bugfix/keep-the-error-of-the-user`       | `describe` never raises (4.2)                                                                      | no       | F4     | #880         |
 | 3    | `bugfix/shorten-error-messages`           | `reprlib` in the messages of the manager and of `Context` (4.4)                                    | messages | F5, F6 | #882         |
 | 4    | `bugfix/check-copied-context-keys`        | Validate the copy (4.4), on 3                                                                      | no       | F7     | #883         |
-| 5    | `refactor/import-stdlib-at-top`           | 4.5: eager version, delete the lazy checks, `CLAUDE.md`, the "cheap import" entry of the changelog | no       | F10    |              |
+| 5    | `refactor/import-stdlib-at-top`           | 4.5: eager version, delete the lazy checks, `CLAUDE.md`, the "cheap import" entry of the changelog | no       | F10    | #884         |
 | 6    | `refactor/adapt-calls` (on 5)             | `adapt_call` (4.1)                                                                                 | internal | F11    |              |
 | 7    | `feat/detect-async-callables` (on 6)      | `has_kind` for the generators and the conditions (4.2)                                             | **yes**  | F3     |              |
 | 8    | `feat/reject-async-handlers-early` (on 7) | The pre-pass of `trigger_event` (4.3), a benchmark                                                 | **yes**  | F2     |              |
