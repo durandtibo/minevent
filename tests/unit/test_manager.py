@@ -742,6 +742,65 @@ def test_event_manager_trigger_event_runs_handler_without_lock() -> None:
     assert lock_held == [False]
 
 
+class LockRecorder:
+    r"""Implement a handler whose finalizer records if the lock of the
+    manager is held."""
+
+    def __init__(self, manager: EventManager, lock_held: list[bool]) -> None:
+        self._manager = manager
+        self._lock_held = lock_held
+
+    def __del__(self) -> None:
+        self._lock_held.append(lock_is_held(self._manager))
+
+    def __call__(self) -> bool:
+        r"""Implement a handler, or a condition that is ``True``."""
+        return True
+
+
+def test_event_manager_clear_event_releases_handlers_without_lock() -> None:
+    manager = EventManager()
+    lock_held: list[bool] = []
+    manager.add_event_handler("my_event", LockRecorder(manager, lock_held))
+    manager.add_event_handler("my_event", LockRecorder(manager, lock_held))
+    manager.clear_event("my_event")
+    assert lock_held == [False, False]
+
+
+def test_event_manager_reset_releases_handlers_without_lock() -> None:
+    manager = EventManager()
+    lock_held: list[bool] = []
+    manager.add_event_handler("my_event", LockRecorder(manager, lock_held))
+    manager.add_event_handler("my_other_event", LockRecorder(manager, lock_held))
+    manager.reset()
+    assert lock_held == [False, False]
+
+
+def test_event_manager_clear_event_releases_conditions_without_lock() -> None:
+    manager = EventManager()
+    lock_held: list[bool] = []
+    manager.add_event_handler("my_event", noop_handler, condition=LockRecorder(manager, lock_held))
+    manager.add_event_handler("my_event", noop_handler, condition=LockRecorder(manager, lock_held))
+    manager.clear_event("my_event")
+    assert lock_held == [False, False]
+
+
+def test_event_manager_remove_releases_handler_without_lock() -> None:
+    manager = EventManager()
+    lock_held: list[bool] = []
+    manager.add_event_handler("my_event", LockRecorder(manager, lock_held)).remove()
+    assert lock_held == [False]
+
+
+def test_event_manager_reset_keeps_working() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", noop_handler)
+    manager.reset()
+    manager.add_event_handler("my_event", hello_handler)
+    manager.trigger_event("my_event")
+    assert hello_handler.call_count == 1
+
+
 def test_event_manager_trigger_event_handler_retriggering_its_event_raises_recursion_error() -> (
     None
 ):

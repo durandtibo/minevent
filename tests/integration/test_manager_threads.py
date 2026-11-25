@@ -261,3 +261,50 @@ def test_remove_from_threads_while_triggering() -> None:
     assert len(calls) == n_calls
     assert len(set(calls)) == len(calls)
     assert len(manager) == 0
+
+
+class LockingFinalizer:
+    r"""Implement a handler whose finalizer waits for another thread that
+    uses the manager.
+
+    Args:
+        manager: The manager used by the other thread.
+        finished: The list that receives ``True`` if the thread finished
+            while the finalizer was waiting, ``False`` otherwise.
+    """
+
+    def __init__(self, manager: EventManager, finished: list[bool]) -> None:
+        self._manager = manager
+        self._finished = finished
+
+    def __del__(self) -> None:
+        thread = threading.Thread(target=len, args=(self._manager,), daemon=True)
+        thread.start()
+        thread.join(timeout=1.0)
+        self._finished.append(not thread.is_alive())
+
+    def __call__(self) -> None:
+        r"""Implement a handler."""
+
+
+def test_clear_event_releases_handlers_without_lock() -> None:
+    """Test that ``clear_event`` releases the handlers without the lock,
+    so a finalizer can wait for a thread that uses the manager."""
+    manager = EventManager()
+    finished: list[bool] = []
+    manager.add_event_handler("my_event", LockingFinalizer(manager, finished))
+    manager.add_event_handler("my_event", LockingFinalizer(manager, finished))
+    manager.clear_event("my_event")
+    assert finished == [True, True]
+
+
+def test_reset_releases_handlers_without_lock() -> None:
+    """Test that ``reset`` releases the handlers of every event without
+    the lock, so a finalizer can wait for a thread that uses the
+    manager."""
+    manager = EventManager()
+    finished: list[bool] = []
+    manager.add_event_handler("my_event", LockingFinalizer(manager, finished))
+    manager.add_event_handler("my_other_event", LockingFinalizer(manager, finished))
+    manager.reset()
+    assert finished == [True, True]

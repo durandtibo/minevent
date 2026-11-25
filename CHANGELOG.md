@@ -68,7 +68,8 @@ the new API are in the
   is always truthy.
 - `AfterNCondition`, and the `skip_first` option and the `reset` method of `PeriodicCondition`,
   which now validates `freq`. The type alias `Condition`.
-- The registry of `EventManager` is thread-safe, and a removal is O(1).
+- The registry of `EventManager` is thread-safe, and a removal is O(1). The handlers, the
+  conditions and the finalizers of the removed handlers run outside its lock.
 - `PeriodicCondition` and `AfterNCondition` count every call once from any number of threads, with
   and without the GIL, and can be copied and pickled.
 - The exception of a handler or a condition has a note with the event and what raised it: the
