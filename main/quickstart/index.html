@@ -1331,10 +1331,11 @@ training is completed.</p>
 </code></pre></div>
 <h2 id="event-handler">Event handler<a class="headerlink" href="#event-handler" title="Permanent link">&para;</a></h2>
 <p>In <code>minevent</code>, an event handler is a piece of code that is executed when an event happens.</p>
-<p>An event handler is any callable. It is called as <code>handler(**payload)</code>, where <code>payload</code> is the data
-given when the event is triggered (see <a href="#fire-an-event">Fire an event</a>). A coroutine function is a
-handler of <code>atrigger_event</code>. The options of a registration (<code>once</code>, <code>condition</code> and
-<code>filter_payload</code>) are the keyword-only arguments of <code>EventManager.add_event_handler</code>.</p>
+<p>An event handler is any callable. It is called as <code>handler(context)</code> if it has a parameter, and as
+<code>handler()</code> otherwise, where <code>context</code> is a read-only <code>Context</code> that holds the data given when the
+event is triggered (see <a href="#fire-an-event">Fire an event</a>). A coroutine function is a handler of
+<code>atrigger_event</code>. The options of a registration (<code>once</code> and <code>condition</code>) are the keyword-only
+arguments of <code>EventManager.add_event_handler</code>.</p>
 <h3 id="basic-event-handler">Basic event handler<a class="headerlink" href="#basic-event-handler" title="Permanent link">&para;</a></h3>
 <p>Let's assume we want to create an event handler to say hello when an event is fired.
 A function is a handler:</p>
@@ -1383,11 +1384,12 @@ be given as positional arguments:</p>
 <span class="go">Hello Bob! Happy Monday!</span>
 </code></pre></div>
 <p>It is possible to define event handlers with a large range of functions.
-For example, it is possible to implement the same logic by using directly <code>print</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">functools</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
+For example, it is possible to implement the same logic with a lambda function. Note that a callable
+that accepts <code>*args</code>, like <code>print</code>, receives the context as an argument, so a handler that does not
+need the context must not have a parameter:</p>
+<div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="nb">print</span><span class="p">,</span> <span class="s2">"Hello Bob! Happy Monday!"</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"Hello Bob! Happy Monday!"</span><span class="p">))</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">)</span>
 <span class="go">Hello Bob! Happy Monday!</span>
 </code></pre></div>
@@ -1449,9 +1451,11 @@ same counter. Create one instance per handler (a small factory function is enoug
 <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">functools</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span><span class="p">,</span> <span class="n">PeriodicCondition</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">say</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">register</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
 <span class="gp">... </span>    <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span>
-<span class="gp">... </span>        <span class="n">name</span><span class="p">,</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="nb">print</span><span class="p">,</span> <span class="n">name</span><span class="p">),</span> <span class="n">condition</span><span class="o">=</span><span class="n">PeriodicCondition</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="gp">... </span>        <span class="n">name</span><span class="p">,</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">say</span><span class="p">,</span> <span class="n">name</span><span class="p">),</span> <span class="n">condition</span><span class="o">=</span><span class="n">PeriodicCondition</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 <span class="gp">... </span>    <span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">register</span><span class="p">(</span><span class="s2">"first"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">register</span><span class="p">(</span><span class="s2">"second"</span><span class="p">)</span>
@@ -1607,19 +1611,17 @@ the registration, which waits for the first trigger where the condition is <code
 </code></pre></div>
 <p>A <code>Subscription</code> is a context manager that removes the registration when the block exits, and its
 <code>active</code> property tells if the handler is still registered. <code>EventManager.on</code> is a decorator that
-registers a function and returns it unchanged. It takes the options <code>once</code>, <code>condition</code> and
-<code>filter_payload</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">functools</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
+registers a function and returns it unchanged. It takes the options <code>once</code> and <code>condition</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="nb">print</span><span class="p">,</span> <span class="s2">"Hello!"</span><span class="p">))</span> <span class="k">as</span> <span class="n">sub</span><span class="p">:</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"Hello!"</span><span class="p">))</span> <span class="k">as</span> <span class="n">sub</span><span class="p">:</span>
 <span class="gp">... </span>    <span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">)</span>
 <span class="go">Hello!</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">sub</span><span class="o">.</span><span class="n">active</span>
 <span class="go">False</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nd">@manager</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">)</span>
-<span class="gp">... </span><span class="k">def</span><span class="w"> </span><span class="nf">log_epoch</span><span class="p">(</span><span class="n">epoch</span><span class="p">):</span>
-<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="gp">... </span><span class="k">def</span><span class="w"> </span><span class="nf">log_epoch</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"epoch </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">'epoch'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 <span class="go">epoch 1</span>
 </code></pre></div>
@@ -1641,9 +1643,9 @@ The following example shows how to fire the <code>hello_handler</code> for the e
 <span class="go">EventManager(events={'my_event': 1})</span>
 </code></pre></div>
 <p>Triggering an event does not change the manager: the representation above is the same before and
-after. A handler is called as <code>handler(**payload)</code>, where <code>payload</code> is the keyword arguments given
-to <code>trigger_event</code> (see below). The arguments that do not come from the payload are bound with
-<code>functools.partial</code>.</p>
+after. A handler is called as <code>handler(context)</code>, where <code>context</code> holds the keyword arguments given
+to <code>trigger_event</code> (see below), or as <code>handler()</code> if it has no parameter. The arguments that do not
+come from the payload are bound with <code>functools.partial</code>.</p>
 <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">functools</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">hello_handler</span><span class="p">(</span><span class="n">first_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">last_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -1690,32 +1692,31 @@ The following shows how to execute the <code>hello_handler</code> every 3 <code>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="share-an-event-between-handlers-that-need-different-payload-keys">Share an event between handlers that need different payload keys<a class="headerlink" href="#share-an-event-between-handlers-that-need-different-payload-keys" title="Permanent link">&para;</a></h3>
-<p>Every handler receives the whole payload, so a handler that does not accept a key raises a
-<code>TypeError</code>. Either accept the extra keys with <code>**_</code>, or register the handler with
-<code>filter_payload=True</code> to pass only the keys its signature accepts:</p>
-<div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">log_loss</span><span class="p">(</span><span class="n">loss</span><span class="p">):</span>
-<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"loss </span><span class="si">{</span><span class="n">loss</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">log_epoch</span><span class="p">(</span><span class="n">epoch</span><span class="p">):</span>
-<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<p>The keyword arguments of <code>trigger_event</code> are copied into one read-only <code>Context</code> that is shared by
+the handlers. Each handler reads the keys it needs: <code>context["key"]</code> raises a <code>KeyError</code> (that lists
+the available keys) if the key is missing, and <code>context.get("key", default)</code> returns a default. An
+extra key never breaks a handler:</p>
+<div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">EventManager</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">log_loss</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"loss </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">'loss'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">log_epoch</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"epoch </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">'epoch'</span><span class="p">]</span><span class="si">}</span><span class="s2">, lr </span><span class="si">{</span><span class="n">context</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'lr'</span><span class="p">,</span><span class="w"> </span><span class="mf">0.1</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">log_loss</span><span class="p">,</span> <span class="n">filter_payload</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">log_epoch</span><span class="p">,</span> <span class="n">filter_payload</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">log_loss</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">log_epoch</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
 <span class="go">loss 0.5</span>
-<span class="go">epoch 3</span>
+<span class="go">epoch 3, lr 0.1</span>
 </code></pre></div>
-<p>The <code>on</code> decorator takes the same option, so the short form works for this case too:
-<code>@manager.on("epoch_end", filter_payload=True)</code>.</p>
 <h3 id="fire-an-event-with-coroutine-handlers">Fire an event with coroutine handlers<a class="headerlink" href="#fire-an-event-with-coroutine-handlers" title="Permanent link">&para;</a></h3>
 <p><code>trigger_event</code> calls the handlers synchronously and raises a <code>TypeError</code> for a coroutine function
 (the coroutine would never be awaited).
 To use coroutine handlers, fire the event with <code>atrigger_event</code>, which awaits the coroutines (and
 also runs synchronous handlers) one after the other, in the order they were added:</p>
 <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">hello_handler</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Hello </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">!"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">EventManager</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">hello_handler</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Hello </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">'name'</span><span class="p">]</span><span class="si">}</span><span class="s2">!"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">hello_handler</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">manager</span><span class="o">.</span><span class="n">atrigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"John"</span><span class="p">))</span>

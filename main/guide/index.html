@@ -884,10 +884,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#typeerror-got-an-unexpected-keyword-argument" class="md-nav__link">
+  <a href="#keyerror-key-epoch-not-found-in-the-context" class="md-nav__link">
     <span class="md-ellipsis">
       
-        TypeError: ... got an unexpected keyword argument
+        KeyError: "key 'epoch' not found in the context; ..."
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#typeerror-takes-0-positional-arguments-but-1-was-given" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TypeError: ... takes 0 positional arguments but 1 was given
       
     </span>
   </a>
@@ -1462,10 +1473,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#typeerror-got-an-unexpected-keyword-argument" class="md-nav__link">
+  <a href="#keyerror-key-epoch-not-found-in-the-context" class="md-nav__link">
     <span class="md-ellipsis">
       
-        TypeError: ... got an unexpected keyword argument
+        KeyError: "key 'epoch' not found in the context; ..."
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#typeerror-takes-0-positional-arguments-but-1-was-given" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TypeError: ... takes 0 positional arguments but 1 was given
       
     </span>
   </a>
@@ -1550,28 +1572,43 @@
 <p>One handler does one thing (log, save, update a progress bar). Handlers of an event run in the order
 they were registered, so register them in the order they must run.</p>
 <h3 id="pass-the-data-as-a-payload">Pass the data as a payload<a class="headerlink" href="#pass-the-data-as-a-payload" title="Permanent link">&para;</a></h3>
-<p>The keyword arguments of <code>trigger_event</code> are passed to every handler:</p>
-<div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">log_epoch</span><span class="p">(</span><span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">loss</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">loss</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<p>The keyword arguments of <code>trigger_event</code> are copied into a read-only <code>Context</code>, which is built once
+per trigger and passed to every handler that has a parameter:</p>
+<div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">EventManager</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">log_epoch</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"epoch </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">'epoch'</span><span class="p">]</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">'loss'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">log_epoch</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
 <span class="go">epoch 3: 0.5</span>
 </code></pre></div>
-<p>Every handler of the event receives the whole payload, and a handler that does not accept a key
-raises a <code>TypeError</code>. Use <code>filter_payload=True</code> to give each handler only the keys of its signature,
-so handlers with different needs can share an event:</p>
-<div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">log_epoch</span><span class="p">(</span><span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<p>A <code>Context</code> is a read-only mapping from <code>str</code> to values: a handler cannot change what the next
+handler sees (the values are not copied, so a mutable value stays mutable). Each handler reads the
+keys it needs and decides what to do when one is missing, so handlers with different needs share an
+event and an extra key never breaks a handler:</p>
+<ul>
+<li><code>context["loss"]</code> reads a required value and raises a <code>KeyError</code> that lists the available keys.</li>
+<li><code>context.get("loss", 0.0)</code> reads an optional value.</li>
+<li><code>"loss" in context</code>, <code>len(context)</code>, <code>context.items()</code> and <code>dict(context)</code> work as for a mapping.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">EventManager</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">log_epoch</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"epoch </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">'epoch'</span><span class="p">]</span><span class="si">}</span><span class="s2">, loss </span><span class="si">{</span><span class="n">context</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'loss'</span><span class="p">,</span><span class="w"> </span><span class="s1">'unknown'</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">say_hello</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">"Hello!"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">log_epoch</span><span class="p">,</span> <span class="n">filter_payload</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
-<span class="go">epoch 3</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">log_epoch</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">say_hello</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="go">epoch 3, loss unknown</span>
+<span class="go">Hello!</span>
 </code></pre></div>
-<p>Bind the arguments that do not come from the payload with <code>functools.partial</code>. A payload key that
-repeats a keyword bound by the partial overrides it, as it does for any call of a partial.</p>
+<p>A handler that has a parameter that accepts a positional argument (or a <code>*args</code>) is called as
+<code>handler(context)</code>, and a handler without parameter is called as <code>handler()</code>. This is decided once,
+when the handler is registered, from the number of parameters: the names are never matched. A
+callable whose signature cannot be inspected is called as <code>handler(context)</code>.</p>
+<p>Bind the arguments that do not come from the payload with <code>functools.partial</code>: the context is passed
+after the bound positional arguments.</p>
 <h3 id="handle-the-exceptions">Handle the exceptions<a class="headerlink" href="#handle-the-exceptions" title="Permanent link">&para;</a></h3>
 <p>Handlers run fail-fast: if a handler raises, the exception reaches the caller of <code>trigger_event</code> and
 the next handlers of the event do not run. The exception is the original one, with a note that
@@ -1632,28 +1669,29 @@ purpose: it keeps the tests independent and makes the ownership clear.</p>
 you pass; use <code>len(manager)</code> for the number of registrations. A manager cannot be copied or pickled
 (<code>copy.copy</code>, <code>copy.deepcopy</code> and <code>pickle</code> raise a <code>TypeError</code>): create a new one.</p>
 <h3 id="register-any-callable">Register any callable<a class="headerlink" href="#register-any-callable" title="Permanent link">&para;</a></h3>
-<p><code>add_event_handler</code> accepts any callable, called as <code>handler(**payload)</code>: a function, a method, a
-callable object or a <code>functools.partial</code>. The options of the registration are its keyword-only
-arguments: <code>once</code>, <code>condition</code> and <code>filter_payload</code>. Use <code>functools.partial</code> to bind the arguments
-that do not come from the payload.</p>
+<p><code>add_event_handler</code> accepts any callable, called as <code>handler(context)</code> or <code>handler()</code> (see
+<a href="#pass-the-data-as-a-payload">Pass the data as a payload</a>): a function, a method, a callable object
+or a <code>functools.partial</code>. The options of the registration are its keyword-only arguments: <code>once</code>
+and <code>condition</code>. Use <code>functools.partial</code> to bind the arguments that do not come from the payload.</p>
 <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">functools</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span><span class="p">,</span> <span class="n">PeriodicCondition</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">EventManager</span><span class="p">,</span> <span class="n">PeriodicCondition</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">greet</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Hello </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">!"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="nb">print</span><span class="p">,</span> <span class="s2">"Hello!"</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">greet</span><span class="p">,</span> <span class="s2">"Bob"</span><span class="p">))</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">)</span>
-<span class="go">Hello!</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">log_epoch</span><span class="p">(</span><span class="n">epoch</span><span class="p">):</span>
-<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="go">Hello Bob!</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">log_epoch</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"epoch </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">'epoch'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">log_epoch</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="n">PeriodicCondition</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span> <span class="n">filter_payload</span><span class="o">=</span><span class="kc">True</span>
+<span class="gp">... </span>    <span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">log_epoch</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="n">PeriodicCondition</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
 <span class="go">epoch 1</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="mf">0.4</span><span class="p">)</span>
 </code></pre></div>
-<p>With <code>filter_payload=True</code>, the signature of a <code>functools.partial</code> does not contain the positional
-arguments it binds, so a payload key with the same name is dropped. A payload key that repeats a
-keyword bound by the partial overrides it.</p>
+<p>The signature of a <code>functools.partial</code> does not contain the arguments that it binds: a partial that
+binds the only positional parameter of a function is called as <code>handler()</code>.</p>
 <h3 id="keep-the-subscription">Keep the subscription<a class="headerlink" href="#keep-the-subscription" title="Permanent link">&para;</a></h3>
 <p><code>add_event_handler</code> returns a <code>Subscription</code>, the registration of the handler. It is the only way to
 identify a registration: the same callable can be registered several times, and each registration is
@@ -1676,8 +1714,8 @@ a different <code>Subscription</code>.</p>
 <li><code>manager.get_subscriptions(event)</code> lists the registrations of an event if you did not keep them,
   and <code>subscription.handler</code> gives the handler.</li>
 <li><code>@manager.on("event")</code> registers a function as a handler and returns it unchanged. It takes
-  <code>once</code>, <code>condition</code> and <code>filter_payload</code>, as in <code>@manager.on("epoch_end", filter_payload=True)</code>,
-  which are also the keyword-only arguments of <code>add_event_handler</code>. Use <code>add_event_handler</code> if you
+  <code>once</code> and <code>condition</code>, as in <code>@manager.on("epoch_end", once=True)</code>, which are also the
+  keyword-only arguments of <code>add_event_handler</code>. Use <code>add_event_handler</code> if you
   need the <code>Subscription</code>.</li>
 <li><code>once=True</code> runs the handler the first time its condition is <code>True</code> (at the next trigger if it has
   no condition), then removes the registration. A condition that is <code>False</code> does not consume it.</li>
@@ -1727,7 +1765,7 @@ subscriptions of the objects you no longer need, use a <code>with</code> block, 
         <span class="nb">print</span><span class="p">(</span><span class="s2">"Training completed!"</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="custom-handlers-and-conditions">Custom handlers and conditions<a class="headerlink" href="#custom-handlers-and-conditions" title="Permanent link">&para;</a></h3>
-<p>Write a class with a <code>__call__(self, **payload)</code> method for a handler with its own state (use
+<p>Write a class with a <code>__call__(self, context)</code> method for a handler with its own state (use
 <code>async def __call__</code> for a coroutine). A condition is any class with a <code>__call__(self) -&gt; bool</code>
 method.</p>
 <h2 id="testing">Testing<a class="headerlink" href="#testing" title="Permanent link">&para;</a></h2>
@@ -1740,7 +1778,7 @@ method.</p>
     <span class="n">mock</span> <span class="o">=</span> <span class="n">Mock</span><span class="p">()</span>
     <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">mock</span><span class="p">)</span>
     <span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">mock</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">(</span><span class="n">epoch</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">mock</span><span class="o">.</span><span class="n">assert_called_once_with</span><span class="p">({</span><span class="s2">"epoch"</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">test_handler_directly</span><span class="p">():</span>
@@ -1751,13 +1789,14 @@ method.</p>
 <h2 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">&para;</a></h2>
 <p><code>import minevent</code> is cheap: it imports the standard library modules <code>threading</code>, <code>functools</code>,
 <code>collections.abc</code> and <code>typing</code> only, and not <code>logging</code>, <code>inspect</code>, <code>asyncio</code> or
-<code>importlib.metadata</code> (<code>inspect</code> is imported when <code>filter_payload=True</code> is used, and
+<code>importlib.metadata</code> (<code>inspect</code> is imported when the first handler is registered, and
 <code>importlib.metadata</code> when <code>__version__</code> is read). It creates no <code>typing</code> object (<code>Protocol</code>,
 <code>NamedTuple</code>, <code>TypeVar</code>). It takes a few milliseconds, so a script can import it without a
 measurable cost.</p>
-<p>The cost of <code>trigger_event</code> is the cost of the handlers: about 0.35 µs for a manager with one trivial
-handler, and about 0.1 µs for each additional handler on a laptop. A condition avoids the work of
-an expensive handler (<code>PeriodicCondition</code>). To find a slow handler, time it or wrap it (see <a href="#debug">Debug</a>).</p>
+<p>The cost of <code>trigger_event</code> is the cost of the handlers: about 0.65 µs for a manager with one trivial
+handler (it builds one <code>Context</code>), and about 0.1 µs for each additional handler on a laptop. A
+condition avoids the work of an expensive handler (<code>PeriodicCondition</code>). To find a slow handler,
+time it or wrap it (see <a href="#debug">Debug</a>).</p>
 <p>A handler that is slow blocks the caller. Hand the work to an executor in the handler if the caller
 must not wait.</p>
 <h2 id="pitfalls">Pitfalls<a class="headerlink" href="#pitfalls" title="Permanent link">&para;</a></h2>
@@ -1768,8 +1807,9 @@ must not wait.</p>
   the trigger starts are visited. A registration removed before its turn does not run, whatever
   removes it (<code>remove()</code>, <code>clear_event</code>, <code>reset</code>). A <code>remove()</code> from another thread cannot stop a
   handler that the trigger is about to call.</li>
-<li><strong>The payload is shared</strong>: all handlers get the same objects. A handler that mutates a payload
-  object is seen by the next handlers.</li>
+<li><strong>The payload is shared</strong>: all handlers get the same <code>Context</code>, which is read-only, and the same
+  value objects. A handler that mutates a mutable value (a list, for example) is seen by the next
+  handlers.</li>
 <li><strong>Threads</strong>: the registry is thread-safe, the handlers run in the thread that triggers the event,
   concurrently if several threads trigger it. A handler that shares state must protect it.</li>
 </ul>
@@ -1782,8 +1822,13 @@ must not wait.</p>
 <li>It was not registered with <code>once=True</code> and already consumed: <code>subscription.active</code> is <code>False</code>.</li>
 <li>A handler of the same event ahead of it raised: the next handlers are skipped.</li>
 </ol>
-<h3 id="typeerror-got-an-unexpected-keyword-argument"><code>TypeError: ... got an unexpected keyword argument</code><a class="headerlink" href="#typeerror-got-an-unexpected-keyword-argument" title="Permanent link">&para;</a></h3>
-<p>The payload is given to every handler. Accept <code>**kwargs</code> or use <code>filter_payload=True</code>.</p>
+<h3 id="keyerror-key-epoch-not-found-in-the-context"><code>KeyError: "key 'epoch' not found in the context; ..."</code><a class="headerlink" href="#keyerror-key-epoch-not-found-in-the-context" title="Permanent link">&para;</a></h3>
+<p>The trigger did not give the key that the handler requires. The message lists the available keys.
+Read an optional value with <code>context.get("epoch", default)</code>, or check <code>"epoch" in context</code>.</p>
+<h3 id="typeerror-takes-0-positional-arguments-but-1-was-given"><code>TypeError: ... takes 0 positional arguments but 1 was given</code><a class="headerlink" href="#typeerror-takes-0-positional-arguments-but-1-was-given" title="Permanent link">&para;</a></h3>
+<p>The handler has no parameter that accepts the context, but its signature cannot be inspected, so it
+is called as <code>handler(context)</code>. Wrap it in a function without parameter, or in a function that
+takes the context.</p>
 <h3 id="typeerror-returned-an-awaitable-use-atrigger_event"><code>TypeError: ... returned an awaitable; use atrigger_event</code><a class="headerlink" href="#typeerror-returned-an-awaitable-use-atrigger_event" title="Permanent link">&para;</a></h3>
 <p>The handler is a coroutine function (a coroutine object is closed, so Python does not warn that it
 was never awaited). Call <code>await manager.atrigger_event(...)</code>.</p>
@@ -1796,10 +1841,14 @@ was never awaited). Call <code>await manager.atrigger_event(...)</code>.</p>
   (<code>Subscription(event='my_event', handler='print')</code>).</li>
 <li><code>minevent</code> does not log. Wrap a handler to trace it (the wrapper is a plain callable):</li>
 </ul>
-<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">traced</span><span class="p">(</span><span class="n">handler</span><span class="p">):</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">wrapper</span><span class="p">(</span><span class="o">**</span><span class="n">payload</span><span class="p">):</span>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">functools</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">traced</span><span class="p">(</span><span class="n">handler</span><span class="p">):</span>
+    <span class="nd">@functools</span><span class="o">.</span><span class="n">wraps</span><span class="p">(</span><span class="n">handler</span><span class="p">)</span>  <span class="c1"># the signature of the handler decides if it gets the context</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"calling </span><span class="si">{</span><span class="n">handler</span><span class="o">.</span><span class="vm">__qualname__</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">handler</span><span class="p">(</span><span class="o">**</span><span class="n">payload</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">handler</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">wrapper</span>
 
@@ -1809,7 +1858,7 @@ was never awaited). Call <code>await manager.atrigger_event(...)</code>.</p>
 <ul>
 <li>Register a handler that prints the payload while you investigate:</li>
 </ul>
-<div class="highlight"><pre><span></span><code><span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"batch_end"</span><span class="p">,</span> <span class="k">lambda</span> <span class="o">**</span><span class="n">payload</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="n">payload</span><span class="p">))</span>
+<div class="highlight"><pre><span></span><code><span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"batch_end"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">context</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">context</span><span class="p">)))</span>
 </code></pre></div>
 
 
