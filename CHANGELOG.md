@@ -132,7 +132,7 @@ condition=AfterNCondition(2)` runs once, on the third trigger (it never ran). A 
 ### Changed
 
 - The values of a `Context` are typed `Any` instead of `object`, so a handler that computes with a
-  value, such as `context["epoch"] + 1`, type checks without a cast (#PR).
+  value, such as `context["epoch"] + 1`, type checks without a cast (#857).
 - `bool(EventManager())` is always `True` (it was `False` for an empty manager), so
   `manager or default` is safe; use `len(manager) == 0` to test that a manager has no handler.
   `copy.copy`, `copy.deepcopy` and `pickle` of an `EventManager` raise a `TypeError` (`copy.copy`
