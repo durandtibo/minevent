@@ -213,3 +213,69 @@ def test_atrigger_event_from_threads() -> None:
 
     run_threads(work, NUM_THREADS)
     assert sorted(calls) == list(range(NUM_THREADS))
+
+
+def test_condition_reads_the_payload() -> None:
+    """Test that a condition with a parameter decides from the payload
+    of each trigger, and that a condition without parameter still
+    works."""
+    manager = EventManager()
+    calls: list[str] = []
+    manager.add_event_handler(
+        "epoch_end",
+        lambda context: calls.append(f"late {context['epoch']}"),
+        condition=lambda context: context.get("epoch", 0) >= 2,
+    )
+    manager.add_event_handler("epoch_end", lambda: calls.append("always"), condition=lambda: True)
+    for epoch in range(3):
+        manager.trigger_event("epoch_end", epoch=epoch)
+    assert calls == ["always", "always", "late 2", "always"]
+
+
+def test_once_waits_for_a_condition_that_reads_the_payload() -> None:
+    """Test that a ``once`` registration runs the first time its
+    condition is ``True`` for the payload, and only once."""
+    manager = EventManager()
+    calls: list[object] = []
+    manager.add_event_handler(
+        "epoch_end",
+        lambda context: calls.append(context["epoch"]),
+        once=True,
+        condition=lambda context: context["epoch"] >= 2,
+    )
+    for epoch in range(5):
+        manager.trigger_event("epoch_end", epoch=epoch)
+    assert calls == [2]
+
+
+def test_condition_reads_the_payload_with_atrigger_event() -> None:
+    """Test that ``atrigger_event`` passes the context to a condition."""
+    manager = EventManager()
+    calls: list[str] = []
+    manager.add_event_handler(
+        "epoch_end", lambda: calls.append("run"), condition=lambda context: context["go"]
+    )
+    asyncio.run(manager.atrigger_event("epoch_end", go=False))
+    asyncio.run(manager.atrigger_event("epoch_end", go=True))
+    assert calls == ["run"]
+
+
+def test_condition_reads_the_payload_from_threads() -> None:
+    """Test that triggers from several threads evaluate the condition on
+    the payload of their own trigger."""
+    manager = EventManager()
+    calls: list[int] = []
+    lock = threading.Lock()
+
+    def record() -> None:
+        with lock:
+            calls.append(1)
+
+    manager.add_event_handler("my_event", record, condition=lambda context: context["even"])
+
+    def work(index: int) -> None:
+        for _ in range(NUM_ITERATIONS):
+            manager.trigger_event("my_event", even=index % 2 == 0)
+
+    run_threads(work, NUM_THREADS)
+    assert len(calls) == NUM_THREADS // 2 * NUM_ITERATIONS

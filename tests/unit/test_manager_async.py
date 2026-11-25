@@ -327,3 +327,16 @@ async def test_event_manager_atrigger_event_context_coroutine_function() -> None
     manager.add_event_handler("my_event", record)
     await manager.atrigger_event("my_event", value="a", other=1)
     assert values == ["a"]
+
+
+async def test_event_manager_atrigger_event_condition_reads_the_payload() -> None:
+    manager = EventManager()
+    values: list[object] = []
+
+    async def record(context: Context) -> None:
+        values.append(context["epoch"])
+
+    manager.add_event_handler("my_event", record, condition=lambda context: context["epoch"] >= 1)
+    await manager.atrigger_event("my_event", epoch=0)
+    await manager.atrigger_event("my_event", epoch=1)
+    assert values == [1]

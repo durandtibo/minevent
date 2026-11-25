@@ -1,11 +1,17 @@
 r"""Implement some conditions that can be used in the event system.
 
-A condition is any function without argument that returns a boolean:
-a lambda, a method, or an object with a ``__call__(self) -> bool``
-method like the conditions of this module. ``Condition`` is the type
-alias ``Callable[[], bool]``. A condition is called each time the event
-is triggered, before the handler, and the handler is executed only if
-it returns ``True``. A condition can keep a state between calls.
+A condition is any function that returns a boolean: a lambda, a
+method, or an object with a ``__call__(self) -> bool`` method like the
+conditions of this module. A condition without parameter is called as
+``condition()``. A condition that has a parameter that accepts a
+positional argument is called as ``condition(context)`` with the
+read-only ``Context`` of the trigger, like a handler, so it can depend
+on the payload: ``lambda context: context.get("epoch", 0) > 5``.
+``Condition`` is the type alias
+``Callable[[], bool] | Callable[[Context], bool]``. A condition is
+called each time the event is triggered, before the handler, and the
+handler is executed only if it returns ``True``. A condition can keep a
+state between calls. The built-in conditions take no parameter.
 
 To combine conditions, write a function. The function decides which
 conditions are evaluated: ``lambda: a() and b()`` skips ``b`` when
@@ -24,6 +30,14 @@ Example:
     >>> manager.trigger_event("hello")
     >>> _ = manager.add_event_handler("bye", lambda: print("Bye!"), condition=lambda: False)
     >>> manager.trigger_event("bye")
+    >>> _ = manager.add_event_handler(
+    ...     "epoch_end",
+    ...     lambda: print("late epoch"),
+    ...     condition=lambda context: context.get("epoch", 0) >= 2,
+    ... )
+    >>> manager.trigger_event("epoch_end", epoch=1)
+    >>> manager.trigger_event("epoch_end", epoch=2)
+    late epoch
 
     ```
 """
@@ -34,8 +48,11 @@ __all__ = ["AfterNCondition", "Condition", "PeriodicCondition"]
 
 from collections.abc import Callable
 
-Condition = Callable[[], bool]
-"""A condition: any function without argument that returns a boolean."""
+from minevent.context import Context
+
+Condition = Callable[[], bool] | Callable[[Context], bool]
+"""A condition: a function that returns a boolean, without parameter or
+with the ``Context`` of the trigger."""
 
 
 class PeriodicCondition:

@@ -70,6 +70,10 @@ condition=AfterNCondition(2)` runs once, on the third trigger (it never ran). A 
 - `EventManager.events`, `__contains__`, `clear_event` and `reset`.
 - `trigger_event(event, **payload)` passes the keyword arguments to the handlers in a read-only
   `Context` (#841).
+- A condition that has a parameter is called with the `Context` of the trigger, with the rule of the
+  handlers (`condition(context)`, or `condition()` without parameter), so it can depend on the
+  payload. `Condition` is `Callable[[], bool] | Callable[[Context], bool]`. Existing conditions are
+  unchanged (#847).
 - `minevent.Context`, an immutable mapping from `str` to values: `context[key]`, `get`, `in`,
   `len`, iteration and `==`, as for a `collections.abc.Mapping` (#840).
 - `add_event_handler` returns a `Subscription` and has a `once` option.

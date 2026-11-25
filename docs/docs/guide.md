@@ -103,8 +103,11 @@ coroutine handlers, and they block the event loop while they run.
 
 ## Conditions
 
-A condition is a function without argument that returns a boolean. It is called each time the event
-is triggered, before the handler, and the handler runs only if it returns `True`:
+A condition is a function that returns a boolean. It is called each time the event is triggered,
+before the handler, and the handler runs only if it returns `True`. A condition that has a
+parameter is called with the read-only `Context` of the trigger, like a handler (see
+[Pass the data as a payload](#pass-the-data-as-a-payload)), and a condition without parameter is
+called without argument:
 
 ```python
 from minevent import PeriodicCondition
@@ -115,6 +118,9 @@ manager.add_event_handler("batch_end", log_batch, condition=PeriodicCondition(fr
 
 # Any function works as a condition
 manager.add_event_handler("epoch_end", notify, condition=lambda: is_main_process)
+
+# A condition with a parameter reads the payload of the trigger
+manager.add_event_handler("epoch_end", validate, condition=lambda context: context["epoch"] >= 5)
 ```
 
 - `PeriodicCondition` and `AfterNCondition` keep a counter. Do not share one

@@ -45,7 +45,7 @@ fired.
 
 The library provides two built-in conditions (`PeriodicCondition` and `AfterNCondition`) to control
 when a handler runs, and it is easy to extend: a handler is any callable and a condition is any
-function without argument that returns a boolean, so there is no base class to extend.
+function that returns a boolean, so there is no base class to extend.
 It is possible to use all the components or just a subset based on the need.
 For example, a handler is a plain callable, so it can be tested without the event manager.
 
@@ -94,8 +94,8 @@ It allows you to customize the function `say_something` without changing its imp
 - **Subscriptions**: `add_event_handler` returns a `Subscription` to remove exactly that
   registration (it is also a context manager), and `once=True` runs a handler at most once
 - **Decorator**: `@manager.on("epoch_end")` registers a function as a handler
-- **Conditional Handlers**: Any function without argument that returns a boolean is a condition, and
-  `PeriodicCondition` and `AfterNCondition` are provided
+- **Conditional Handlers**: Any function that returns a boolean is a condition (it can read the
+  `Context` of the trigger), and `PeriodicCondition` and `AfterNCondition` are provided
 - **Async**: `atrigger_event` awaits coroutine handlers
 - **Debuggable**: an exception of a handler has a note that names the event and the handler, and
   `manager.get_subscriptions(event)` lists the registrations

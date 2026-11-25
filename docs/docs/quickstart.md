@@ -156,8 +156,25 @@ Hello!
 
 ```
 
-A condition is any function without argument that returns a boolean (a `Condition`, that is a
-`Callable[[], bool]`). `minevent` provides the stateful conditions `AfterNCondition` (skip the
+A condition is any function that returns a boolean (a `Condition`). Like a handler, it is called as
+`condition()` if it has no parameter, and as `condition(context)` with the read-only `Context` of
+the trigger if it has one, so it can depend on the payload:
+
+```pycon
+>>> from minevent import EventManager
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler(
+...     "epoch_end",
+...     lambda: print("late epoch"),
+...     condition=lambda context: context.get("epoch", 0) >= 2,
+... )
+>>> manager.trigger_event("epoch_end", epoch=1)
+>>> manager.trigger_event("epoch_end", epoch=2)
+late epoch
+
+```
+
+`minevent` provides the stateful conditions `AfterNCondition` (skip the
 first `n` calls) and `PeriodicCondition(freq, skip_first=...)`. A class with a `__call__` method
 is a condition too.
 
