@@ -1014,11 +1014,13 @@ decides what to do when a value is missing.</p>
 
 
         <p>Implement a read-only mapping of the payload of a trigger.</p>
-<p>The data is copied at construction and held in a read-only view, so
-neither the code that built the context nor a handler can change
-what the next handler sees. The values themselves are not copied: a
-mutable value stays mutable. A context has no method that changes
-it (no <code>__setitem__</code>, <code>update</code> or <code>pop</code>).</p>
+<p>The data is copied at construction into a private dict, and a
+context has no method that changes it (no <code>__setitem__</code>,
+<code>update</code> or <code>pop</code>), so neither the code that built the context
+nor a handler can change what the next handler sees. The values
+themselves are not copied: a mutable value stays mutable. A context
+can be copied, deep-copied and pickled (with the protocol 2 or
+higher, like the default one) if its values can.</p>
 <p><code>context[key]</code> reads a required value and raises a <code>KeyError</code>
 if it is missing. <code>context.get(key, default)</code> reads an optional
 value. <code>key in context</code>, <code>len</code>, iteration, <code>keys</code>, <code>items</code>,
@@ -1096,6 +1098,9 @@ if a key of <code>data</code> is not a <code>str</code>.</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
 <span class="go">2</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">context</span>
+<span class="go">Context({'epoch': 3, 'loss': 0.5})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
 <span class="go">Context({'epoch': 3, 'loss': 0.5})</span>
 </code></pre></div>
 </details>

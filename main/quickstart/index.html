@@ -1313,7 +1313,7 @@
 <p>The <code>minevent</code> event system is composed of three main components:</p>
 <ul>
 <li>an event</li>
-<li>an event handler (any callable)</li>
+<li>an event handler (a callable)</li>
 <li>an event manager</li>
 </ul>
 <p><code>trigger_event</code> is synchronous: the handlers of an event run one after the other, in the order they
@@ -1331,9 +1331,12 @@ training is completed.</p>
 </code></pre></div>
 <h2 id="event-handler">Event handler<a class="headerlink" href="#event-handler" title="Permanent link">&para;</a></h2>
 <p>In <code>minevent</code>, an event handler is a piece of code that is executed when an event happens.</p>
-<p>An event handler is any callable. It is called as <code>handler(context)</code> if it has a parameter, and as
-<code>handler()</code> otherwise, where <code>context</code> is a read-only <code>Context</code> that holds the data given when the
-event is triggered (see <a href="#fire-an-event">Fire an event</a>). A coroutine function is a handler of
+<p>An event handler is a callable that needs no argument or only the context. It is called as
+<code>handler(context)</code> if it has a parameter without default, and as <code>handler()</code> otherwise, where
+<code>context</code> is a read-only <code>Context</code> that holds the data given when the event is triggered (see
+<a href="#fire-an-event">Fire an event</a>). A parameter that has a default keeps it, and any other signature
+is rejected at registration (see the
+<a href="../architecture/#the-calling-rule">calling rule</a>). A coroutine function is a handler of
 <code>atrigger_event</code>. The options of a registration (<code>once</code> and <code>condition</code>) are the keyword-only
 arguments of <code>EventManager.add_event_handler</code>.</p>
 <h3 id="basic-event-handler">Basic event handler<a class="headerlink" href="#basic-event-handler" title="Permanent link">&para;</a></h3>
@@ -1384,9 +1387,9 @@ be given as positional arguments:</p>
 <span class="go">Hello Bob! Happy Monday!</span>
 </code></pre></div>
 <p>It is possible to define event handlers with a large range of functions.
-For example, it is possible to implement the same logic with a lambda function. Note that a callable
-that accepts <code>*args</code>, like <code>print</code>, receives the context as an argument, so a handler that does not
-need the context must not have a parameter:</p>
+For example, it is possible to implement the same logic with a lambda function. A callable that
+accepts <code>*args</code>, like <code>print</code>, does not say whether it expects the context, so it is rejected: wrap
+it in a function or a lambda that says what it needs:</p>
 <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"Hello Bob! Happy Monday!"</span><span class="p">))</span>
@@ -1425,8 +1428,8 @@ the logic associated to the event handler is not executed.</p>
 <span class="go">Hello!</span>
 </code></pre></div>
 <p>A condition is any function that returns a boolean (a <code>Condition</code>). Like a handler, it is called as
-<code>condition()</code> if it has no parameter, and as <code>condition(context)</code> with the read-only <code>Context</code> of
-the trigger if it has one, so it can depend on the payload:</p>
+<code>condition(context)</code> with the read-only <code>Context</code> of the trigger if it has a parameter without
+default, and as <code>condition()</code> otherwise, so it can depend on the payload:</p>
 <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span>
@@ -1659,9 +1662,9 @@ The following example shows how to fire the <code>hello_handler</code> for the e
 <span class="go">EventManager(events={'my_event': 1})</span>
 </code></pre></div>
 <p>Triggering an event does not change the manager: the representation above is the same before and
-after. A handler is called as <code>handler(context)</code>, where <code>context</code> holds the data given
-to <code>trigger_event</code> (see below), or as <code>handler()</code> if it has no parameter. The arguments that do not
-come from the payload are bound with <code>functools.partial</code>.</p>
+after. A handler is called as <code>handler(context)</code>, where <code>context</code> holds the data given to
+<code>trigger_event</code> (see below), or as <code>handler()</code> if it has no parameter without default. The arguments
+that do not come from the payload are bound with <code>functools.partial</code>.</p>
 <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">functools</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">hello_handler</span><span class="p">(</span><span class="n">first_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">last_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>

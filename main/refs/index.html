@@ -1559,8 +1559,9 @@
 
         <p>Contain the main features of the <code>minevent</code> package.</p>
 <p><code>minevent</code> is a minimal event system with three concepts: an event (a
-case-sensitive string), a handler (any callable) and an event manager
-(<code>EventManager</code>) that stores the handlers and triggers the events.</p>
+case-sensitive string), a handler (a callable that needs no argument or
+only the context) and an event manager (<code>EventManager</code>) that stores
+the handlers and triggers the events.</p>
 <ul>
 <li><code>EventManager.add_event_handler</code> (or the <code>on</code> decorator) registers
   a handler and returns a <code>Subscription</code>, the registration itself,
@@ -1853,11 +1854,13 @@ created.</p>
 
 
         <p>Implement a read-only mapping of the payload of a trigger.</p>
-<p>The data is copied at construction and held in a read-only view, so
-neither the code that built the context nor a handler can change
-what the next handler sees. The values themselves are not copied: a
-mutable value stays mutable. A context has no method that changes
-it (no <code>__setitem__</code>, <code>update</code> or <code>pop</code>).</p>
+<p>The data is copied at construction into a private dict, and a
+context has no method that changes it (no <code>__setitem__</code>,
+<code>update</code> or <code>pop</code>), so neither the code that built the context
+nor a handler can change what the next handler sees. The values
+themselves are not copied: a mutable value stays mutable. A context
+can be copied, deep-copied and pickled (with the protocol 2 or
+higher, like the default one) if its values can.</p>
 <p><code>context[key]</code> reads a required value and raises a <code>KeyError</code>
 if it is missing. <code>context.get(key, default)</code> reads an optional
 value. <code>key in context</code>, <code>len</code>, iteration, <code>keys</code>, <code>items</code>,
@@ -1936,6 +1939,9 @@ if a key of <code>data</code> is not a <code>str</code>.</p>
 <span class="go">2</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">context</span>
 <span class="go">Context({'epoch': 3, 'loss': 0.5})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
+<span class="go">Context({'epoch': 3, 'loss': 0.5})</span>
 </code></pre></div>
 </details>
 
@@ -1996,13 +2002,15 @@ needed. Nothing is logged: to trace the registrations, read
 <code>get_subscriptions(event)</code>, or wrap the handler. <code>events</code>,
 <code>event in manager</code> and <code>len(manager)</code> inspect the registry, and
 <code>clear_event</code> and <code>reset</code> empty it.</p>
-<p>A handler is any callable. It is called as <code>handler(context)</code>
-with a read-only <code>Context</code> that holds the payload of the trigger
-if it has a parameter that accepts a positional argument, and as
-<code>handler()</code> otherwise. The options of a registration (<code>once</code>
-and <code>condition</code>) are the keyword-only arguments of
-<code>add_event_handler</code> and <code>on</code>. Use <code>functools.partial</code> to bind
-other arguments.</p>
+<p>A handler is a callable that needs no argument or only the
+context. It is called as <code>handler(context)</code>, with a read-only
+<code>Context</code> that holds the payload of the trigger, if it has a
+parameter without default, and as <code>handler()</code> otherwise: a
+parameter that has a default keeps it. The options of a
+registration (<code>once</code> and <code>condition</code>) are the keyword-only
+arguments of <code>add_event_handler</code> and <code>on</code>. Use
+<code>functools.partial</code>, a function or a lambda to give other
+arguments.</p>
 <p>Error policy: handlers run fail-fast. If a handler raises, the
 exception propagates to the caller of <code>trigger_event</code> (or
 <code>atrigger_event</code>) and the remaining handlers of that event are
@@ -2146,15 +2154,19 @@ it cannot be copied or pickled (<code>copy.copy</code>, <code>copy.deepcopy</cod
 
         <p>Add a handler to an event.</p>
 <p>The handler will be called every time the specified event is
-triggered. It is called as <code>handler(context)</code>, where
+triggered, as <code>handler()</code> or <code>handler(context)</code>, where
 <code>context</code> is the read-only <code>Context</code> built from the payload
-of the trigger, if it has a parameter that accepts a
-positional argument (or if its signature cannot be
-inspected), and as <code>handler()</code> otherwise. This is checked
-once, at registration, and it never matches keys. Multiple
-handlers can be registered to the same event, and they will be
-executed in the order they were added. Use
-<code>functools.partial</code> to bind other arguments.</p>
+of the trigger. A parameter that has a default keeps it: the
+manager never fills it. If no other parameter is left, the
+handler is called as <code>handler()</code>; if exactly one positional
+parameter is left, it is called as <code>handler(context)</code>; and
+any other signature is rejected, including <code>*args</code>,
+<code>**kwargs</code> and a signature that cannot be inspected. This is
+checked once, at registration, and it never matches names or
+annotations. Wrap a rejected callable, such as <code>print</code>, in a
+function or a lambda. Multiple handlers can be registered to
+the same event, and they will be executed in the order they
+were added. Use <code>functools.partial</code> to bind other arguments.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -2236,14 +2248,15 @@ Default is <code>False</code>.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>An optional condition: a function that returns
-a boolean. It is called each time the event is
+                <p>An optional condition: a synchronous function
+that returns a boolean (a condition that returns an
+awaitable, such as a coroutine function, makes the
+trigger raise a <code>TypeError</code>). It is called each time the event is
 triggered, before the handler, and the handler runs
-only if it returns <code>True</code>. Like a handler, it is
-called as <code>condition(context)</code> if it has a
-parameter that accepts a positional argument (or if
-its signature cannot be inspected), and as
-<code>condition()</code> otherwise. If
+only if it returns <code>True</code>. It is called as
+<code>condition()</code> or <code>condition(context)</code>, with the
+rule of the handlers: a parameter that has a default
+keeps it. If
 <code>None</code>, the handler always runs. An exception
 raised by the condition propagates to the caller of
 <code>trigger_event</code>. A stateful condition, such as
@@ -2299,8 +2312,11 @@ registration only.</p>
             <td>
               <div class="doc-md-description">
                 <p>if <code>event</code> is not a string, if <code>handler</code>
-is not callable, or if <code>condition</code> is neither
-<code>None</code> nor callable. The manager is unchanged.</p>
+is not callable, if <code>condition</code> is neither <code>None</code>
+nor callable, or if <code>handler</code> or <code>condition</code> is a
+generator function, needs another argument than the
+context, or has a signature that cannot be inspected.
+The manager is unchanged.</p>
               </div>
             </td>
           </tr>
@@ -2450,8 +2466,10 @@ not modified. Default is <code>None</code>.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>if <code>event</code> is not a string, or if <code>context</code>
-is neither <code>None</code> nor a mapping with <code>str</code> keys. Any exception
+                <p>if <code>event</code> is not a string, if <code>context</code>
+is neither <code>None</code> nor a mapping with <code>str</code> keys, or
+if a condition returns an awaitable (the conditions
+are synchronous and are never awaited). Any exception
 raised by a handler or a condition also propagates.</p>
               </div>
             </td>
@@ -2825,10 +2843,11 @@ handler. See <code>add_event_handler</code>. Default is <code>None</code>.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>if <code>event</code> is not a string, if <code>condition</code>
-is neither <code>None</code> nor callable, or, when the
-decorator is applied, if the decorated object is not
-callable.</p>
+                <p>if <code>event</code> is not a string, or, when the
+decorator is applied, if <code>condition</code> is neither
+<code>None</code> nor callable, if the decorated object is not
+callable, or if <code>add_event_handler</code> rejects the
+signature of the function or of the condition.</p>
               </div>
             </td>
           </tr>
@@ -2946,9 +2965,10 @@ recursive trigger with a condition or a flag.</p>
 the handlers. A <code>Context</code> is passed as is (it is immutable,
 so it can be reused for several triggers), and <code>None</code> means
 no data. A handler that has a parameter
-that accepts a positional argument is called as
-<code>handler(context)</code>, and the other handlers are called as
-<code>handler()</code>. A handler reads the keys it needs and decides
+without default is called as <code>handler(context)</code>, and the
+other handlers are called as <code>handler()</code> (see
+<code>add_event_handler</code>). A handler reads the keys it needs and
+decides
 what to do when one is missing: <code>context["key"]</code> raises a
 <code>KeyError</code>, and <code>context.get("key", default)</code> returns a
 default. Extra keys never break a handler. The keys can be any
@@ -3024,7 +3044,8 @@ not modified. Default is <code>None</code>.</p>
             <td>
               <div class="doc-md-description">
                 <p>if <code>event</code> is not a string, if <code>context</code> is
-neither <code>None</code> nor a mapping with <code>str</code> keys, or if a handler
+neither <code>None</code> nor a mapping with <code>str</code> keys, if a
+condition returns an awaitable, or if a handler
 returns an awaitable (use <code>atrigger_event</code> for
 coroutine handlers). Any exception raised by a
 handler or a condition also propagates, including a
@@ -3431,7 +3452,7 @@ event manager.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The registered handler: any callable.</p>
+                <p>The registered handler: a callable.</p>
               </div>
             </td>
             <td>
@@ -3471,11 +3492,36 @@ its first execution. Default is <code>False</code>.</p>
               <div class="doc-md-description">
                 <p>The condition evaluated before the handler, or
 <code>None</code> if the handler always runs. It is called with the
-context if it has a parameter. Default is <code>None</code>.</p>
+context if it has a parameter without default. Default is
+<code>None</code>.</p>
               </div>
             </td>
             <td>
                   <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="TypeError">TypeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>if the signature of <code>handler</code> or <code>condition</code>
+is rejected (see <code>EventManager.add_event_handler</code>).</p>
+              </div>
             </td>
           </tr>
       </tbody>

@@ -1155,11 +1155,14 @@
         <p>Implement some conditions that can be used in the event system.</p>
 <p>A condition is any function that returns a boolean: a lambda, a
 method, or an object with a <code>__call__(self) -&gt; bool</code> method like the
-conditions of this module. A condition without parameter is called as
-<code>condition()</code>. A condition that has a parameter that accepts a
-positional argument is called as <code>condition(context)</code> with the
-read-only <code>Context</code> of the trigger, like a handler, so it can depend
-on the payload: <code>lambda context: context.get("epoch", 0) &gt; 5</code>.
+conditions of this module. It is called as <code>condition()</code>, or as
+<code>condition(context)</code> with the read-only <code>Context</code> of the trigger if
+it has a parameter without default, so it can depend on the payload:
+<code>lambda context: context.get("epoch", 0) &gt; 5</code>. Like a handler, it
+keeps the values of the parameters that have a default, and any other
+signature is rejected at registration. A condition is synchronous, in
+<code>atrigger_event</code> too: the trigger raises a <code>TypeError</code> if it
+returns an awaitable.
 <code>Condition</code> is the type alias
 <code>Callable[[], bool] | Callable[[Context], bool]</code>. A condition is
 called each time the event is triggered, before the handler, and the

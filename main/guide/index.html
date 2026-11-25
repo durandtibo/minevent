@@ -895,10 +895,32 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#typeerror-takes-0-positional-arguments-but-1-was-given" class="md-nav__link">
+  <a href="#typeerror-must-need-no-argument-or-only-the-context" class="md-nav__link">
     <span class="md-ellipsis">
       
-        TypeError: ... takes 0 positional arguments but 1 was given
+        TypeError: ... must need no argument or only the context
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#typeerror-must-not-be-a-generator-function" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TypeError: ... must not be a generator function
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#typeerror-condition-returned-an-awaitable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TypeError: condition ... returned an awaitable
       
     </span>
   </a>
@@ -1484,10 +1506,32 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#typeerror-takes-0-positional-arguments-but-1-was-given" class="md-nav__link">
+  <a href="#typeerror-must-need-no-argument-or-only-the-context" class="md-nav__link">
     <span class="md-ellipsis">
       
-        TypeError: ... takes 0 positional arguments but 1 was given
+        TypeError: ... must need no argument or only the context
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#typeerror-must-not-be-a-generator-function" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TypeError: ... must not be a generator function
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#typeerror-condition-returned-an-awaitable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TypeError: condition ... returned an awaitable
       
     </span>
   </a>
@@ -1574,8 +1618,8 @@ they were registered, so register them in the order they must run.</p>
 <h3 id="pass-the-data-as-a-payload">Pass the data as a payload<a class="headerlink" href="#pass-the-data-as-a-payload" title="Permanent link">&para;</a></h3>
 <p>The second argument of <code>trigger_event</code> is a mapping from <code>str</code> to values (a dict, for example). It
 is copied into a read-only <code>Context</code>, which is built once per trigger and passed to every handler
-that has a parameter. A <code>Context</code> is also accepted, and is passed as is (it is immutable, so it can
-be reused for several triggers); <code>None</code>, or no argument, means no data:</p>
+that has a parameter without default. A <code>Context</code> is also accepted, and is passed as is (it is
+immutable, so it can be reused for several triggers); <code>None</code>, or no argument, means no data:</p>
 <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">log_epoch</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"epoch </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">'epoch'</span><span class="p">]</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">'loss'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
@@ -1595,6 +1639,8 @@ event and an extra key never breaks a handler:</p>
 <li><code>context["loss"]</code> reads a required value and raises a <code>KeyError</code> that lists the available keys.</li>
 <li><code>context.get("loss", 0.0)</code> reads an optional value.</li>
 <li><code>"loss" in context</code>, <code>len(context)</code>, <code>context.items()</code> and <code>dict(context)</code> work as for a mapping.</li>
+<li><code>copy.deepcopy(context)</code> takes a snapshot of the payload, and a context can be pickled (to send it
+  to a worker process, for example) if its values can.</li>
 </ul>
 <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">log_epoch</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -1608,10 +1654,14 @@ event and an extra key never breaks a handler:</p>
 <span class="go">epoch 3, loss unknown</span>
 <span class="go">Hello!</span>
 </code></pre></div>
-<p>A handler that has a parameter that accepts a positional argument (or a <code>*args</code>) is called as
-<code>handler(context)</code>, and a handler without parameter is called as <code>handler()</code>. This is decided once,
-when the handler is registered, from the number of parameters: the names are never matched. A
-callable whose signature cannot be inspected is called as <code>handler(context)</code>.</p>
+<p>A handler is called as <code>handler(context)</code> if it has a parameter without default, and as
+<code>handler()</code> otherwise. This is decided once, when the handler is registered, from the signature: the
+names are never matched, and a signature that needs anything else is rejected with a <code>TypeError</code>
+(see the <a href="../architecture/#the-calling-rule">calling rule</a>).</p>
+<p>A parameter that has a default keeps it, so <code>model.train</code> (<code>def train(mode=True)</code>) is called as
+<code>model.train()</code>, and <code>lambda i=i: ...</code> gets the value of <code>i</code> saved when the lambda was created. To
+give a value, wrap the call: <code>lambda: model.train(mode=False)</code>. A handler that needs a saved value
+and the context takes the context first, without default: <code>lambda context, i=i: ...</code>.</p>
 <p>Bind the arguments that do not come from the payload with <code>functools.partial</code>: the context is passed
 after the bound positional arguments.</p>
 <h3 id="handle-the-exceptions">Handle the exceptions<a class="headerlink" href="#handle-the-exceptions" title="Permanent link">&para;</a></h3>
@@ -1635,13 +1685,14 @@ no option to collect the errors of all the handlers (see the non-goals in the ar
 <p><code>trigger_event</code> is synchronous. A handler that returns an awaitable (a coroutine function) raises a
 <code>TypeError</code> there, instead of silently dropping the coroutine. Use <code>atrigger_event</code> to await the
 handlers, one after the other, in the registration order. Synchronous handlers can be mixed with
-coroutine handlers, and they block the event loop while they run.</p>
+coroutine handlers, and they block the event loop while they run. The conditions are synchronous in
+both methods.</p>
 <h2 id="conditions">Conditions<a class="headerlink" href="#conditions" title="Permanent link">&para;</a></h2>
 <p>A condition is a function that returns a boolean. It is called each time the event is triggered,
-before the handler, and the handler runs only if it returns <code>True</code>. A condition that has a
-parameter is called with the read-only <code>Context</code> of the trigger, like a handler (see
-<a href="#pass-the-data-as-a-payload">Pass the data as a payload</a>), and a condition without parameter is
-called without argument:</p>
+before the handler, and the handler runs only if it returns <code>True</code>. A condition follows the
+calling rule of the handlers: it is called with the read-only <code>Context</code> of the trigger if it has a
+parameter without default, and without argument otherwise (see
+<a href="#pass-the-data-as-a-payload">Pass the data as a payload</a>):</p>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">PeriodicCondition</span>
 
 <span class="c1"># Save a checkpoint every 10 epochs, and log every 100 batches</span>
@@ -1680,7 +1731,7 @@ purpose: it keeps the tests independent and makes the ownership clear.</p>
 you pass; use <code>len(manager)</code> for the number of registrations. A manager cannot be copied or pickled
 (<code>copy.copy</code>, <code>copy.deepcopy</code> and <code>pickle</code> raise a <code>TypeError</code>): create a new one.</p>
 <h3 id="register-any-callable">Register any callable<a class="headerlink" href="#register-any-callable" title="Permanent link">&para;</a></h3>
-<p><code>add_event_handler</code> accepts any callable, called as <code>handler(context)</code> or <code>handler()</code> (see
+<p><code>add_event_handler</code> accepts a callable that can be called as <code>handler(context)</code> or <code>handler()</code> (see
 <a href="#pass-the-data-as-a-payload">Pass the data as a payload</a>): a function, a method, a callable object
 or a <code>functools.partial</code>. The options of the registration are its keyword-only arguments: <code>once</code>
 and <code>condition</code>. Use <code>functools.partial</code> to bind the arguments that do not come from the payload.</p>
@@ -1702,7 +1753,9 @@ and <code>condition</code>. Use <code>functools.partial</code> to bind the argum
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"epoch"</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">"loss"</span><span class="p">:</span> <span class="mf">0.4</span><span class="p">})</span>
 </code></pre></div>
 <p>The signature of a <code>functools.partial</code> does not contain the arguments that it binds: a partial that
-binds the only positional parameter of a function is called as <code>handler()</code>.</p>
+binds the only positional parameter of a function is called as <code>handler()</code>. A callable that is
+rejected, such as <code>print</code>, <code>max</code> or a <code>Mock()</code>, is wrapped in a function or a lambda:
+<code>lambda context: print(context)</code>.</p>
 <h3 id="keep-the-subscription">Keep the subscription<a class="headerlink" href="#keep-the-subscription" title="Permanent link">&para;</a></h3>
 <p><code>add_event_handler</code> returns a <code>Subscription</code>, the registration of the handler. It is the only way to
 identify a registration: the same callable can be registered several times, and each registration is
@@ -1845,10 +1898,18 @@ must not wait.</p>
 <h3 id="keyerror-key-epoch-not-found-in-the-context"><code>KeyError: "key 'epoch' not found in the context; ..."</code><a class="headerlink" href="#keyerror-key-epoch-not-found-in-the-context" title="Permanent link">&para;</a></h3>
 <p>The trigger did not give the key that the handler requires. The message lists the available keys.
 Read an optional value with <code>context.get("epoch", default)</code>, or check <code>"epoch" in context</code>.</p>
-<h3 id="typeerror-takes-0-positional-arguments-but-1-was-given"><code>TypeError: ... takes 0 positional arguments but 1 was given</code><a class="headerlink" href="#typeerror-takes-0-positional-arguments-but-1-was-given" title="Permanent link">&para;</a></h3>
-<p>The handler has no parameter that accepts the context, but its signature cannot be inspected, so it
-is called as <code>handler(context)</code>. Wrap it in a function without parameter, or in a function that
-takes the context.</p>
+<h3 id="typeerror-must-need-no-argument-or-only-the-context"><code>TypeError: ... must need no argument or only the context</code><a class="headerlink" href="#typeerror-must-need-no-argument-or-only-the-context" title="Permanent link">&para;</a></h3>
+<p>The registration is rejected because the manager cannot tell how to call the handler or the
+condition: it has <code>*args</code> or <code>**kwargs</code>, it needs two or more arguments or a keyword-only one, or
+its signature cannot be inspected. Wrap it in a function or a lambda that takes the context or
+nothing, or bind the extra arguments with <code>functools.partial</code>.</p>
+<h3 id="typeerror-must-not-be-a-generator-function"><code>TypeError: ... must not be a generator function</code><a class="headerlink" href="#typeerror-must-not-be-a-generator-function" title="Permanent link">&para;</a></h3>
+<p>Calling a generator function (a function with <code>yield</code>) runs none of its code. Register a function
+that iterates over the generator.</p>
+<h3 id="typeerror-condition-returned-an-awaitable"><code>TypeError: condition ... returned an awaitable</code><a class="headerlink" href="#typeerror-condition-returned-an-awaitable" title="Permanent link">&para;</a></h3>
+<p>A condition is synchronous, in <code>atrigger_event</code> too: a coroutine is truthy, so an async condition
+would always run the handler. Compute the value before the trigger and pass it in the payload, or
+decide inside a coroutine handler.</p>
 <h3 id="typeerror-returned-an-awaitable-use-atrigger_event"><code>TypeError: ... returned an awaitable; use atrigger_event</code><a class="headerlink" href="#typeerror-returned-an-awaitable-use-atrigger_event" title="Permanent link">&para;</a></h3>
 <p>The handler is a coroutine function (a coroutine object is closed, so Python does not warn that it
 was never awaited). Call <code>await manager.atrigger_event(...)</code>.</p>

@@ -1405,8 +1405,9 @@ reads another object:</p>
 </code></pre></div>
 <p>To combine conditions, write a function, for example <code>condition=lambda: a() and b()</code>.</p>
 <h2 id="decide-from-the-payload">Decide from the payload<a class="headerlink" href="#decide-from-the-payload" title="Permanent link">&para;</a></h2>
-<p>A condition that has a parameter is called with the same read-only <code>Context</code> as the handlers, so it
-can depend on the payload of the trigger. A condition without parameter is called without argument.
+<p>A condition that has a parameter without default is called with the same read-only <code>Context</code> as the
+handlers, so it can depend on the payload of the trigger. The other conditions are called without
+argument.
 A handler and its condition can read different keys:</p>
 <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">is_improving</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>

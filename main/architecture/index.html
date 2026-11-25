@@ -739,6 +739,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#the-calling-rule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Calling Rule
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#registration-options" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1312,6 +1323,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#the-calling-rule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Calling Rule
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#registration-options" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1499,8 +1521,8 @@
 <tr>
 <td>P4</td>
 <td>Validated at the door</td>
-<td>A wrong type raises <code>TypeError</code> in the call that receives it, with a message that names the argument and the value: the event, the handler (must be callable) and the condition (<code>None</code> or callable) of <code>add_event_handler</code> and <code>on</code>. An invalid registration leaves the manager unchanged. The annotations of a handler or a condition do not have to be resolvable.</td>
-<td><code>add_event_handler</code>, <code>on</code>, <code>test_manager.py</code></td>
+<td><code>add_event_handler</code> and <code>on</code> reject, with a <code>TypeError</code> that names the argument and the value: a non-<code>str</code> event, a non-callable handler or condition, a signature that P13 rejects, and a generator or async generator function. A rejected registration leaves the manager unchanged. The annotations of a handler or a condition do not have to be resolvable.</td>
+<td><code>add_event_handler</code>, <code>_needs_context</code>, <code>test_manager.py</code></td>
 </tr>
 <tr>
 <td>P5</td>
@@ -1535,8 +1557,8 @@
 <tr>
 <td>P10</td>
 <td>Synchronous by default</td>
-<td><code>trigger_event</code> never awaits; a handler that returns an awaitable raises <code>TypeError</code> and the coroutine is closed. <code>atrigger_event</code> awaits the handlers one after the other; synchronous handlers run inline and block the loop. An object with <code>async def __call__</code> is a coroutine handler like a coroutine function.</td>
-<td><code>_check_not_awaitable</code>, <code>test_manager_async.py</code></td>
+<td><code>trigger_event</code> never awaits; a handler that returns an awaitable raises <code>TypeError</code> and the coroutine is closed. <code>atrigger_event</code> awaits the handlers one after the other; synchronous handlers run inline and block the loop. <strong>Conditions are synchronous in both</strong>: a condition that returns an awaitable raises <code>TypeError</code>. A coroutine that is rejected is closed. An object with <code>async def __call__</code> is a coroutine handler like a coroutine function.</td>
+<td><code>_check_not_awaitable</code>, <code>Subscription._call</code>, <code>test_manager_async.py</code></td>
 </tr>
 <tr>
 <td>P11</td>
@@ -1552,15 +1574,15 @@
 </tr>
 <tr>
 <td>P13</td>
-<td>Payload is data</td>
-<td><code>trigger_event(event, context=None, /)</code> copies the mapping <code>context</code> (a dict, for example), or reuses a <code>Context</code> as is, into one read-only <code>Context</code> per trigger, shared by the handlers. A handler with a parameter is called as <code>handler(context)</code>, a handler without parameter as <code>handler()</code>; the check counts parameters once, at registration, and never matches keys. Any <code>str</code> key is allowed, it does not need to be a valid identifier. The handler decides what a missing key means (<code>context[key]</code> or <code>context.get(key, default)</code>). Arguments that do not come from the payload are bound with <code>functools.partial</code>: the manager has no second mechanism.</td>
-<td><code>trigger_event</code>, <code>test_manager.py</code></td>
+<td>Two calls</td>
+<td>A handler and a condition are called as <code>f()</code> or <code>f(context)</code>. <strong>A parameter that has a default keeps it: the manager never fills it.</strong> A callable whose other parameters are none is called as <code>f()</code>; one with exactly one other parameter, positional, is called as <code>f(context)</code>; any other signature (including <code>*args</code> and <code>**kwargs</code>), or one that cannot be inspected, is rejected (P4). Names and annotations are not checked. The signature is the one that <code>inspect.signature</code> reports, read once, at registration (<a href="#the-calling-rule">the calling rule</a>).</td>
+<td><code>_needs_context</code>, <code>test_manager.py</code></td>
 </tr>
 <tr>
 <td>P14</td>
-<td>Options are per registration</td>
-<td><code>once</code> and <code>condition</code> are keyword-only arguments of <code>add_event_handler</code> and <code>on</code>, with the same names, defaults and meaning in both. A condition is a function that returns a boolean, called once per trigger, before the handler: as <code>condition(context)</code> if it has a parameter, and as <code>condition()</code> otherwise (the rule of the handlers). The built-in conditions keep per-instance state and both have <code>reset()</code>.</td>
-<td>signatures, <code>test_manager.py</code>, <code>test_conditions.py</code></td>
+<td>Payload is data</td>
+<td><code>trigger_event(event, context=None, /)</code> copies the mapping <code>context</code> (a dict, for example), or reuses a <code>Context</code> as is, into one read-only <code>Context</code> per trigger, shared by the handlers and the conditions. A <code>Context</code> can be copied, deep-copied and pickled (protocol 2 or higher) if its values can; the values are not copied by the context itself. Any <code>str</code> key is allowed, it does not need to be a valid identifier. The handler decides what a missing key means (<code>context[key]</code> or <code>context.get(key, default)</code>).</td>
+<td><code>trigger_event</code>, <code>Context</code>, <code>test_context.py</code></td>
 </tr>
 <tr>
 <td>P15</td>
@@ -1583,7 +1605,7 @@
 <tr>
 <td>P18</td>
 <td>One way to do each thing</td>
-<td>One way to register (<code>add_event_handler</code>, with <code>on</code> as its decorator form), one way to bind arguments (<code>functools.partial</code>), one way to run a handler once (<code>once=True</code>, whatever the condition), one way to extend (write a callable). No handler base class.</td>
+<td>One way to register (<code>add_event_handler</code>, with <code>on</code> as its decorator form, with the same keyword-only options <code>once</code> and <code>condition</code>), one way to adapt a callable (wrap it in a function, a lambda or a <code>functools.partial</code> that needs nothing or only the context), one way to run a handler once (<code>once=True</code>, whatever the condition), one way to extend (write a callable). A condition is a function that returns a boolean, called once per trigger, before the handler. No handler base class.</td>
 <td>the signatures</td>
 </tr>
 <tr>
@@ -1604,7 +1626,7 @@
 <p><code>minevent</code> is designed as a minimal event system with three core components:</p>
 <ol>
 <li><strong>Events</strong> - String identifiers representing things that happen</li>
-<li><strong>Event Handlers</strong> - Any callable that executes when events occur</li>
+<li><strong>Event Handlers</strong> - Callables that execute when events occur</li>
 <li><strong>Event Manager</strong> - Coordinator that manages handlers and triggers events</li>
 </ol>
 <h2 id="design-principles">Design Principles<a class="headerlink" href="#design-principles" title="Permanent link">&para;</a></h2>
@@ -1652,7 +1674,7 @@
 <h3 id="4-extensibility-through-composition">4. Extensibility Through Composition<a class="headerlink" href="#4-extensibility-through-composition" title="Permanent link">&para;</a></h3>
 <p>Extend functionality by composing callables:</p>
 <ul>
-<li>A handler is any callable: a function, a method, a callable object or a <code>functools.partial</code></li>
+<li>A handler is a callable: a function, a method, a callable object or a <code>functools.partial</code></li>
 <li>The options of a registration (<code>once</code>, <code>condition</code>) are arguments of
   <code>add_event_handler</code></li>
 <li>No base class and no inheritance</li>
@@ -1676,8 +1698,8 @@
 <ul>
 <li>No global state</li>
 <li>No automatic discovery</li>
-<li>No metaclasses and no discovery; the only introspection is the count of the parameters of
-  a handler at registration (does it need the context?) and the check of an awaitable result</li>
+<li>No metaclasses and no discovery; the only introspection is the signature of a handler or a
+  condition at registration (does it need the context?) and the check of an awaitable result</li>
 <li>What you write is what happens</li>
 </ul>
 <h2 id="core-components">Core Components<a class="headerlink" href="#core-components" title="Permanent link">&para;</a></h2>
@@ -1698,14 +1720,15 @@
   there is no hierarchy)</li>
 </ul>
 <h3 id="event-handler">Event Handler<a class="headerlink" href="#event-handler" title="Permanent link">&para;</a></h3>
-<p><strong>Design</strong>: A handler is any callable. The manager calls it as <code>handler(context)</code> if it has a
-parameter that accepts a positional argument, and as <code>handler()</code> otherwise.</p>
+<p><strong>Design</strong>: A handler is a callable that needs no argument or only the context. The manager calls
+it as <code>handler(context)</code> if it has a parameter without default, and as <code>handler()</code> otherwise (see
+<a href="#the-calling-rule">the calling rule</a>).</p>
 <p><strong>Rationale</strong>:</p>
 <ul>
 <li>A callable already is the extension point: there is no base class to learn or to import</li>
-<li>Arguments that do not come from the payload are bound with <code>functools.partial</code>, so there is one
-  way to bind them, and the parameter count sees the signature of the partial (the arguments that
-  it binds are not counted)</li>
+<li>Arguments that do not come from the payload are bound with <code>functools.partial</code>, a function or a
+  lambda, and the rule sees the signature of the partial (the arguments that it binds are not
+  counted)</li>
 <li>A handler that returns an awaitable (a coroutine function, or an object with
   <code>async def __call__</code>) is awaited by <code>atrigger_event</code>; <code>trigger_event</code> raises a <code>TypeError</code></li>
 <li>A <code>Subscription</code> identifies a registration, so the same callable can be registered several times</li>
@@ -1731,6 +1754,90 @@ parameter that accepts a positional argument, and as <code>handler()</code> othe
 <li><code>O(n)</code> event triggering (n = number of handlers)</li>
 <li><code>O(1)</code> removal of a registration</li>
 </ul>
+<h2 id="the-calling-rule">The Calling Rule<a class="headerlink" href="#the-calling-rule" title="Permanent link">&para;</a></h2>
+<p>A handler is written as <code>def g()</code> or <code>def g(context: Context)</code>, and any callable that can be called
+in one of these two ways works: <strong>the parameters that have a default are ignored.</strong> The same rule
+applies to a condition, with a boolean result. It is checked once, at registration.</p>
+<table>
+<thead>
+<tr>
+<th>Parameters without default</th>
+<th>Example</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>none: no parameter</td>
+<td><code>def g()</code></td>
+<td><code>g()</code></td>
+</tr>
+<tr>
+<td>none: only positional with defaults</td>
+<td><code>model.train</code>, <code>lambda i=i: ...</code></td>
+<td><code>g()</code></td>
+</tr>
+<tr>
+<td>none: only keyword-only with defaults</td>
+<td><code>def g(*, v=1)</code>, <code>partial(f, v=1)</code></td>
+<td><code>g()</code></td>
+</tr>
+<tr>
+<td>one, positional</td>
+<td><code>def g(context)</code></td>
+<td><code>g(context)</code></td>
+</tr>
+<tr>
+<td>one, positional, then defaults</td>
+<td><code>def g(context, verbose=False)</code></td>
+<td><code>g(context)</code></td>
+</tr>
+<tr>
+<td><code>*args</code>, with or without <code>**kwargs</code></td>
+<td><code>print</code>, <code>Mock()</code>, <code>AsyncMock()</code></td>
+<td><code>TypeError</code></td>
+</tr>
+<tr>
+<td><code>**kwargs</code></td>
+<td><code>def g(**kw)</code></td>
+<td><code>TypeError</code></td>
+</tr>
+<tr>
+<td>cannot be inspected</td>
+<td><code>max</code>, <code>dict.update</code></td>
+<td><code>TypeError</code></td>
+</tr>
+<tr>
+<td>two or more</td>
+<td><code>def g(a, b)</code></td>
+<td><code>TypeError</code></td>
+</tr>
+<tr>
+<td>one, keyword-only</td>
+<td><code>def g(*, epoch)</code></td>
+<td><code>TypeError</code></td>
+</tr>
+<tr>
+<td>(any) generator or async generator</td>
+<td><code>def g(): yield</code></td>
+<td><code>TypeError</code></td>
+</tr>
+</tbody>
+</table>
+<p>Coroutine functions, bound methods, callable objects, classes and <code>functools.partial</code> objects
+follow the same table.</p>
+<p>To adapt a rejected callable, wrap it in a function, a lambda or a <code>functools.partial</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_start"</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">)</span>  <span class="c1"># model.train()</span>
+<span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_start"</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>  <span class="c1"># a chosen value</span>
+<span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"batch_end"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">context</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="n">context</span><span class="p">))</span>  <span class="c1"># print the payload</span>
+<span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"e"</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"Hello!"</span><span class="p">))</span>  <span class="c1"># print a text</span>
+<span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"e"</span><span class="p">,</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">save</span><span class="p">,</span> <span class="s2">"model.pt"</span><span class="p">))</span>  <span class="c1"># save(path, context)</span>
+</code></pre></div>
+<p>In a test, <code>unittest.mock.create_autospec(func)</code> replaces <code>Mock()</code>: it has the signature of <code>func</code>.</p>
+<p>A lambda created in a loop reads the loop variable when it is <strong>called</strong>, but a default value is
+evaluated when the lambda is <strong>created</strong>. So <code>lambda i=i: print(i)</code> saves the current value, and it
+is called without argument. A handler that needs a saved value <strong>and</strong> the context takes the context
+first, without default: <code>lambda context, i=i: print(i, context["epoch"])</code>.</p>
 <h2 id="registration-options">Registration Options<a class="headerlink" href="#registration-options" title="Permanent link">&para;</a></h2>
 <p><strong>Design</strong>: The options of a registration are the keyword-only arguments of <code>add_event_handler</code>
 (<code>on</code> is its decorator form, with the same options). The <code>Subscription</code> stores them.</p>
@@ -1744,7 +1851,7 @@ parameter that accepts a positional argument, and as <code>handler()</code> othe
     └── For each subscription:
         ├── If it has a condition: evaluate it, and skip the handler if it is False
         ├── If it is a once registration: remove it, and skip it if it was already removed
-        └── Execute handler(context), or handler() if it has no parameter
+        └── Execute handler(context), or handler() if every parameter has a default
 </code></pre></div>
 <p><strong>Rationale</strong>:</p>
 <ul>
@@ -1779,7 +1886,7 @@ parameter that accepts a positional argument, and as <code>handler()</code> othe
 </code></pre></div>
 <h3 id="handler-execution">Handler Execution<a class="headerlink" href="#handler-execution" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code>Without condition:
-    handler(context)      # or handler() if it has no parameter
+    handler(context)      # or handler() if every parameter has a default
 
 With a condition:
     if condition():
@@ -1835,14 +1942,16 @@ class when the condition has a state:</p>
   trigger returns, a removed registration has not run.</li>
 <li><strong>Recursion.</strong> A handler that triggers its own event recurses until <code>RecursionError</code>.</li>
 <li><strong>Blocking.</strong> A synchronous handler in <code>atrigger_event</code> blocks the event loop.</li>
-<li><strong>A handler that returns a generator</strong> (a <code>def</code> with <code>yield</code>) does nothing: the generator is
-  never iterated. Only awaitables are detected (P10).</li>
+<li><strong>A callable object whose <code>__call__</code> is a generator</strong>, and a function that <em>returns</em> a
+  generator, do nothing: the generator is never iterated. Only generator <em>functions</em> are rejected
+  (P4) and awaitables detected (P10).</li>
+<li><strong>An optional parameter never receives the context.</strong> <code>def f(context=None)</code> is called as <code>f()</code> and
+  gets <code>None</code>, without an error: the context needs a parameter without default.</li>
+<li><strong>A decorated function</strong> is judged by the signature that <code>inspect.signature</code> reports: with
+  <code>functools.wraps</code>, that is the signature of the wrapped function.</li>
 <li><strong>Prompt reclamation.</strong> A manager that holds a registration is in a reference cycle (manager,
   dict, <code>Subscription</code>, manager): <code>del manager</code> does not free it until the garbage collector runs.
   Call <code>reset()</code> to release the handlers at a known point.</li>
-<li><strong>A callable whose signature cannot be inspected</strong> is called as <code>handler(context)</code>. If it takes no
-  argument, the call raises a <code>TypeError</code> with the note of the event and the handler: wrap it in a
-  function without parameter.</li>
 <li><strong>A mutable value of the payload.</strong> The <code>Context</code> is read-only, but its values are not copied: a
   handler that mutates a list is seen by the next handlers.</li>
 </ul>
