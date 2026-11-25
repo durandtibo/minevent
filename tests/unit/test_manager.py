@@ -27,6 +27,7 @@ from tests.unit.handlers import (
     CallableRecorder,
     CustomCondition,
     ModelStandIn,
+    UnnameableCallable,
     async_condition,
     condition_returning_a_coroutine,
     copy_context,
@@ -1622,6 +1623,29 @@ def test_event_manager_trigger_event_condition_raises_skips_next_handlers() -> N
     with pytest.raises(ValueError, match=r"boom"):
         manager.trigger_event("my_event")
     assert hello_handler.call_count == 0
+
+
+def test_event_manager_trigger_event_keeps_error_of_unnameable_handler() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", UnnameableCallable())
+    with pytest.raises(ValueError, match=r"boom") as exc_info:
+        manager.trigger_event("my_event")
+    assert exc_info.value.__notes__ == [
+        "raised by UnnameableCallable while handling the event 'my_event'"
+    ]
+
+
+def test_event_manager_trigger_event_keeps_error_of_unnameable_condition() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", noop_handler, condition=UnnameableCallable())
+    with pytest.raises(ValueError, match=r"boom") as exc_info:
+        manager.trigger_event("my_event")
+    assert exc_info.value.__notes__ == [
+        (
+            "raised by the condition UnnameableCallable of noop_handler "
+            "while handling the event 'my_event'"
+        )
+    ]
 
 
 @pytest.mark.parametrize("option", ["handler", "condition"])
