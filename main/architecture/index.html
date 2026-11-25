@@ -1571,7 +1571,7 @@
 <tr>
 <td>P16</td>
 <td>Fast and linear</td>
-<td>A trigger of one handler costs about 0.65 µs (it builds one <code>Context</code>), each extra handler about 0.1 µs, a registration plus its removal about 0.65 µs (Python 3.14, laptop). Registering <em>k</em> handlers and removing them in any order costs O(<em>k</em>) in total. Benchmarks guard it.</td>
+<td>A trigger of one handler costs about 0.36 µs (0.56 µs if a handler takes the <code>Context</code>, which is built only then), each extra handler about 0.1 µs, a registration plus its removal about 0.65 µs (Python 3.14, laptop). Registering <em>k</em> handlers and removing them in any order costs O(<em>k</em>) in total. Benchmarks guard it.</td>
 <td><code>tests/benchmarks/</code></td>
 </tr>
 <tr>

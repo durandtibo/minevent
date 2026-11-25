@@ -1793,8 +1793,9 @@ method.</p>
 <code>importlib.metadata</code> when <code>__version__</code> is read). It creates no <code>typing</code> object (<code>Protocol</code>,
 <code>NamedTuple</code>, <code>TypeVar</code>). It takes a few milliseconds, so a script can import it without a
 measurable cost.</p>
-<p>The cost of <code>trigger_event</code> is the cost of the handlers: about 0.65 µs for a manager with one trivial
-handler (it builds one <code>Context</code>), and about 0.1 µs for each additional handler on a laptop. A
+<p>The cost of <code>trigger_event</code> is the cost of the handlers: about 0.36 µs for a manager with one trivial
+handler, 0.56 µs if a handler takes the <code>Context</code> (it is built only then), and about 0.1 µs for each
+additional handler on a laptop. A
 condition avoids the work of an expensive handler (<code>PeriodicCondition</code>). To find a slow handler,
 time it or wrap it (see <a href="#debug">Debug</a>).</p>
 <p>A handler that is slow blocks the caller. Hand the work to an executor in the handler if the caller
