@@ -924,17 +924,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#minevent.manager.Subscription.filter_payload" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        filter_payload
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#minevent.manager.Subscription.handler" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1263,17 +1252,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#minevent.manager.Subscription.filter_payload" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        filter_payload
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#minevent.manager.Subscription.handler" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1404,9 +1382,11 @@ needed. Nothing is logged: to trace the registrations, read
 <code>get_subscriptions(event)</code>, or wrap the handler. <code>events</code>,
 <code>event in manager</code> and <code>len(manager)</code> inspect the registry, and
 <code>clear_event</code> and <code>reset</code> empty it.</p>
-<p>A handler is any callable, called as <code>handler(**payload)</code>. The
-options of a registration (<code>once</code>, <code>condition</code> and
-<code>filter_payload</code>) are the keyword-only arguments of
+<p>A handler is any callable. It is called as <code>handler(context)</code>
+with a read-only <code>Context</code> that holds the payload of the trigger
+if it has a parameter that accepts a positional argument, and as
+<code>handler()</code> otherwise. The options of a registration (<code>once</code>
+and <code>condition</code>) are the keyword-only arguments of
 <code>add_event_handler</code> and <code>on</code>. Use <code>functools.partial</code> to bind
 other arguments.</p>
 <p>Error policy: handlers run fail-fast. If a handler raises, the
@@ -1545,7 +1525,6 @@ it cannot be copied or pickled (<code>copy.copy</code>, <code>copy.deepcopy</cod
   
       module-attribute
   " href="../conditions/#minevent.conditions.Condition">Condition</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">filter_payload</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="minevent.manager.Subscription" href="#minevent.manager.Subscription">Subscription</a></span>
 </code></pre></div>
 
@@ -1553,10 +1532,15 @@ it cannot be copied or pickled (<code>copy.copy</code>, <code>copy.deepcopy</cod
 
         <p>Add a handler to an event.</p>
 <p>The handler will be called every time the specified event is
-triggered, as <code>handler(**payload)</code>. Multiple handlers can be
-registered to the same event, and they will be executed in the
-order they were added. Use <code>functools.partial</code> to bind
-other arguments.</p>
+triggered. It is called as <code>handler(context)</code>, where
+<code>context</code> is the read-only <code>Context</code> built from the payload
+of the trigger, if it has a parameter that accepts a
+positional argument (or if its signature cannot be
+inspected), and as <code>handler()</code> otherwise. This is checked
+once, at registration, and it never matches keys. Multiple
+handlers can be registered to the same event, and they will be
+executed in the order they were added. Use
+<code>functools.partial</code> to bind other arguments.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -1653,31 +1637,6 @@ registrations. Default is <code>None</code>.</p>
                   <code>None</code>
             </td>
           </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>filter_payload</code>
-            </td>
-            <td>
-                  <code><span title="bool">bool</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>If <code>True</code>, only the payload keys that
-the signature of the handler accepts are passed to
-it, so handlers with different needs can share an
-event without <code>**kwargs</code>. The accepted keys are
-computed once, at registration. A handler with a
-<code>**kwargs</code> parameter, or whose signature cannot be
-inspected, receives the whole payload. The signature
-of a <code>functools.partial</code> does not contain the
-positional arguments that it binds. Default is
-<code>False</code>.</p>
-              </div>
-            </td>
-            <td>
-                  <code>False</code>
-            </td>
-          </tr>
       </tbody>
     </table>
 
@@ -1749,7 +1708,12 @@ is not callable, or if <code>condition</code> is neither
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">)</span>
 <span class="go">Hello!</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"greet"</span><span class="p">,</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="nb">print</span><span class="p">,</span> <span class="s2">"Hello!"</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">greet_handler</span><span class="p">(</span><span class="n">message</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="s2">"greet"</span><span class="p">,</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">greet_handler</span><span class="p">,</span> <span class="s2">"Hello!"</span><span class="p">)</span>
+<span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"greet"</span><span class="p">)</span>
 <span class="go">Hello!</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span>
@@ -1758,10 +1722,10 @@ is not callable, or if <code>condition</code> is neither
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"tick"</span><span class="p">)</span>
 <span class="go">Hello!</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"tick"</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">epoch_handler</span><span class="p">(</span><span class="n">epoch</span><span class="p">):</span>
-<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">epoch_handler</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"epoch </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">'epoch'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <span class="gp">...</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">epoch_handler</span><span class="p">,</span> <span class="n">filter_payload</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">epoch_handler</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
 <span class="go">epoch 3</span>
 </code></pre></div>
@@ -1838,8 +1802,8 @@ while they run.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The data passed to the handlers as keyword
-arguments.</p>
+                <p>The data passed to the handlers in the
+<code>Context</code>.</p>
               </div>
             </td>
             <td>
@@ -1879,8 +1843,8 @@ raised by a handler or a condition also propagates.</p>
   <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">hello_handler</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
-<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Hello </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">!"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">hello_handler</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Hello </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">'name'</span><span class="p">]</span><span class="si">}</span><span class="s2">!"</span><span class="p">)</span>
 <span class="gp">...</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">hello_handler</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">manager</span><span class="o">.</span><span class="n">atrigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"John"</span><span class="p">))</span>
@@ -2117,7 +2081,6 @@ returned tuple.</p>
   
       module-attribute
   " href="../conditions/#minevent.conditions.Condition">Condition</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">filter_payload</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="collections.abc.Callable">Callable</span></span><span class="p">[[</span><span class="n"><span title="minevent.manager._F">_F</span></span><span class="p">],</span> <span class="n"><span title="minevent.manager._F">_F</span></span><span class="p">]</span>
 </code></pre></div>
 
@@ -2125,8 +2088,8 @@ returned tuple.</p>
 
         <p>Create a decorator that registers a function as a handler.</p>
 <p>The decorated function is registered with
-<code>add_event_handler(event, func, once=once, condition=condition,
-filter_payload=filter_payload)</code> and returned unchanged. Use
+<code>add_event_handler(event, func, once=once, condition=condition)</code>
+and returned unchanged. Use
 <code>add_event_handler</code> if you need the <code>Subscription</code>.</p>
 
 
@@ -2196,24 +2159,6 @@ handler. See <code>add_event_handler</code>. Default is <code>None</code>.</p>
                   <code>None</code>
             </td>
           </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>filter_payload</code>
-            </td>
-            <td>
-                  <code><span title="bool">bool</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>If <code>True</code>, only the payload keys that
-the function accepts are passed to it. See
-<code>add_event_handler</code>. Default is <code>False</code>.</p>
-              </div>
-            </td>
-            <td>
-                  <code>False</code>
-            </td>
-          </tr>
       </tbody>
     </table>
 
@@ -2272,16 +2217,16 @@ callable.</p>
   <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nd">@manager</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">)</span>
-<span class="gp">... </span><span class="k">def</span><span class="w"> </span><span class="nf">hello_handler</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
-<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Hello </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">!"</span><span class="p">)</span>
+<span class="gp">... </span><span class="k">def</span><span class="w"> </span><span class="nf">hello_handler</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Hello </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">'name'</span><span class="p">]</span><span class="si">}</span><span class="s2">!"</span><span class="p">)</span>
 <span class="gp">...</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"Bob"</span><span class="p">)</span>
 <span class="go">Hello Bob!</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">hello_handler</span><span class="p">(</span><span class="s2">"Alice"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hello_handler</span><span class="p">({</span><span class="s2">"name"</span><span class="p">:</span> <span class="s2">"Alice"</span><span class="p">})</span>
 <span class="go">Hello Alice!</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nd">@manager</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">filter_payload</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="gp">... </span><span class="k">def</span><span class="w"> </span><span class="nf">log_epoch</span><span class="p">(</span><span class="n">epoch</span><span class="p">):</span>
-<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nd">@manager</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">)</span>
+<span class="gp">... </span><span class="k">def</span><span class="w"> </span><span class="nf">log_epoch</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"epoch </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">'epoch'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <span class="gp">...</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">loss</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
 <span class="go">epoch 3</span>
@@ -2369,14 +2314,18 @@ runs.</p>
 but nothing stops the recursion: a handler that always
 triggers its own event raises a <code>RecursionError</code>. Guard the
 recursive trigger with a condition or a flag.</p>
-<p>The keyword arguments <code>payload</code> are passed to every
-handler as <code>handler(**payload)</code>. Without payload, handlers
-are called without argument. A handler that does not accept
-the payload raises a <code>TypeError</code>, unless it was registered
-with <code>filter_payload=True</code>, which passes only the keys that
-its signature accepts. The payload can use any key, including
-<code>event</code> and <code>self</code>, because <code>event</code> is positional-only.
-All the handlers receive the same payload objects.</p>
+<p>The keyword arguments <code>payload</code> are copied into one
+read-only <code>Context</code> that is built once per trigger and
+shared by all the handlers. A handler that has a parameter
+that accepts a positional argument is called as
+<code>handler(context)</code>, and the other handlers are called as
+<code>handler()</code>. A handler reads the keys it needs and decides
+what to do when one is missing: <code>context["key"]</code> raises a
+<code>KeyError</code>, and <code>context.get("key", default)</code> returns a
+default. Extra keys never break a handler. The payload can
+use any key, including <code>event</code> and <code>self</code>, because
+<code>event</code> is positional-only. All the handlers receive the
+same payload objects.</p>
 <p>Before its handler, a registration evaluates its condition
 (the handler is skipped if it is <code>False</code>), and a <code>once</code>
 registration is removed.</p>
@@ -2418,8 +2367,8 @@ registration is removed.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The data passed to the handlers as keyword
-arguments.</p>
+                <p>The data passed to the handlers in the
+<code>Context</code>.</p>
               </div>
             </td>
             <td>
@@ -2469,8 +2418,8 @@ own event.</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">hello_handler</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">)</span>
 <span class="go">Hello!</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">epoch_handler</span><span class="p">(</span><span class="n">epoch</span><span class="p">):</span>
-<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">epoch_handler</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"epoch </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">'epoch'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <span class="gp">...</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">epoch_handler</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
@@ -2615,23 +2564,6 @@ its first execution. Default is <code>False</code>.</p>
             </td>
             <td>
                   <code>None</code>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>filter_payload</code>
-            </td>
-            <td>
-                  <code><span title="bool">bool</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>If <code>True</code>, only the payload keys that the
-handler accepts are passed to it. Default is <code>False</code>.</p>
-              </div>
-            </td>
-            <td>
-                  <code>False</code>
             </td>
           </tr>
       </tbody>
@@ -2829,55 +2761,6 @@ its registry.</p>
             <td>
               <div class="doc-md-description">
                 <p>The event name.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-attribute">
-
-
-
-<h4 id="minevent.manager.Subscription.filter_payload" class="doc doc-heading">
-            <span class="doc doc-object-name doc-attribute-name">minevent.manager.Subscription.filter_payload</span>
-
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-property"><code>property</code></small>
-  </span>
-
-<a href="#minevent.manager.Subscription.filter_payload" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="n">filter_payload</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span>
-</code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Indicate if the payload is filtered by the signature of the
-handler.</p>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="bool">bool</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p><code>True</code> if only the payload keys accepted by the handler
-are passed to it, otherwise <code>False</code>.</p>
               </div>
             </td>
           </tr>
