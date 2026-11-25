@@ -977,14 +977,16 @@ def test_event_manager_on_condition_evaluated_before_handler() -> None:
     assert calls == ["condition", "handler"]
 
 
-def test_event_manager_trigger_event_condition_reads_the_payload() -> None:
+@pytest.mark.parametrize(("epoch", "call_count"), [(0, 0), (1, 0), (2, 1), (3, 1)])
+def test_event_manager_trigger_event_condition_reads_the_payload(
+    epoch: int, call_count: int
+) -> None:
     manager = EventManager()
     manager.add_event_handler(
         "my_event", hello_handler, condition=lambda context: context.get("epoch", 0) >= 2
     )
-    for epoch in range(4):
-        manager.trigger_event("my_event", {"epoch": epoch})
-    assert hello_handler.call_count == 2
+    manager.trigger_event("my_event", {"epoch": epoch})
+    assert hello_handler.call_count == call_count
 
 
 def test_event_manager_on_condition_reads_the_payload() -> None:
@@ -1896,6 +1898,75 @@ def test_event_manager_trigger_event_autospec_handler() -> None:
     manager.add_event_handler("my_event", handler)
     manager.trigger_event("my_event", {"epoch": 3})
     handler.assert_called_once_with({"epoch": 3})
+
+
+#############################
+#     Tests for _remove     #
+#############################
+
+
+def test_remove_removes_the_registration() -> None:
+    manager = EventManager()
+    first = manager.add_event_handler("my_event", noop_handler)
+    second = manager.add_event_handler("my_event", noop_handler)
+    manager._remove(first)
+    assert manager.get_subscriptions("my_event") == (second,)
+
+
+def test_remove_returns_true() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", noop_handler)
+    assert manager._remove(subscription)
+
+
+def test_remove_deactivates_the_registration() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", noop_handler)
+    manager._remove(subscription)
+    assert not subscription.active
+
+
+def test_remove_already_removed_returns_false() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", noop_handler)
+    manager._remove(subscription)
+    assert not manager._remove(subscription)
+
+
+def test_remove_already_removed_keeps_the_other_registrations() -> None:
+    manager = EventManager()
+    first = manager.add_event_handler("my_event", noop_handler)
+    second = manager.add_event_handler("my_event", noop_handler)
+    manager._remove(first)
+    manager._remove(first)
+    assert manager.get_subscriptions("my_event") == (second,)
+
+
+def test_remove_last_registration_drops_the_event() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", noop_handler)
+    manager._remove(subscription)
+    assert manager.events == []
+
+
+def test_remove_keeps_the_other_events() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", noop_handler)
+    manager.add_event_handler("my_other_event", noop_handler)
+    manager._remove(subscription)
+    assert manager.events == ["my_other_event"]
+
+
+def test_remove_unknown_event_returns_false() -> None:
+    subscription = Subscription(EventManager(), "my_event", noop_handler)
+    assert not EventManager()._remove(subscription)
+
+
+def test_remove_never_registered_stays_active() -> None:
+    manager = EventManager()
+    subscription = Subscription(manager, "my_event", noop_handler)
+    manager._remove(subscription)
+    assert subscription.active
 
 
 #################################
