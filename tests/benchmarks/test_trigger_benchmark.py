@@ -57,13 +57,13 @@ def test_trigger_event_handlers_benchmark(benchmark: BenchmarkFixture, num_handl
 def test_trigger_event_payload_benchmark(benchmark: BenchmarkFixture) -> None:
     manager = EventManager()
     manager.add_event_handler("e", with_payload)
-    benchmark(manager.trigger_event, "e", epoch=1, loss=0.5)
+    benchmark(manager.trigger_event, "e", {"epoch": 1, "loss": 0.5})
 
 
 def test_trigger_event_extra_payload_keys_benchmark(benchmark: BenchmarkFixture) -> None:
     manager = EventManager()
     manager.add_event_handler("e", with_payload)
-    benchmark(manager.trigger_event, "e", epoch=1, loss=0.5, extra=1)
+    benchmark(manager.trigger_event, "e", {"epoch": 1, "loss": 0.5, "extra": 1})
 
 
 def test_trigger_event_periodic_condition_benchmark(benchmark: BenchmarkFixture) -> None:

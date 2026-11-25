@@ -7,7 +7,7 @@ import subprocess
 import sys
 
 import minevent
-from minevent import EventManager
+from minevent import Context, EventManager
 
 logger = logging.getLogger(__name__)
 
@@ -42,8 +42,8 @@ def check_payload() -> None:
 
     received: list[dict[str, object]] = []
 
-    def handler(**kwargs: object) -> None:
-        received.append(kwargs)
+    def handler(context: Context) -> None:
+        received.append(dict(context))
 
     event_manager = EventManager()
     event_manager.add_event_handler("my_event", handler)
@@ -67,10 +67,10 @@ def check_subscription() -> None:
 def check_async_trigger() -> None:
     logger.info("Checking atrigger_event...")
 
-    calls: list[int] = []
+    calls: list[object] = []
 
-    async def handler(value: int) -> None:
-        calls.append(value)
+    async def handler(context: Context) -> None:
+        calls.append(context["value"])
 
     event_manager = EventManager()
     event_manager.add_event_handler("my_event", handler)
