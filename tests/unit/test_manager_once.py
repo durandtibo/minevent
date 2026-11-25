@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 import pytest
 
 from minevent import (
     AfterNCondition,
+    Context,
     EventManager,
     Subscription,
 )
@@ -37,9 +37,9 @@ def trigger_n_times(manager: EventManager, n_triggers: int) -> None:
 
 
 @trace
-def payload_handler(*args: Any, **kwargs: Any) -> None:
-    r"""Implements a handler that accepts any arguments."""
-    logger.info("Payload: %s %s", args, kwargs)
+def payload_handler(context: Context) -> None:
+    r"""Implements a handler that receives the context."""
+    logger.info("Payload: %s", context)
 
 
 ############################################
@@ -122,7 +122,7 @@ def test_event_manager_subscription_remove_after_clear_event() -> None:
 def test_event_manager_subscription_remove_keeps_other_events() -> None:
     manager = EventManager()
     subscription = manager.add_event_handler("my_event", hello_handler)
-    manager.add_event_handler("my_event", print)
+    manager.add_event_handler("my_event", lambda: None)
     subscription.remove()
     assert manager.events == ["my_event"]
 

@@ -240,11 +240,14 @@ class Subscription:
     Example:
         ```pycon
         >>> from minevent import EventManager
+        >>> def hello_handler():
+        ...     print("Hello!")
+        ...
         >>> manager = EventManager()
-        >>> subscription = manager.add_event_handler("my_event", print)
+        >>> subscription = manager.add_event_handler("my_event", hello_handler)
         >>> subscription.event
         'my_event'
-        >>> subscription.handler is print
+        >>> subscription.handler is hello_handler
         True
         >>> subscription.active
         True
@@ -256,7 +259,7 @@ class Subscription:
         False
         >>> manager.events
         []
-        >>> with manager.add_event_handler("my_event", print):
+        >>> with manager.add_event_handler("my_event", hello_handler):
         ...     manager.events
         ...
         ['my_event']
@@ -528,7 +531,7 @@ class EventManager:
             >>> manager = EventManager()
             >>> manager.events
             []
-            >>> _ = manager.add_event_handler("my_event", print)
+            >>> _ = manager.add_event_handler("my_event", lambda: None)
             >>> manager.events
             ['my_event']
             >>> "my_event" in manager
@@ -561,7 +564,9 @@ class EventManager:
             >>> manager = EventManager()
             >>> manager.get_subscriptions("my_event")
             ()
-            >>> handler = print
+            >>> def handler():
+            ...     print("Hello!")
+            ...
             >>> subscription = manager.add_event_handler("my_event", handler)
             >>> manager.get_subscriptions("my_event") == (subscription,)
             True
@@ -922,7 +927,7 @@ class EventManager:
             ```pycon
             >>> from minevent import EventManager
             >>> manager = EventManager()
-            >>> _ = manager.add_event_handler("my_event", print)
+            >>> _ = manager.add_event_handler("my_event", lambda: None)
             >>> manager.clear_event("my_event")
             >>> manager.events
             []
