@@ -46,8 +46,9 @@ the new API are in the
 - **Events**: an event name must be a `str`, such as a `StrEnum` member (other types, a member of
   a plain `Enum` included, raise a `TypeError`; they were converted with `str` at registration).
 - **Dispatch**: a trigger runs the registrations that exist when it starts: a handler added by a
-  running handler runs at the next trigger, and a registration removed before its turn does not
-  run. Triggering an event without handler no longer creates it.
+  running handler runs at the next trigger, and a registration removed before its handler is
+  called, by another handler or by its own condition, does not run. Triggering an event without
+  handler no longer creates it.
 - **Manager**: `last_triggered_event` is removed, the `repr` is simpler
   (`EventManager(events={'my_event': 1})`), a manager cannot be copied or pickled, and nothing is
   logged (`0.5.0` logged at the `DEBUG` level).

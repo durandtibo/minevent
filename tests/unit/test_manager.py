@@ -1316,15 +1316,41 @@ def test_event_manager_trigger_event_removed_registration_does_not_evaluate_cond
     assert condition.call_count == 0
 
 
-def test_event_manager_trigger_event_lost_claim_does_not_call_handler() -> None:
+@pytest.mark.parametrize("once", [True, False])
+def test_event_manager_trigger_event_condition_removes_registration(once: bool) -> None:
     manager = EventManager()
 
     def condition() -> bool:
         return manager.get_subscriptions("my_event")[0].remove()
 
-    manager.add_event_handler("my_event", hello_handler, once=True, condition=condition)
+    manager.add_event_handler("my_event", hello_handler, once=once, condition=condition)
     manager.trigger_event("my_event")
     assert hello_handler.call_count == 0
+
+
+@pytest.mark.parametrize("once", [True, False])
+def test_event_manager_trigger_event_condition_resets_manager(once: bool) -> None:
+    manager = EventManager()
+
+    def condition() -> bool:
+        manager.reset()
+        return True
+
+    manager.add_event_handler("my_event", hello_handler, once=once, condition=condition)
+    manager.trigger_event("my_event")
+    assert hello_handler.call_count == 0
+
+
+def test_event_manager_trigger_event_condition_removes_registration_runs_next_handler() -> None:
+    manager = EventManager()
+
+    def condition() -> bool:
+        return manager.get_subscriptions("my_event")[0].remove()
+
+    manager.add_event_handler("my_event", noop_handler, condition=condition)
+    manager.add_event_handler("my_event", hello_handler)
+    manager.trigger_event("my_event")
+    assert hello_handler.call_count == 1
 
 
 #############################

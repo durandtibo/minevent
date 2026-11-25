@@ -355,15 +355,15 @@ def subscribe(handler: Callable[..., object] = noop_handler, **kwargs: Any) -> S
     return EventManager().add_event_handler("my_event", handler, **kwargs)
 
 
-def subscribe_removed_by_its_condition(handler: Callable[..., object]) -> Subscription:
-    r"""Register a ``once`` handler whose condition removes the
-    registration, as another thread that wins the claim would."""
+def subscribe_removed_by_its_condition(*, once: bool) -> Subscription:
+    r"""Register a handler whose condition removes the registration and
+    returns ``True``."""
     manager = EventManager()
 
     def condition() -> bool:
         return manager.get_subscriptions("my_event")[0].remove()
 
-    return manager.add_event_handler("my_event", handler, once=True, condition=condition)
+    return manager.add_event_handler("my_event", noop_handler, once=once, condition=condition)
 
 
 def test_claim_without_option() -> None:
@@ -397,8 +397,15 @@ def test_claim_once_second_time() -> None:
     assert not subscription._claim(Context())
 
 
-def test_claim_once_lost() -> None:
-    subscription = subscribe_removed_by_its_condition(noop_handler)
+@pytest.mark.parametrize("once", [True, False])
+def test_claim_condition_removes_registration(once: bool) -> None:
+    subscription = subscribe_removed_by_its_condition(once=once)
+    assert not subscription._claim(Context())
+
+
+def test_claim_removed_registration_with_condition() -> None:
+    subscription = subscribe(condition=lambda: True)
+    subscription.remove()
     assert not subscription._claim(Context())
 
 

@@ -81,7 +81,8 @@ data, build one `Context` and reuse it.
 1. The handler is registered for that event: `manager.get_subscriptions("my_event")`.
 2. The event name matches exactly (case-sensitive).
 3. The condition returns `True` (a `PeriodicCondition(freq=5)` skips four calls out of five).
-4. It was not registered with `once=True` and already consumed: `subscription.active` is `False`.
+4. The registration was not removed, for example consumed by `once=True` or removed by its own
+   condition: `subscription.active` is `True`.
 5. A handler of the same event ahead of it raised: the next handlers are skipped.
 
 ### `KeyError: "key 'epoch' not found in the context; ..."`

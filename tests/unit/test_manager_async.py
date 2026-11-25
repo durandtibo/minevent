@@ -181,6 +181,18 @@ async def test_event_manager_atrigger_event_removed_registration_does_not_run() 
     assert hello_handler.call_count == 0
 
 
+@pytest.mark.parametrize("once", [True, False])
+async def test_event_manager_atrigger_event_condition_removes_registration(once: bool) -> None:
+    manager = EventManager()
+
+    def condition() -> bool:
+        return manager.get_subscriptions("my_event")[0].remove()
+
+    manager.add_event_handler("my_event", hello_handler, once=once, condition=condition)
+    await manager.atrigger_event("my_event")
+    assert hello_handler.call_count == 0
+
+
 async def test_event_manager_atrigger_event_on_reads_context() -> None:
     manager = EventManager()
     epochs: list[object] = []
