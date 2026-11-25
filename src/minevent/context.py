@@ -69,6 +69,36 @@ class Context(Mapping[str, object]):
                 raise TypeError(msg)
         self._data = MappingProxyType(dict(data))
 
+    @classmethod
+    def from_keywords(cls, data: dict[str, object]) -> Context:
+        r"""Create a context from the keyword arguments of a call.
+
+        The keys of keyword arguments are always ``str``, so this
+        constructor skips the validation of ``Context(data)``. It
+        copies ``data`` like ``Context(data)`` does.
+
+        Args:
+            data: The keyword arguments, as a dict whose keys are all
+                ``str``. The dict is not checked.
+
+        Returns:
+            The context.
+
+        Example:
+            ```pycon
+            >>> from minevent import Context
+            >>> def make(**payload):
+            ...     return Context.from_keywords(payload)
+            ...
+            >>> make(epoch=3)
+            Context({'epoch': 3})
+
+            ```
+        """
+        context = cls.__new__(cls)
+        context._data = MappingProxyType(dict(data))
+        return context
+
     def __getitem__(self, key: str) -> object:
         try:
             return self._data[key]

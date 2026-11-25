@@ -23,6 +23,7 @@ from minevent.manager import (
     _check_event,
     _check_not_awaitable,
     _describe,
+    _make_context,
     _needs_context,
 )
 from tests.unit.utils import raised, trace
@@ -1401,6 +1402,50 @@ def test_needs_context_lambda_without_parameter() -> None:
 
 def test_needs_context_lambda_with_parameter() -> None:
     assert _needs_context(lambda context: context)
+
+
+###################################
+#     Tests for _make_context     #
+###################################
+
+
+def test_make_context_handler_with_parameter() -> None:
+    subscriptions = (Subscription(EventManager(), "my_event", copy_context),)
+    assert _make_context(subscriptions, {"a": 1}) == {"a": 1}
+
+
+def test_make_context_is_a_context() -> None:
+    subscriptions = (Subscription(EventManager(), "my_event", copy_context),)
+    assert isinstance(_make_context(subscriptions, {"a": 1}), Context)
+
+
+def test_make_context_handler_without_parameter() -> None:
+    subscriptions = (Subscription(EventManager(), "my_event", hello_handler),)
+    assert _make_context(subscriptions, {"a": 1}) == {}
+
+
+def test_make_context_no_subscription() -> None:
+    assert _make_context((), {"a": 1}) == {}
+
+
+def test_make_context_one_handler_with_parameter_among_others() -> None:
+    manager = EventManager()
+    subscriptions = (
+        Subscription(manager, "my_event", hello_handler),
+        Subscription(manager, "my_event", copy_context),
+    )
+    assert _make_context(subscriptions, {"a": 1}) == {"a": 1}
+
+
+def test_make_context_handlers_without_parameter_share_the_empty_context() -> None:
+    subscriptions = (Subscription(EventManager(), "my_event", hello_handler),)
+    assert _make_context(subscriptions, {"a": 1}) is _make_context(subscriptions, {"b": 2})
+
+
+def test_make_context_does_not_mutate_the_payload() -> None:
+    payload: dict[str, object] = {"a": 1}
+    _make_context((Subscription(EventManager(), "my_event", copy_context),), payload)
+    assert payload == {"a": 1}
 
 
 def test_subscription_active_after_add() -> None:
