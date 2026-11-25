@@ -1,20 +1,12 @@
 r"""Contain the main features of the ``minevent`` package.
 
 ``minevent`` is a minimal event system with three concepts: an event (a
-case-sensitive string), a handler (a callable that needs no argument or
-only the context) and an event manager (``EventManager``) that stores
-the handlers and triggers the events.
-
-- ``EventManager.add_event_handler`` (or the ``on`` decorator) registers
-  a handler (``Handler``) and returns a ``Subscription``, the
-  registration itself, that removes exactly that registration.
-- ``EventManager.trigger_event`` runs the handlers in the order they
-  were registered and passes its ``context`` argument (a mapping, the
-  payload) to them in a read-only ``Context``. ``EventManager.atrigger_event`` also
-  awaits the coroutine handlers.
-- A condition is any function that returns a boolean, without parameter
-  or with the ``Context`` of the trigger (``Condition``). ``PeriodicCondition`` and ``AfterNCondition`` are
-  provided, and they control when a handler runs.
+case-sensitive string), a handler (``Handler``) and an event manager
+(``EventManager``) that registers the handlers and triggers the events.
+A registration returns a ``Subscription``, the handlers receive the
+payload of a trigger in a read-only ``Context``, and a ``Condition``,
+such as ``PeriodicCondition`` or ``AfterNCondition``, controls when a
+handler runs.
 
 The package has no dependency, and ``__version__`` is the version of the
 installed package.
@@ -71,4 +63,5 @@ def __getattr__(name: str) -> object:
 
 
 def __dir__() -> list[str]:
-    return sorted([*globals(), "__version__"])
+    # A set: ``__version__`` is in the globals once it has been read.
+    return sorted({*globals(), "__version__"})

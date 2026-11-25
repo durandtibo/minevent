@@ -1,26 +1,12 @@
 r"""Implement some conditions that can be used in the event system.
 
-A condition is any function that returns a boolean: a lambda, a
-method, or an object with a ``__call__(self) -> bool`` method like the
-conditions of this module. It is called as ``condition()``, or as
-``condition(context)`` with the read-only ``Context`` of the trigger if
-it has a parameter without default, so it can depend on the payload:
-``lambda context: context.get("epoch", 0) > 5``. Like a handler, it
-keeps the values of the parameters that have a default, and any other
-signature is rejected at registration. A condition is synchronous, in
-``atrigger_event`` too: a coroutine function is rejected at
-registration, and the trigger raises a ``TypeError`` if a condition
-returns an awaitable.
-``Condition`` is the type alias
-``Callable[[], bool] | Callable[[Context], bool]``. A condition is
-called each time the event is triggered, before the handler, and the
-handler is executed only if it returns ``True``. A condition can keep a
-state between calls. The built-in conditions take no parameter.
-
-To combine conditions, write a function. The function decides which
-conditions are evaluated: ``lambda: a() and b()`` skips ``b`` when
-``a`` is ``False``, while ``lambda: all([a(), b()])`` evaluates both,
-so stateful conditions advance together.
+A condition is any synchronous function that returns a boolean (a
+lambda, a method or a callable object). It is called before its handler,
+like a handler: as ``condition()``, or as ``condition(context)`` with
+the read-only ``Context`` of the trigger (see
+``minevent.calls.needs_context``). ``Condition`` is its type, and
+``EventManager.add_event_handler`` states how a registration uses it.
+The user guide shows how to combine conditions.
 
 Example:
     ```pycon
