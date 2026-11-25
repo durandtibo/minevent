@@ -52,7 +52,7 @@ Changes since `0.5.0` (the pull request numbers are in the commit history of `ma
   - A trigger of one trivial handler costs 0.33 µs with no data (0.34 µs before) and 0.7 µs with a
     small dict, which is copied into a `Context` (Python 3.14, laptop).
   - **Breaking**: the payload is not given as keyword arguments any more:
-    `trigger_event("e", epoch=3)` becomes `trigger_event("e", {"epoch": 3})` (#848). The keys can be
+    `trigger_event("e", epoch=3)` becomes `trigger_event("e", {"epoch": 3})` (#849). The keys can be
     any `str`, and `**payload` is no longer a way to pass them: use `trigger_event("e", payload)`.
 
 - `BaseCondition` (with `evaluate` and `equal`) is removed. A condition is a function without
@@ -72,7 +72,7 @@ condition=AfterNCondition(2)` runs once, on the third trigger (it never ran). A 
 
 - `EventManager.events`, `__contains__`, `clear_event` and `reset`.
 - `trigger_event(event, context=None, /)` passes the mapping `context` to the handlers in a
-  read-only `Context` (#841, #848). A `Context` is passed as is, and `None` means no data.
+  read-only `Context` (#841, #849). A `Context` is passed as is, and `None` means no data.
 - A condition that has a parameter is called with the `Context` of the trigger, with the rule of the
   handlers (`condition(context)`, or `condition()` without parameter), so it can depend on the
   payload. `Condition` is `Callable[[], bool] | Callable[[Context], bool]`. Existing conditions are
