@@ -46,9 +46,9 @@ def hello_handler() -> None:
 
 
 @trace
-async def async_handler(*args: Any, **kwargs: Any) -> None:
-    r"""Implements a coroutine handler that accepts any arguments."""
-    logger.info("Async payload: %s %s", args, kwargs)
+async def async_handler(context: Context) -> None:
+    r"""Implements a coroutine handler that receives the context."""
+    logger.info("Async payload: %s", context)
 
 
 async def test_event_manager_atrigger_event_awaits_coroutine_handler() -> None:

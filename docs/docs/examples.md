@@ -447,14 +447,18 @@ To keep the other handlers running, catch the exception in the handler.
 A handler is a plain callable, so test it without a manager. Test the wiring with a mock:
 
 ```python
-from unittest.mock import Mock
+from unittest.mock import create_autospec
 
-from minevent import EventManager
+from minevent import Context, EventManager
+
+
+def log_epoch(context: Context) -> None:
+    print(f"epoch {context['epoch']}")
 
 
 def test_epoch_end_calls_the_handler():
     manager = EventManager()
-    handler = Mock()
+    handler = create_autospec(log_epoch)  # a mock with the signature of log_epoch
     manager.add_event_handler("epoch_end", handler)
     manager.trigger_event("epoch_end", {"epoch": 1})
     handler.assert_called_once_with({"epoch": 1})
@@ -464,14 +468,18 @@ An async handler is tested with `asyncio.run` (or the async support of your test
 
 ```python
 import asyncio
-from unittest.mock import AsyncMock
+from unittest.mock import create_autospec
 
-from minevent import EventManager
+from minevent import Context, EventManager
+
+
+async def upload(context: Context) -> None:
+    await asyncio.sleep(0)
 
 
 def test_epoch_end_awaits_the_handler():
     manager = EventManager()
-    handler = AsyncMock()
+    handler = create_autospec(upload)  # an async mock with the signature of upload
     manager.add_event_handler("epoch_end", handler)
     asyncio.run(manager.atrigger_event("epoch_end", {"epoch": 1}))
     handler.assert_awaited_once_with({"epoch": 1})

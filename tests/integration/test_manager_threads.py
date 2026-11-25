@@ -181,7 +181,8 @@ def test_remove_from_threads_registrations_added_by_other_threads() -> None:
     by other threads, each exactly once."""
     manager = EventManager()
     subscriptions = [
-        manager.add_event_handler("my_event", print) for _ in range(NUM_THREADS * NUM_ITERATIONS)
+        manager.add_event_handler("my_event", lambda: None)
+        for _ in range(NUM_THREADS * NUM_ITERATIONS)
     ]
     results: list[bool] = []
     lock = threading.Lock()

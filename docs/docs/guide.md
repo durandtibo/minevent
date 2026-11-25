@@ -197,8 +197,11 @@ a different `Subscription`.
 
 ```pycon
 >>> from minevent import EventManager
+>>> def hello_handler():
+...     print("Hello!")
+...
 >>> manager = EventManager()
->>> subscription = manager.add_event_handler("my_event", print)
+>>> subscription = manager.add_event_handler("my_event", hello_handler)
 >>> subscription.active
 True
 >>> subscription.remove()
@@ -292,12 +295,18 @@ method.
 Test a handler without a manager, and the wiring with a mock:
 
 ```python
-from unittest.mock import Mock
+from unittest.mock import create_autospec
+
+from minevent import Context, EventManager
+
+
+def log_epoch(context: Context) -> None:
+    print(f"epoch {context['epoch']}")
 
 
 def test_epoch_end_calls_handler():
     manager = EventManager()
-    mock = Mock()
+    mock = create_autospec(log_epoch)  # it has the signature of log_epoch
     manager.add_event_handler("epoch_end", mock)
     manager.trigger_event("epoch_end", {"epoch": 1})
     mock.assert_called_once_with({"epoch": 1})
@@ -375,7 +384,7 @@ The registration is already removed. This is not an error: `remove()` is idempot
 
 - `print(manager)` shows the number of handlers of each event, and `manager.get_subscriptions(e)`
   the registrations; each one prints its event and the name of its handler
-  (`Subscription(event='my_event', handler='print')`).
+  (`Subscription(event='my_event', handler='log_epoch')`).
 - `minevent` does not log. Wrap a handler to trace it (the wrapper is a plain callable):
 
   ```python
