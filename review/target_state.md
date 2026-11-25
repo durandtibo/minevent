@@ -183,6 +183,43 @@ In a test, `unittest.mock.create_autospec(func)` replaces `Mock()`: it has the s
 [verified]. `on` applies the rule when the decorator is applied, as it applies the callable check
 today.
 
+#### The default-argument idiom (`lambda i=i`)
+
+A lambda created in a loop reads the loop variable when it is **called**, so every lambda sees the
+last value:
+
+```python
+handlers = [lambda: print(i) for i in range(3)]
+for handler in handlers:
+    handler()  # prints 2, 2, 2
+```
+
+A default value is evaluated when the function is **created**, so `i=i` stores the current value in
+a parameter of the lambda. The left `i` is that parameter, the right `i` is the loop variable. The
+author expects a call **without argument**, so that the default is used:
+
+```python
+for i in range(3):
+    manager.add_event_handler("e", lambda i=i: print(i))
+manager.trigger_event("e")
+```
+
+| Code                                               | `main`                                   | Target                 |
+| -------------------------------------------------- | ---------------------------------------- | ---------------------- |
+| the loop above                                     | prints `Context({})` three times         | prints `0`, `1`, `2`   |
+| `condition=lambda flag=flag: flag`, `flag = False` | the handler runs if the payload has keys | the handler is skipped |
+
+On `main` the manager sees a parameter and calls `handler(context)`, so the context replaces the
+saved value. Nothing raises. In the condition, `flag` becomes the context, which is true when it is
+not empty. In the target the default is never filled (P13).
+
+A handler that needs a saved value **and** the context gives the context no default and puts it
+first:
+
+```python
+manager.add_event_handler("e", lambda context, i=i: print(i, context["epoch"]))
+```
+
 ### 4.2 A condition never returns an awaitable (P10)
 
 In `Subscription._call`, after the condition:
