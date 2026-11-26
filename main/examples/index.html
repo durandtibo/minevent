@@ -1668,13 +1668,14 @@ the first call:</p>
 <span class="go">evaluate at epoch 2</span>
 <span class="go">evaluate at epoch 5</span>
 </code></pre></div>
-<p><code>AfterNCondition(n)</code> is <code>False</code> for the first <code>n</code> calls, which is useful for a warm-up:</p>
-<div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">AfterNCondition</span><span class="p">,</span> <span class="n">EventManager</span>
+<p>With <code>freq=1</code>, the condition is <code>False</code> for the first <code>start</code> calls, then always <code>True</code>, which is
+useful for a warm-up:</p>
+<div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span><span class="p">,</span> <span class="n">PeriodicCondition</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="s2">"epoch_end"</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="k">lambda</span> <span class="n">context</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"validate at epoch </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">'epoch'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">),</span>
-<span class="gp">... </span>    <span class="n">condition</span><span class="o">=</span><span class="n">AfterNCondition</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+<span class="gp">... </span>    <span class="n">condition</span><span class="o">=</span><span class="n">PeriodicCondition</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
 <span class="gp">... </span>    <span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"epoch"</span><span class="p">:</span> <span class="n">epoch</span><span class="p">})</span>
@@ -1699,9 +1700,9 @@ the first call:</p>
 <span class="go">batch done</span>
 </code></pre></div>
 <h2 id="restart-a-condition">Restart a condition<a class="headerlink" href="#restart-a-condition" title="Permanent link">&para;</a></h2>
-<p><code>reset()</code> restarts the counter of a built-in condition, for example at the start of a new training:</p>
-<div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">AfterNCondition</span><span class="p">,</span> <span class="n">EventManager</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">warmup</span> <span class="o">=</span> <span class="n">AfterNCondition</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<p><code>reset()</code> restarts the counter of a <code>PeriodicCondition</code>, for example at the start of a new training:</p>
+<div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span><span class="p">,</span> <span class="n">PeriodicCondition</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">warmup</span> <span class="o">=</span> <span class="n">PeriodicCondition</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"validate"</span><span class="p">),</span> <span class="n">condition</span><span class="o">=</span><span class="n">warmup</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
@@ -1713,8 +1714,8 @@ the first call:</p>
 <h2 id="combine-conditions">Combine conditions<a class="headerlink" href="#combine-conditions" title="Permanent link">&para;</a></h2>
 <p>Write a function. <code>all([a(), b()])</code> evaluates every condition at each call, so stateful conditions
 advance together:</p>
-<div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">AfterNCondition</span><span class="p">,</span> <span class="n">EventManager</span><span class="p">,</span> <span class="n">PeriodicCondition</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">after_one</span><span class="p">,</span> <span class="n">periodic</span> <span class="o">=</span> <span class="n">AfterNCondition</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">PeriodicCondition</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span><span class="p">,</span> <span class="n">PeriodicCondition</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">after_one</span><span class="p">,</span> <span class="n">periodic</span> <span class="o">=</span> <span class="n">PeriodicCondition</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">PeriodicCondition</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="s2">"epoch_end"</span><span class="p">,</span>
@@ -1762,8 +1763,8 @@ different keys:</p>
 <span class="go">save the model of epoch 1</span>
 <span class="go">save the model of epoch 3</span>
 </code></pre></div>
-<p>The built-in conditions (<code>PeriodicCondition</code>, <code>AfterNCondition</code>) take no parameter. To combine one
-with a condition on the payload, write a function that calls it:
+<p><code>PeriodicCondition</code> takes no parameter. To combine it with a condition on the payload, write a
+function that calls it:
 <code>condition=lambda context: periodic() and is_improving(context)</code>.</p>
 <h2 id="keep-a-state-in-a-handler">Keep a state in a handler<a class="headerlink" href="#keep-a-state-in-a-handler" title="Permanent link">&para;</a></h2>
 <p>A class with a <code>__call__(self, context)</code> method is a handler with its own state. This one
@@ -1878,10 +1879,13 @@ cannot change:</p>
 <h2 id="run-a-handler-once">Run a handler once<a class="headerlink" href="#run-a-handler-once" title="Permanent link">&para;</a></h2>
 <p><code>once=True</code> removes the registration just before its handler runs. With a condition, it waits for
 the first trigger where the condition is <code>True</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">AfterNCondition</span><span class="p">,</span> <span class="n">EventManager</span>
+<div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span><span class="p">,</span> <span class="n">PeriodicCondition</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">subscription</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="s2">"epoch_end"</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"saved"</span><span class="p">),</span> <span class="n">once</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="n">AfterNCondition</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="s2">"epoch_end"</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="k">lambda</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"saved"</span><span class="p">),</span>
+<span class="gp">... </span>    <span class="n">once</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">condition</span><span class="o">=</span><span class="n">PeriodicCondition</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
 <span class="gp">... </span>    <span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">)</span>

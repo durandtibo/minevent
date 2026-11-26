@@ -1557,8 +1557,10 @@ recipes, the <a href="../architecture/">how it works page</a> states the rules o
 </ul>
 <h3 id="conditions">Conditions<a class="headerlink" href="#conditions" title="Permanent link">&para;</a></h3>
 <ul>
-<li>Give each registration its own <code>PeriodicCondition</code> or <code>AfterNCondition</code>: an instance shared by two
-  handlers advances the same counter. Call <code>reset()</code> to restart it.</li>
+<li>Give each registration its own <code>PeriodicCondition</code>: an instance shared by two handlers advances
+  the same counter. Call <code>reset()</code> to restart it.</li>
+<li>For a warm-up, use <code>PeriodicCondition(freq=1, start=n)</code>: it is <code>False</code> for the first <code>n</code> calls,
+  then <code>True</code>.</li>
 <li>To combine conditions, write a function. <code>lambda: a() and b()</code> skips <code>b</code> when <code>a</code> is <code>False</code>, so
   use it when <code>b</code> is costly and stateless. <code>lambda: all([a(), b()])</code> evaluates both, so stateful
   conditions advance together.</li>
@@ -1594,7 +1596,7 @@ data, build one <code>Context</code> and reuse it.</p>
   change.</li>
 <li><strong>An optional parameter</strong>: <code>def f(context=None)</code> never receives the context.</li>
 <li><strong>Threads</strong>: a handler that shares state must protect it, and so must a stateful condition that
-  you write. The built-in conditions protect their counter.</li>
+  you write. <code>PeriodicCondition</code> protects its counter.</li>
 </ul>
 <h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
 <h3 id="my-handler-does-not-run">My handler does not run<a class="headerlink" href="#my-handler-does-not-run" title="Permanent link">&para;</a></h3>

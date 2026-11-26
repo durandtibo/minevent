@@ -896,45 +896,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#minevent.conditions.AfterNCondition" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        AfterNCondition
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="AfterNCondition">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#minevent.conditions.AfterNCondition.n" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        n
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#minevent.conditions.AfterNCondition.reset" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        reset
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#minevent.conditions.PeriodicCondition" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1138,45 +1099,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#minevent.conditions.AfterNCondition" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        AfterNCondition
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="AfterNCondition">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#minevent.conditions.AfterNCondition.n" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        n
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#minevent.conditions.AfterNCondition.reset" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        reset
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#minevent.conditions.PeriodicCondition" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1266,15 +1188,15 @@
 
     <div class="doc doc-contents first">
 
-        <p>Implement some conditions that can be used in the event system.</p>
+        <p>Implement the conditions that can be used in the event system.</p>
 <p>A condition is any synchronous function that returns a boolean (a
 lambda, a method or a callable object). It is called before its handler,
 like a handler: as <code>condition()</code>, or as <code>condition(context)</code> with
 the read-only <code>Context</code> of the trigger (see
 <code>minevent.calls.adapt_call</code>). <code>Condition</code> is its type, and
 <code>EventManager.add_event_handler</code> states how a registration uses it.
-<code>PeriodicCondition</code> and <code>AfterNCondition</code> count their calls. The
-user guide of the documentation shows how to combine conditions.</p>
+<code>PeriodicCondition</code> counts its calls. The user guide of the
+documentation shows how to combine conditions.</p>
 
 
 <details class="example" open>
@@ -1347,222 +1269,6 @@ with the <code>Context</code> of the trigger.</p>
 
 
 
-<h3 id="minevent.conditions.AfterNCondition" class="doc doc-heading">
-            <span class="doc doc-object-name doc-class-name">minevent.conditions.AfterNCondition</span>
-
-
-<a href="#minevent.conditions.AfterNCondition" class="headerlink" title="Permanent link">&para;</a></h3>
-
-
-    <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><span title="minevent.conditions._CountingCondition">_CountingCondition</span></code></p>
-
-
-
-        <p>Implement a condition that is <code>False</code> for the first <code>n</code>
-calls and <code>True</code> afterwards.</p>
-<p>The condition is stateful, like <code>PeriodicCondition</code>: each call
-advances the counter, so do not share one instance between
-several handlers. Use <code>reset</code> to restart the counter. Every call
-is counted once, from any number of threads, and the condition can
-be copied and pickled.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>n</code>
-            </td>
-            <td>
-                  <code><span title="int">int</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The number of calls to skip. Must be a non-negative
-integer.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="TypeError">TypeError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>if <code>n</code> is not an integer.</p>
-              </div>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="ValueError">ValueError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>if <code>n</code> is negative.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<details class="example" open>
-  <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">AfterNCondition</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">condition</span> <span class="o">=</span> <span class="n">AfterNCondition</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="p">[</span><span class="n">condition</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">)]</span>
-<span class="go">[False, False, True, True]</span>
-</code></pre></div>
-</details>
-
-
-
-
-
-
-
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-<div class="doc doc-object doc-attribute">
-
-
-
-<h4 id="minevent.conditions.AfterNCondition.n" class="doc doc-heading">
-            <span class="doc doc-object-name doc-attribute-name">minevent.conditions.AfterNCondition.n</span>
-
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-property"><code>property</code></small>
-  </span>
-
-<a href="#minevent.conditions.AfterNCondition.n" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="n">n</span><span class="p">:</span> <span class="n"><span title="int">int</span></span>
-</code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Get the number of skipped calls.</p>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="int">int</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The number of calls that evaluate to <code>False</code>.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<details class="example" open>
-  <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">AfterNCondition</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">AfterNCondition</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">n</span>
-<span class="go">2</span>
-</code></pre></div>
-</details>
-    </div>
-
-</div>
-
-
-
-
-<div class="doc doc-object doc-function">
-
-
-<h4 id="minevent.conditions.AfterNCondition.reset" class="doc doc-heading">
-            <span class="doc doc-object-name doc-function-name">minevent.conditions.AfterNCondition.reset</span>
-
-
-<a href="#minevent.conditions.AfterNCondition.reset" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">reset</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
-</code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Reset the internal counter, as if the condition was just
-created.</p>
-
-
-<details class="example" open>
-  <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">PeriodicCondition</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">condition</span> <span class="o">=</span> <span class="n">PeriodicCondition</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">condition</span><span class="p">(),</span> <span class="n">condition</span><span class="p">()</span>
-<span class="go">(True, False)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">condition</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">condition</span><span class="p">()</span>
-<span class="go">True</span>
-</code></pre></div>
-</details>
-
-    </div>
-
-</div>
-
-
-
-  </div>
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-class">
-
-
-
 <h3 id="minevent.conditions.PeriodicCondition" class="doc doc-heading">
             <span class="doc doc-object-name doc-class-name">minevent.conditions.PeriodicCondition</span>
 
@@ -1571,8 +1277,6 @@ created.</p>
 
 
     <div class="doc doc-contents ">
-            <p class="doc doc-class-bases">
-              Bases: <code><span title="minevent.conditions._CountingCondition">_CountingCondition</span></code></p>
 
 
 
@@ -1582,13 +1286,17 @@ created.</p>
 with each call. The condition is <code>True</code> when the counter minus <code>start</code> is not negative and
 is a multiple of <code>freq</code>. With <code>freq=3</code>, <code>start=0</code> is <code>True</code> on the calls 0, 3 and 6,
 <code>start=3</code> skips the first call (3, 6 and 9), and <code>start=2</code> is <code>True</code> at the end of every
-third call (2, 5 and 8).</p>
+third call (2, 5 and 8). With <code>freq=1</code>, it is a warm-up: <code>False</code> for the first <code>start</code>
+calls and <code>True</code> afterwards.</p>
 <p>Note that a call is not idempotent: each call advances the
 counter, so the condition is stateful. Do not share one instance
 between several handlers, because they would advance the same
-counter. Use <code>reset</code> to restart the counter. Every call is
-counted once, from any number of threads, and the condition can be
-copied and pickled.</p>
+counter. Use <code>reset</code> to restart the counter.</p>
+<p>The counter is protected by a lock, so every call is counted once,
+from any number of threads, with and without the GIL. A lock cannot
+be copied or pickled: a copy of a condition (<code>copy.copy</code>,
+<code>copy.deepcopy</code> or <code>pickle</code>) starts at the same step, and then
+has its own counter and lock.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -1684,6 +1392,13 @@ lower than 0.</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">condition</span> <span class="o">=</span> <span class="n">PeriodicCondition</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="p">[</span><span class="n">condition</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">7</span><span class="p">)]</span>
 <span class="go">[False, False, True, False, False, True, False]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">condition</span> <span class="o">=</span> <span class="n">PeriodicCondition</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">[</span><span class="n">condition</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">)]</span>
+<span class="go">[False, False, True, True]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">clone</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">clone</span>
+<span class="go">PeriodicCondition(freq=1, start=2, step=4)</span>
 </code></pre></div>
 </details>
 

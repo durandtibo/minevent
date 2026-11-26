@@ -1527,8 +1527,8 @@ your code outside of it.</p>
   other threads, and a lock of yours cannot deadlock with the one of the manager.</li>
 <li><strong>Costs</strong>: handlers can run concurrently, and a removal in one thread cannot stop a call that
   another thread is about to make.</li>
-<li><strong>In practice</strong>: protect the shared state of your handlers and conditions. The built-in conditions
-  protect their counter.</li>
+<li><strong>In practice</strong>: protect the shared state of your handlers and conditions. <code>PeriodicCondition</code>
+  protects its counter.</li>
 </ul>
 <h2 id="the-manager-is-an-explicit-object">The manager is an explicit object<a class="headerlink" href="#the-manager-is-an-explicit-object" title="Permanent link">&para;</a></h2>
 <p>There is no global manager and no automatic discovery. A manager is always truthy, and it cannot be

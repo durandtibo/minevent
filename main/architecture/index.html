@@ -1380,13 +1380,9 @@ recommendations.</p>
 <td><code>PeriodicCondition</code></td>
 <td>A condition that is <code>True</code> on one call in <code>freq</code>.</td>
 </tr>
-<tr>
-<td><code>AfterNCondition</code></td>
-<td>A condition that is <code>False</code> for the first <code>n</code> calls, then <code>True</code>.</td>
-</tr>
 </tbody>
 </table>
-<p>These seven names (all but "event") and <code>__version__</code> are what <code>minevent</code> exports. <code>EventManager</code>
+<p>These six names (all but "event") and <code>__version__</code> are what <code>minevent</code> exports. <code>EventManager</code>
 has the following members:</p>
 <table>
 <thead>
@@ -1618,8 +1614,9 @@ first, without default: <code>lambda context, i=i: print(i, context["epoch"])</c
   without the GIL.</li>
 <li>Your code (handlers, conditions, <code>repr</code> and finalizers) runs outside the lock of the manager, so
   it can use the manager.</li>
-<li><code>PeriodicCondition</code> and <code>AfterNCondition</code> count every call once, from any number of threads. They
-  can be copied and pickled: a copy starts at the same step and has its own counter.</li>
+<li><code>PeriodicCondition</code> counts every call once, from any number of threads. It can be copied and
+  pickled: a copy starts at the same step and has its own counter. Its <code>repr</code> shows <code>freq</code>,
+  <code>start</code> and the number of calls as Python writes integers, without separator.</li>
 </ul>
 <h3 id="import-and-typing">Import and typing<a class="headerlink" href="#import-and-typing" title="Permanent link">&para;</a></h3>
 <ul>

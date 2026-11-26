@@ -1248,7 +1248,7 @@ registered: wrap it in a function or a lambda (see
 <a href="../architecture/#the-calling-rule">the calling rule</a>).</p>
 <h2 id="control-when-a-handler-runs">Control when a handler runs<a class="headerlink" href="#control-when-a-handler-runs" title="Permanent link">&para;</a></h2>
 <p>A <strong>condition</strong> is a function that returns a boolean: the handler runs only if it returns <code>True</code>.
-<code>PeriodicCondition</code> and <code>AfterNCondition</code> are provided, and a condition can read the payload:</p>
+<code>PeriodicCondition</code> is provided, and a condition can read the payload:</p>
 <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span><span class="p">,</span> <span class="n">PeriodicCondition</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span>
