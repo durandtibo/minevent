@@ -129,6 +129,52 @@ validate
 
 ```
 
+## Resume a training
+
+A `PeriodicCondition` counts its calls: a new one, in a training resumed at epoch 7, counts from 0
+and not from the epoch. If the payload has the epoch, decide from it:
+
+```pycon
+>>> from minevent import EventManager
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler(
+...     "epoch_end",
+...     lambda context: print(f"checkpoint at epoch {context['epoch']}"),
+...     condition=lambda context: context["epoch"] % 3 == 0,
+... )
+>>> for epoch in range(7, 13):  # resumed at epoch 7
+...     manager.trigger_event("epoch_end", {"epoch": epoch})
+checkpoint at epoch 9
+checkpoint at epoch 12
+
+```
+
+Otherwise, save the condition with the checkpoint: it can be pickled, and the copy continues from the
+same count. Load a pickle from a source that you trust only.
+
+```pycon
+>>> import pickle
+>>> from minevent import Context, EventManager, PeriodicCondition
+>>> def save(context: Context) -> None:
+...     print(f"checkpoint at epoch {context['epoch']}")
+>>> condition = PeriodicCondition(freq=3)
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler("epoch_end", save, condition=condition)
+>>> for epoch in range(7):
+...     manager.trigger_event("epoch_end", {"epoch": epoch})
+checkpoint at epoch 0
+checkpoint at epoch 3
+checkpoint at epoch 6
+>>> state = pickle.dumps(condition)  # saved with the model
+>>> manager = EventManager()  # the resumed training
+>>> _ = manager.add_event_handler("epoch_end", save, condition=pickle.loads(state))
+>>> for epoch in range(7, 13):
+...     manager.trigger_event("epoch_end", {"epoch": epoch})
+checkpoint at epoch 9
+checkpoint at epoch 12
+
+```
+
 ## Combine conditions
 
 Write a function. `all([a(context), b(context)])` evaluates every condition at each call, so
@@ -295,16 +341,19 @@ cannot change:
 ## Register a handler only once
 
 Registering the same handler twice runs it twice. Look at the registrations to add it only if it is
-not there:
+not there. Compare with `==`, not `is`: a bound method such as `greeter.hello` is a new object at
+each access.
 
 ```pycon
 >>> from minevent import Context, EventManager
->>> def hello_handler(_: Context) -> None:
-...     print("Hello!")
+>>> class Greeter:
+...     def hello(self, _: Context) -> None:
+...         print("Hello!")
+>>> greeter = Greeter()
 >>> manager = EventManager()
 >>> for _ in range(3):
-...     if not any(s.handler is hello_handler for s in manager.get_subscriptions("my_event")):
-...         _ = manager.add_event_handler("my_event", hello_handler)
+...     if not any(s.handler == greeter.hello for s in manager.get_subscriptions("my_event")):
+...         _ = manager.add_event_handler("my_event", greeter.hello)
 >>> manager
 EventManager(events={'my_event': 1})
 
@@ -475,6 +524,38 @@ uploaded ['a.pt', 'b.pt']
 
 Hand a long computation to an executor (`await loop.run_in_executor(...)` or `asyncio.to_thread`)
 from a coroutine handler.
+
+## Start background work from a handler
+
+A handler that starts background work **returns nothing**. A task is awaitable, so a handler such as
+`lambda _: loop.create_task(upload())` returns one: `trigger_event` raises after the task is
+scheduled, and `atrigger_event` waits for it. Start the task in a function that returns `None`:
+
+```pycon
+>>> import asyncio
+>>> from minevent import Context, EventManager
+>>> async def upload(path: str) -> None:
+...     await asyncio.sleep(0)
+...     print(f"uploaded {path}")
+>>> tasks = set()  # asyncio keeps a weak reference to a task only
+>>> def start_upload(context: Context) -> None:
+...     task = asyncio.get_running_loop().create_task(upload(context["path"]))
+...     tasks.add(task)
+...     task.add_done_callback(tasks.discard)
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler("checkpoint_saved", start_upload)
+>>> async def main() -> None:
+...     manager.trigger_event("checkpoint_saved", {"path": "model.pt"})
+...     print("training continues")
+...     await asyncio.gather(*tasks)
+>>> asyncio.run(main())
+training continues
+uploaded model.pt
+
+```
+
+The task needs a running event loop, so the event is triggered from a coroutine. The manager does not
+see the task: await it before the loop ends, and handle its errors in the coroutine that it runs.
 
 ## Test a handler
 
