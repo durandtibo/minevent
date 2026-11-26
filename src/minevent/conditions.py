@@ -37,52 +37,14 @@ from __future__ import annotations
 
 __all__ = ["Condition", "PeriodicCondition"]
 
-import operator
 import threading
 from collections.abc import Callable
-from typing import SupportsIndex
 
 from minevent.context import Context
 
 Condition = Callable[[], bool] | Callable[[Context], bool]
 """A condition: a function that returns a boolean, without parameter or
 with the ``Context`` of the trigger."""
-
-
-def _to_int(value: object, name: str, minimum: int) -> int:
-    r"""Convert an argument of a condition to an ``int``.
-
-    Args:
-        value: The value to convert: any integer, which is an object
-            with ``__index__`` such as the integers of numeric
-            libraries, but not a ``bool``.
-        name: The name of the argument, used in the error messages.
-        minimum: The smallest accepted value.
-
-    Returns:
-        ``value`` as an ``int``.
-
-    Raises:
-        TypeError: if ``value`` is a ``bool`` or has no ``__index__``.
-            Any exception of ``__index__`` also propagates.
-        ValueError: if ``value`` is lower than ``minimum``.
-
-    Example:
-        ```pycon
-        >>> from minevent.conditions import _to_int
-        >>> _to_int(3, "freq", 1)
-        3
-
-        ```
-    """
-    if isinstance(value, bool) or not isinstance(value, SupportsIndex):
-        msg = f"{name} must be an integer, got {type(value).__qualname__}"
-        raise TypeError(msg)
-    result = operator.index(value)
-    if result < minimum:
-        msg = f"{name} must be greater than or equal to {minimum}, got {result}"
-        raise ValueError(msg)
-    return result
 
 
 class PeriodicCondition:
@@ -109,11 +71,10 @@ class PeriodicCondition:
 
     Args:
         freq: The frequency (interval) at which the condition
-            evaluates to ``True``. Must be a positive integer: any
-            object with ``__index__``, but not a ``bool``.
+            evaluates to ``True``. Must be a positive integer.
         start: The index, from 0, of the first call that evaluates to
-            ``True``. Must be a non-negative integer, as ``freq``.
-            Default is ``0``.
+            ``True``. Must be a non-negative integer. Default is
+            ``0``.
 
     Raises:
         TypeError: if ``freq`` or ``start`` is not an integer.
@@ -140,9 +101,21 @@ class PeriodicCondition:
         ```
     """
 
-    def __init__(self, freq: SupportsIndex, *, start: SupportsIndex = 0) -> None:
-        self._freq = _to_int(freq, "freq", 1)
-        self._start = _to_int(start, "start", 0)
+    def __init__(self, freq: int, *, start: int = 0) -> None:
+        if isinstance(freq, bool) or not isinstance(freq, int):
+            msg = f"freq must be an integer, got {type(freq).__qualname__}"
+            raise TypeError(msg)
+        if freq < 1:
+            msg = f"freq must be greater than or equal to 1, got {freq}"
+            raise ValueError(msg)
+        if isinstance(start, bool) or not isinstance(start, int):
+            msg = f"start must be an integer, got {type(start).__qualname__}"
+            raise TypeError(msg)
+        if start < 0:
+            msg = f"start must be greater than or equal to 0, got {start}"
+            raise ValueError(msg)
+        self._freq = freq
+        self._start = start
         self._step = 0
         self._lock = threading.Lock()
 
