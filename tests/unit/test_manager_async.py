@@ -11,7 +11,7 @@ from minevent import (
     EventManager,
 )
 from tests.unit.handlers import AwaitableResult, condition_returning_a_coroutine
-from tests.unit.utils import trace
+from tests.unit.utils import raised, trace
 
 logger = logging.getLogger(__name__)
 
@@ -358,6 +358,19 @@ def test_event_manager_trigger_event_async_callable_object_raises() -> None:
         TypeError, match=r"^AsyncCallable is a coroutine function; use atrigger_event"
     ):
         manager.trigger_event("my_event")
+
+
+def test_event_manager_trigger_event_coroutine_handler_long_event() -> None:
+    manager = EventManager()
+    event = "a" * 100 + "x" * 100_000 + "b" * 100
+    manager.add_event_handler(event, plain_async_handler)
+    error = raised(manager.trigger_event, event)
+    assert str(error) == (
+        "plain_async_handler is a coroutine function; use atrigger_event for the event "
+        "'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "aaaaaaaaaaaaaaaaaa...bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'"
+    )
 
 
 def test_event_manager_trigger_event_async_callable_object_is_not_called_twice() -> None:

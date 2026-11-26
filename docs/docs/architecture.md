@@ -169,9 +169,9 @@ first, without default: `lambda context, i=i: print(i, context["epoch"])`.
 - The messages of `minevent` do not run the `repr` of your objects to name a callable. Naming one
   never raises in place of your exception: the name of its class is used if its own name cannot be
   read.
-- The messages of `minevent` stay short whatever the size of your data: a value is shown with
-  [`reprlib`](https://docs.python.org/3/library/reprlib.html), and the `KeyError` of a `Context`
-  lists at most 20 keys.
+- The messages and the notes of `minevent` stay short whatever the size of your data: a value is
+  shown with [`reprlib`](https://docs.python.org/3/library/reprlib.html), an event name is
+  shortened above 200 characters, and the `KeyError` of a `Context` lists at most 20 keys.
 
 ### Coroutines
 
