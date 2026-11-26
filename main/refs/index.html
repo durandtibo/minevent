@@ -1556,10 +1556,10 @@
 <p><code>minevent</code> is a minimal event system with three concepts: an event (a
 case-sensitive string), a handler (<code>Handler</code>) and an event manager
 (<code>EventManager</code>) that registers the handlers and triggers the events.
-A registration returns a <code>Subscription</code>, the handlers and the
-conditions that take a parameter receive the payload of a trigger in a
-read-only <code>Context</code>, and a <code>Condition</code>, such as
-<code>PeriodicCondition</code>, controls when a handler runs.</p>
+A registration returns a <code>Subscription</code>, which removes it. Every
+handler and condition receives the payload of a trigger in a read-only
+<code>Context</code>, and a <code>Condition</code>, such as <code>PeriodicCondition</code>,
+controls when a handler runs.</p>
 <p>The package has no dependency, and <code>__version__</code> is the version of the
 installed package.</p>
 
@@ -1938,9 +1938,11 @@ remove registrations. <code>events</code>, <code>get_subscriptions</code> and
 <code>event in manager</code> read the registry, which is thread-safe, and
 <code>repr</code> shows the number of handlers of each event. A manager is
 always truthy and has no length. Copying or pickling it raises a
-<code>TypeError</code>. The guarantees and the limits are in the "How It
-Works" page of the documentation, and the reasons in its "Design
-Choices" page.</p>
+<code>TypeError</code>. The guarantees and the limits are on the
+<a href="https://durandtibo.github.io/minevent/main/architecture/">How It Works</a>
+page of the documentation, and the reasons on the
+<a href="https://durandtibo.github.io/minevent/main/design/">Design Choices</a>
+page.</p>
 
 
 <details class="example" open>
@@ -2070,7 +2072,9 @@ Choices" page.</p>
 before it, as <code>handler(context)</code> with the read-only <code>Context</code> of
 the trigger.
 <a href="https://durandtibo.github.io/minevent/main/architecture/#the-calling-rule">The calling rule</a>
-states which signatures are accepted.</p>
+states which signatures are accepted. A coroutine function can be
+registered too: <code>atrigger_event</code> awaits it, and <code>trigger_event</code>
+rejects a trigger of its event.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -3825,8 +3829,8 @@ execution.</p>
     <div class="doc doc-contents ">
 
         <p>Remove this registration.</p>
-<p>It never raises, and its cost does not depend on the number of
-handlers of the event.</p>
+<p>Removing a registration that is already removed is not an error, and
+the cost does not depend on the number of handlers of the event.</p>
 
 
     <p><span class="doc-section-title">Returns:</span></p>
