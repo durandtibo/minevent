@@ -1072,7 +1072,7 @@ recipes and the <a href="../guide/">user guide</a> gives the recommendations.</p
 <tr>
 <td>P11</td>
 <td>Thread-safe registry</td>
-<td>The registry is protected by a reentrant lock. Handlers, conditions and the <code>repr</code> of user objects run outside the lock, so a handler can use the manager.</td>
+<td>The registry is protected by a reentrant lock. Handlers, conditions, the <code>repr</code> and <strong>the finalizers</strong> of user objects run outside the lock, so they can use the manager. This holds with and without the GIL.</td>
 <td><code>EventManager._lock</code>, <code>test_manager_threads.py</code></td>
 </tr>
 <tr>

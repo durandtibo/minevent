@@ -2083,7 +2083,7 @@ not executed.</p>
 <p>Thread safety: the registration, removal and inspection of
 handlers are protected by a reentrant lock, and <code>trigger_event</code>
 runs the handlers on a snapshot taken under the lock, outside of
-it. So handlers can be registered in one thread and events
+it. The removed handlers are released outside of it too. So handlers can be registered in one thread and events
 triggered from worker threads. The handlers themselves run in the
 thread that triggers the event, concurrently if several threads
 trigger the same event, so a handler that shares state must be
@@ -2581,7 +2581,8 @@ raised by a handler or a condition also propagates.</p>
 <p>Nothing happens if the event has no registered handler. The
 subscriptions of the removed handlers become inactive, and a
 removed registration that has not run yet in a running trigger
-does not run.</p>
+does not run. The removed handlers are released outside the
+lock of the manager, so their finalizers can use it.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -2967,7 +2968,8 @@ signature of the function or of the condition, or if
 event manager, so their subscriptions become inactive. After
 calling this method, the event manager returns to its initial
 state. A registration that has not run yet in a running
-trigger does not run.</p>
+trigger does not run. The removed handlers are released outside
+the lock of the manager, so their finalizers can use it.</p>
 
 
 <details class="example" open>
