@@ -3,10 +3,10 @@ r"""Implement how the code of a user is called.
 ``Handler`` is the type of a handler. ``adapt_call`` turns a handler or
 a condition into a callable of the context, ``has_kind`` says if it is a
 generator or a coroutine function, ``describe`` names it,
-``reject_awaitable`` rejects the awaitable result of a synchronous call,
-and ``add_error_note`` completes the exception that it raises. These
-helpers are used by ``minevent.manager``, and ``minevent`` exports
-``Handler`` only.
+``describe_event`` shows an event name, ``reject_awaitable`` rejects the
+awaitable result of a synchronous call, and ``add_error_note`` completes
+the exception that it raises. These helpers are used by
+``minevent.manager``, and ``minevent`` exports ``Handler`` only.
 """
 
 from __future__ import annotations
@@ -16,6 +16,7 @@ __all__ = [
     "adapt_call",
     "add_error_note",
     "describe",
+    "describe_event",
     "has_kind",
     "reject_awaitable",
 ]
@@ -23,6 +24,7 @@ __all__ = [
 import contextlib
 import functools
 import inspect
+import reprlib
 import sys
 from collections.abc import Awaitable, Callable, Coroutine
 
@@ -30,6 +32,11 @@ from minevent.context import Context
 
 if sys.version_info >= (3, 14):
     import annotationlib
+
+# The event name in a message or a note. The default limits of ``reprlib`` (30 characters) would
+# cut ordinary names, such as the ``repr`` of a ``StrEnum`` member, which ``maxother`` limits.
+_EVENT_REPR = reprlib.Repr()
+_EVENT_REPR.maxstring = _EVENT_REPR.maxother = 200
 
 Handler = Callable[[], object] | Callable[[Context], object]
 """A handler: a function without parameter or with the ``Context`` of
@@ -199,6 +206,34 @@ def describe(func: object) -> str:
     return type(func).__qualname__
 
 
+def describe_event(event: str) -> str:
+    r"""Show an event name in a message of the package.
+
+    A name is shown by its ``repr``, shortened in the middle above 200
+    characters, so the size of a message does not depend on the size of
+    the name.
+
+    Args:
+        event: The event name.
+
+    Returns:
+        The ``repr`` of ``event``, of at most 200 characters. If the
+            ``repr`` of a subclass of ``str`` raises an ``Exception``, a
+            placeholder of ``reprlib`` that names its class is returned.
+
+    Example:
+        ```pycon
+        >>> from minevent.calls import describe_event
+        >>> describe_event("epoch_end")
+        "'epoch_end'"
+        >>> len(describe_event("x" * 1000))
+        200
+
+        ```
+    """
+    return _EVENT_REPR.repr(event)
+
+
 def reject_awaitable(result: object, message: str) -> None:
     r"""Reject the value returned by a function that must be synchronous.
 
@@ -242,7 +277,7 @@ def add_error_note(exc: Exception, source: str, event: str) -> None:
         exc: The exception raised by a handler or a condition.
         source: What raised the exception, for example the name of the
             handler (see ``describe``).
-        event: The event that was triggered.
+        event: The event that was triggered (see ``describe_event``).
 
     Example:
         ```pycon
@@ -256,6 +291,6 @@ def add_error_note(exc: Exception, source: str, event: str) -> None:
     """
     # A frozen exception, or one with unusual ``__notes__``, cannot take the note.
     with contextlib.suppress(Exception):
-        note = f"raised by {source} while handling the event {event!r}"
+        note = f"raised by {source} while handling the event {describe_event(event)}"
         if note not in getattr(exc, "__notes__", ()):
             exc.add_note(note)

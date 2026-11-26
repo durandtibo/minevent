@@ -1663,6 +1663,20 @@ def test_event_manager_trigger_event_awaitable_ignores_repr_of_handler() -> None
         manager.trigger_event("my_event")
 
 
+def test_event_manager_trigger_event_note_long_event() -> None:
+    manager = EventManager()
+    event = "a" * 100 + "x" * 100_000 + "b" * 100
+    manager.add_event_handler(event, fail)
+    assert raised(manager.trigger_event, event).__notes__ == [
+        (
+            "raised by fail while handling the event "
+            "'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            "aaaaaaaaaaaaaaaaaa...bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'"
+        )
+    ]
+
+
 def test_event_manager_trigger_event_condition_raises_note_names_condition() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", noop_handler, condition=failing_condition)
