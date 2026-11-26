@@ -367,8 +367,8 @@ class Subscription:
     def remove(self) -> bool:
         r"""Remove this registration.
 
-        It never raises, and its cost does not depend on the number of
-        handlers of the event.
+        Removing a registration that is already removed is not an error, and
+        the cost does not depend on the number of handlers of the event.
 
         Returns:
             ``True`` if the registration was removed, ``False`` if it was
@@ -401,9 +401,11 @@ class EventManager:
     ``event in manager`` read the registry, which is thread-safe, and
     ``repr`` shows the number of handlers of each event. A manager is
     always truthy and has no length. Copying or pickling it raises a
-    ``TypeError``. The guarantees and the limits are in the "How It
-    Works" page of the documentation, and the reasons in its "Design
-    Choices" page.
+    ``TypeError``. The guarantees and the limits are on the
+    [How It Works](https://durandtibo.github.io/minevent/main/architecture/)
+    page of the documentation, and the reasons on the
+    [Design Choices](https://durandtibo.github.io/minevent/main/design/)
+    page.
 
     Example:
         ```pycon
@@ -518,7 +520,9 @@ class EventManager:
         before it, as ``handler(context)`` with the read-only ``Context`` of
         the trigger.
         [The calling rule](https://durandtibo.github.io/minevent/main/architecture/#the-calling-rule)
-        states which signatures are accepted.
+        states which signatures are accepted. A coroutine function can be
+        registered too: ``atrigger_event`` awaits it, and ``trigger_event``
+        rejects a trigger of its event.
 
         Args:
             event: The event name (case-sensitive string).
