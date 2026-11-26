@@ -829,6 +829,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#a-synchronous-trigger-rejects-coroutine-handlers-first" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A synchronous trigger rejects coroutine handlers first
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#conditions-are-synchronous" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1273,6 +1284,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#a-synchronous-trigger-rejects-coroutine-handlers-first" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A synchronous trigger rejects coroutine handlers first
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#conditions-are-synchronous" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1468,6 +1490,15 @@ them one at a time, and the library starts no thread.</p>
 <li><strong>Costs</strong>: a slow handler delays the next ones and the caller, handlers do not run concurrently,
   and a synchronous handler blocks the event loop.</li>
 <li><strong>In practice</strong>: inside one handler, use <code>asyncio.gather</code>, <code>asyncio.to_thread</code> or an executor.</li>
+</ul>
+<h2 id="a-synchronous-trigger-rejects-coroutine-handlers-first">A synchronous trigger rejects coroutine handlers first<a class="headerlink" href="#a-synchronous-trigger-rejects-coroutine-handlers-first" title="Permanent link">&para;</a></h2>
+<p><code>trigger_event</code> looks for a coroutine function among the handlers before it runs anything.</p>
+<ul>
+<li><strong>Benefits</strong>: a trigger does not stop in the middle, no <code>once</code> registration is consumed, and the
+  mistake appears at the first trigger, not at the first one where a condition is true.</li>
+<li><strong>Costs</strong>: one more pass over the handlers at each trigger, and a coroutine handler whose
+  condition is false rejects the trigger too.</li>
+<li><strong>In practice</strong>: trigger an event that has coroutine handlers with <code>atrigger_event</code>.</li>
 </ul>
 <h2 id="conditions-are-synchronous">Conditions are synchronous<a class="headerlink" href="#conditions-are-synchronous" title="Permanent link">&para;</a></h2>
 <ul>

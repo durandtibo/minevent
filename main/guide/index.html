@@ -820,10 +820,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#typeerror-returned-an-awaitable-use-atrigger_event" class="md-nav__link">
+  <a href="#typeerror-is-a-coroutine-function-use-atrigger_event-and-returned-an-awaitable" class="md-nav__link">
     <span class="md-ellipsis">
       
-        TypeError: ... returned an awaitable; use atrigger_event
+        TypeError: ... is a coroutine function; use atrigger_event and ... returned an awaitable
       
     </span>
   </a>
@@ -1446,10 +1446,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#typeerror-returned-an-awaitable-use-atrigger_event" class="md-nav__link">
+  <a href="#typeerror-is-a-coroutine-function-use-atrigger_event-and-returned-an-awaitable" class="md-nav__link">
     <span class="md-ellipsis">
       
-        TypeError: ... returned an awaitable; use atrigger_event
+        TypeError: ... is a coroutine function; use atrigger_event and ... returned an awaitable
       
     </span>
   </a>
@@ -1612,9 +1612,11 @@ Register a function that iterates over the generator.</p>
 rejected at registration, and a condition that returns an awaitable another way (a lambda that
 returns a coroutine) fails at the trigger. Compute the value before the trigger and pass it in the
 payload, or decide inside a coroutine handler.</p>
-<h3 id="typeerror-returned-an-awaitable-use-atrigger_event"><code>TypeError: ... returned an awaitable; use atrigger_event</code><a class="headerlink" href="#typeerror-returned-an-awaitable-use-atrigger_event" title="Permanent link">&para;</a></h3>
+<h3 id="typeerror-is-a-coroutine-function-use-atrigger_event-and-returned-an-awaitable"><code>TypeError: ... is a coroutine function; use atrigger_event</code> and <code>... returned an awaitable</code><a class="headerlink" href="#typeerror-is-a-coroutine-function-use-atrigger_event-and-returned-an-awaitable" title="Permanent link">&para;</a></h3>
 <p>A coroutine handler was triggered with <code>trigger_event</code>. Call
-<code>await manager.atrigger_event(...)</code>.</p>
+<code>await manager.atrigger_event(...)</code>. For a coroutine function, nothing ran. A handler that returns
+an awaitable another way (a lambda that returns a coroutine) fails after its call, so the handlers
+before it have run.</p>
 <h3 id="subscriptionremove-returns-false"><code>subscription.remove()</code> returns <code>False</code><a class="headerlink" href="#subscriptionremove-returns-false" title="Permanent link">&para;</a></h3>
 <p>The registration is already removed. This is not an error.</p>
 <h3 id="debug">Debug<a class="headerlink" href="#debug" title="Permanent link">&para;</a></h3>

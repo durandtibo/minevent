@@ -2067,7 +2067,8 @@ awaitables at the same time, use <code>asyncio.gather</code> inside one handler:
 <p>Hand a long computation to an executor (<code>await loop.run_in_executor(...)</code> or <code>asyncio.to_thread</code>)
 from a coroutine handler.</p>
 <h2 id="handle-an-async-handler-used-with-trigger_event">Handle an async handler used with trigger_event<a class="headerlink" href="#handle-an-async-handler-used-with-trigger_event" title="Permanent link">&para;</a></h2>
-<p><code>trigger_event</code> cannot await a coroutine, and raises a <code>TypeError</code> that names the handler:</p>
+<p><code>trigger_event</code> cannot await a coroutine. It raises a <code>TypeError</code> that names the handler, before any
+handler runs:</p>
 <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">notify</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">"notified"</span><span class="p">)</span>
@@ -2077,7 +2078,7 @@ from a coroutine handler.</p>
 <span class="gp">... </span>    <span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">)</span>
 <span class="gp">... </span><span class="k">except</span> <span class="ne">TypeError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
 <span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span>
-<span class="go">notify returned an awaitable; use atrigger_event</span>
+<span class="go">notify is a coroutine function; use atrigger_event for the event 'my_event'</span>
 </code></pre></div>
 <h2 id="handle-the-errors-of-a-handler">Handle the errors of a handler<a class="headerlink" href="#handle-the-errors-of-a-handler" title="Permanent link">&para;</a></h2>
 <p>The exception of a handler reaches the caller with a note that names the event and the handler (for

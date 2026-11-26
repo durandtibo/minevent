@@ -2343,7 +2343,10 @@ by its own condition, does not run. The condition of a registration is
 evaluated just before its handler.
 No handler runs if the event has none. The trigger is fail-fast:
 an exception of a handler or a condition propagates unwrapped, with a
-note that says what raised it, and the next handlers are skipped.</p>
+note that says what raised it, and the next handlers are skipped.
+If one of the registrations has a coroutine function as handler (a
+callable object is judged by its <code>__call__</code>), the trigger is
+rejected before any condition or handler runs.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -2413,10 +2416,10 @@ conditions, and a <code>Context</code> is used as is. Default is
             <td>
               <div class="doc-md-description">
                 <p>if <code>event</code> is not a string, if <code>context</code> is neither
-<code>None</code> nor a mapping with <code>str</code> keys, if a condition
-returns an awaitable, or if a handler returns an awaitable
-(use <code>atrigger_event</code> for coroutine handlers). Any exception
-of a handler or a condition also propagates.</p>
+<code>None</code> nor a mapping with <code>str</code> keys, if a handler is a
+coroutine function (nothing runs, use <code>atrigger_event</code>), or if
+a condition or a handler returns an awaitable. Any exception of a
+handler or a condition also propagates.</p>
               </div>
             </td>
           </tr>

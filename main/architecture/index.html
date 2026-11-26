@@ -1429,7 +1429,8 @@ has the following members:</p>
    callable.</li>
 <li>It reads the signature of the handler and of the condition to decide how to call each of them
    (see <a href="#the-calling-rule">the calling rule</a>). It also rejects a generator function, and a
-   coroutine function used as a condition. A callable object is judged by its <code>__call__</code>.</li>
+   coroutine function used as a condition. A callable object is judged by its <code>__call__</code>. It
+   remembers whether the handler is a coroutine function.</li>
 <li>It creates a <code>Subscription</code> and appends it to the registrations of the event.</li>
 </ol>
 <p>Every rejection is a <code>TypeError</code> that says which argument is wrong, and it leaves the manager
@@ -1441,6 +1442,7 @@ unchanged. The same callable can be registered several times: each call returns 
 <div class="highlight"><pre><span></span><code>trigger_event(event, context)
     |   take a snapshot of the registrations of the event
     |   build one Context from the context (a Context is used as is)
+    |   trigger_event only: a coroutine function as handler in the snapshot -&gt; TypeError
     v
 for each registration of the snapshot, in registration order:
     removed since the snapshot?          -&gt; skip
@@ -1597,7 +1599,9 @@ first, without default: <code>lambda context, i=i: print(i, context["epoch"])</c
 </ul>
 <h3 id="coroutines">Coroutines<a class="headerlink" href="#coroutines" title="Permanent link">&para;</a></h3>
 <ul>
-<li><code>trigger_event</code> never awaits: a handler that returns an awaitable raises a <code>TypeError</code>.</li>
+<li><code>trigger_event</code> never awaits. If a registration of the snapshot has a coroutine function as
+  handler, it raises a <code>TypeError</code> before any condition or handler runs, whatever the conditions
+  would answer. Any other handler that returns an awaitable raises a <code>TypeError</code> after its call.</li>
 <li><code>atrigger_event</code> awaits what a handler returns, if it is awaitable, before it calls the next
   handler. It also runs the synchronous handlers.</li>
 <li>Conditions are synchronous in both: a coroutine function, or an object whose <code>__call__</code> is one,
@@ -1634,8 +1638,9 @@ first, without default: <code>lambda context, i=i: print(i, context["epoch"])</c
   it.</li>
 <li><strong>Recursion.</strong> A handler that triggers its own event recurses until <code>RecursionError</code>.</li>
 <li><strong>Blocking.</strong> A synchronous handler in <code>atrigger_event</code> blocks the event loop.</li>
-<li><strong>A coroutine handler used with <code>trigger_event</code>.</strong> The <code>TypeError</code> is raised after the call: the
-  handlers before it have run, and a <code>once</code> registration is consumed.</li>
+<li><strong>A hidden coroutine.</strong> A lambda, or a synchronous <code>functools.wraps</code> wrapper, that returns a
+  coroutine is only detected after its call by <code>trigger_event</code>: the handlers before it have run, and
+  a <code>once</code> registration is consumed.</li>
 <li><strong>Hidden generators.</strong> A function that returns a generator, such as a lambda that calls a
   generator function, does nothing.</li>
 <li><strong>An optional parameter never receives the context.</strong> <code>def f(context=None)</code> is called as <code>f()</code> and
@@ -1663,7 +1668,7 @@ first, without default: <code>lambda context, i=i: print(i, context["epoch"])</c
   one. <code>context[key]</code> lists up to 20 keys in its <code>KeyError</code>, so a missing key costs more.</li>
 </ul>
 <p>As an order of magnitude, measured on a laptop with Python 3.14: about 0.3 µs for a trigger with one
-trivial handler, 0.06 µs for each extra one, 0.9 µs with a small dict, and 4.5 µs for a registration
+trivial handler, 0.07 µs for each extra one, 0.8 µs with a small dict, and 5.5 µs for a registration
 plus its removal. Measure on your machine with <code>inv test.benchmark</code> in a
 <a href="../get_started/#installing-from-source">source installation</a>.</p>
 
