@@ -46,6 +46,10 @@ Every rejection is a `TypeError` that says which argument is wrong, and it leave
 unchanged. The same callable can be registered several times: each call returns a new
 `Subscription`, and each registration runs and is removed on its own.
 
+The built-in condition checks its own arguments: `freq` and `start` of a `PeriodicCondition` are
+any integer (an object with `__index__`, such as the integers of numeric libraries) but not a
+`bool`. Another type raises a `TypeError`, and an integer that is too small a `ValueError`.
+
 The registration lasts until `subscription.remove()`, the end of a `with subscription:` block,
 `clear_event`, `reset`, or, with `once=True`, the first call of the handler.
 
