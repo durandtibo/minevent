@@ -11,7 +11,7 @@ registration, the dispatch, the payload or the conditions, and recommends **no c
 or of the exported names**. Breaking changes were allowed, and the candidates were compared
 (section 9): each one costs more than the problem it solves. What is left is at the edges: guides
 that lead a user into a trap, rules written twice, documentation links and a distribution that no
-check covers, a script without a use or a test, and a release that has not happened.
+check covers, a script without a test, and a release that has not happened.
 
 The aim in one line: **ship what is on `main`, with documentation that a user can copy and gates
 that keep it true.**
@@ -74,7 +74,7 @@ construction, or to say exactly where it stops. "Status" compares the row with `
 | P22 | Layered           | `manager` imports `conditions` and `calls`, which import `context`. The two middle modules do not import each other. A new module must be placed in a layer.                             | `lint-imports`, exhaustive   | holds          |
 | P23 | Tested systems    | The tests run on Linux and macOS and on every supported Python, free-threaded builds included. Windows is not supported.                                                                 | `ci.yaml`                    | holds          |
 | P24 | Testable release  | The source distribution holds the tests of the package, in the layout of the repository, and they pass from it. A pull request that breaks this fails. The wheel holds the package only. | `pyproject.toml`, `ci-build` | gap F10        |
-| P25 | Lean to maintain  | Every file and every dependency of the repository serves a property of this table, and every script has tests.                                                                           | review, `pyproject.toml`     | gap F11        |
+| P25 | Lean to maintain  | Every file and every dependency of the repository serves a property of this table or the layout shared with `coola`, and every script has tests.                                         | review, `pyproject.toml`     | gap F11        |
 | P26 | Released          | The latest release has the API that the documentation of `main` describes, or the gap is short.                                                                                          | `release-pypi.yaml`          | gap F12        |
 
 Not guaranteed, and documented as such (the "Limits" of the architecture page; **new** marks an item
@@ -139,7 +139,7 @@ No defect was found in the library (P3 to P16).
 | F8  | **Small errors.** The user guide asks for event names "in the past tense" and gives `epoch_end`. `CONTRIBUTING.md` lints `src tests` (the rule is `src tests dev`) and does not name `lint-imports`.                                                                                                                                                                                                                                                                                | P19, P20 | [reading]                               |
 | F9  | **The code breaks a written rule.** `CLAUDE.md` forbids a validator of one `isinstance`. `_check_event` is one, used by four callers, and it is the right code.                                                                                                                                                                                                                                                                                                                     | P20      | [reading]                               |
 | F10 | **Nothing runs the tests of the source distribution** (#910). They pass today (808 tests from the unpacked archive), but a pull request can break them without a failure: they were broken until #915.                                                                                                                                                                                                                                                                              | P24      | [verified]                              |
-| F11 | **A script without a use or a test.** `dev/generate_versions.py` (#924) has no test, which `CLAUDE.md` requires. Its output, `dev/config/package_versions.json`, is `{}` because `minevent` has no dependency, and no workflow reads it. A weekly workflow (#927) updates it, and it needs `feu[all]`, with `click`, `gitpython`, `requests`, `rich` and `urllib3`.                                                                                                                 | P25      | [verified], [reading] (workflow)        |
+| F11 | **A script without a test.** `dev/generate_versions.py` (#924) has no test, which `CLAUDE.md` requires, and a weekly workflow (#927) runs it. Its output, `dev/config/package_versions.json`, is `{}` while `minevent` has no dependency.                                                                                                                                                                                                                                           | P25      | [reading], [verified] (output)          |
 | F12 | **Not released.** The last tag is `v0.5.0`, whose API is not the one of `main`: `pip install minevent` gives a library that the documentation of `main` does not describe. `SECURITY.md` supports `0.5.x` only.                                                                                                                                                                                                                                                                     | P26      | [verified] (tags), [reading] (the rest) |
 
 What is already right and must not regress: callables as handlers and conditions; the signature
@@ -292,14 +292,18 @@ hardcoded Python version or package name:
 The same commands, run by hand, give 808 passed tests: the 820 of the repository without the 12 of
 the script of `dev/` [verified, 3.14, macOS; the step itself was not run in CI].
 
-### 4.7 Remove the package versions script (F11)
+### 4.7 Test the package versions script (F11)
 
-Delete `dev/generate_versions.py`, `dev/config/package_versions.json`,
-`bot-generate-package-versions.yaml`, the `feu[all]` dependency and their lines of
-`.github/GUIDELINES.md`. `minevent` has no dependency and gets none (P2), so the file stays empty.
-These files were added on purpose, to align with `coola`: the removal needs the approval of the
-maintainer (D6). If they stay, the script needs its unit tests, left out of the source
-distribution.
+The script, its file, its workflow and the `feu[all]` dependency stay: they are part of the layout
+shared with `coola` (D6). The script gets what `CLAUDE.md` asks of every script:
+
+- unit tests of `fetch_package_versions` and `main` in `tests/unit/test_generate_versions.py`, with
+  the fetch functions of `feu` patched, so no test uses the network;
+- an integration test in `tests/integration/test_generate_versions.py` that runs the real
+  `fetch_package_versions` on a `pyproject.toml` without dependency, which makes no request;
+- both files in the `exclude` list of the source distribution, which does not ship `dev/`.
+
+The real function, run on the repository with the network blocked, returns `{}` [verified].
 
 ### 4.8 Release `0.6.0` (F12)
 
@@ -396,15 +400,15 @@ changes of section 4 in CI; the recipe of 4.2 for a resumed training (not writte
 One branch and one pull request per step (`CLAUDE.md`), each green on its own, each with its
 changelog entry when it changes what a user or a developer sees.
 
-| Step | Branch                                | Change                                                                         | Breaking  | Fixes     |
-| ---- | ------------------------------------- | ------------------------------------------------------------------------------ | --------- | --------- |
-| 1    | `docs/fix-misleading-examples`        | The background recipe and limit (4.1), the corrections (4.2)                   | no        | F1-F4, F8 |
-| 2    | `docs/state-each-rule-once` (on 1)    | The docstrings, the bullets of the architecture page, `CLAUDE.md` (4.3)        | no        | F5, F9    |
-| 3    | `docs/keep-one-reference-page` (on 2) | One reference page (4.4)                                                       | site URLs | F6        |
-| 4    | `ci/check-the-documentation-links`    | `strict` and `anchors` in `mkdocs.yml` (4.5)                                   | no        | F7        |
-| 5    | `ci/test-the-sdist`                   | The step of `ci-build.yaml` (4.6), `.github/GUIDELINES.md`; closes #910        | no        | F10       |
-| 6    | `chore/remove-package-versions`       | The script, its file, its workflow and its dependency (4.7), if D6 is approved | no        | F11       |
-| 7    | `chore/release-0.6.0` (after 1-3)     | The version, the changelog, `SECURITY.md`, the README, then the tag (4.8)      | release   | F12       |
+| Step | Branch                                | Change                                                                    | Breaking  | Fixes     |
+| ---- | ------------------------------------- | ------------------------------------------------------------------------- | --------- | --------- |
+| 1    | `docs/fix-misleading-examples`        | The background recipe and limit (4.1), the corrections (4.2)              | no        | F1-F4, F8 |
+| 2    | `docs/state-each-rule-once` (on 1)    | The docstrings, the bullets of the architecture page, `CLAUDE.md` (4.3)   | no        | F5, F9    |
+| 3    | `docs/keep-one-reference-page` (on 2) | One reference page (4.4)                                                  | site URLs | F6        |
+| 4    | `ci/check-the-documentation-links`    | `strict` and `anchors` in `mkdocs.yml` (4.5)                              | no        | F7        |
+| 5    | `ci/test-the-sdist`                   | The step of `ci-build.yaml` (4.6), `.github/GUIDELINES.md`; closes #910   | no        | F10       |
+| 6    | `test/generate-versions` (on 5)       | The tests of the script and the `exclude` list of the sdist (4.7)         | no        | F11       |
+| 7    | `chore/release-0.6.0` (after 1-3)     | The version, the changelog, `SECURITY.md`, the README, then the tag (4.8) | release   | F12       |
 
 Order of value if only part is taken: **1** (a user copies these pages), then **7** (nothing on
 `main` reaches a user until it is released), **4** and **5** (cheap gates), then **2**, **3** and
@@ -413,7 +417,8 @@ publishes, and can be made without 2 and 3 if they are not taken.
 
 ## 8. Tests and gates
 
-No step changes the behaviour of `src`, so no unit test is added. Each step proves its change:
+No step changes the behaviour of `src`, so no unit test of the library is added. Each step proves its
+change:
 
 | Step | Check                                                                                                                                                  |
 | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -422,7 +427,7 @@ No step changes the behaviour of `src`, so no unit test is added. Each step prov
 | 3    | The strict build; the reference page lists the six names.                                                                                              |
 | 4    | A temporary broken anchor, pushed to the branch, fails the documentation job; it is removed before the merge.                                          |
 | 5    | The job runs the tests from the archive on every `sdist` cell. A temporary import of `dev` in a test fails it.                                         |
-| 6    | `uv lock` no longer lists `feu`; `actionlint`; a search finds no reference to the removed files outside the changelog.                                 |
+| 6    | The new tests cover the script; the sdist holds neither of them, and the step of 4.6 passes.                                                           |
 | 7    | `ci.yaml` passes on the released commit (`release-pypi.yaml` requires it), then `nightly-package.yaml`, run by hand, passes on the published package.  |
 
 Test of step 1 (`tests/integration/test_manager_async.py`):
@@ -461,9 +466,8 @@ Gates before each merge: `ruff check src tests dev`, `ruff format src tests dev`
 
 ### Decisions that the plan needs
 
-- **D6. Remove the package versions script?** _Recommended: yes_ (4.7). It reverses a part of #924
-  and #927. Alternative: keep it as a part of the common layout with `coola`, add its tests and the
-  exclusion from the source distribution, and say in P25 that the layout is a reason to keep a file.
+- **D6. Remove the package versions script?** _Decided: no._ The script stays, as a part of the
+  layout shared with `coola` (P25), and gets its tests (4.7).
 - **D7. Let `CLAUDE.md` allow a shared validator?** _Recommended: yes_ (4.3). Alternative: write the
   check of an event four times.
 - **D8. Keep one reference page?** _Recommended: yes_ (4.4). Alternative: keep the module pages and
@@ -494,12 +498,10 @@ Gates before each merge: `ruff check src tests dev`, `ruff format src tests dev`
 
 ## Appendix: effect on the size of the repository
 
-| Item                 | Today | Target | Why                                |
-| -------------------- | ----: | -----: | ---------------------------------- |
-| exported names       |     7 |      7 | six names and `__version__`        |
-| modules              |     5 |      5 | no change                          |
-| runtime dependencies |     0 |      0 |                                    |
-| code lines of `src`  |   413 |    413 | docstrings only                    |
-| reference pages      |     5 |      1 | the module pages are deleted       |
-| workflows            |    28 |     27 | the package versions bot, if D6    |
-| scripts of `dev/`    |     2 |      1 | the package versions script, if D6 |
+| Item                 | Today | Target | Why                          |
+| -------------------- | ----: | -----: | ---------------------------- |
+| exported names       |     7 |      7 | six names and `__version__`  |
+| modules              |     5 |      5 | no change                    |
+| runtime dependencies |     0 |      0 |                              |
+| code lines of `src`  |   413 |    413 | docstrings only              |
+| reference pages      |     5 |      1 | the module pages are deleted |
