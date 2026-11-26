@@ -119,3 +119,5 @@ the new API are in the
 - Packaging: the source distribution holds the sources and the tests in the layout of the repository
   (`src/minevent/` next to `tests/`), so the tests pass from it. It leaves out the test of a script
   of `dev/`. The wheel holds the package only (#915).
+- Development: `pyright` checks the source too (`inv types.check --complete`), and `Context.get`
+  returns the default for a key that is not a `str` even if it is equal to one (#926).

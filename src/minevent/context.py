@@ -137,5 +137,8 @@ class Context(Mapping[str, Any]):
 
             ```
         """
+        if not isinstance(key, str):
+            hash(key)  # An unhashable key is an error, as it is for a dict.
+            return default
         # ``Mapping.get`` calls ``__getitem__``, which builds a message for a missing key.
         return self._data.get(key, default)
