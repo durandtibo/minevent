@@ -11,8 +11,9 @@
   (`type: ignore`, `ty: ignore`, a cast that hides the problem) is not fixing it.
 - Run the invoke tasks with the virtual environment activated, because they call `python`:
   `source .venv/bin/activate && inv test.doctest` (it also checks the markdown pages).
-- Run the unit tests of the packages you changed (for example `pytest tests/unit/hashing -q`).
-  Some tests fail on `main`; check with `git stash` before blaming your change.
+- Run the unit tests of the modules you changed (for example
+  `pytest tests/unit/test_context.py -q`). If a test fails, check with `git stash` whether it
+  already fails on `main` before blaming your change.
 
 ## Workflow
 
@@ -57,7 +58,7 @@
   `ValueError` for a wrong value, with a message that names the argument and the value. Do not add
   a validator that is one `isinstance` or one comparison.
 - Keep new options keyword-only (`*`), as
-  `add_event_handler(..., once=..., condition=..., filter_payload=...)` does.
+  `add_event_handler(..., once=..., condition=...)` does.
 - Every function, public or private (leading underscore), needs a docstring and its own unit
   tests. Private functions are not exempt. An override that adds nothing to the docstring of the
   method it overrides (same behaviour, arguments and exceptions) has no docstring: it inherits the
@@ -72,15 +73,16 @@
 
 - Always write tests for the code in `src/`, including every private function. Unit tests must be
   fast and efficient; move big or slow tests to `tests/integration/` if needed.
-- Unit tests mirror the source tree (`tests/unit/<package>/test_<module>.py`). Cross-thread
+- Unit tests mirror the source tree (`tests/unit/test_<module>.py`, or
+  `tests/unit/test_<module>_<feature>.py` to split a large module). Cross-thread
   behaviour goes in `tests/integration/`, using `run_threads` from `tests/integration/helpers.py`,
   a lock around the shared list, and a docstring starting with "Test that ...".
-- Do not use local imports inside tests (for example `import polars as pl` in a test body). Import
+- Do not use local imports inside tests (for example `import asyncio` in a test body). Import
   at the top of the module.
 - One behaviour per test: a test has one `assert` or one `pytest.raises`. Split a test that checks
   several things (equal, different, negative, ...) into several tests. Exception: a test of the
   state of one object (the properties of a `Subscription`, or the `call_count`, `args` and `kwargs`
-  recorded by a traced handler) may have one `assert` per attribute, which reads better than one
+  recorded by a `Tracer`) may have one `assert` per attribute, which reads better than one
   assert on a tuple. Thread-safety tests may assert the count and the uniqueness together, as the
   existing ones do.
 - A test may combine `pytest.raises` (or `pytest.warns`) with an `assert` that checks the state
@@ -119,7 +121,7 @@
   ###########################
   ```
 
-- Seed random data (`default_rng(0)`); no unseeded randomness in tests.
+- Seed random data (`random.Random(0)`); no unseeded randomness in tests.
 - Patching (`monkeypatch`, `unittest.mock.patch`) is fine in unit tests: it keeps them fast and
   simple and isolates the logic under test. But a patched test only proves the logic works against
   the patched stand-in, which may not match the real collaborator (signature, return type,
@@ -177,7 +179,8 @@ and keep it up to date when you add, rename or remove a workflow.
   - `bot-`: scheduled automation that opens pull requests (dependency updates, pinning
     actions, formatting, ...) with the `ci-bot` GitHub App token.
   - `release-`: publishing to PyPI and the documentation, triggered by version tags
-    (`v*.*.*`) or manually; they run `ci.yaml` before publishing.
+    (`v*.*.*`) or manually (`release-docs-dev.yaml`: push to `main`). `release-pypi.yaml` runs
+    `ci.yaml` before publishing; the documentation workflows do not.
   - `security-`: dependency review of PRs, scheduled dependency audit and scorecard.
 - `ci.yaml` is the single entry point of the checks (pull request, push to `main`, nightly).
   It calls `lib-get-test-matrix.yaml` once and passes the matrix (`test-matrix` input) to the
