@@ -3,9 +3,9 @@ from __future__ import annotations
 import asyncio
 import dataclasses
 import functools
-import importlib.util
 import inspect
 import logging
+import runpy
 import sys
 from collections.abc import Awaitable
 from enum import StrEnum
@@ -325,13 +325,8 @@ def test_calls_does_not_import_annotationlib_before_python_3_14(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(sys, "version_info", (3, 13, 0))
-    # A fresh copy of the module: ``minevent.calls`` is left as it is.
-    spec = importlib.util.spec_from_file_location("calls_copy", calls.__file__)
-    assert spec is not None
-    assert spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    assert not hasattr(module, "annotationlib")
+    # A fresh run of the module: ``minevent.calls`` is left as it is.
+    assert "annotationlib" not in runpy.run_path(calls.__file__)
 
 
 ##############################

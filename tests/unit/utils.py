@@ -2,7 +2,7 @@ r"""Implement the helpers of the unit tests."""
 
 from __future__ import annotations
 
-__all__ = ["Tracer", "raised", "reset_traced", "trace"]
+__all__ = ["INVALID_EVENTS", "Tracer", "raised", "reset_traced", "trace"]
 
 from functools import update_wrapper
 from typing import TYPE_CHECKING, Any
@@ -11,6 +11,9 @@ import pytest
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+# The event names that the manager rejects.
+INVALID_EVENTS = [1, None, b"my_event"]
 
 
 class Tracer:

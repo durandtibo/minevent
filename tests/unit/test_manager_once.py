@@ -359,3 +359,10 @@ async def test_event_manager_atrigger_event_once_removed_by_earlier_handler_does
     subscriptions.append(manager.add_event_handler("my_event", hello_handler, once=True))
     await manager.atrigger_event("my_event")
     assert hello_handler.call_count == 0
+
+
+def test_event_manager_subscription_active_after_once_ran() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", hello_handler, once=True)
+    manager.trigger_event("my_event")
+    assert not subscription.active

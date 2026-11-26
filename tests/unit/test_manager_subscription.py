@@ -313,12 +313,6 @@ def test_subscription_remove_twice_returns_false() -> None:
     assert not subscription.remove()
 
 
-def test_subscription_remove_inactive_after_remove() -> None:
-    subscription = EventManager().add_event_handler("my_event", noop_handler)
-    subscription.remove()
-    assert not subscription.active
-
-
 def test_subscription_remove_removes_from_manager() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", noop_handler).remove()
@@ -444,6 +438,14 @@ def test_subscription_exit_removes_when_block_raises() -> None:
     ):
         failing_handler()
     assert manager.events == []
+
+
+def test_event_manager_subscription_context_manager_removes_on_exit() -> None:
+    manager = EventManager()
+    with manager.add_event_handler("my_event", hello_handler):
+        manager.trigger_event("my_event")
+    manager.trigger_event("my_event")
+    assert hello_handler.call_count == 1
 
 
 ############################

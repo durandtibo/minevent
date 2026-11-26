@@ -10,7 +10,7 @@ from minevent import (
     Context,
     EventManager,
 )
-from tests.unit.handlers import AwaitableResult, condition_returning_a_coroutine
+from tests.unit.handlers import AwaitableResult, condition_returning_a_coroutine, payload_handler
 from tests.unit.utils import raised, trace
 
 logger = logging.getLogger(__name__)
@@ -139,6 +139,28 @@ async def test_event_manager_atrigger_event_snapshot() -> None:
     manager.add_event_handler("my_event", add_handler)
     await manager.atrigger_event("my_event")
     assert async_handler.call_count == 0
+
+
+async def test_event_manager_atrigger_event_payload_with_event_and_self_keys() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", payload_handler)
+    await manager.atrigger_event("my_event", {"event": "batch_end", "self": 1})
+    assert payload_handler.args == ({"event": "batch_end", "self": 1},)
+
+
+async def test_event_manager_atrigger_event_once_payload_with_self_key() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", payload_handler, once=True)
+    await manager.atrigger_event("my_event", {"self": 1})
+    assert payload_handler.args == ({"self": 1},)
+
+
+@pytest.mark.parametrize("data", [{"epoch": 3}, Context({"epoch": 3})])
+async def test_event_manager_atrigger_event_dict_and_context_give_the_same_data(data: Any) -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", payload_handler)
+    await manager.atrigger_event("my_event", data)
+    assert payload_handler.args == ({"epoch": 3},)
 
 
 ############################################################
