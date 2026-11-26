@@ -117,3 +117,5 @@ the new API are in the
 - Development: the tests run on Linux, macOS and Windows, one runner each, instead of 13 Linux and
   macOS runners, and the CI ends with a job `ci` that fails unless every other job succeeded, to be
   the required check of `main` (#894).
+- Development: the import time of the package is no longer tracked: the daily workflow, its benchmark
+  and trend script and the `inv test.benchmark-import` task are removed (#905).
