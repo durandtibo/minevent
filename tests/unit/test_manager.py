@@ -369,6 +369,34 @@ def test_event_manager_add_event_handler_invalid_handler_is_not_registered(handl
     assert len(manager) == 0
 
 
+class BadReprValue:
+    r"""Implement a value that is not callable and whose ``repr``
+    raises."""
+
+    def __repr__(self) -> str:
+        msg = "repr failed"
+        raise RuntimeError(msg)
+
+
+@pytest.mark.parametrize("option", ["handler", "condition"])
+def test_event_manager_add_event_handler_not_callable_repr_raises(option: str) -> None:
+    manager = EventManager()
+    options: dict[str, Any] = {"handler": noop_handler, option: BadReprValue()}
+    with pytest.raises(TypeError, match=rf"^{option} must be callable, but got <BadReprValue "):
+        manager.add_event_handler("my_event", **options)
+    assert len(manager) == 0
+
+
+@pytest.mark.parametrize("option", ["handler", "condition"])
+def test_event_manager_add_event_handler_not_callable_long_value(option: str) -> None:
+    options: dict[str, Any] = {"handler": noop_handler, option: list(range(100))}
+    with pytest.raises(
+        TypeError,
+        match=rf"^{option} must be callable, but got \[0, 1, 2, 3, 4, 5, \.\.\.\]$",
+    ):
+        EventManager().add_event_handler("my_event", **options)
+
+
 @pytest.mark.parametrize("handler", INVALID_HANDLERS)
 def test_event_manager_on_handler_must_be_callable(handler: Any) -> None:
     with pytest.raises(TypeError, match=r"handler must be callable"):

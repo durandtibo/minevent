@@ -9,11 +9,16 @@ from __future__ import annotations
 
 __all__ = ["Context"]
 
+import reprlib
 from collections.abc import Iterator, Mapping
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Any
+
+# The list of the keys in the message of a missing key: at most 20 of them.
+_KEYS_REPR = reprlib.Repr()
+_KEYS_REPR.maxlist = 20
 
 
 class Context(Mapping[str, "Any"]):
@@ -31,10 +36,11 @@ class Context(Mapping[str, "Any"]):
     value without a cast, and it does not check how the value is used.
 
     ``context[key]`` reads a required value and raises a ``KeyError``
-    if it is missing. ``context.get(key, default)`` reads an optional
-    value. ``get`` and ``key in context`` do not build the message of
-    that error, so they cost the same for a present key and a missing
-    one, whatever the number of keys. ``len``, iteration, ``keys``,
+    if it is missing. Its message lists at most 20 of the keys and
+    shortens the long ones. ``context.get(key, default)`` reads an
+    optional value. ``get`` and ``key in context`` do not build the
+    message of that error, so they cost the same for a present key and a
+    missing one, whatever the number of keys. ``len``, iteration, ``keys``,
     ``items``, ``values`` and ``==`` behave like those of any
     ``collections.abc.Mapping``, so ``dict(context)`` is a valid
     ``**kwargs``. A context is equal to a mapping that has the same
@@ -80,7 +86,7 @@ class Context(Mapping[str, "Any"]):
             raise TypeError(msg)
         for key in data:
             if not isinstance(key, str):
-                msg = f"the keys of data must be str, but got {key!r}"
+                msg = f"the keys of data must be str, but got {reprlib.repr(key)}"
                 raise TypeError(msg)
         self._data = dict(data)
 
@@ -88,7 +94,8 @@ class Context(Mapping[str, "Any"]):
         try:
             return self._data[key]
         except KeyError:
-            msg = f"key {key!r} not found in the context; available keys: {list(self._data)!r}"
+            keys = _KEYS_REPR.repr(list(self._data))
+            msg = f"key {reprlib.repr(key)} not found in the context; available keys: {keys}"
             raise KeyError(msg) from None
 
     def __contains__(self, key: object) -> bool:
@@ -132,5 +139,5 @@ class Context(Mapping[str, "Any"]):
 
             ```
         """
-        # ``Mapping.get`` calls ``__getitem__``, which lists the keys of a missing key.
+        # ``Mapping.get`` calls ``__getitem__``, which builds a message for a missing key.
         return self._data.get(key, default)
