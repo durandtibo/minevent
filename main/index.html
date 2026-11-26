@@ -285,6 +285,26 @@
     
     
       <li class="md-tabs__item">
+        <a href="architecture/" class="md-tabs__link">
+          
+  
+  
+  Concepts
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
         <a href="refs/" class="md-tabs__link">
           
   
@@ -443,6 +463,17 @@
     <span class="md-ellipsis">
       
         Motivation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#where-to-go-next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where to go next
       
     </span>
   </a>
@@ -621,34 +652,6 @@
   
   
     <li class="md-nav__item">
-      <a href="architecture/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Architecture and Design Principles
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="guide/" class="md-nav__link">
         
   
@@ -707,7 +710,7 @@
   <span class="md-ellipsis">
     
   
-    Reference
+    Concepts
   
 
     
@@ -720,6 +723,121 @@
         
         <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How It Works
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design Choices
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -771,7 +889,7 @@
   <span class="md-ellipsis">
     
   
-    Manager
+    Event manager
   
 
     
@@ -828,6 +946,34 @@
     
   
     Context
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="refs/calls/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Calls
   
 
     
@@ -924,6 +1070,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#where-to-go-next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where to go next
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#api-stability" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -978,14 +1135,20 @@ It allows you to customize code by adding pieces of code that are executed when 
 fired.
 <code>minevent</code> is organized around three main concepts:</p>
 <ul>
-<li><strong>event</strong> which defines the thing that should happen.</li>
-<li><strong>event handler</strong> which is a callable to execute when the event happens</li>
-<li><strong>event manager</strong> which is responsible to manage the events and event handlers.</li>
+<li><strong>event</strong> which is a case-sensitive string that names something that happens.</li>
+<li><strong>event handler</strong> which is a callable to execute when the event happens.</li>
+<li><strong>event manager</strong> (<code>EventManager</code>) which stores the event handlers and triggers the events.</li>
 </ul>
-<p>The goal of this documentation is to explain how the event system works and how to use it.
-The library provides some implemented modules, but it is possible to extend it.
-It is possible to use all the components or just a subset based on the need.
-For example, a handler is a plain callable, so it can be tested without the event manager.</p>
+<p>A trigger can pass data to the handlers in a read-only <code>Context</code>, a condition can decide if a handler
+runs, and each registration returns a <code>Subscription</code> that removes it. <code>minevent</code> has no dependency
+and is fully typed.</p>
+<p>A handler is a plain callable, so it can be tested without the event manager, and there is no base
+class to extend.</p>
+<p>!!! note "Version"</p>
+<div class="highlight"><pre><span></span><code>The documentation of the `main` version describes the code of the `main` branch. Version `0.5.0`
+and older have a different API: use the version selector of their documentation, or see the
+[changelog](https://github.com/durandtibo/minevent/blob/main/CHANGELOG.md) to migrate.
+</code></pre></div>
 <h2 id="motivation">Motivation<a class="headerlink" href="#motivation" title="Permanent link">&para;</a></h2>
 <p><code>minevent</code> provides a minimal event system to customize a piece of code without changing its
 implementation.
@@ -1004,8 +1167,46 @@ Below is an example on how to use <code>minevent</code> library.</p>
 <span class="go">Hello, I am Bob!</span>
 <span class="go">Hello!</span>
 </code></pre></div>
-<p>It allows you to customize the function <code>say_something</code> without changing its implementation.
-Please read the <a href="quickstart/">quickstart page</a> to learn more about the library.</p>
+<p>It allows you to customize the function <code>say_something</code> without changing its implementation.</p>
+<h2 id="where-to-go-next">Where to go next<a class="headerlink" href="#where-to-go-next" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="get_started/">Get started</a></td>
+<td>Install the library.</td>
+</tr>
+<tr>
+<td><a href="quickstart/">Quickstart</a></td>
+<td>The basics in a few minutes.</td>
+</tr>
+<tr>
+<td><a href="examples/">Examples</a></td>
+<td>Recipes for training loops, plugins, async and tests</td>
+</tr>
+<tr>
+<td><a href="guide/">User guide</a></td>
+<td>Recommendations, pitfalls and troubleshooting.</td>
+</tr>
+<tr>
+<td><a href="architecture/">How it works</a></td>
+<td>The rules, the guarantees and the limits.</td>
+</tr>
+<tr>
+<td><a href="design/">Design choices</a></td>
+<td>Why it works this way, and the trade-offs.</td>
+</tr>
+<tr>
+<td><a href="refs/">Reference</a></td>
+<td>The classes and functions.</td>
+</tr>
+</tbody>
+</table>
 <h2 id="api-stability">API stability<a class="headerlink" href="#api-stability" title="Permanent link">&para;</a></h2>
 <p><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" title=":warning:" /> While <code>minevent</code> is in development stage, no API is guaranteed to be stable from one
 release to the next. In fact, it is very likely that the API will change multiple times before a

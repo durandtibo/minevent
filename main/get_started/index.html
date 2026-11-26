@@ -287,6 +287,26 @@
     
     
       <li class="md-tabs__item">
+        <a href="../architecture/" class="md-tabs__link">
+          
+  
+  
+  Concepts
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
         <a href="../refs/" class="md-tabs__link">
           
   
@@ -502,21 +522,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#create-a-virtual-environment-optional-but-recommended" class="md-nav__link">
+  <a href="#install-the-dependencies" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Create a virtual environment (optional but recommended)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#install-dependencies" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Install dependencies
+        Install the dependencies
       
     </span>
   </a>
@@ -673,34 +682,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../architecture/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Architecture and Design Principles
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../guide/" class="md-nav__link">
         
   
@@ -759,7 +740,7 @@
   <span class="md-ellipsis">
     
   
-    Reference
+    Concepts
   
 
     
@@ -772,6 +753,121 @@
         
         <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How It Works
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design Choices
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -823,7 +919,7 @@
   <span class="md-ellipsis">
     
   
-    Manager
+    Event manager
   
 
     
@@ -880,6 +976,34 @@
     
   
     Context
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../refs/calls/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Calls
   
 
     
@@ -999,21 +1123,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#create-a-virtual-environment-optional-but-recommended" class="md-nav__link">
+  <a href="#install-the-dependencies" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Create a virtual environment (optional but recommended)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#install-dependencies" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Install dependencies
+        Install the dependencies
       
     </span>
   </a>
@@ -1077,7 +1190,20 @@ a <a href="https://packaging.python.org/guides/installing-using-pip-and-virtual-
 <code>minevent</code> can be installed from pip using the following command:</p>
 <div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>minevent
 </code></pre></div>
-<p><code>minevent</code> has no dependency, so no optional dependencies or extras are required.</p>
+<p><code>minevent</code> has no dependency, so no optional dependencies or extras are required. It requires
+Python 3.11 or newer on the <code>main</code> branch (see the
+<a href="https://github.com/durandtibo/minevent#installation">version table</a> for the releases).</p>
+<p>This command installs the latest release. Version <code>0.5.0</code> and older have a different API than the
+one of the <code>main</code> documentation. To install the code of the <code>main</code> branch:</p>
+<div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/durandtibo/minevent.git
+</code></pre></div>
+<p>Check the installation:</p>
+<div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"hello"</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"Hello!"</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"hello"</span><span class="p">)</span>
+<span class="go">Hello!</span>
+</code></pre></div>
 <h2 id="installing-from-source">Installing from source<a class="headerlink" href="#installing-from-source" title="Permanent link">&para;</a></h2>
 <p>To install <code>minevent</code> from source, you can follow the steps below.</p>
 <h3 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">&para;</a></h3>
@@ -1086,24 +1212,18 @@ a <a href="https://packaging.python.org/guides/installing-using-pip-and-virtual-
 the <a href="https://docs.astral.sh/uv/getting-started/installation/">official installation guide</a>.</p>
 <h3 id="clone-the-repository">Clone the repository<a class="headerlink" href="#clone-the-repository" title="Permanent link">&para;</a></h3>
 <p>First, clone the git repository:</p>
-<div class="highlight"><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>git@github.com:durandtibo/minevent.git
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/durandtibo/minevent.git
 <span class="nb">cd</span><span class="w"> </span>minevent
 </code></pre></div>
-<h3 id="create-a-virtual-environment-optional-but-recommended">Create a virtual environment (optional but recommended)<a class="headerlink" href="#create-a-virtual-environment-optional-but-recommended" title="Permanent link">&para;</a></h3>
-<p>It is recommended to create a Python 3.11+ virtual environment. You can use <code>uv</code> to create a virtual
-environment:</p>
-<div class="highlight"><pre><span></span><code>uv<span class="w"> </span>venv<span class="w"> </span>--python<span class="w"> </span><span class="m">3</span>.13
+<h3 id="install-the-dependencies">Install the dependencies<a class="headerlink" href="#install-the-dependencies" title="Permanent link">&para;</a></h3>
+<p>Create the virtual environment <code>.venv</code> with the package (in editable mode) and its development
+dependencies, then activate it:</p>
+<div class="highlight"><pre><span></span><code>uv<span class="w"> </span>sync<span class="w"> </span>--python<span class="w"> </span><span class="m">3</span>.13
 <span class="nb">source</span><span class="w"> </span>.venv/bin/activate
 </code></pre></div>
-<h3 id="install-dependencies">Install dependencies<a class="headerlink" href="#install-dependencies" title="Permanent link">&para;</a></h3>
-<p>Once you have activated your virtual environment, install the required packages with:</p>
-<div class="highlight"><pre><span></span><code>inv<span class="w"> </span>env.install
-</code></pre></div>
-<p>Or if you're developing and need documentation dependencies:</p>
-<div class="highlight"><pre><span></span><code>inv<span class="w"> </span>env.install<span class="w"> </span>--docs-deps
-</code></pre></div>
-<p>These commands will install all the required packages. You can also use these commands to update the
-required packages.</p>
+<p>To also install the documentation dependencies, use <code>uv sync --python 3.13 --group docs</code>.</p>
+<p>Once the environment is activated, <code>inv env.install</code> installs the dependencies again, and
+<code>inv env.update</code> updates them. <code>inv --list</code> shows all the tasks.</p>
 <h3 id="verify-the-installation">Verify the installation<a class="headerlink" href="#verify-the-installation" title="Permanent link">&para;</a></h3>
 <p>Finally, you can test the installation by running the test suite:</p>
 <div class="highlight"><pre><span></span><code>inv<span class="w"> </span>test.unit<span class="w"> </span>--cov

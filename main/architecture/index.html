@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../examples/">
+        <link rel="prev" href="../guide/">
       
       
-        <link rel="next" href="../guide/">
+        <link rel="next" href="../design/">
       
       
         
@@ -23,7 +23,7 @@
     
     
       
-        <title>Architecture and Design Principles - minevent</title>
+        <title>How It Works - minevent</title>
       
     
     
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#architecture-and-design-principles" class="md-skip">
+        <a href="#how-it-works" class="md-skip">
           Skip to content
         </a>
       
@@ -114,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Architecture and Design Principles
+              How It Works
             
           </span>
         </div>
@@ -261,17 +261,37 @@
   
   
   
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../quickstart/" class="md-tabs__link">
+          
+  
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
     
   
   
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../quickstart/" class="md-tabs__link">
+        <a href="./" class="md-tabs__link">
           
   
   
-  User Guide
+  Concepts
 
         </a>
       </li>
@@ -421,29 +441,26 @@
       
   
   
-    
   
   
-  
     
     
     
     
       
-        
-        
-      
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
             
   
   
@@ -461,7 +478,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -532,6 +549,96 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
     
   
   
@@ -551,7 +658,7 @@
   <span class="md-ellipsis">
     
   
-    Architecture and Design Principles
+    How It Works
   
 
     
@@ -569,7 +676,7 @@
   <span class="md-ellipsis">
     
   
-    Architecture and Design Principles
+    How It Works
   
 
     
@@ -595,10 +702,32 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#properties" class="md-nav__link">
+  <a href="#overview" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Properties
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#registration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#trigger" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Trigger
       
     </span>
   </a>
@@ -617,10 +746,104 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#not-guaranteed" class="md-nav__link">
+  <a href="#behavior-you-can-rely-on" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Not guaranteed
+        Behavior You Can Rely On
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Behavior You Can Rely On">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#events-and-registrations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Events and registrations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dispatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dispatch
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#payload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Payload
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Errors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#coroutines" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Coroutines
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#threads" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Threads
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#import-and-typing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Import and typing
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limits
       
     </span>
   </a>
@@ -628,21 +851,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#design-notes" class="md-nav__link">
+  <a href="#performance" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Design Notes
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#non-goals" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Non-goals
+        Performance
       
     </span>
   </a>
@@ -665,14 +877,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../guide/" class="md-nav__link">
+      <a href="../design/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    User guide
+    Design Choices
   
 
     
@@ -713,10 +925,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
             
   
   
@@ -734,8 +946,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -787,7 +999,7 @@
   <span class="md-ellipsis">
     
   
-    Manager
+    Event manager
   
 
     
@@ -844,6 +1056,34 @@
     
   
     Context
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../refs/calls/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Calls
   
 
     
@@ -918,10 +1158,32 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#properties" class="md-nav__link">
+  <a href="#overview" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Properties
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#registration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#trigger" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Trigger
       
     </span>
   </a>
@@ -940,10 +1202,104 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#not-guaranteed" class="md-nav__link">
+  <a href="#behavior-you-can-rely-on" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Not guaranteed
+        Behavior You Can Rely On
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Behavior You Can Rely On">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#events-and-registrations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Events and registrations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dispatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dispatch
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#payload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Payload
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Errors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#coroutines" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Coroutines
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#threads" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Threads
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#import-and-typing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Import and typing
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limits
       
     </span>
   </a>
@@ -951,21 +1307,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#design-notes" class="md-nav__link">
+  <a href="#performance" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Design Notes
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#non-goals" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Non-goals
+        Performance
       
     </span>
   </a>
@@ -992,151 +1337,121 @@
   
 
 
-<h1 id="architecture-and-design-principles">Architecture and Design Principles<a class="headerlink" href="#architecture-and-design-principles" title="Permanent link">&para;</a></h1>
-<p>This page is the reference of the rules of <code>minevent</code>: the properties that it guarantees, the
-behaviors that it does not guarantee, the rule that calls the handlers and the reasons of the design.
-The <a href="../quickstart/">quickstart</a> is the first contact, the <a href="../examples/">examples</a> are runnable
-recipes and the <a href="../guide/">user guide</a> gives the recommendations.</p>
-<h2 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h2>
-<p>These properties hold for every release and each one is covered by tests.</p>
+<h1 id="how-it-works">How It Works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h1>
+<p>This page describes the parts of <code>minevent</code>, what happens when you register a handler and trigger an
+event, and the behavior that you can rely on. The reasons of these rules, and their trade-offs, are
+on the <a href="../design/">design choices page</a>. The <a href="../quickstart/">quickstart</a> is the first contact, the
+<a href="../examples/">examples</a> are runnable recipes and the <a href="../guide/">user guide</a> gives the
+recommendations.</p>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>#</th>
-<th>Property</th>
-<th>Statement</th>
-<th>Enforced by</th>
+<th>Name</th>
+<th>Role</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>P1</td>
-<td>Small surface</td>
-<td>Events are strings, handlers are plain callables, the manager connects them. Seven exported names and <code>__version__</code> (<code>EventManager</code>, <code>Subscription</code>, <code>Context</code>, <code>Handler</code>, <code>Condition</code>, <code>PeriodicCondition</code>, <code>AfterNCondition</code>). <code>EventManager</code> has 8 public members (<code>events</code>, <code>get_subscriptions</code>, <code>add_event_handler</code>, <code>on</code>, <code>trigger_event</code>, <code>atrigger_event</code>, <code>clear_event</code>, <code>reset</code>) and <code>__len__</code>, <code>__contains__</code>.</td>
-<td><code>__all__</code> and review</td>
+<td>event</td>
+<td>A case-sensitive <code>str</code> that names something that happens.</td>
 </tr>
 <tr>
-<td>P2</td>
-<td>Cheap import</td>
-<td><code>import minevent</code> is cheap and has no side effect: standard library only, and not <code>logging</code>, <code>inspect</code>, <code>asyncio</code> or <code>importlib.metadata</code>, and it creates no <code>typing</code> object (<code>NamedTuple</code>, <code>Protocol</code>, <code>TypeVar</code>): the annotations are strings and the names that only a type checker needs are imported under <code>TYPE_CHECKING</code> (<code>inspect</code> is imported when the first handler is registered, the version on the first access of <code>__version__</code>). It starts no thread, reads no file, emits no warning and writes no log.</td>
-<td><code>test_import.py</code> (modules and <code>typing</code> objects)</td>
+<td><code>Handler</code></td>
+<td>A callable that runs when the event happens, called as <code>f()</code> or <code>f(context)</code>.</td>
 </tr>
 <tr>
-<td>P3</td>
-<td>Events are strings</td>
-<td>An event name is a case-sensitive <code>str</code> (a <code>StrEnum</code> member is one, and is kept as given); <code>add_event_handler</code>, <code>on</code>, <code>get_subscriptions</code>, <code>trigger_event</code>, <code>atrigger_event</code> and <code>clear_event</code> raise <code>TypeError</code> for another type. <code>in</code> answers like a dict (<code>1 in manager</code> is <code>False</code>). The empty string is valid. Reading the manager never creates an event.</td>
-<td><code>_check_event</code>, <code>test_manager.py</code></td>
+<td><code>EventManager</code></td>
+<td>Stores the registrations and triggers the events.</td>
 </tr>
 <tr>
-<td>P4</td>
-<td>Validated at the door</td>
-<td><code>add_event_handler</code> and <code>on</code> reject, with a <code>TypeError</code> that names the argument and the value: a non-<code>str</code> event, a non-callable handler or condition, a signature that P13 rejects, a generator or async generator function, and <strong>a coroutine function used as a condition</strong>. A rejected registration leaves the manager unchanged. The annotations of a handler or a condition do not have to be resolvable.</td>
-<td><code>Subscription</code>, <code>calls.needs_context</code>, <code>test_manager.py</code></td>
+<td><code>Subscription</code></td>
+<td>The registration of one handler to one event: it holds the options and <code>remove</code>.</td>
 </tr>
 <tr>
-<td>P5</td>
-<td>Registration identity</td>
-<td><code>add_event_handler</code> returns a new <code>Subscription</code> every time; the same callable can be registered several times. <code>remove()</code> removes that registration only: <code>True</code> the first time, then <code>False</code>. <code>active</code> is <code>True</code> until the registration is removed, by whatever means.</td>
-<td><code>Subscription</code>, <code>test_manager.py</code></td>
+<td><code>Context</code></td>
+<td>The read-only payload of one trigger.</td>
 </tr>
 <tr>
-<td>P6</td>
-<td>Registration order</td>
-<td>The handlers of an event run in the order they were registered, one after the other, in the calling thread.</td>
-<td>the ordered <code>dict</code>, <code>test_manager.py</code></td>
+<td><code>Condition</code></td>
+<td>A synchronous function that returns a boolean and decides if a handler runs.</td>
 </tr>
 <tr>
-<td>P7</td>
-<td>Snapshot dispatch</td>
-<td>A trigger visits the registrations that exist when it starts. A registration <strong>added</strong> by a running handler takes effect at the next trigger. A registration <strong>removed</strong> before its turn (by <code>remove()</code>, <code>clear_event</code>, <code>reset</code> or a <code>once</code> claim) does not run.</td>
-<td>the dispatch loop, <code>test_manager.py</code></td>
+<td><code>PeriodicCondition</code></td>
+<td>A condition that is <code>True</code> on one call in <code>freq</code>.</td>
 </tr>
 <tr>
-<td>P8</td>
-<td>Fail-fast with context</td>
-<td>An exception of a handler or a condition propagates unchanged (same object, same type); the remaining handlers are skipped. It carries a note with the event and what raised: the handler, or the condition and its handler (each named by its function, under a <code>functools.partial</code>), once per distinct note. Adding the note never replaces the exception: an exception that cannot take it propagates without it. No message and no <code>repr</code> of the package runs the <code>repr</code> of user data to name a callable.</td>
-<td><code>calls.add_error_note</code>, <code>Subscription._claim</code>, <code>test_calls.py</code>, <code>test_manager.py</code></td>
-</tr>
-<tr>
-<td>P9</td>
-<td><code>once</code> is at-most-once</td>
-<td>A <code>once</code> registration is removed by an atomic claim just before its handler is called, after its condition, so it is called at most once whatever the number of threads. A false or raising condition does not consume it; a handler that raises does.</td>
-<td><code>Subscription._claim</code>, <code>test_manager_once.py</code>, <code>test_manager_threads.py</code></td>
-</tr>
-<tr>
-<td>P10</td>
-<td>Synchronous by default</td>
-<td><code>trigger_event</code> never awaits; a handler that returns an awaitable raises <code>TypeError</code>. <code>atrigger_event</code> awaits the handlers one after the other (an object with <code>async def __call__</code> is a coroutine handler too). <strong>Conditions are synchronous in both</strong>: a coroutine function is rejected at registration (P4), and a condition that returns an awaitable raises <code>TypeError</code>. A coroutine that is rejected is closed.</td>
-<td><code>calls.reject_awaitable</code>, <code>Subscription</code>, <code>test_manager_async.py</code></td>
-</tr>
-<tr>
-<td>P11</td>
-<td>Thread-safe registry</td>
-<td>The registry is protected by a reentrant lock. Handlers, conditions, the <code>repr</code> and <strong>the finalizers</strong> of user objects run outside the lock, so they can use the manager. This holds with and without the GIL.</td>
-<td><code>EventManager._lock</code>, <code>test_manager_threads.py</code></td>
-</tr>
-<tr>
-<td>P12</td>
-<td>No hidden state</td>
-<td>No global manager, no discovery, no side effect of a read. Zero runtime dependency. A manager cannot be copied or pickled (<code>copy.copy</code>, <code>copy.deepcopy</code> and <code>pickle</code> raise the same <code>TypeError</code>).</td>
-<td><code>__reduce__</code>, <code>test_manager.py</code></td>
-</tr>
-<tr>
-<td>P13</td>
-<td>Two calls</td>
-<td>A handler and a condition are called as <code>f()</code> or <code>f(context)</code>. <strong>A parameter that has a default keeps it: the manager never fills it.</strong> A callable whose other parameters are none is called as <code>f()</code>; one with exactly one other parameter, positional, is called as <code>f(context)</code>; any other signature (including <code>*args</code> and <code>**kwargs</code>), or one that cannot be inspected, is rejected (P4). Names and annotations are not checked. The signature is the one that <code>inspect.signature</code> reports, read once, at registration (<a href="#the-calling-rule">the calling rule</a>).</td>
-<td><code>calls.needs_context</code>, <code>test_calls.py</code></td>
-</tr>
-<tr>
-<td>P14</td>
-<td>Payload is data</td>
-<td><code>trigger_event(event, context=None, /)</code> copies the mapping <code>context</code> (a dict, for example), or reuses a <code>Context</code> as is, into one read-only <code>Context</code> per trigger, shared by the handlers and the conditions. A <code>Context</code> can be copied, deep-copied and pickled (protocol 2 or higher) if its values can; the values are not copied by the context itself. Any <code>str</code> key is allowed, it does not need to be a valid identifier. The handler decides what a missing key means (<code>context[key]</code> or <code>context.get(key, default)</code>).</td>
-<td><code>trigger_event</code>, <code>Context</code>, <code>test_context.py</code></td>
-</tr>
-<tr>
-<td>P15</td>
-<td>Typed</td>
-<td>Fully typed, <code>py.typed</code>, <code>ty check</code> clean. The values of a <code>Context</code> are <code>Any</code>, so the documented handlers type check in the code of a user. <strong>A handler argument is typed <code>Handler</code></strong>, so a type checker reports a callable that needs two arguments, a keyword-only argument or an argument of another type than <code>Context</code>; the run-time check (P13) stays the authority.</td>
-<td><code>ty check</code> in CI, <code>test_context_typing.py</code></td>
-</tr>
-<tr>
-<td>P16</td>
-<td>Fast and linear</td>
-<td>About 0.3 µs for a trigger with one trivial handler, 0.06 µs for each extra one, 0.75 µs with a small dict (it is copied into a <code>Context</code>), and 4.5 µs for a registration plus its removal (the signature is inspected there, never in a trigger). Reading a value of a <code>Context</code> costs the same, present or missing, whatever the number of keys (<code>get</code> and <code>in</code>; <code>context[key]</code> lists the keys in its <code>KeyError</code>). Registering <em>k</em> handlers and removing them in any order costs O(<em>k</em>). Measured on a laptop with Python 3.14.</td>
-<td><code>tests/benchmarks/</code></td>
-</tr>
-<tr>
-<td>P17</td>
-<td>A manager is a service</td>
-<td><code>bool(manager)</code> is always <code>True</code>, empty or not, so <code>manager or default</code> means "is there a manager". <code>len(manager)</code> is the number of registrations.</td>
-<td><code>__bool__</code>, <code>test_manager.py</code></td>
-</tr>
-<tr>
-<td>P18</td>
-<td>One way to do each thing</td>
-<td>One way to register (<code>add_event_handler</code>, with <code>on</code> as its decorator form and the same keyword-only options <code>once</code> and <code>condition</code>), one way to adapt a callable (wrap it in a function, a lambda or a <code>functools.partial</code> that needs nothing or only the context), one way to run once (<code>once=True</code>), one way to extend (write a callable), one option to shift a period (<code>start</code> of <code>PeriodicCondition</code>). No handler base class. One page states each rule; a docstring states what its own object does and names the page or the function that holds the rule.</td>
-<td>the signatures, the documents</td>
-</tr>
-<tr>
-<td>P19</td>
-<td>Debuggable without a logger</td>
-<td><code>repr(subscription)</code> names the event and the handler function (<code>Subscription(event='epoch_end', handler='log_epoch')</code>), <code>repr(manager)</code> counts the registrations per event. The library logs nothing: <code>get_subscriptions(event)</code> is the way to look.</td>
-<td><code>__repr__</code>, <code>test_manager.py</code></td>
-</tr>
-<tr>
-<td>P20</td>
-<td>Everything that runs, is run</td>
-<td>Each pull request runs the unit and integration tests, the doctests and <code>tests/package_checks.py</code>; <strong>every</strong> benchmark runs nightly, not at each pull request. A test passes or fails for the same reason on every Python of the matrix, with and without the GIL.</td>
-<td><code>ci.yaml</code>, the nightly benchmark workflows, <code>test_package_checks.py</code></td>
-</tr>
-<tr>
-<td>P21</td>
-<td>Exact built-in conditions</td>
-<td><code>PeriodicCondition</code> and <code>AfterNCondition</code> count every call once, from any number of threads, with and without the GIL. They can be copied and pickled: a copy starts at the same step and has its own counter.</td>
-<td><code>_CountingCondition</code>, <code>test_conditions.py</code>, <code>test_conditions_threads.py</code></td>
+<td><code>AfterNCondition</code></td>
+<td>A condition that is <code>False</code> for the first <code>n</code> calls, then <code>True</code>.</td>
 </tr>
 </tbody>
 </table>
+<p>These seven names (all but "event") and <code>__version__</code> are what <code>minevent</code> exports. <code>EventManager</code>
+has the following members:</p>
+<table>
+<thead>
+<tr>
+<th>Member</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>add_event_handler(event, handler, *, once=False, condition=None)</code></td>
+<td>Register a handler.</td>
+</tr>
+<tr>
+<td><code>on(event, *, once=False, condition=None)</code></td>
+<td>Register a function with a decorator.</td>
+</tr>
+<tr>
+<td><code>trigger_event(event, context=None, /)</code></td>
+<td>Run the handlers of an event.</td>
+</tr>
+<tr>
+<td><code>atrigger_event(event, context=None, /)</code></td>
+<td>Same, and await the coroutine handlers</td>
+</tr>
+<tr>
+<td><code>events</code>, <code>get_subscriptions(event)</code>, <code>event in manager</code>, <code>len(manager)</code></td>
+<td>Look at the registrations.</td>
+</tr>
+<tr>
+<td><code>clear_event(event)</code>, <code>reset()</code> (and <code>remove()</code> of a <code>Subscription</code>)</td>
+<td>Remove registrations.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="registration">Registration<a class="headerlink" href="#registration" title="Permanent link">&para;</a></h2>
+<p><code>add_event_handler</code> does the following, once:</p>
+<ol>
+<li>It checks that the event is a <code>str</code>, and that the handler and the condition (if any) are
+   callable.</li>
+<li>It reads the signature of the handler and of the condition to decide how to call each of them
+   (see <a href="#the-calling-rule">the calling rule</a>). It also rejects a generator function, and a
+   coroutine function used as a condition.</li>
+<li>It creates a <code>Subscription</code> and appends it to the registrations of the event.</li>
+</ol>
+<p>Every rejection is a <code>TypeError</code> that says which argument is wrong, and it leaves the manager
+unchanged. The same callable can be registered several times: each call returns a new
+<code>Subscription</code>, and each registration runs and is removed on its own.</p>
+<p>The registration lasts until <code>subscription.remove()</code>, the end of a <code>with subscription:</code> block,
+<code>clear_event</code>, <code>reset</code>, or, with <code>once=True</code>, the first call of the handler.</p>
+<h2 id="trigger">Trigger<a class="headerlink" href="#trigger" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>trigger_event(event, context)
+    |   take a snapshot of the registrations of the event
+    |   build one Context from the context (a Context is used as is)
+    v
+for each registration of the snapshot, in registration order:
+    removed since the snapshot?          -&gt; skip
+    has a condition that is False?       -&gt; skip
+    once=True?                           -&gt; remove the registration, or skip if already removed
+    call handler() or handler(context)
+    the handler returned an awaitable?   -&gt; trigger_event raises, atrigger_event awaits it
+</code></pre></div>
+<p>If a condition or a handler raises, the trigger stops: the exception reaches the caller, and the
+next registrations are skipped. Triggering an event that has no handler does nothing (the event and
+the context are still checked).</p>
 <h2 id="the-calling-rule">The Calling Rule<a class="headerlink" href="#the-calling-rule" title="Permanent link">&para;</a></h2>
 <p>A handler is written as <code>def g()</code> or <code>def g(context: Context)</code>, and any callable that can be called
 in one of these two ways works: <strong>the parameters that have a default are ignored.</strong> The same rule
@@ -1207,8 +1522,11 @@ applies to a condition, which returns a boolean. It is checked once, at registra
 </tr>
 </tbody>
 </table>
-<p>Coroutine functions, bound methods, callable objects, classes and <code>functools.partial</code> objects follow
-the same table. The signature of a partial does not contain the arguments that it binds.</p>
+<p>Names and annotations are not checked. Coroutine functions, bound methods, callable objects, classes
+and <code>functools.partial</code> objects follow the same table. The signature is the one that
+<code>inspect.signature</code> reports: the signature of a partial does not contain the positional arguments
+that it binds, and a decorator that uses <code>functools.wraps</code> has the signature of the wrapped
+function.</p>
 <p>To adapt a callable, wrap it in a function, a lambda or a <code>functools.partial</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_start"</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">)</span>  <span class="c1"># model.train()</span>
 <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_start"</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>  <span class="c1"># a chosen value</span>
@@ -1220,61 +1538,124 @@ the same table. The signature of a partial does not contain the arguments that i
 evaluated when the lambda is <strong>created</strong>. So <code>lambda i=i: print(i)</code> saves the current value, and it
 is called without argument. A handler that needs a saved value <strong>and</strong> the context takes the context
 first, without default: <code>lambda context, i=i: print(i, context["epoch"])</code>.</p>
-<h2 id="not-guaranteed">Not guaranteed<a class="headerlink" href="#not-guaranteed" title="Permanent link">&para;</a></h2>
-<p>These behaviors are documented limits, not defects:</p>
+<h2 id="behavior-you-can-rely-on">Behavior You Can Rely On<a class="headerlink" href="#behavior-you-can-rely-on" title="Permanent link">&para;</a></h2>
+<h3 id="events-and-registrations">Events and registrations<a class="headerlink" href="#events-and-registrations" title="Permanent link">&para;</a></h3>
 <ul>
-<li><strong>A removal in another thread.</strong> P7 is exact in the thread that triggers. A <code>remove()</code> from another
-  thread cannot stop a handler that the trigger is about to call.</li>
+<li>An event name is a case-sensitive <code>str</code>. A <code>StrEnum</code> member is a <code>str</code>, and is kept as given. The
+  empty string is valid. The methods of the manager raise a <code>TypeError</code> for another type, while <code>in</code>
+  answers like a dict (<code>1 in manager</code> is <code>False</code>).</li>
+<li>Reading the manager never creates an event: <code>events</code> lists the events that have at least one
+  registration.</li>
+<li><code>subscription.remove()</code> removes that registration only. It returns <code>True</code> the first time, then
+  <code>False</code>. <code>subscription.active</code> is <code>True</code> until the registration is removed, by whatever means.</li>
+<li><code>bool(manager)</code> is always <code>True</code>, empty or not, and <code>len(manager)</code> is the number of
+  registrations. A manager cannot be copied or pickled (<code>copy.copy</code>, <code>copy.deepcopy</code> and <code>pickle</code>
+  raise a <code>TypeError</code>).</li>
+</ul>
+<h3 id="dispatch">Dispatch<a class="headerlink" href="#dispatch" title="Permanent link">&para;</a></h3>
+<ul>
+<li>The handlers of an event run in the order they were registered, one after the other, in the calling
+  thread.</li>
+<li>A trigger visits the registrations that exist when it starts. A registration <strong>added</strong> by a
+  running handler takes effect at the next trigger. A registration <strong>removed</strong> before its turn (by
+  <code>remove()</code>, <code>clear_event</code>, <code>reset</code> or a <code>once</code> claim) does not run.</li>
+<li>A condition is called just before its handler, so it sees the effects of the handlers that ran
+  before.</li>
+<li>A <code>once</code> registration is removed by an atomic claim just before its handler is called, after its
+  condition, so it is called at most once whatever the number of threads. A false or raising
+  condition does not consume it; a handler that raises does.</li>
+</ul>
+<h3 id="payload">Payload<a class="headerlink" href="#payload" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>trigger_event(event, context)</code> copies the mapping <code>context</code> (a dict, for example), or reuses a
+  <code>Context</code> as is, into one read-only <code>Context</code> per trigger, shared by the handlers and the
+  conditions. Both arguments are positional-only.</li>
+<li>Any <code>str</code> key is allowed, it does not need to be a valid identifier. Another key raises a
+  <code>TypeError</code>.</li>
+<li>The values are not copied. A <code>Context</code> can be copied, deep-copied and pickled (protocol 2 or
+  higher) if its values can.</li>
+<li>A <code>Context</code> is equal to a mapping that has the same items, and it is not hashable.</li>
+</ul>
+<h3 id="errors">Errors<a class="headerlink" href="#errors" title="Permanent link">&para;</a></h3>
+<ul>
+<li>An exception of a handler or a condition propagates unchanged (same object, same type), and the
+  remaining handlers are skipped.</li>
+<li>An <code>Exception</code> carries a note with the event and what raised it: the handler, or the condition and
+  its handler (each named by its function, under a <code>functools.partial</code>). The same note is not added
+  twice. An exception that cannot take a note (a frozen dataclass exception, for example) propagates
+  without it. A <code>BaseException</code> that is not an <code>Exception</code>, such as <code>KeyboardInterrupt</code> or
+  <code>asyncio.CancelledError</code>, has no note.</li>
+<li>The messages of <code>minevent</code> do not run the <code>repr</code> of your objects to name a callable.</li>
+</ul>
+<h3 id="coroutines">Coroutines<a class="headerlink" href="#coroutines" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>trigger_event</code> never awaits: a handler that returns an awaitable raises a <code>TypeError</code>.</li>
+<li><code>atrigger_event</code> awaits what a handler returns, if it is awaitable, before it calls the next
+  handler. It also runs the synchronous handlers.</li>
+<li>Conditions are synchronous in both: a coroutine function is rejected at registration, and a
+  condition that returns an awaitable raises a <code>TypeError</code> at the trigger.</li>
+<li>A coroutine that is rejected is closed, so it does not emit a "never awaited" warning.</li>
+</ul>
+<h3 id="threads">Threads<a class="headerlink" href="#threads" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Registering, removing, triggering and reading the manager are safe from several threads, with and
+  without the GIL.</li>
+<li>Your code (handlers, conditions, <code>repr</code> and finalizers) runs outside the lock of the manager, so
+  it can use the manager.</li>
+<li><code>PeriodicCondition</code> and <code>AfterNCondition</code> count every call once, from any number of threads. They
+  can be copied and pickled: a copy starts at the same step and has its own counter.</li>
+</ul>
+<h3 id="import-and-typing">Import and typing<a class="headerlink" href="#import-and-typing" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>minevent</code> uses the standard library only. <code>import minevent</code> starts no thread, reads no file,
+  emits no warning, writes no log, and does not import <code>logging</code>, <code>inspect</code>, <code>asyncio</code> or
+  <code>importlib.metadata</code>: <code>inspect</code> is imported at the first registration, and the version is read at
+  the first access of <code>__version__</code>.</li>
+<li>The package is fully typed (<code>py.typed</code>). A handler argument is typed <code>Handler</code>, so a type checker
+  reports a callable that needs two arguments, a keyword-only argument or an argument of another
+  type than <code>Context</code>. The run-time check of the calling rule stays the authority. The values of a
+  <code>Context</code> are typed <code>Any</code>.</li>
+</ul>
+<h2 id="limits">Limits<a class="headerlink" href="#limits" title="Permanent link">&para;</a></h2>
+<p><code>minevent</code> does not protect against the following:</p>
+<ul>
+<li><strong>A removal in another thread</strong> cannot stop a handler that a trigger is about to call.</li>
+<li><strong>Concurrent calls.</strong> A registration without <code>once</code> is called by every thread that triggers its
+  event, possibly at the same time. A handler or a condition of yours that shares state must protect
+  it.</li>
 <li><strong>Recursion.</strong> A handler that triggers its own event recurses until <code>RecursionError</code>.</li>
 <li><strong>Blocking.</strong> A synchronous handler in <code>atrigger_event</code> blocks the event loop.</li>
-<li><strong>A callable object whose <code>__call__</code> is a generator</strong>, and a function that <em>returns</em> a generator,
-  do nothing. Only generator <em>functions</em> are rejected (P4) and awaitables detected (P10).</li>
 <li><strong>A coroutine handler used with <code>trigger_event</code>.</strong> The <code>TypeError</code> is raised after the call: the
   handlers before it have run, and a <code>once</code> registration is consumed.</li>
+<li><strong>Generators that are not generator functions.</strong> A callable object whose <code>__call__</code> yields, and a
+  function that returns a generator, do nothing.</li>
 <li><strong>An optional parameter never receives the context.</strong> <code>def f(context=None)</code> is called as <code>f()</code> and
   gets <code>None</code>, without an error: the context needs a parameter without default.</li>
-<li><strong>A decorated function</strong> is judged by the signature that <code>inspect.signature</code> reports: with
-  <code>functools.wraps</code>, that is the signature of the wrapped function.</li>
-<li><strong>A signature that depends on Python.</strong> The calling rule reads what <code>inspect.signature</code> reports,
-  and the standard library adds signatures to C callables between versions: <code>set.add</code> and
-  <code>time.time</code> are rejected on Python 3.11 and 3.12, and accepted from 3.13.</li>
+<li><strong>A signature that depends on Python.</strong> The standard library adds signatures to C callables
+  between versions: <code>set.add</code> is rejected on Python 3.11 and 3.12, and accepted from 3.13.</li>
 <li><strong>A condition counts its calls, not the triggers.</strong> It is not called when an earlier handler
   raised, nor for a removed registration.</li>
+<li><strong>A condition that removes its own registration</strong> (without <code>once</code>) does not stop the call that it
+  allows.</li>
 <li><strong>A mutable value of the payload</strong> can be mutated by a handler, and the next ones see it.</li>
-<li><strong>Threads.</strong> The handlers run in the thread that triggers the event, concurrently if several
-  threads trigger it, so a handler that shares state must protect it. The state of a condition of a
-  user is not protected: only the built-in conditions are (P21).</li>
-<li><strong>Prompt reclamation.</strong> A manager with registrations is in a reference cycle (manager, dict,
+<li><strong>Delayed release.</strong> A manager with registrations is in a reference cycle (manager, registry,
   <code>Subscription</code>, manager): <code>del manager</code> does not free it until the garbage collector runs.
   <code>reset()</code> releases the handlers at a known point.</li>
 </ul>
-<h2 id="design-notes">Design Notes<a class="headerlink" href="#design-notes" title="Permanent link">&para;</a></h2>
+<h2 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">&para;</a></h2>
+<p>The registry maps each event to an ordered <code>dict</code> of subscriptions, used as an ordered set:</p>
 <ul>
-<li><strong>Events are strings.</strong> They are easy to type, to read and to serialize. A namespace such as
-  <code>training.batch.end</code> is a naming convention: there is no hierarchy.</li>
-<li><strong>A callable is the extension point.</strong> There is no base class to learn or to import. The
-  introspection is limited to the signature at registration and to the awaitable results.</li>
-<li><strong>Synchronous and sequential.</strong> The handlers run in a deterministic order, which suits the
-  sequential workflows of Machine Learning and is easy to debug. Coroutine handlers are opt-in with
-  <code>atrigger_event</code>. The library starts no thread.</li>
-<li><strong>The registry</strong> maps each event to an ordered <code>dict</code> of subscriptions used as an ordered set, so
-  a registration and a removal are O(1), and a trigger is linear in the handlers of the event. A
-  reentrant lock protects it, and a trigger takes a snapshot under the lock and runs it outside.</li>
-<li><strong>The <code>Subscription</code> is the registration.</strong> It stores the handler and the options, so the same
-  callable can be registered several times and each registration is removed on its own.</li>
+<li>registering and removing a handler are O(1), whatever the number of handlers;</li>
+<li>a trigger is linear in the number of handlers of its event, and the other events cost nothing;</li>
+<li>the signature is inspected at registration, never during a trigger;</li>
+<li>a mapping given to a trigger is copied (linear in its number of keys), while a <code>Context</code> is not;</li>
+<li><code>context.get(key, default)</code> and <code>key in context</code> cost the same for a present key and a missing
+  one. <code>context[key]</code> lists the available keys in its <code>KeyError</code>, so a missing key costs more.</li>
 </ul>
-<h2 id="non-goals">Non-goals<a class="headerlink" href="#non-goals" title="Permanent link">&para;</a></h2>
-<p><code>minevent</code> stays minimal. These features are not provided and are not planned:</p>
-<ul>
-<li><strong>Event objects</strong> with metadata or priorities: events are plain strings, and data is given as a
-  dict (or a <code>Context</code>) to <code>trigger_event</code>.</li>
-<li><strong>Handler ordering</strong> other than the registration order.</li>
-<li><strong>Weak references</strong> or sender/receiver filtering.</li>
-<li><strong>Collecting handler errors</strong>: handlers run fail-fast, and an exception stops the dispatch. To run
-  every handler and report all the failures, wrap the handler in a <code>try</code>/<code>except</code> (an
-  <code>ExceptionGroup</code> option such as <code>on_error="collect"</code> was considered and declined to keep
-  <code>trigger_event</code> minimal).</li>
-</ul>
+<p>As an order of magnitude, measured on a laptop with Python 3.14: about 0.3 µs for a trigger with one
+trivial handler, 0.06 µs for each extra one, 0.9 µs with a small dict, and 4.5 µs for a registration
+plus its removal. Measure on your machine with <code>inv test.benchmark</code> in a
+<a href="../get_started/#installing-from-source">source installation</a>.</p>
 
 
 
