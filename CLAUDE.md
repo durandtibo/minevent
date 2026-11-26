@@ -7,12 +7,16 @@
 - Activate the virtual environment in `.venv` (`source .venv/bin/activate`) and call `python`,
   `pytest`, `ruff`, `ty` and `inv` by name. There is no `python` on the `PATH` until it is
   activated.
-- Lint and format before committing: `ruff check src tests` and `ruff format src tests`.
-  Fix the issues raised by ruff. Ignoring an issue (`noqa`, a changed rule set) is not fixing it.
+- Lint and format before committing: `ruff check src tests dev` and
+  `ruff format src tests dev`. Fix the issues raised by ruff. Ignoring an issue (`noqa`, a
+  changed rule set) is not fixing it.
 - Type check with `ty check`. Fix the issues raised by ty. Ignoring an issue
   (`type: ignore`, `ty: ignore`, a cast that hides the problem) is not fixing it.
 - Run the invoke tasks with the virtual environment activated, because they call `python`:
-  `source .venv/bin/activate && inv test.doctest` (it also checks the markdown pages).
+  `source .venv/bin/activate && inv test.doctest` (it also checks the markdown pages). The tasks
+  come from `invoke-tasklib` (`tasks.py`, configured in `invoke.yaml`): list them with
+  `inv --list` and use them before writing a new one. `inv doc.build` needs the `docs` dependency
+  group.
 - Run the unit tests of the modules you changed (for example
   `pytest tests/unit/test_context.py -q`). If a test fails, check with `git stash` whether it
   already fails on `main` before blaming your change.
@@ -42,8 +46,8 @@
 - When a PR conflicts with `main`, merge `origin/main` into the branch and resolve the conflicts
   (do not rebase and force-push). Most conflicts are two PRs appending tests at the end of the
   same test file: keep both. Check what `main` already contains before choosing a side.
-- Update any tracking document (changelog, status table, issue) affected by the change, with the
-  PR number.
+- Update any tracking document (`CHANGELOG.md`, status table, issue) affected by the change, with
+  the PR number.
 
 ## Code
 
@@ -54,6 +58,10 @@
   convention or reformat code you do not otherwise change.
 - `minevent` has no runtime dependency: do not add one. Import the standard library only, at the
   top of the module.
+- The modules are layered: `manager` imports `conditions` and `calls`, which import `context`,
+  and the two middle modules do not import each other. Place a new module in a layer of the
+  `import-linter` contract in `pyproject.toml`, and check it with `lint-imports` (installed on
+  Python 3.14 and later).
 - Shared helpers are public functions (no leading underscore) with their own tests, not private
   functions imported across modules.
 - Validate an argument in the function that receives it: a `TypeError` for a wrong type and a
@@ -70,6 +78,8 @@
   or to the other dunder methods (`__repr__`, `__str__`, `__eq__`, ...).
 - Keep docstrings and documentation up to date and comprehensive: update them whenever the
   behaviour, signature or options of the code change.
+- Each rule has one home: one documentation page states it, and the other pages and the docstrings
+  link to that page or to the function that holds the rule. Do not repeat it.
 
 ## Tests
 
@@ -114,6 +124,10 @@
 - Add a regression test for every bug fixed, and check that it fails without the fix (revert the
   `src` change with `git stash push src` and run it).
 - Do not add tests for the exports of `__all__` or other trivial structure.
+- The source distribution ships `tests/` but not `dev/`: when adding the unit tests of a script of
+  `dev/`, add them to the `exclude` list of the sdist in `pyproject.toml`.
+- The benchmarks of `tests/benchmarks/` run nightly only: do not run them in the checks of a pull
+  request or from the unit and integration tests.
 - Section headers in the tests have three lines. The second line is `#`, 5 spaces, the name,
   5 spaces and `#`. The first and third lines repeat `#` to match the length of the second line:
 
