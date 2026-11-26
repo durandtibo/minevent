@@ -20,10 +20,9 @@ Every file is prefixed by what it does:
 
 `workflows/ci.yaml` is the entry point for pull requests/pushes to `main`; it fans out
 to the `ci-*.yaml` reusable workflows so each check can also be run/dispatched
-on its own. Its last job, `ci`, depends on all the others and fails unless each of them
-succeeded. It is the one status check that the ruleset of `main` requires: add each new job of
-`ci.yaml` to its `needs`, and do not rename it. The ruleset is a setting of the repository, which
-a maintainer changes.
+on its own. Job ids in `ci.yaml` and in the workflows it calls are
+load-bearing for branch protection (see the comment at the top of `ci.yaml`)
+— keep them in sync if you rename either side.
 
 Two `ci-*` workflows are deliberately _not_ called from `ci.yaml`, each standalone with its own
 trigger instead: `ci-benchmark.yaml` runs nightly on its own schedule rather than gating every
@@ -38,7 +37,7 @@ The trigger of a reusable workflow is `workflow_call`: it runs when another work
 
 | Workflow                            | Trigger                                | Purpose                                                                                       |
 | ----------------------------------- | -------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `ci.yaml`                           | pull request, push to `main`, nightly  | Entry point: calls the `ci-*` checks below. The job `ci` is the required check.               |
+| `ci.yaml`                           | pull request, push to `main`, nightly  | Entry point: calls the `ci-*` checks below.                                                   |
 | `ci-build.yaml`                     | called by `ci.yaml`                    | Build the package and check that the built package installs.                                  |
 | `ci-cyclic-imports.yaml`            | called by `ci.yaml`, manual            | Check that there is no circular import (`inv imports.check-cycles`).                          |
 | `ci-doctest.yaml`                   | called by `ci.yaml`, manual            | Run the doctests (`inv test.doctest`) and check that the documentation builds.                |
@@ -131,10 +130,9 @@ action/reusable workflow over copy-pasting steps.
 
 Values that would otherwise be duplicated across workflows are read once:
 
-- The supported Python versions and the operating systems are in `../workflow-config.json`, read
-  once per run by `lib-get-test-matrix.yaml` with `durandtibo/workflow-config-action`. The matrix
-  has one runner per system, because the package is pure Python. The supported systems are Linux
-  and macOS: Windows is not supported.
+- The supported Python versions / OS matrix is the default config of
+  `durandtibo/workflow-config-action`, read once per run by `lib-get-test-matrix.yaml`. The
+  supported systems are Linux and macOS: Windows is not supported.
 
 The package name and version are never duplicated in the workflows: they are read from
 `../pyproject.toml` by the `durandtibo/extract-pyproject-metadata-action` composite action, wrapped
