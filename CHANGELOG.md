@@ -137,3 +137,6 @@ the new API are in the
   `sdist` build (#937).
 - Development: the script of the package versions has unit and integration tests, which the source
   distribution leaves out (#938).
+- Documentation: the docstrings match the current calling rule and name how a coroutine handler is
+  triggered, the README adds examples of the conditions, the removal and the coroutine handlers, and
+  the workflow guidelines match the workflows (#941).
