@@ -215,6 +215,13 @@ def test_type_checker_reports_a_wrong_handler(tmp_path: Path, code: str) -> None
     assert "error[invalid-argument-type]" in result.stdout, result.stdout + result.stderr
 
 
+def test_context_subclass_is_reported(tmp_path: Path) -> None:
+    """Test that ``ty`` reports a subclass of ``Context``, which is
+    final."""
+    result = check_types(tmp_path, "class MyContext(Context): ...")
+    assert "error[subclass-of-final-class]" in result.stdout, result.stdout + result.stderr
+
+
 def test_typed_handler_computes_with_the_values() -> None:
     """Test that an annotated handler computes with the values of the
     context without a cast, for the type checker and at run time."""

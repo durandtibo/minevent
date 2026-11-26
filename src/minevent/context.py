@@ -11,13 +11,14 @@ __all__ = ["Context"]
 
 import reprlib
 from collections.abc import Iterator, Mapping
-from typing import Any
+from typing import Any, final
 
 # The list of the keys in the message of a missing key: at most 20 of them.
 _KEYS_REPR = reprlib.Repr()
 _KEYS_REPR.maxlist = 20
 
 
+@final
 class Context(Mapping[str, Any]):
     r"""Implement a read-only mapping of the payload of a trigger.
 
@@ -41,8 +42,8 @@ class Context(Mapping[str, Any]):
     ``items``, ``values`` and ``==`` behave like those of any
     ``collections.abc.Mapping``, so ``dict(context)`` is a valid
     ``**kwargs``. A context is equal to a mapping that has the same
-    items, and it is not hashable. A subclass that overrides
-    ``__getitem__`` must override ``get`` and ``__contains__`` too.
+    items, and it is not hashable. The class is final: a type checker
+    reports a subclass.
 
     Args:
         data: The mapping to copy, or ``None`` for an empty context.

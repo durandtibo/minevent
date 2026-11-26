@@ -156,6 +156,8 @@ first, without default: `lambda context, i=i: print(i, context["epoch"])`.
 - The values are not copied. A `Context` can be copied, deep-copied and pickled (protocol 2 or
   higher) if its values can.
 - A `Context` is equal to a mapping that has the same items, and it is not hashable.
+- `Context` is final (`typing.final`): a type checker reports a subclass, and nothing changes at run
+  time.
 
 ### Errors
 
