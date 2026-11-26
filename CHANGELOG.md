@@ -102,7 +102,7 @@ the new API are in the
   user guide, and the FAQ is removed (#861). The documentation describes the current library, with
   a "How It Works" page for the rules, the guarantees, the limits and the public API, which is what
   `minevent` exports, and a "Design Choices" page for the trade-offs. Each rule has one page, and the
-  reference of `minevent.calls` shows `Handler` and `validate_signature` only
+  reference is one page that shows what `minevent` exports
   (#876, #904, #911, #921, #923, #931).
 - Packaging: the classifiers are `Development Status :: 3 - Alpha`, `Operating System :: MacOS` and
   `Operating System :: POSIX :: Linux`, and there is no `all` extra. Windows is not supported

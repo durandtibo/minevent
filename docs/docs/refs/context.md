@@ -1,3 +1,0 @@
-# Context
-
-::: minevent.context

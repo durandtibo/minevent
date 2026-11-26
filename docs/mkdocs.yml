@@ -28,10 +28,6 @@ nav:
       - design.md
   - Reference:
       - refs/index.md
-      - refs/manager.md
-      - refs/conditions.md
-      - refs/context.md
-      - refs/calls.md
   - GitHub: https://github.com/durandtibo/minevent
 
 repo_url: https://github.com/durandtibo/minevent
