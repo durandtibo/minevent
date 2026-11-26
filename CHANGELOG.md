@@ -124,4 +124,4 @@ the new API are in the
   depends on `mkdocs-include-markdown-plugin` (#914).
 - Packaging: the source distribution holds the sources and the tests in the layout of the repository
   (`src/minevent/` next to `tests/`), so the tests pass from it. It leaves out the test of a script
-  of `dev/`. The wheel holds the package only (#PR).
+  of `dev/`. The wheel holds the package only (#915).
