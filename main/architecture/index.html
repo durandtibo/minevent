@@ -1429,7 +1429,7 @@ has the following members:</p>
    callable.</li>
 <li>It reads the signature of the handler and of the condition to decide how to call each of them
    (see <a href="#the-calling-rule">the calling rule</a>). It also rejects a generator function, and a
-   coroutine function used as a condition.</li>
+   coroutine function used as a condition. A callable object is judged by its <code>__call__</code>.</li>
 <li>It creates a <code>Subscription</code> and appends it to the registrations of the event.</li>
 </ol>
 <p>Every rejection is a <code>TypeError</code> that says which argument is wrong, and it leaves the manager
@@ -1527,7 +1527,8 @@ applies to a condition, which returns a boolean. It is checked once, at registra
 and <code>functools.partial</code> objects follow the same table. The signature is the one that
 <code>inspect.signature</code> reports: the signature of a partial does not contain the positional arguments
 that it binds, and a decorator that uses <code>functools.wraps</code> has the signature of the wrapped
-function.</p>
+function. For the generator and coroutine checks, a callable object is judged by its <code>__call__</code> (a
+partial by its function): an object whose <code>__call__</code> yields is rejected like a generator function.</p>
 <p>To adapt a callable, wrap it in a function, a lambda or a <code>functools.partial</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_start"</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">)</span>  <span class="c1"># model.train()</span>
 <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_start"</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>  <span class="c1"># a chosen value</span>
@@ -1599,8 +1600,9 @@ first, without default: <code>lambda context, i=i: print(i, context["epoch"])</c
 <li><code>trigger_event</code> never awaits: a handler that returns an awaitable raises a <code>TypeError</code>.</li>
 <li><code>atrigger_event</code> awaits what a handler returns, if it is awaitable, before it calls the next
   handler. It also runs the synchronous handlers.</li>
-<li>Conditions are synchronous in both: a coroutine function is rejected at registration, and a
-  condition that returns an awaitable raises a <code>TypeError</code> at the trigger.</li>
+<li>Conditions are synchronous in both: a coroutine function, or an object whose <code>__call__</code> is one,
+  is rejected at registration, and a condition that returns an awaitable raises a <code>TypeError</code> at the
+  trigger.</li>
 <li>A coroutine that is rejected is closed, so it does not emit a "never awaited" warning.</li>
 </ul>
 <h3 id="threads">Threads<a class="headerlink" href="#threads" title="Permanent link">&para;</a></h3>
@@ -1634,8 +1636,8 @@ first, without default: <code>lambda context, i=i: print(i, context["epoch"])</c
 <li><strong>Blocking.</strong> A synchronous handler in <code>atrigger_event</code> blocks the event loop.</li>
 <li><strong>A coroutine handler used with <code>trigger_event</code>.</strong> The <code>TypeError</code> is raised after the call: the
   handlers before it have run, and a <code>once</code> registration is consumed.</li>
-<li><strong>Generators that are not generator functions.</strong> A callable object whose <code>__call__</code> yields, and a
-  function that returns a generator, do nothing.</li>
+<li><strong>Hidden generators.</strong> A function that returns a generator, such as a lambda that calls a
+  generator function, does nothing.</li>
 <li><strong>An optional parameter never receives the context.</strong> <code>def f(context=None)</code> is called as <code>f()</code> and
   gets <code>None</code>, without an error: the context needs a parameter without default.</li>
 <li><strong>A signature that depends on Python.</strong> The standard library adds signatures to C callables

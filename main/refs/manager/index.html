@@ -1767,7 +1767,8 @@ callable, if <code>condition</code> is neither <code>None</code> nor callable, i
 <code>handler</code> or <code>condition</code> is a generator function, needs
 another argument than the context, or has a signature that
 cannot be inspected, or if <code>condition</code> is a coroutine
-function. The manager is unchanged.</p>
+function. A callable object is judged by its <code>__call__</code>.
+The manager is unchanged.</p>
               </div>
             </td>
           </tr>
