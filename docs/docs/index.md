@@ -80,5 +80,3 @@ possibly break any code that was using the old version of `minevent`.
 
 `minevent` is licensed under BSD 3-Clause "New" or "Revised" license available
 in [LICENSE](https://github.com/durandtibo/minevent/blob/main/LICENSE) file.
-
-[temporary broken link](guide.md#no-such-anchor)
