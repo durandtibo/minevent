@@ -155,8 +155,8 @@ class PeriodicCondition:
 
     def __repr__(self) -> str:
         return (
-            f"{self.__class__.__qualname__}(freq={self._freq:,}, "
-            f"start={self._start:,}, step={self._step:,})"
+            f"{self.__class__.__qualname__}(freq={self._freq}, "
+            f"start={self._start}, step={self._step})"
         )
 
     def __call__(self) -> bool:
