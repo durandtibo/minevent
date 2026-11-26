@@ -124,4 +124,5 @@ the new API are in the
 - Development: the CI type checks with `pyright` too, and a weekly workflow updates
   `dev/config/package_versions.json` (#927).
 - Development: the `check_*` functions are renamed to `validate_*`, in the package
-  (`calls.validate_signature`, which is not part of the public API) and in the tests (#931).
+  (`calls.validate_signature`, which is not part of the public API) and in the tests, except the
+  checks of `tests/package_checks.py` (#931).
