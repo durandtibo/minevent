@@ -381,8 +381,8 @@ program:
 ...     manager.trigger_event("batch_end")
 profiling
 >>> manager.trigger_event("batch_end")
->>> len(manager)
-0
+>>> manager
+EventManager(events={})
 
 ```
 
@@ -402,8 +402,8 @@ not there:
 >>> for _ in range(3):
 ...     if not any(s.handler is hello_handler for s in manager.get_subscriptions("my_event")):
 ...         _ = manager.add_event_handler("my_event", hello_handler)
->>> len(manager)
-1
+>>> manager
+EventManager(events={'my_event': 1})
 
 ```
 
@@ -465,8 +465,8 @@ start 0
 >>> manager.trigger_event("epoch_end", {"epoch": 0})
 end 0
 >>> plugin.teardown()
->>> len(manager)
-0
+>>> manager
+EventManager(events={})
 
 ```
 

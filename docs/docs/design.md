@@ -153,8 +153,8 @@ your code outside of it.
 
 ## The manager is an explicit object
 
-There is no global manager and no automatic discovery. A manager is always truthy, and it cannot be
-copied or pickled.
+There is no global manager and no automatic discovery. A manager is always truthy, it has no length,
+and it cannot be copied or pickled.
 
 - **Benefits**: the ownership is visible, tests do not share state, and `manager or default` means
   "is there a manager". A copy that silently shares or loses registrations cannot happen.

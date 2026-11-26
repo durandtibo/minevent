@@ -75,7 +75,7 @@ def test_add_and_trigger_from_threads() -> None:
 
     run_threads(work, NUM_THREADS)
     manager.trigger_event("my_event")
-    assert len(manager) == NUM_ITERATIONS * (NUM_THREADS // 2)
+    assert len(manager.get_subscriptions("my_event")) == NUM_ITERATIONS * (NUM_THREADS // 2)
 
 
 def test_subscription_remove_from_threads() -> None:
@@ -195,7 +195,7 @@ def test_remove_from_threads_registrations_added_by_other_threads() -> None:
 
     run_threads(work, NUM_THREADS)
     assert results.count(True) == len(subscriptions)
-    assert len(manager) == 0
+    assert manager.events == []
 
 
 def test_add_event_handler_options_from_threads() -> None:
@@ -225,7 +225,7 @@ def test_add_event_handler_options_from_threads() -> None:
     run_threads(work, NUM_THREADS)
     manager.trigger_event("my_event", {"epoch": 3, "loss": 0.5})
     assert sorted(calls) == sorted([(i, 3) for i in range(NUM_THREADS)] * 2)
-    assert len(manager) == NUM_THREADS
+    assert len(manager.get_subscriptions("my_event")) == NUM_THREADS
 
 
 def test_remove_from_threads_while_triggering() -> None:
@@ -260,7 +260,7 @@ def test_remove_from_threads_while_triggering() -> None:
     manager.trigger_event("my_event")
     assert len(calls) == n_calls
     assert len(set(calls)) == len(calls)
-    assert len(manager) == 0
+    assert manager.events == []
 
 
 class LockingFinalizer:
@@ -278,7 +278,7 @@ class LockingFinalizer:
         self._finished = finished
 
     def __del__(self) -> None:
-        thread = threading.Thread(target=len, args=(self._manager,), daemon=True)
+        thread = threading.Thread(target=repr, args=(self._manager,), daemon=True)
         thread.start()
         thread.join(timeout=1.0)
         self._finished.append(not thread.is_alive())

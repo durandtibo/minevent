@@ -21,14 +21,14 @@ recommendations.
 These six names (all but "event") and `__version__` are what `minevent` exports. `EventManager`
 has the following members:
 
-| Member                                                                   | Use                                    |
-| ------------------------------------------------------------------------ | -------------------------------------- |
-| `add_event_handler(event, handler, *, once=False, condition=None)`       | Register a handler.                    |
-| `on(event, *, once=False, condition=None)`                               | Register a function with a decorator.  |
-| `trigger_event(event, context=None, /)`                                  | Run the handlers of an event.          |
-| `atrigger_event(event, context=None, /)`                                 | Same, and await the coroutine handlers |
-| `events`, `get_subscriptions(event)`, `event in manager`, `len(manager)` | Look at the registrations.             |
-| `clear_event(event)`, `reset()` (and `remove()` of a `Subscription`)     | Remove registrations.                  |
+| Member                                                               | Use                                    |
+| -------------------------------------------------------------------- | -------------------------------------- |
+| `add_event_handler(event, handler, *, once=False, condition=None)`   | Register a handler.                    |
+| `on(event, *, once=False, condition=None)`                           | Register a function with a decorator.  |
+| `trigger_event(event, context=None, /)`                              | Run the handlers of an event.          |
+| `atrigger_event(event, context=None, /)`                             | Same, and await the coroutine handlers |
+| `events`, `get_subscriptions(event)`, `event in manager`             | Look at the registrations.             |
+| `clear_event(event)`, `reset()` (and `remove()` of a `Subscription`) | Remove registrations.                  |
 
 ## Registration
 
@@ -127,8 +127,9 @@ first, without default: `lambda context, i=i: print(i, context["epoch"])`.
   becomes `False` when the registration is removed, by whatever means. A `Subscription` cannot be
   copied or pickled (`copy.copy`, `copy.deepcopy` and `pickle` raise a `TypeError`), and the manager
   alone creates one.
-- `bool(manager)` is always `True`, empty or not, and `len(manager)` is the number of
-  registrations. A manager cannot be copied or pickled (`copy.copy`, `copy.deepcopy` and `pickle`
+- `bool(manager)` is always `True`, empty or not, and a manager has no length: the number of
+  handlers of an event is `len(manager.get_subscriptions(event))`, and `repr(manager)` shows it for
+  each event. A manager cannot be copied or pickled (`copy.copy`, `copy.deepcopy` and `pickle`
   raise a `TypeError`).
 
 ### Dispatch
