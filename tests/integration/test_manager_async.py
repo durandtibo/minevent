@@ -27,8 +27,8 @@ def test_atrigger_event_reads_payload_at_start() -> None:
 
 
 def test_atrigger_event_keeps_the_payload_of_a_context() -> None:
-    """Test that a ``Context`` built before the task fixes the payload at
-    the creation of the task."""
+    """Test that a ``Context`` built before the task fixes the payload
+    at the creation of the task."""
     manager = EventManager()
     epochs: list[int] = []
     manager.add_event_handler("epoch_end", lambda context: epochs.append(context["epoch"]))
