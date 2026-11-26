@@ -1182,8 +1182,8 @@ missing one, whatever the number of keys. <code>len</code>, iteration, <code>key
 <code>items</code>, <code>values</code> and <code>==</code> behave like those of any
 <code>collections.abc.Mapping</code>, so <code>dict(context)</code> is a valid
 <code>**kwargs</code>. A context is equal to a mapping that has the same
-items, and it is not hashable. A subclass that overrides
-<code>__getitem__</code> must override <code>get</code> and <code>__contains__</code> too.</p>
+items, and it is not hashable. The class is final: a type checker
+reports a subclass.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>

@@ -1435,7 +1435,8 @@ registration.</p>
   no handler, each handler decides what a missing key means, and no handler can add, replace or
   remove a key seen by the next one.</li>
 <li><strong>Costs</strong>: the signature of a handler does not list the data that it needs, a typo in a key is
-  found at run time, and a dict is copied at each trigger.</li>
+  found at run time, and a dict is copied at each trigger. <code>Context</code> is final: it is data, so build
+  one from your mapping, or wrap it, instead of subclassing it.</li>
 <li><strong>In practice</strong>: read a required value with <code>context["key"]</code> and an optional one with
   <code>context.get("key", default)</code>. Build a <code>Context</code> once to reuse it. To give named arguments to an
   existing function, adapt it: <code>lambda context: f(context["epoch"])</code>.</li>

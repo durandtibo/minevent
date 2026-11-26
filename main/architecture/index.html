@@ -1580,6 +1580,8 @@ first, without default: <code>lambda context, i=i: print(i, context["epoch"])</c
 <li>The values are not copied. A <code>Context</code> can be copied, deep-copied and pickled (protocol 2 or
   higher) if its values can.</li>
 <li>A <code>Context</code> is equal to a mapping that has the same items, and it is not hashable.</li>
+<li><code>Context</code> is final (<code>typing.final</code>): a type checker reports a subclass, and nothing changes at run
+  time.</li>
 </ul>
 <h3 id="errors">Errors<a class="headerlink" href="#errors" title="Permanent link">&para;</a></h3>
 <ul>
