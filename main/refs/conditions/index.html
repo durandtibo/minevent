@@ -1271,7 +1271,7 @@
 lambda, a method or a callable object). It is called before its handler,
 like a handler: as <code>condition()</code>, or as <code>condition(context)</code> with
 the read-only <code>Context</code> of the trigger (see
-<code>minevent.calls.needs_context</code>). <code>Condition</code> is its type, and
+<code>minevent.calls.adapt_call</code>). <code>Condition</code> is its type, and
 <code>EventManager.add_event_handler</code> states how a registration uses it.
 <code>PeriodicCondition</code> and <code>AfterNCondition</code> count their calls. The
 user guide of the documentation shows how to combine conditions.</p>

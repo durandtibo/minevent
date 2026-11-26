@@ -1622,7 +1622,7 @@ documentation, and the reasons in its "Design Choices" page.</p>
 <p>Each trigger of the event calls the handler after the handlers added
 before it, as <code>handler()</code>, or as <code>handler(context)</code> with the
 read-only <code>Context</code> of the trigger if it has one parameter without
-default. <code>minevent.calls.needs_context</code> states the whole rule. Use
+default. <code>minevent.calls.adapt_call</code> states the whole rule. Use
 a function, a lambda or a <code>functools.partial</code> to give other
 arguments.</p>
 

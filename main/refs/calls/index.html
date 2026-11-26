@@ -950,6 +950,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#minevent.calls.adapt_call" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        adapt_call
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#minevent.calls.add_error_note" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -965,17 +976,6 @@
     <span class="md-ellipsis">
       
         describe
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#minevent.calls.needs_context" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        needs_context
       
     </span>
   </a>
@@ -1091,6 +1091,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#minevent.calls.adapt_call" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        adapt_call
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#minevent.calls.add_error_note" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1106,17 +1117,6 @@
     <span class="md-ellipsis">
       
         describe
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#minevent.calls.needs_context" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        needs_context
       
     </span>
   </a>
@@ -1161,7 +1161,7 @@
 
 <h1 id="calls">Calls<a class="headerlink" href="#calls" title="Permanent link">&para;</a></h1>
 <p>How the handlers and the conditions are called. <code>minevent</code> exports <code>Handler</code> only: the functions of
-this module are used by the event manager, and <code>needs_context</code> states
+this module are used by the event manager, and <code>adapt_call</code> states
 <a href="../../architecture/#the-calling-rule">the calling rule</a>.</p>
 
 
@@ -1178,8 +1178,8 @@ this module are used by the event manager, and <code>needs_context</code> states
     <div class="doc doc-contents first">
 
         <p>Implement how the code of a user is called.</p>
-<p><code>Handler</code> is the type of a handler. <code>needs_context</code> says how a
-handler or a condition is called, <code>describe</code> names it,
+<p><code>Handler</code> is the type of a handler. <code>adapt_call</code> turns a handler or
+a condition into a callable of the context, <code>describe</code> names it,
 <code>reject_awaitable</code> rejects the awaitable result of a synchronous call,
 and <code>add_error_note</code> completes the exception that it raises. These
 helpers are used by <code>minevent.manager</code>, and <code>minevent</code> exports
@@ -1229,6 +1229,160 @@ the trigger.</p>
 
 
 
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="minevent.calls.adapt_call" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">minevent.calls.adapt_call</span>
+
+
+<a href="#minevent.calls.adapt_call" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">adapt_call</span><span class="p">(</span>
+    <span class="n">func</span><span class="p">:</span> <span class="n"><span title="collections.abc.Callable">Callable</span></span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n"><span title="object">object</span></span><span class="p">],</span> <span class="n">name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="collections.abc.Callable">Callable</span></span><span class="p">[[</span><span class="n"><a class="autorefs autorefs-internal" title="minevent.context.Context" href="../context/#minevent.context.Context">Context</a></span><span class="p">],</span> <span class="n"><span title="object">object</span></span><span class="p">]</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Turn a handler or a condition into a callable of the context.</p>
+<p>A callable is called as <code>func()</code> or <code>func(context)</code>. A
+parameter that has a default keeps it: the manager never fills it.
+The callable is called as <code>func()</code> if no other parameter is left,
+and as <code>func(context)</code> if exactly one is left and it is positional.
+Names and annotations are not checked. Any other signature is
+rejected, including <code>*args</code> and <code>**kwargs</code> (they do not say
+whether the context is expected), and so is a callable whose
+signature cannot be inspected. A generator function or an async
+generator function is rejected too, because calling it runs none of
+its code. The signature is the one that <code>inspect.signature</code>
+reports: it does not contain the positional arguments that a
+<code>functools.partial</code> binds, and it is the one of the wrapped
+function for a decorator that uses <code>functools.wraps</code>. The
+annotations do not have to be resolvable: on Python 3.14+, a name
+that is only imported under <code>TYPE_CHECKING</code> is kept as a forward
+reference instead of raising a <code>NameError</code>.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>func</code>
+            </td>
+            <td>
+                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="object">object</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The callable to inspect.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>name</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The name of the argument that receives <code>func</code>, used in
+the error messages.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="collections.abc.Callable">Callable</span>[[<a class="autorefs autorefs-internal" title="minevent.context.Context" href="../context/#minevent.context.Context">Context</a>], <span title="object">object</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p><code>func</code> itself if it is called as <code>func(context)</code>, and
+otherwise a function of the context that calls <code>func()</code>.
+The signature is read once, by this function: calling the
+result does not read it again.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="TypeError">TypeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>if <code>func</code> is a generator function, if its
+signature cannot be inspected, or if it needs another
+argument than the context.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="example" open>
+  <summary>Example</summary>
+  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent.calls</span><span class="w"> </span><span class="kn">import</span> <span class="n">adapt_call</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">read_epoch</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">context</span><span class="p">[</span><span class="s2">"epoch"</span><span class="p">]</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">adapt_call</span><span class="p">(</span><span class="n">read_epoch</span><span class="p">,</span> <span class="s2">"handler"</span><span class="p">)</span> <span class="ow">is</span> <span class="n">read_epoch</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">train</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">mode</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">adapt_call</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="s2">"handler"</span><span class="p">)(</span><span class="n">Context</span><span class="p">({</span><span class="s2">"epoch"</span><span class="p">:</span> <span class="mi">3</span><span class="p">}))</span>
+<span class="go">True</span>
+</code></pre></div>
+</details>
+
+    </div>
+
+</div>
 
 <div class="doc doc-object doc-function">
 
@@ -1420,157 +1574,6 @@ name (for example a callable object), if its name is not a
 <span class="go">'print'</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">describe</span><span class="p">(</span><span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="nb">print</span><span class="p">,</span> <span class="s2">"Hello!"</span><span class="p">))</span>
 <span class="go">'print'</span>
-</code></pre></div>
-</details>
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-function">
-
-
-<h3 id="minevent.calls.needs_context" class="doc doc-heading">
-            <span class="doc doc-object-name doc-function-name">minevent.calls.needs_context</span>
-
-
-<a href="#minevent.calls.needs_context" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">needs_context</span><span class="p">(</span>
-    <span class="n">func</span><span class="p">:</span> <span class="n"><span title="collections.abc.Callable">Callable</span></span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n"><span title="object">object</span></span><span class="p">],</span> <span class="n">name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="bool">bool</span></span>
-</code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Indicate if a handler or a condition must be called with the
-context.</p>
-<p>A callable is called as <code>func()</code> or <code>func(context)</code>. A
-parameter that has a default keeps it: the manager never fills it.
-The callable is called as <code>func()</code> if no other parameter is left,
-and as <code>func(context)</code> if exactly one is left and it is positional.
-Names and annotations are not checked. Any other signature is
-rejected, including <code>*args</code> and <code>**kwargs</code> (they do not say
-whether the context is expected), and so is a callable whose
-signature cannot be inspected. A generator function or an async
-generator function is rejected too, because calling it runs none of
-its code. The signature is the one that <code>inspect.signature</code>
-reports: it does not contain the positional arguments that a
-<code>functools.partial</code> binds, and it is the one of the wrapped
-function for a decorator that uses <code>functools.wraps</code>. The
-annotations do not have to be resolvable: on Python 3.14+, a name
-that is only imported under <code>TYPE_CHECKING</code> is kept as a forward
-reference instead of raising a <code>NameError</code>.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>func</code>
-            </td>
-            <td>
-                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="object">object</span>]</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The callable to inspect.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>name</code>
-            </td>
-            <td>
-                  <code><span title="str">str</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The name of the argument that receives <code>func</code>, used in
-the error messages.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="bool">bool</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p><code>True</code> if <code>func</code> is called as <code>func(context)</code>, and
-<code>False</code> if it is called as <code>func()</code>.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="TypeError">TypeError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>if <code>func</code> is a generator function, if its
-signature cannot be inspected, or if it needs another
-argument than the context.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<details class="example" open>
-  <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent.calls</span><span class="w"> </span><span class="kn">import</span> <span class="n">needs_context</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">func</span><span class="p">():</span> <span class="o">...</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">needs_context</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="s2">"handler"</span><span class="p">)</span>
-<span class="go">False</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">func</span><span class="p">(</span><span class="n">context</span><span class="p">):</span> <span class="o">...</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">needs_context</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="s2">"handler"</span><span class="p">)</span>
-<span class="go">True</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">func</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span> <span class="o">...</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">needs_context</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="s2">"handler"</span><span class="p">)</span>
-<span class="go">False</span>
 </code></pre></div>
 </details>
 
