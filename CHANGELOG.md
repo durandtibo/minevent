@@ -104,9 +104,9 @@ the new API are in the
   limits state when `atrigger_event` reads the registrations and the payload, and that the coroutine
   of a `functools.cache` is detected after its call (#904).
 - Packaging: the classifiers are `Development Status :: 3 - Alpha`, `Operating System :: MacOS` and
-  `Operating System :: POSIX :: Linux`, and there is no `all` extra. Windows is not supported. The
-  license is given by its SPDX expression only, without a `License ::` classifier (#890). The source
-  distribution holds the source only, without the tests (#906).
+  `Operating System :: POSIX :: Linux`, and there is no `all` extra. Windows is not supported
+  (#907). The license is given by its SPDX expression only, without a `License ::` classifier (#890).
+  The source distribution holds the source only, without the tests (#906).
 - Development: `import-linter` checks the layering of the modules, and the invoke tasks come from
   `invoke-tasklib` `>=0.1.0` (#890).
 - Releases: the files published to PyPI are signed, and the GitHub release has a SLSA provenance
