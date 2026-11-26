@@ -1,0 +1,7 @@
+{
+  "python_versions_standard": ["3.11", "3.12", "3.13", "3.14", "3.15"],
+  "python_versions_threaded": ["3.13t", "3.14t", "3.15t"],
+  "os_ubuntu": ["ubuntu-latest"],
+  "os_macos": ["macos-latest"],
+  "os_windows": ["windows-latest"]
+}

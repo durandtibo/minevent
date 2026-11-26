@@ -185,11 +185,12 @@ and keep it up to date when you add, rename or remove a workflow.
 - `ci.yaml` is the single entry point of the checks (pull request, push to `main`, nightly).
   It calls `lib-get-test-matrix.yaml` once and passes the matrix (`test-matrix` input) to the
   test workflows, so the Python versions and OS are defined in one place. To add a check,
-  create a `ci-<name>.yaml` reusable workflow and add a job in `ci.yaml`.
-- Read the Python versions and the OS with `durandtibo/workflow-config-action`
-  (`lib-get-test-matrix.yaml`), and the package name and version with
-  `durandtibo/extract-pyproject-metadata-action` (`lib-get-package-metadata.yaml`): do not hardcode
-  them in a workflow.
+  create a `ci-<name>.yaml` reusable workflow, add a job in `ci.yaml` and list it in the `needs`
+  of the `ci` job, the required status check.
+- Read the Python versions and the OS of `.github/workflow-config.json` with
+  `durandtibo/workflow-config-action` (`lib-get-test-matrix.yaml`), and the package name and
+  version with `durandtibo/extract-pyproject-metadata-action` (`lib-get-package-metadata.yaml`):
+  do not hardcode them in a workflow.
 - Conventions: a header comment that says what the workflow does and when it runs; `permissions: {}`
   at the workflow level and the minimum permissions per job; `timeout-minutes`
   on every job; actions pinned to a commit SHA with a `# ratchet:` comment (`bot-pin-action.yaml`

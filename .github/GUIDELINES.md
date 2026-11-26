@@ -20,9 +20,10 @@ Every file is prefixed by what it does:
 
 `workflows/ci.yaml` is the entry point for pull requests/pushes to `main`; it fans out
 to the `ci-*.yaml` reusable workflows so each check can also be run/dispatched
-on its own. Job ids in `ci.yaml` and in the workflows it calls are
-load-bearing for branch protection (see the comment at the top of `ci.yaml`)
-— keep them in sync if you rename either side.
+on its own. Its last job, `ci`, depends on all the others and fails unless each of them
+succeeded. It is the one status check that the ruleset of `main` requires: add each new job of
+`ci.yaml` to its `needs`, and do not rename it. The ruleset is a setting of the repository, which
+a maintainer changes.
 
 Three `ci-*` workflows are deliberately _not_ called from `ci.yaml`, each
 standalone with its own trigger instead: `ci-benchmark.yaml` and
@@ -38,7 +39,7 @@ The trigger of a reusable workflow is `workflow_call`: it runs when another work
 
 | Workflow                            | Trigger                                | Purpose                                                                                       |
 | ----------------------------------- | -------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `ci.yaml`                           | pull request, push to `main`, nightly  | Entry point: calls the `ci-*` checks below.                                                   |
+| `ci.yaml`                           | pull request, push to `main`, nightly  | Entry point: calls the `ci-*` checks below. The job `ci` is the required check.               |
 | `ci-benchmark-import.yaml`          | nightly, manual                        | Track the import time of the package (not a merge gate).                                      |
 | `ci-build.yaml`                     | called by `ci.yaml`                    | Build the package and check that the built package installs.                                  |
 | `ci-cyclic-imports.yaml`            | called by `ci.yaml`, manual            | Check that there is no circular import (`inv imports.check-cycles`).                          |
@@ -125,6 +126,10 @@ action/reusable workflow over copy-pasting steps.
   action or a couple of shell commands (no Python/build tooling); otherwise
   `ubuntu-latest`, or the OS matrix under test for `workflows/ci-test.yaml` /
   `nightly-test-package.yaml`.
+- **Windows**: the matrix of `ci-test.yaml` and `nightly-test-package.yaml` includes Windows,
+  where the default shell is PowerShell. A `run` step of these workflows that uses shell syntax
+  declares `shell: bash`. `ci-test.yaml` does not use `setup-venv-uv-action` or `invoke`, which do
+  not support Windows.
 - **`workflow_dispatch`**: added to every workflow (checks and automation
   alike) so it can be re-run manually without waiting for its normal trigger.
 
@@ -132,8 +137,9 @@ action/reusable workflow over copy-pasting steps.
 
 Values that would otherwise be duplicated across workflows are read once:
 
-- The supported Python versions / OS matrix is the default config of
-  `durandtibo/workflow-config-action`, read once per run by `lib-get-test-matrix.yaml`.
+- The supported Python versions and the operating systems are in `../workflow-config.json`, read
+  once per run by `lib-get-test-matrix.yaml` with `durandtibo/workflow-config-action`. The matrix
+  has one runner per system, because the package is pure Python.
 
 The package name and version are never duplicated in the workflows: they are read from
 `../pyproject.toml` by the `durandtibo/extract-pyproject-metadata-action` composite action, wrapped

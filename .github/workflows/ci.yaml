@@ -16,10 +16,11 @@
 # The individual check jobs below call out to per-check reusable workflows
 # (ci-build.yaml, ci-format.yaml, ...) instead of inlining their steps here,
 # so each check can still be run/tested on its own (workflow_dispatch) and to
-# keep this file short. Job ids are load-bearing: main's branch protection
-# requires status checks named "format / format", "pre-commit / pre-commit"
-# and "type-checking / type-checking", derived from the job id here plus the
-# job id in the called workflow - keep both in sync if either is renamed.
+# keep this file short.
+#
+# The ruleset of main requires one status check: "ci", the last job below. It
+# fails unless every other job succeeded, so list each new job in its "needs".
+# Its id is load-bearing: renaming it blocks every pull request.
 
 name: CI
 on:
@@ -42,8 +43,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # Load the shared python-version/OS matrix from the default config of
-  # durandtibo/workflow-config-action
+  # Load the shared python-version/OS matrix of .github/workflow-config.json
   # once, and pass it down to every job below that needs it.
   get-matrix:
     permissions:
@@ -100,3 +100,31 @@ jobs:
     with:
       test-matrix: ${{ needs.get-matrix.outputs.test_matrix }}
     secrets: inherit
+
+  # The required status check. It runs even if a job above failed or was cancelled, because a
+  # skipped required check does not block a merge.
+  ci:
+    permissions: {}
+    needs:
+      - get-matrix
+      - build
+      - cyclic-imports
+      - doctest
+      - format
+      - type-checking
+      - pre-commit
+      - test
+    if: ${{ always() }}
+    runs-on: ubuntu-slim
+    timeout-minutes: 2
+    steps:
+      - name: Check the result of every job
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Results: $RESULTS"
+          for result in $RESULTS; do
+            if [ "$result" != "success" ]; then
+              exit 1
+            fi
+          done
