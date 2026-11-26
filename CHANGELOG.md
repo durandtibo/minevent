@@ -137,3 +137,5 @@ the new API are in the
   `sdist` build (#937).
 - Development: the script of the package versions has unit and integration tests, which the source
   distribution leaves out (#938).
+- Release: the `Changelog` link of the package points to this file, and the security policy supports
+  `0.6.x` (#939).
