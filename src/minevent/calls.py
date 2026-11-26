@@ -48,23 +48,9 @@ def validate_signature(func: Callable[..., object], name: str) -> None:
     r"""Check that a handler or a condition can be called with the
     context.
 
-    A handler and a condition are always called as ``func(context)``.
-    Exactly one parameter must lack a default, and it must be
-    positional: it receives the context. The other parameters keep their
-    default, because the manager never fills them. Names and annotations
-    are not checked. Any other signature is rejected, including
-    ``*args`` and ``**kwargs`` (they do not say whether the context is
-    expected), and so is a callable whose signature cannot be inspected.
-    A generator function or an async generator function, and a callable
-    object whose ``__call__`` is one (see ``has_kind``), is rejected too,
-    because calling it runs none of its code. The signature is the one
-    that ``inspect.signature`` reports: it does not contain the
-    positional arguments that a ``functools.partial`` binds, and it is
-    the one of the wrapped function for a decorator that uses
-    ``functools.wraps``. The annotations do not have to be resolvable:
-    on Python 3.14+, a name that is only imported under
-    ``TYPE_CHECKING`` is kept as a forward reference instead of raising
-    a ``NameError``. ``func`` is not called.
+    The accepted signatures are the ones of
+    [the calling rule](https://durandtibo.github.io/minevent/main/architecture/#the-calling-rule).
+    ``func`` is not called.
 
     Args:
         func: The callable to inspect.

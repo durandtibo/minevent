@@ -92,12 +92,14 @@ checked once, at registration.
 | one, keyword-only                   | `def g(*, epoch)`                    | `TypeError`           |
 | (any) generator or async generator  | `def g(context): yield`              | `TypeError`           |
 
-Names and annotations are not checked. Coroutine functions, bound methods, callable objects, classes
-and `functools.partial` objects follow the same table. The signature is the one that
-`inspect.signature` reports: the signature of a partial does not contain the positional arguments
-that it binds, and a decorator that uses `functools.wraps` has the signature of the wrapped
-function. For the generator and coroutine checks, a callable object is judged by its `__call__` (a
-partial by its function): an object whose `__call__` yields is rejected like a generator function.
+Names and annotations are not checked, and the annotations do not have to be resolvable: on Python
+3.14 and later, a name that is only imported under `TYPE_CHECKING` does not raise a `NameError`.
+Coroutine functions, bound methods, callable objects, classes and `functools.partial` objects follow
+the same table. The signature is the one that `inspect.signature` reports: the signature of a
+partial does not contain the positional arguments that it binds, and a decorator that uses
+`functools.wraps` has the signature of the wrapped function. For the generator and coroutine checks,
+a callable object is judged by its `__call__` (a partial by its function): an object whose
+`__call__` yields is rejected like a generator function.
 
 A handler that does not need the context declares it and ignores it: `def save_model(_)` is the
 recommended form. To register a function that cannot be changed, wrap it in a lambda:
@@ -132,9 +134,6 @@ context comes first, without default.
   becomes `False` when the registration is removed, by whatever means. A `Subscription` cannot be
   copied or pickled (`copy.copy`, `copy.deepcopy` and `pickle` raise a `TypeError`), and the manager
   alone creates one.
-- The `repr` of a `Subscription` shows what decides whether its handler runs: after the event and
-  the name of the handler, `once=True`, the name of the condition and `active=False`, each only if
-  it applies.
 - `bool(manager)` is always `True`, empty or not, and a manager has no length: the number of
   handlers of an event is `len(manager.get_subscriptions(event))`, and `repr(manager)` shows it for
   each event. A manager cannot be copied or pickled (`copy.copy`, `copy.deepcopy` and `pickle`
@@ -181,8 +180,8 @@ context comes first, without default.
   never raises in place of your exception: the name of its class is used if its own name cannot be
   read.
 - The messages and the notes of `minevent` stay short whatever the size of your data: a value is
-  shown with [`reprlib`](https://docs.python.org/3/library/reprlib.html), an event name is
-  shortened above 200 characters, and the `KeyError` of a `Context` lists at most 20 keys.
+  shown with [`reprlib`](https://docs.python.org/3/library/reprlib.html), and an event name is
+  shortened above 200 characters.
 
 ### Coroutines
 
@@ -204,10 +203,7 @@ context comes first, without default.
   the lock of the manager, so it can use the manager. The lock protects the manager against the
   other threads only: a signal handler or a garbage collection finalizer must not change it (see
   [Limits](#limits)).
-- `PeriodicCondition` counts every call once, from any number of threads. It can be copied and
-  pickled: a copy starts at the same step and has its own counter. Its `step` property reads the
-  number of calls since the creation or the last `reset()`, without advancing the counter. Its
-  `repr` shows `freq`, `start` and `step` as Python writes integers, without separator.
+- `PeriodicCondition` counts every call once, from any number of threads.
 
 ### Import and typing
 
@@ -278,7 +274,7 @@ The registry maps each event to an ordered `dict` of subscriptions, used as an o
 - the signature is inspected at registration, never during a trigger;
 - a mapping given to a trigger is copied (linear in its number of keys), while a `Context` is not;
 - `context.get(key, default)` and `key in context` cost the same for a present key and a missing
-  one. `context[key]` lists up to 20 keys in its `KeyError`, so a missing key costs more.
+  one. `context[key]` lists keys in its `KeyError`, so a missing key costs more.
 
 As an order of magnitude, measured on a laptop with Python 3.14: about 0.3 µs for a trigger with one
 trivial handler, 0.07 µs for each extra one, 0.8 µs with a small dict, and 5.5 µs for a registration

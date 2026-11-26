@@ -516,8 +516,9 @@ class EventManager:
 
         Each trigger of the event calls the handler after the handlers added
         before it, as ``handler(context)`` with the read-only ``Context`` of
-        the trigger. ``minevent.calls.validate_signature`` states which
-        signatures are accepted.
+        the trigger.
+        [The calling rule](https://durandtibo.github.io/minevent/main/architecture/#the-calling-rule)
+        states which signatures are accepted.
 
         Args:
             event: The event name (case-sensitive string).

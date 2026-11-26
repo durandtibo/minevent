@@ -128,3 +128,6 @@ the new API are in the
   checks of `tests/package_checks.py` (#931).
 - Documentation: the examples add recipes to start background work from a handler and to resume a
   training, and the recipe to register a handler only once works with a bound method (#932).
+- Documentation: each rule has one home. The docstrings of `validate_signature`, `add_event_handler`
+  and `conditions` link to the calling rule, and the behaviour of `Subscription`,
+  `PeriodicCondition` and `Context` is left to their docstrings (#933).
