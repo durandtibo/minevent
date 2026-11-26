@@ -120,3 +120,5 @@ the new API are in the
   `main`. The nightly package test runs the checks of the tag of the installed version.
 - Development: the import time of the package is no longer tracked: the daily workflow, its benchmark
   and trend script and the `inv test.benchmark-import` task are removed (#905).
+- Development: `import-linter` rejects a module that is in no layer, and the documentation no longer
+  depends on `mkdocs-include-markdown-plugin` (#914).

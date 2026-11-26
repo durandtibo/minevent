@@ -65,7 +65,6 @@ docs = [
   "mike >=2.2,<3.0",
   "mkdocs-material >=9.7,<10.0",
   "mkdocstrings[python]>=1.0.8,<2.0",
-  "mkdocs-include-markdown-plugin >=7.3,<8.0",
 ]
 
 [project.urls]
@@ -227,3 +226,5 @@ name = "Modules must only import the modules of the lower layers"
 type = "layers"
 containers = ["minevent"]
 layers = ["manager", "conditions | calls", "context"]
+# A module that is in no layer breaks the contract.
+exhaustive = true
