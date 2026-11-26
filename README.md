@@ -137,8 +137,8 @@ True
 >>> with manager.add_event_handler("batch_end", lambda: print("profiling")):
 ...     manager.trigger_event("batch_end")
 profiling
->>> len(manager)
-0
+>>> manager
+EventManager(events={})
 
 ```
 

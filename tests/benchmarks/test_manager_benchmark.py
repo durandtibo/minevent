@@ -83,11 +83,6 @@ def test_contains_benchmark(benchmark: BenchmarkFixture) -> None:
     benchmark(manager.__contains__, "event_50")
 
 
-def test_len_benchmark(benchmark: BenchmarkFixture) -> None:
-    manager = make_manager(100, 10)
-    benchmark(len, manager)
-
-
 def test_events_benchmark(benchmark: BenchmarkFixture) -> None:
     manager = make_manager(100, 1)
     benchmark(getattr, manager, "events")

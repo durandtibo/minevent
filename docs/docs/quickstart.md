@@ -166,8 +166,8 @@ batch
 >>> manager.events
 ['epoch_end']
 >>> manager.reset()
->>> len(manager)
-0
+>>> manager
+EventManager(events={})
 
 ```
 
