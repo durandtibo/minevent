@@ -1,6 +1,7 @@
 # Build and package validation workflow.
 # Tests that the package can be built correctly as both source distribution and wheel.
 # Validates package metadata and that the package is properly typed.
+# On the sdist cells, runs the tests from the unpacked source distribution.
 
 name: Build Tests
 on:
@@ -21,7 +22,7 @@ jobs:
     uses: ./.github/workflows/lib-get-package-metadata.yaml
 
   # Build the sdist and the wheel on every supported Python version (including the free-threaded
-  # builds) and run the package checks against the installed package.
+  # builds) and run the package checks against the installed package, and the tests from the sdist.
   build:
     permissions:
       contents: read
@@ -57,3 +58,17 @@ jobs:
           python tests/package_checks.py
 
           echo "✅ Package checks passed"
+      # The sdist ships the tests: they must run from the unpacked archive, which has no file of
+      # the repository outside of it. --python is explicit because UV_PYTHON, set by setup-uv,
+      # takes precedence over VIRTUAL_ENV.
+      - name: Test the source distribution
+        if: matrix.dist-type == 'sdist'
+        run: |
+          set -euo pipefail
+          uv build --sdist --out-dir "$RUNNER_TEMP/dist"
+          mkdir "$RUNNER_TEMP/sdist"
+          tar -xzf "$RUNNER_TEMP"/dist/*.tar.gz -C "$RUNNER_TEMP/sdist" --strip-components=1
+          cd "$RUNNER_TEMP/sdist"
+          uv venv "$RUNNER_TEMP/sdist-venv"
+          uv pip install --python "$RUNNER_TEMP/sdist-venv" . anyio pytest pytest-timeout ty
+          "$RUNNER_TEMP/sdist-venv/bin/python" -m pytest tests/unit tests/integration
