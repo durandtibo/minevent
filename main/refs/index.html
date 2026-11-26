@@ -12,8 +12,6 @@
         <link rel="prev" href="../design/">
       
       
-        <link rel="next" href="manager/">
-      
       
         
       
@@ -1141,118 +1139,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="manager/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Event manager
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="conditions/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Conditions
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="context/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Context
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="calls/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Calls
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -1717,7 +1603,7 @@ installed package.</p>
   </span>
 
 <a href="#minevent.Condition" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="n">Condition</span> <span class="o">=</span> <span class="n"><span title="collections.abc.Callable">Callable</span></span><span class="p">[[</span><span class="n"><a class="autorefs autorefs-internal" title="minevent.context.Context" href="context/#minevent.context.Context">Context</a></span><span class="p">],</span> <span class="n"><span title="bool">bool</span></span><span class="p">]</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">Condition</span> <span class="o">=</span> <span class="n"><span title="collections.abc.Callable">Callable</span></span><span class="p">[[</span><span class="n"><a class="autorefs autorefs-internal" title="minevent.Context (minevent.context.Context)" href="#minevent.Context">Context</a></span><span class="p">],</span> <span class="n"><span title="bool">bool</span></span><span class="p">]</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1742,7 +1628,7 @@ returns a boolean.</p>
   </span>
 
 <a href="#minevent.Handler" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="n">Handler</span> <span class="o">=</span> <span class="n"><span title="collections.abc.Callable">Callable</span></span><span class="p">[[</span><span class="n"><a class="autorefs autorefs-internal" title="minevent.context.Context" href="context/#minevent.context.Context">Context</a></span><span class="p">],</span> <span class="n"><span title="object">object</span></span><span class="p">]</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">Handler</span> <span class="o">=</span> <span class="n"><span title="collections.abc.Callable">Callable</span></span><span class="p">[[</span><span class="n"><a class="autorefs autorefs-internal" title="minevent.Context (minevent.context.Context)" href="#minevent.Context">Context</a></span><span class="p">],</span> <span class="n"><span title="object">object</span></span><span class="p">]</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2160,21 +2046,21 @@ Choices" page.</p>
 <a href="#minevent.EventManager.add_event_handler" class="headerlink" title="Permanent link">&para;</a></h4>
 <div class="doc-signature highlight"><pre><span></span><code><span class="nf">add_event_handler</span><span class="p">(</span>
     <span class="n">event</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span>
-    <span class="n">handler</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="minevent.calls.Handler
+    <span class="n">handler</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="minevent.Handler
 
 
   
       module-attribute
-  " href="calls/#minevent.calls.Handler">Handler</a></span><span class="p">,</span>
+   (minevent.calls.Handler)" href="#minevent.Handler">Handler</a></span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">once</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">condition</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="minevent.conditions.Condition
+    <span class="n">condition</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="minevent.Condition
 
 
   
       module-attribute
-  " href="conditions/#minevent.conditions.Condition">Condition</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="minevent.manager.Subscription" href="manager/#minevent.manager.Subscription">Subscription</a></span>
+   (minevent.conditions.Condition)" href="#minevent.Condition">Condition</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="minevent.Subscription (minevent.manager.Subscription)" href="#minevent.Subscription">Subscription</a></span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2219,12 +2105,12 @@ states which signatures are accepted.</p>
                 <code>handler</code>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="minevent.calls.Handler
+                  <code><a class="autorefs autorefs-internal" title="minevent.Handler
 
 
   
       module-attribute
-  " href="calls/#minevent.calls.Handler">Handler</a></code>
+   (minevent.calls.Handler)" href="#minevent.Handler">Handler</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2259,12 +2145,12 @@ several threads trigger the event. A condition that is
                 <code>condition</code>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="minevent.conditions.Condition
+                  <code><a class="autorefs autorefs-internal" title="minevent.Condition
 
 
   
       module-attribute
-  " href="conditions/#minevent.conditions.Condition">Condition</a> | None</code>
+   (minevent.conditions.Condition)" href="#minevent.Condition">Condition</a> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2294,7 +2180,7 @@ handler always runs. Default is <code>None</code>.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-internal" title="minevent.manager.Subscription" href="manager/#minevent.manager.Subscription">Subscription</a></code>
+                  <code><a class="autorefs autorefs-internal" title="minevent.Subscription (minevent.manager.Subscription)" href="#minevent.Subscription">Subscription</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2586,7 +2472,7 @@ released outside the lock, so their finalizers can use the manager.</p>
 
 
 <a href="#minevent.EventManager.get_subscriptions" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">get_subscriptions</span><span class="p">(</span><span class="n">event</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="tuple">tuple</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="minevent.manager.Subscription" href="manager/#minevent.manager.Subscription">Subscription</a></span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">get_subscriptions</span><span class="p">(</span><span class="n">event</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="tuple">tuple</span></span><span class="p">[</span><span class="n"><a class="autorefs autorefs-internal" title="minevent.Subscription (minevent.manager.Subscription)" href="#minevent.Subscription">Subscription</a></span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2636,7 +2522,7 @@ released outside the lock, so their finalizers can use the manager.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="tuple">tuple</span>[<a class="autorefs autorefs-internal" title="minevent.manager.Subscription" href="manager/#minevent.manager.Subscription">Subscription</a>, ...]</code>
+                  <code><span title="tuple">tuple</span>[<a class="autorefs autorefs-internal" title="minevent.Subscription (minevent.manager.Subscription)" href="#minevent.Subscription">Subscription</a>, ...]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2710,12 +2596,12 @@ returned tuple.</p>
     <span class="n">event</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">once</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">condition</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="minevent.conditions.Condition
+    <span class="n">condition</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="minevent.Condition
 
 
   
       module-attribute
-  " href="conditions/#minevent.conditions.Condition">Condition</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+   (minevent.conditions.Condition)" href="#minevent.Condition">Condition</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="collections.abc.Callable">Callable</span></span><span class="p">[[</span><span class="n"><span title="minevent.manager._F">_F</span></span><span class="p">],</span> <span class="n"><span title="minevent.manager._F">_F</span></span><span class="p">]</span>
 </code></pre></div>
 
@@ -2776,12 +2662,12 @@ and returned unchanged. Use <code>add_event_handler</code> if you need the
                 <code>condition</code>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="minevent.conditions.Condition
+                  <code><a class="autorefs autorefs-internal" title="minevent.Condition
 
 
   
       module-attribute
-  " href="conditions/#minevent.conditions.Condition">Condition</a> | None</code>
+   (minevent.conditions.Condition)" href="#minevent.Condition">Condition</a> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3449,7 +3335,7 @@ manager, and one that is built by hand is not <code>active</code>.</p>
                 <code>manager</code>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="minevent.manager.EventManager" href="manager/#minevent.manager.EventManager">EventManager</a></code>
+                  <code><a class="autorefs autorefs-internal" title="minevent.EventManager (minevent.manager.EventManager)" href="#minevent.EventManager">EventManager</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3481,12 +3367,12 @@ manager, and one that is built by hand is not <code>active</code>.</p>
                 <code>handler</code>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="minevent.calls.Handler
+                  <code><a class="autorefs autorefs-internal" title="minevent.Handler
 
 
   
       module-attribute
-  " href="calls/#minevent.calls.Handler">Handler</a></code>
+   (minevent.calls.Handler)" href="#minevent.Handler">Handler</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3519,12 +3405,12 @@ manager, and one that is built by hand is not <code>active</code>.</p>
                 <code>condition</code>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="minevent.conditions.Condition
+                  <code><a class="autorefs autorefs-internal" title="minevent.Condition
 
 
   
       module-attribute
-  " href="conditions/#minevent.conditions.Condition">Condition</a> | None</code>
+   (minevent.conditions.Condition)" href="#minevent.Condition">Condition</a> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3688,12 +3574,12 @@ the claim of a <code>once</code> registration).</p>
   </span>
 
 <a href="#minevent.Subscription.condition" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="n">condition</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="minevent.conditions.Condition
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">condition</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="minevent.Condition
 
 
   
       module-attribute
-  " href="conditions/#minevent.conditions.Condition">Condition</a></span> <span class="o">|</span> <span class="kc">None</span>
+   (minevent.conditions.Condition)" href="#minevent.Condition">Condition</a></span> <span class="o">|</span> <span class="kc">None</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3712,12 +3598,12 @@ the claim of a <code>once</code> registration).</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-internal" title="minevent.conditions.Condition
+                  <code><a class="autorefs autorefs-internal" title="minevent.Condition
 
 
   
       module-attribute
-  " href="conditions/#minevent.conditions.Condition">Condition</a> | None</code>
+   (minevent.conditions.Condition)" href="#minevent.Condition">Condition</a> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3810,12 +3696,12 @@ the claim of a <code>once</code> registration).</p>
   </span>
 
 <a href="#minevent.Subscription.handler" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="n">handler</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="minevent.calls.Handler
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">handler</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="minevent.Handler
 
 
   
       module-attribute
-  " href="calls/#minevent.calls.Handler">Handler</a></span>
+   (minevent.calls.Handler)" href="#minevent.Handler">Handler</a></span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3834,12 +3720,12 @@ the claim of a <code>once</code> registration).</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><a class="autorefs autorefs-internal" title="minevent.calls.Handler
+                  <code><a class="autorefs autorefs-internal" title="minevent.Handler
 
 
   
       module-attribute
-  " href="calls/#minevent.calls.Handler">Handler</a></code>
+   (minevent.calls.Handler)" href="#minevent.Handler">Handler</a></code>
             </td>
             <td>
               <div class="doc-md-description">
