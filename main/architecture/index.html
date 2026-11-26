@@ -1012,7 +1012,7 @@ recipes and the <a href="../guide/">user guide</a> gives the recommendations.</p
 <tr>
 <td>P1</td>
 <td>Small surface</td>
-<td>Events are strings, handlers are plain callables, the manager connects them. Six exported names and <code>__version__</code> (<code>EventManager</code>, <code>Subscription</code>, <code>Context</code>, <code>Condition</code>, <code>PeriodicCondition</code>, <code>AfterNCondition</code>). <code>EventManager</code> has 8 public members (<code>events</code>, <code>get_subscriptions</code>, <code>add_event_handler</code>, <code>on</code>, <code>trigger_event</code>, <code>atrigger_event</code>, <code>clear_event</code>, <code>reset</code>) and <code>__len__</code>, <code>__contains__</code>.</td>
+<td>Events are strings, handlers are plain callables, the manager connects them. Seven exported names and <code>__version__</code> (<code>EventManager</code>, <code>Subscription</code>, <code>Context</code>, <code>Handler</code>, <code>Condition</code>, <code>PeriodicCondition</code>, <code>AfterNCondition</code>). <code>EventManager</code> has 8 public members (<code>events</code>, <code>get_subscriptions</code>, <code>add_event_handler</code>, <code>on</code>, <code>trigger_event</code>, <code>atrigger_event</code>, <code>clear_event</code>, <code>reset</code>) and <code>__len__</code>, <code>__contains__</code>.</td>
 <td><code>test_init.py</code></td>
 </tr>
 <tr>
@@ -1096,7 +1096,7 @@ recipes and the <a href="../guide/">user guide</a> gives the recommendations.</p
 <tr>
 <td>P15</td>
 <td>Typed</td>
-<td>Fully typed, <code>py.typed</code>, <code>ty check</code> clean. The values of a <code>Context</code> are <code>Any</code>, so the documented handlers type check in the code of a user.</td>
+<td>Fully typed, <code>py.typed</code>, <code>ty check</code> clean. The values of a <code>Context</code> are <code>Any</code>, so the documented handlers type check in the code of a user. <strong>A handler argument is typed <code>Handler</code></strong>, so a type checker reports a callable that needs two arguments, a keyword-only argument or an argument of another type than <code>Context</code>; the run-time check (P13) stays the authority.</td>
 <td><code>ty check</code> in CI, <code>test_context_typing.py</code></td>
 </tr>
 <tr>

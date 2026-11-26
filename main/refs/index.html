@@ -733,6 +733,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#minevent.Handler" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Handler
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#minevent.AfterNCondition" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1197,6 +1208,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#minevent.Handler" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Handler
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#minevent.AfterNCondition" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1526,8 +1548,8 @@ only the context) and an event manager (<code>EventManager</code>) that stores
 the handlers and triggers the events.</p>
 <ul>
 <li><code>EventManager.add_event_handler</code> (or the <code>on</code> decorator) registers
-  a handler and returns a <code>Subscription</code>, the registration itself,
-  that removes exactly that registration.</li>
+  a handler (<code>Handler</code>) and returns a <code>Subscription</code>, the
+  registration itself, that removes exactly that registration.</li>
 <li><code>EventManager.trigger_event</code> runs the handlers in the order they
   were registered and passes its <code>context</code> argument (a mapping, the
   payload) to them in a read-only <code>Context</code>. <code>EventManager.atrigger_event</code> also
@@ -1586,6 +1608,31 @@ installed package.</p>
 
         <p>A condition: a function that returns a boolean, without parameter or
 with the <code>Context</code> of the trigger.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="minevent.Handler" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">minevent.Handler</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
+  </span>
+
+<a href="#minevent.Handler" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">Handler</span> <span class="o">=</span> <span class="n"><span title="collections.abc.Callable">Callable</span></span><span class="p">[[],</span> <span class="n"><span title="object">object</span></span><span class="p">]</span> <span class="o">|</span> <span class="n"><span title="collections.abc.Callable">Callable</span></span><span class="p">[[</span><span class="n"><a class="autorefs autorefs-internal" title="minevent.context.Context" href="context/#minevent.context.Context">Context</a></span><span class="p">],</span> <span class="n"><span title="object">object</span></span><span class="p">]</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>A handler: a function without parameter or with the <code>Context</code> of
+the trigger.</p>
 
     </div>
 
@@ -2204,7 +2251,12 @@ it cannot be copied or pickled (<code>copy.copy</code>, <code>copy.deepcopy</cod
 <a href="#minevent.EventManager.add_event_handler" class="headerlink" title="Permanent link">&para;</a></h4>
 <div class="doc-signature highlight"><pre><span></span><code><span class="nf">add_event_handler</span><span class="p">(</span>
     <span class="n">event</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span>
-    <span class="n">handler</span><span class="p">:</span> <span class="n"><span title="collections.abc.Callable">Callable</span></span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n"><span title="object">object</span></span><span class="p">],</span>
+    <span class="n">handler</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="minevent.calls.Handler
+
+
+  
+      module-attribute
+  " href="manager/#minevent.calls.Handler">Handler</a></span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">once</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">condition</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="minevent.conditions.Condition
@@ -2268,11 +2320,16 @@ the handler should be attached.</p>
                 <code>handler</code>
             </td>
             <td>
-                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="object">object</span>]</code>
+                  <code><a class="autorefs autorefs-internal" title="minevent.calls.Handler
+
+
+  
+      module-attribute
+  " href="manager/#minevent.calls.Handler">Handler</a></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The callable to attach to the event.</p>
+                <p>The callable to attach to the event (<code>Handler</code>).</p>
               </div>
             </td>
             <td>
@@ -3489,11 +3546,16 @@ event manager.</p>
                 <code>handler</code>
             </td>
             <td>
-                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="object">object</span>]</code>
+                  <code><a class="autorefs autorefs-internal" title="minevent.calls.Handler
+
+
+  
+      module-attribute
+  " href="manager/#minevent.calls.Handler">Handler</a></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The registered handler: a callable.</p>
+                <p>The registered handler (<code>Handler</code>).</p>
               </div>
             </td>
             <td>
@@ -3787,7 +3849,12 @@ its registry.</p>
   </span>
 
 <a href="#minevent.Subscription.handler" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="n">handler</span><span class="p">:</span> <span class="n"><span title="collections.abc.Callable">Callable</span></span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n"><span title="object">object</span></span><span class="p">]</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">handler</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-internal" title="minevent.calls.Handler
+
+
+  
+      module-attribute
+  " href="manager/#minevent.calls.Handler">Handler</a></span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -3806,7 +3873,12 @@ its registry.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="object">object</span>]</code>
+                  <code><a class="autorefs autorefs-internal" title="minevent.calls.Handler
+
+
+  
+      module-attribute
+  " href="manager/#minevent.calls.Handler">Handler</a></code>
             </td>
             <td>
               <div class="doc-md-description">
