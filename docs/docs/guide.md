@@ -1,8 +1,8 @@
 # User guide
 
-This guide collects the recommendations, the pitfalls and the troubleshooting tips for using
-`minevent`. The [quickstart](quickstart.md) shows the basics, the [examples](examples.md) are the
-recipes, the [how it works page](architecture.md) states the rules of the library and the
+This guide collects the recommendations and the troubleshooting tips for using `minevent`. The
+[quickstart](quickstart.md) shows the basics, the [examples](examples.md) are the recipes, the
+[how it works page](architecture.md) states the rules and the limits of the library and the
 [design choices page](design.md) explains them.
 
 ## Recommendations
@@ -23,8 +23,8 @@ recipes, the [how it works page](architecture.md) states the rules of the librar
   in the order they must run.
 - Pass the data of a trigger as a dict. Build a `Context` yourself to reuse it for several triggers:
   it is validated and copied only once.
-- Read an optional value with `context.get(key, default)`, so that handlers with different needs can
-  share an event.
+- Read a required value with `context["key"]` and an optional one with `context.get(key, default)`,
+  so that handlers with different needs can share an event.
 - Write `def f(_)` for a handler that ignores the context, and wrap an existing function in a lambda
   such as `lambda _: model.train()` (see [the calling rule](architecture.md#the-calling-rule)).
 - If the failure of a handler must not stop the program, catch the exception in the handler.
@@ -64,17 +64,6 @@ The cost of a trigger is mostly the cost of the handlers (see
 [Performance](architecture.md#performance)). To find a slow handler, time it or wrap it (see
 [Trace the handlers](examples.md#trace-the-handlers)). In a loop that triggers often with the same
 data, build one `Context` and reuse it.
-
-## Pitfalls
-
-- **A handler that triggers its own event** recurses until `RecursionError`. Use a different event
-  or a flag.
-- **Registering the same handler twice** runs it twice (see
-  [Register a handler only once](examples.md#register-a-handler-only-once)).
-- **Mutating a value of the payload**: the values are not copied, so the next handlers see the
-  change.
-- **Threads**: a handler that shares state must protect it, and so must a stateful condition that
-  you write. `PeriodicCondition` protects its counter.
 
 ## Troubleshooting
 

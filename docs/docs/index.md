@@ -64,7 +64,7 @@ It allows you to customize the function `say_something` without changing its imp
 | [Get started](get_started.md)   | Install the library.                                 |
 | [Quickstart](quickstart.md)     | The basics in a few minutes.                         |
 | [Examples](examples.md)         | Recipes for training loops, plugins, async and tests |
-| [User guide](guide.md)          | Recommendations, pitfalls and troubleshooting.       |
+| [User guide](guide.md)          | Recommendations and troubleshooting.                 |
 | [How it works](architecture.md) | The rules, the guarantees and the limits.            |
 | [Design choices](design.md)     | Why it works this way, and the trade-offs.           |
 | [Reference](refs/index.md)      | The classes and functions.                           |

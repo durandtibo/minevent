@@ -79,9 +79,6 @@ different API: see [Installation](#installation).
 
 ### Register a handler and trigger an event
 
-A handler is a callable that receives the context, which holds the data of the trigger. One that
-does not need it declares it and ignores it, as `_`:
-
 ```pycon
 >>> from minevent import Context, EventManager
 >>> manager = EventManager()
@@ -95,77 +92,9 @@ done
 
 ```
 
-The handlers of an event run one after the other, in the order they were added. `context["epoch"]`
-reads a required value, and `context.get("loss", default)` an optional one.
-
-### Control when a handler runs
-
-A condition is a function that returns a boolean. It can read the data of the trigger too. With
-`once=True`, a handler runs at most once:
-
-```pycon
->>> from minevent import EventManager, PeriodicCondition
->>> manager = EventManager()
->>> _ = manager.add_event_handler(
-...     "epoch_end", lambda _: print("checkpoint"), condition=PeriodicCondition(freq=2)
-... )
->>> _ = manager.add_event_handler(
-...     "epoch_end",
-...     lambda context: print(f"late epoch {context['epoch']}"),
-...     condition=lambda context: context["epoch"] >= 2,
-... )
->>> _ = manager.add_event_handler("epoch_end", lambda _: print("first epoch"), once=True)
->>> for epoch in range(3):
-...     manager.trigger_event("epoch_end", {"epoch": epoch})
-checkpoint
-first epoch
-checkpoint
-late epoch 2
-
-```
-
-### Remove a handler
-
-`add_event_handler` returns the `Subscription` of the registration:
-
-```pycon
->>> from minevent import EventManager
->>> manager = EventManager()
->>> subscription = manager.add_event_handler("batch_end", lambda _: print("batch"))
->>> subscription.remove()
-True
->>> with manager.add_event_handler("batch_end", lambda _: print("profiling")):
-...     manager.trigger_event("batch_end")
-profiling
->>> manager
-EventManager(events={})
-
-```
-
-`manager.clear_event("batch_end")` removes the handlers of an event, and `manager.reset()` removes
-all of them.
-
-### Use coroutine handlers
-
-```pycon
->>> import asyncio
->>> from minevent import Context, EventManager
->>> async def upload(context: Context) -> None:
-...     print(f"upload epoch {context['epoch']}")
->>> manager = EventManager()
->>> _ = manager.add_event_handler("epoch_end", upload)
->>> asyncio.run(manager.atrigger_event("epoch_end", {"epoch": 1}))
-upload epoch 1
-
-```
-
-### Which callables can be handlers
-
-A handler and a condition are always called as `f(context)`: exactly one parameter must lack a
-default, and it must be positional. Anything else raises a `TypeError` at registration, including a
-function without parameter, `*args` and `**kwargs`, so wrap a callable such as `print` or
-`model.train` in a lambda. See
-[the calling rule](https://durandtibo.github.io/minevent/main/architecture/#the-calling-rule).
+A handler is always called with the context of the trigger (see
+[the calling rule](https://durandtibo.github.io/minevent/main/architecture/#the-calling-rule)).
+The [quickstart](https://durandtibo.github.io/minevent/main/quickstart/) shows the other features.
 
 ## Documentation
 

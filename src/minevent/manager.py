@@ -517,9 +517,7 @@ class EventManager:
         Each trigger of the event calls the handler after the handlers added
         before it, as ``handler(context)`` with the read-only ``Context`` of
         the trigger. ``minevent.calls.check_signature`` states which
-        signatures are accepted. A handler that does not need the context
-        declares it and ignores it (``def handler(_)``). Use a function, a
-        lambda or a ``functools.partial`` to give other arguments.
+        signatures are accepted.
 
         Args:
             event: The event name (case-sensitive string).

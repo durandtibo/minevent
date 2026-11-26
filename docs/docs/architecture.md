@@ -18,8 +18,9 @@ recommendations.
 | `Condition`         | A synchronous function that returns a boolean and decides if a handler runs.     |
 | `PeriodicCondition` | A condition that is `True` on one call in `freq`.                                |
 
-These six names (all but "event") and `__version__` are what `minevent` exports. `EventManager`
-has the following members:
+These six names (all but "event") and `__version__` are what `minevent` exports. **The public API
+is what `minevent` exports**: the other names of its modules, such as the functions of
+`minevent.calls`, can change. `EventManager` has the following members:
 
 | Member                                                               | Use                                    |
 | -------------------------------------------------------------------- | -------------------------------------- |
@@ -251,8 +252,10 @@ context comes first, without default.
 - **A signature that depends on Python.** The standard library adds signatures to C callables
   between versions: `set().add` and `time.sleep` are rejected on Python 3.11 and 3.12, and accepted
   from 3.13.
-- **A condition counts its calls, not the triggers.** It is not called when an earlier handler
-  raised, nor for a removed registration.
+- **A condition is evaluated by truthiness, and counts its calls, not the triggers.** It is not
+  called when an earlier handler raised, nor for a removed registration.
+- **Names are not checked.** An unbound method such as `Model.save` has one parameter without
+  default, `self`, so it is accepted and called with the context as `self`.
 - **A huge integer in a message** on Python 3.11 and 3.12: showing an integer of more than 4,300
   digits (a value given as a handler, a key, an argument of `PeriodicCondition`) raises the
   `ValueError` of Python instead of the error of `minevent`.

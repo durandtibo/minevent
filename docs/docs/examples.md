@@ -1,7 +1,7 @@
 # Examples
 
 This page shows how to use `minevent` in practical situations. The `pycon` examples run as written.
-The [quickstart](quickstart.md) shows the basics, the [user guide](guide.md) lists the
+The [quickstart](quickstart.md) shows each feature on its own, the [user guide](guide.md) lists the
 recommendations and the [how it works page](architecture.md) states the rules.
 
 ## Add logging to a training loop
@@ -225,45 +225,6 @@ collects the losses and is read after the training:
 
 The handler ignores the keys that it does not read, here `epoch`.
 
-## Share an event between handlers with different needs
-
-Each handler reads the keys that it needs and decides what to do with a missing one:
-
-```pycon
->>> from minevent import Context, EventManager
->>> def log_loss(context: Context) -> None:
-...     print(f"loss {context['loss']}")
->>> def log_epoch(context: Context) -> None:
-...     print(f"epoch {context['epoch']}, lr {context.get('lr', 0.1)}")
->>> manager = EventManager()
->>> _ = manager.add_event_handler("epoch_end", log_loss)
->>> _ = manager.add_event_handler("epoch_end", log_epoch)
->>> manager.trigger_event("epoch_end", {"epoch": 3, "loss": 0.5})
-loss 0.5
-epoch 3, lr 0.1
-
-```
-
-## Register with a decorator
-
-`on` registers a function and returns it unchanged, so the function can still be called directly. It
-takes the same options as `add_event_handler`:
-
-```pycon
->>> from minevent import Context, EventManager, PeriodicCondition
->>> manager = EventManager()
->>> @manager.on("epoch_end", condition=PeriodicCondition(freq=2))
-... def log_epoch(context: Context) -> None:
-...     print(f"epoch {context['epoch']}")
->>> for epoch in range(3):
-...     manager.trigger_event("epoch_end", {"epoch": epoch})
-epoch 0
-epoch 2
->>> log_epoch(Context({"epoch": 10}))
-epoch 10
-
-```
-
 ## Pass a dict or a Context
 
 A dict is copied and validated at each trigger, while a `Context` is passed as is, so build it once
@@ -282,22 +243,6 @@ epoch 3, loss 0.5
 epoch 4, loss 0.4
 >>> manager.trigger_event("epoch_end", context)
 epoch 4, loss 0.4
-
-```
-
-## Bind fixed arguments
-
-Use `functools.partial` for the arguments that do not come from the payload:
-
-```pycon
->>> import functools
->>> from minevent import Context, EventManager
->>> def save(path: str, context: Context) -> None:
-...     print(f"save epoch {context['epoch']} to {path}")
->>> manager = EventManager()
->>> _ = manager.add_event_handler("epoch_end", functools.partial(save, "model.pt"))
->>> manager.trigger_event("epoch_end", {"epoch": 4})
-save epoch 4 to model.pt
 
 ```
 
@@ -346,49 +291,6 @@ cannot change:
 [Context({'losses': [0.5]})]
 
 ```
-
-## Run a handler once
-
-`once=True` removes the registration just before its handler runs. With a condition, it waits for
-the first trigger where the condition is `True`:
-
-```pycon
->>> from minevent import EventManager, PeriodicCondition
->>> manager = EventManager()
->>> subscription = manager.add_event_handler(
-...     "epoch_end",
-...     lambda _: print("saved"),
-...     once=True,
-...     condition=PeriodicCondition(freq=1, start=2),
-... )
->>> for _ in range(4):
-...     manager.trigger_event("epoch_end")
-saved
->>> subscription.active
-False
-
-```
-
-## Remove a handler
-
-Keep the `Subscription` returned by `add_event_handler` to remove exactly that registration. A
-`with` block removes it when the block exits, which suits a handler that lives for one phase of the
-program:
-
-```pycon
->>> from minevent import EventManager
->>> manager = EventManager()
->>> with manager.add_event_handler("batch_end", lambda _: print("profiling")):
-...     manager.trigger_event("batch_end")
-profiling
->>> manager.trigger_event("batch_end")
->>> manager
-EventManager(events={})
-
-```
-
-`manager.clear_event("batch_end")` removes all the handlers of an event, and `manager.reset()`
-removes all the handlers of all the events, for example in a `finally` block at the end of a program.
 
 ## Register a handler only once
 
@@ -498,25 +400,6 @@ possibly at the same time, so a handler protects the state that it shares:
 
 ```
 
-## Use coroutine handlers
-
-`atrigger_event` awaits the coroutine handlers and also runs the synchronous ones:
-
-```pycon
->>> import asyncio
->>> from minevent import Context, EventManager
->>> async def notify(context: Context) -> None:
-...     await asyncio.sleep(0)
-...     print(f"notified epoch {context['epoch']}")
->>> manager = EventManager()
->>> _ = manager.add_event_handler("epoch_end", lambda context: print(f"epoch {context['epoch']}"))
->>> _ = manager.add_event_handler("epoch_end", notify)
->>> asyncio.run(manager.atrigger_event("epoch_end", {"epoch": 1}))
-epoch 1
-notified epoch 1
-
-```
-
 ## Trigger events from an async function
 
 In an async program, `await` the trigger inside your coroutines. The next step starts when every
@@ -592,47 +475,6 @@ uploaded ['a.pt', 'b.pt']
 
 Hand a long computation to an executor (`await loop.run_in_executor(...)` or `asyncio.to_thread`)
 from a coroutine handler.
-
-## Handle an async handler used with trigger_event
-
-`trigger_event` cannot await a coroutine. It raises a `TypeError` that names the handler, before any
-handler runs:
-
-```pycon
->>> from minevent import Context, EventManager
->>> async def notify(_: Context) -> None:
-...     print("notified")
->>> manager = EventManager()
->>> _ = manager.add_event_handler("my_event", notify)
->>> try:
-...     manager.trigger_event("my_event")
-... except TypeError as exc:
-...     print(exc)
-notify is a coroutine function; use atrigger_event for the event 'my_event'
-
-```
-
-## Handle the errors of a handler
-
-The exception of a handler reaches the caller with a note that names the event and the handler (for
-the error of a condition, the note names the condition and its handler):
-
-```pycon
->>> from minevent import Context, EventManager
->>> def fail(_: Context) -> None:
-...     raise ValueError("boom")
->>> manager = EventManager()
->>> _ = manager.add_event_handler("my_event", fail)
->>> _ = manager.add_event_handler("my_event", lambda _: print("not reached"))
->>> try:
-...     manager.trigger_event("my_event")
-... except ValueError as exc:
-...     print(exc, "|", exc.__notes__[0])
-boom | raised by fail while handling the event 'my_event'
-
-```
-
-To keep the other handlers running, catch the exception in the handler.
 
 ## Test a handler
 

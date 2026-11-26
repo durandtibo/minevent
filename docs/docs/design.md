@@ -14,7 +14,7 @@ An event is a `str`, not an object.
 - **Costs**: a typo is silent, because triggering an event without handler is valid. There is no
   hierarchy or wildcard: `training.batch.end` is only a naming convention, and the data of an event
   goes in the payload, not in the event.
-- **In practice**: define the names once, as constants or a `StrEnum`.
+- **In practice**: see the [recommendations about events](guide.md#events).
 
 ## A handler is a plain callable
 
@@ -38,8 +38,7 @@ registration.
 - **Costs**: a function that does not need the context declares it anyway, or is wrapped in a lambda,
   so `model.train` is not registered as it is. Callables that accept `*args` (`print`, `Mock()`) or
   cannot be inspected are rejected, even when a call would work.
-- **In practice**: write `def f(_)` for a handler that ignores the context, and wrap an existing
-  function in a lambda, which states how it is called.
+- **In practice**: see the [recommendations about handlers](guide.md#handlers-and-payload).
 
 ## The payload is one read-only Context
 
@@ -51,9 +50,7 @@ The data of a trigger is passed as one `Context`, not as keyword arguments.
 - **Costs**: the signature of a handler does not list the data that it needs, a typo in a key is
   found at run time, and a dict is copied at each trigger. `Context` is final: it is data, so build
   one from your mapping, or wrap it, instead of subclassing it.
-- **In practice**: read a required value with `context["key"]` and an optional one with
-  `context.get("key", default)`. Build a `Context` once to reuse it. To give named arguments to an
-  existing function, adapt it: `lambda context: f(context["epoch"])`.
+- **In practice**: see the [recommendations about the payload](guide.md#handlers-and-payload).
 
 The protection is shallow: the values are not copied, because copying arbitrary objects (a model, a
 tensor) is expensive or impossible. A mutable value can be changed by a handler; take a
@@ -99,8 +96,7 @@ handlers are skipped.
   your code, and the dispatch has no error policy to configure.
 - **Costs**: one failing handler prevents the next ones from running, and there is no option to
   collect the errors into an `ExceptionGroup`.
-- **In practice**: if a handler must not stop the others, catch its exceptions inside it, or wrap it
-  in a function that does.
+- **In practice**: see the [recommendations about handlers](guide.md#handlers-and-payload).
 
 ## Handlers run one after the other
 
@@ -111,7 +107,7 @@ them one at a time, and the library starts no thread.
   suits the sequential workflows of Machine Learning, and it is easy to debug.
 - **Costs**: a slow handler delays the next ones and the caller, handlers do not run concurrently,
   and a synchronous handler blocks the event loop.
-- **In practice**: inside one handler, use `asyncio.gather`, `asyncio.to_thread` or an executor.
+- **In practice**: see the [recommendations about handlers](guide.md#handlers-and-payload).
 
 ## A synchronous trigger rejects coroutine handlers first
 
@@ -121,15 +117,16 @@ them one at a time, and the library starts no thread.
   mistake appears at the first trigger, not at the first one where a condition is true.
 - **Costs**: one more pass over the handlers at each trigger, and a coroutine handler whose
   condition is false rejects the trigger too.
-- **In practice**: trigger an event that has coroutine handlers with `atrigger_event`.
+- **In practice**: see the
+  [troubleshooting of coroutine handlers](guide.md#typeerror-is-a-coroutine-function-use-atrigger_event-and-returned-an-awaitable).
 
 ## Conditions are synchronous
 
 - **Benefits**: a condition has the same meaning with `trigger_event` and `atrigger_event`, and a
   coroutine, which is truthy, cannot make a handler run by mistake.
 - **Costs**: a decision that needs I/O cannot be a condition.
-- **In practice**: compute the value before the trigger and pass it in the payload, or decide inside
-  a coroutine handler.
+- **In practice**: see the
+  [troubleshooting of asynchronous conditions](guide.md#typeerror-condition-must-be-synchronous-and-condition-returned-an-awaitable).
 
 ## `once` is claimed before the call
 
@@ -162,21 +159,20 @@ and it cannot be copied or pickled.
   "is there a manager". A copy that silently shares or loses registrations cannot happen.
 - **Costs**: you pass the manager to the code that triggers events, and an object that holds a
   manager needs its own rule to be pickled, for example to be sent to another process.
-- **In practice**: create a new manager in each process and register the handlers there.
+- **In practice**: see the
+  [troubleshooting of copies](guide.md#typeerror-eventmanager-cannot-be-copied-or-pickled-and-subscription-cannot-be).
 
 ## The manager keeps strong references
 
 - **Benefits**: a registered lambda or bound method cannot disappear unexpectedly.
 - **Costs**: an object stays alive while one of its methods is registered.
-- **In practice**: remove the subscriptions that you do not need, with `remove()`, a `with` block,
-  `clear_event` or `reset`.
+- **In practice**: see the [recommendations about the manager](guide.md#the-event-manager).
 
 ## Nothing is logged
 
 - **Benefits**: no configuration, no output that you did not ask for, and no cost on a trigger.
 - **Costs**: to see which handlers ran, you add the trace yourself.
-- **In practice**: look at `repr(manager)` and `get_subscriptions(event)`, or
-  [trace the handlers](examples.md#trace-the-handlers).
+- **In practice**: see [how to debug](guide.md#debug).
 
 ## No dependency and a small surface
 
