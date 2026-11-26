@@ -90,7 +90,10 @@ the new API are in the
   user guide, and the FAQ is removed (#861). The documentation describes the current library, with
   a "How It Works" page for the rules and a "Design Choices" page for the trade-offs (#876).
 - Packaging: the classifiers are `Development Status :: 3 - Alpha` and
-  `Operating System :: OS Independent`, and there is no `all` extra.
+  `Operating System :: OS Independent`, and there is no `all` extra. The license is given by its SPDX
+  expression only, without a `License ::` classifier (#890).
+- Development: `import-linter` checks the layering of the modules, and the invoke tasks come from
+  `invoke-tasklib` `>=0.1.0` (#890).
 - Development: each pull request runs `tests/package_checks.py` (#851), and the benchmarks run
   nightly only. A benchmark run compares the medians with the ones of the last finished run of
   `main`. The nightly package test runs the checks of the tag of the installed version.
