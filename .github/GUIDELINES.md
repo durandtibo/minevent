@@ -133,7 +133,8 @@ action/reusable workflow over copy-pasting steps.
 Values that would otherwise be duplicated across workflows are read once:
 
 - The supported Python versions / OS matrix is the default config of
-  `durandtibo/workflow-config-action`, read once per run by `lib-get-test-matrix.yaml`.
+  `durandtibo/workflow-config-action`, read once per run by `lib-get-test-matrix.yaml`. The
+  supported systems are Linux and macOS: Windows is not supported.
 
 The package name and version are never duplicated in the workflows: they are read from
 `../pyproject.toml` by the `durandtibo/extract-pyproject-metadata-action` composite action, wrapped
