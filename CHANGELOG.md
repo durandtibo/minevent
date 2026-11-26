@@ -81,8 +81,8 @@ the new API are in the
 - The exception of a handler or a condition has a note with the event and what raised it: the
   handler, or the condition and its handler. Neither naming the callable nor adding the note replaces
   the exception.
-- `import minevent` is cheap: it does not import `logging`, `inspect`, `asyncio` or
-  `importlib.metadata`, and `__version__` is read from the package metadata when it is used.
+- `import minevent` starts no thread, emits no warning and writes no output and no log.
+  `__version__` is read from the package metadata at the import.
 - Documentation: an [examples page](https://durandtibo.github.io/minevent/main/examples/) and a
   user guide, and the FAQ is removed (#861). The documentation describes the current library, with
   a "How It Works" page for the rules and a "Design Choices" page for the trade-offs (#876).

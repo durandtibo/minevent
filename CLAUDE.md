@@ -49,8 +49,8 @@
 - Follow the current style of the repository in everything you add (source, tests, docs, commit
   messages, PR descriptions). Look at a few neighbouring files first, and do not introduce a new
   convention or reformat code you do not otherwise change.
-- `minevent` has no runtime dependency: do not add one. Import the standard library only, and
-  import heavy modules lazily (see `__version__`).
+- `minevent` has no runtime dependency: do not add one. Import the standard library only, at the
+  top of the module.
 - Shared helpers are public functions (no leading underscore) with their own tests, not private
   functions imported across modules.
 - Validate an argument in the function that receives it: a `TypeError` for a wrong type and a

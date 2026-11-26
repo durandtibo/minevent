@@ -2,64 +2,32 @@ from __future__ import annotations
 
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
-LAZY_MODULES = ["logging", "inspect", "asyncio", "importlib.metadata"]
+SRC = Path(__file__).parents[2] / "src"
 
 
-def run_python(code: str) -> subprocess.CompletedProcess[str]:
+def run_python(code: str, *options: str) -> subprocess.CompletedProcess[str]:
     r"""Run ``code`` in a fresh isolated interpreter.
 
     Args:
         code: The code to run.
+        *options: More options of the interpreter.
 
     Returns:
         The completed process. A non-zero exit status raises.
     """
     return subprocess.run(  # noqa: S603
-        [sys.executable, "-I", "-c", code], capture_output=True, text=True, check=True
+        [sys.executable, "-I", *options, "-c", code], capture_output=True, text=True, check=True
     )
-
-
-@pytest.mark.parametrize("module", LAZY_MODULES)
-def test_import_minevent_does_not_import_module(module: str) -> None:
-    """Test that ``import minevent`` leaves the heavy modules to the
-    code that needs them."""
-    result = run_python(f"import sys, minevent; print({module!r} in sys.modules)")
-    assert result.stdout.strip() == "False"
-
-
-@pytest.mark.parametrize("name", ["NamedTuple", "Protocol", "TypeVar", "Self", "NoReturn"])
-def test_import_minevent_does_not_import_typing_name(name: str) -> None:
-    """Test that the modules of ``minevent`` create no ``typing`` object
-    at import: the names are read under ``TYPE_CHECKING`` only."""
-    code = (
-        "import minevent.calls, minevent.conditions, minevent.manager\n"
-        "modules = (minevent.calls, minevent.conditions, minevent.manager)\n"
-        f"print(any({name!r} in vars(module) for module in modules))"
-    )
-    assert run_python(code).stdout.strip() == "False"
 
 
 def test_import_minevent_has_no_output() -> None:
     """Test that ``import minevent`` writes nothing."""
     result = run_python("import minevent")
     assert (result.stdout, result.stderr) == ("", "")
-
-
-def test_handler_with_context_works_after_a_cheap_import() -> None:
-    """Test that registering a handler imports ``inspect`` when it is
-    used and still passes the context to a handler that needs it."""
-    code = (
-        "import sys\n"
-        "from minevent import EventManager\n"
-        "assert 'inspect' not in sys.modules\n"
-        "manager = EventManager()\n"
-        "manager.add_event_handler('e', lambda context: print(context['epoch']))\n"
-        "manager.trigger_event('e', {'epoch': 3, 'loss': 0.5})\n"
-    )
-    assert run_python(code).stdout.strip() == "3"
 
 
 @pytest.mark.skipif(
@@ -83,17 +51,13 @@ def test_handler_with_unresolved_annotation_is_registered_and_called() -> None:
     assert run_python(code).stdout.strip() == "3"
 
 
-def test_trigger_event_does_not_import_logging() -> None:
-    """Test that registering and triggering handlers never imports
-    ``logging``."""
+def test_version_fallback_without_metadata() -> None:
+    """Test that ``__version__`` is ``0.0.0`` when the package is not
+    installed: without ``site``, only the source is on the path."""
     code = (
         "import sys\n"
-        "from minevent import EventManager\n"
-        "manager = EventManager()\n"
-        "subscription = manager.add_event_handler('e', lambda: None)\n"
-        "manager.trigger_event('e')\n"
-        "subscription.remove()\n"
-        "manager.clear_event('e')\n"
-        "print('logging' in sys.modules)\n"
+        f"sys.path.insert(0, {str(SRC)!r})\n"
+        "import minevent\n"
+        "print(minevent.__version__)"
     )
-    assert run_python(code).stdout.strip() == "False"
+    assert run_python(code, "-S").stdout.strip() == "0.0.0"

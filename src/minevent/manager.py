@@ -10,23 +10,22 @@ from __future__ import annotations
 
 __all__ = ["EventManager", "Subscription"]
 
+import inspect
 import reprlib
 import threading
 from collections.abc import Awaitable, Mapping
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NoReturn, Self, TypeVar
 
-from minevent.calls import add_error_note, describe, needs_context, reject_awaitable
+from minevent.calls import Handler, add_error_note, describe, needs_context, reject_awaitable
 from minevent.context import Context
 
 if TYPE_CHECKING:
     from collections.abc import Callable
     from types import TracebackType
-    from typing import NoReturn, Self, TypeVar
 
-    from minevent.calls import Handler
     from minevent.conditions import Condition
 
-    _F = TypeVar("_F", bound=Handler)
+_F = TypeVar("_F", bound=Handler)
 
 
 def _check_event(event: object) -> None:
@@ -156,13 +155,10 @@ class Subscription:
         self._condition_with_context = condition is not None and needs_context(
             condition, "condition"
         )
-        if condition is not None:
-            import inspect  # noqa: PLC0415
-
-            # The condition is rejected now, not at the first trigger, which can be much later.
-            if inspect.iscoroutinefunction(condition):
-                msg = f"condition must be synchronous, but got {describe(condition)}"
-                raise TypeError(msg)
+        # The condition is rejected now, not at the first trigger, which can be much later.
+        if condition is not None and inspect.iscoroutinefunction(condition):
+            msg = f"condition must be synchronous, but got {describe(condition)}"
+            raise TypeError(msg)
         # The same callables, typed for the two ways to call them.
         self._handler_call: Callable[..., object] = handler
         self._condition_call: Callable[..., object] | None = condition
