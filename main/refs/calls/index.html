@@ -950,10 +950,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#minevent.calls.check_signature" class="md-nav__link">
+  <a href="#minevent.calls.validate_signature" class="md-nav__link">
     <span class="md-ellipsis">
       
-        check_signature
+        validate_signature
       
     </span>
   </a>
@@ -1058,10 +1058,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#minevent.calls.check_signature" class="md-nav__link">
+  <a href="#minevent.calls.validate_signature" class="md-nav__link">
     <span class="md-ellipsis">
       
-        check_signature
+        validate_signature
       
     </span>
   </a>
@@ -1095,8 +1095,8 @@
 
 <h1 id="calls">Calls<a class="headerlink" href="#calls" title="Permanent link">&para;</a></h1>
 <p>How the handlers and the conditions are called. <code>minevent</code> exports <code>Handler</code> only, and
-<code>check_signature</code> states <a href="../../architecture/#the-calling-rule">the calling rule</a>. It is not part of
-the <a href="../../architecture/#overview">public API</a>, and neither are the other functions of the module.</p>
+<code>validate_signature</code> states <a href="../../architecture/#the-calling-rule">the calling rule</a>. It is not part
+of the <a href="../../architecture/#overview">public API</a>, and neither are the other functions of the module.</p>
 <!-- prettier-ignore -->
 
 
@@ -1113,7 +1113,7 @@ the <a href="../../architecture/#overview">public API</a>, and neither are the o
     <div class="doc doc-contents first">
 
         <p>Implement how the code of a user is called.</p>
-<p><code>Handler</code> is the type of a handler. <code>check_signature</code> rejects a
+<p><code>Handler</code> is the type of a handler. <code>validate_signature</code> rejects a
 handler or a condition that cannot be called with the context,
 <code>has_kind</code> says if it is a generator or a coroutine function,
 <code>describe</code> names it, <code>describe_event</code> shows an event name,
@@ -1170,12 +1170,12 @@ change.</p>
 <div class="doc doc-object doc-function">
 
 
-<h3 id="minevent.calls.check_signature" class="doc doc-heading">
-            <span class="doc doc-object-name doc-function-name">minevent.calls.check_signature</span>
+<h3 id="minevent.calls.validate_signature" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">minevent.calls.validate_signature</span>
 
 
-<a href="#minevent.calls.check_signature" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">check_signature</span><span class="p">(</span>
+<a href="#minevent.calls.validate_signature" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">validate_signature</span><span class="p">(</span>
     <span class="n">func</span><span class="p">:</span> <span class="n"><span title="collections.abc.Callable">Callable</span></span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n"><span title="object">object</span></span><span class="p">],</span> <span class="n">name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </code></pre></div>
@@ -1279,14 +1279,14 @@ context as its only argument.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent.calls</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_signature</span>
+  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent.calls</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_signature</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">read_epoch</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
 <span class="gp">... </span>    <span class="k">return</span> <span class="n">context</span><span class="p">[</span><span class="s2">"epoch"</span><span class="p">]</span>
 <span class="gp">...</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">check_signature</span><span class="p">(</span><span class="n">read_epoch</span><span class="p">,</span> <span class="s2">"handler"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">validate_signature</span><span class="p">(</span><span class="n">read_epoch</span><span class="p">,</span> <span class="s2">"handler"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">train</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span> <span class="o">...</span>
 <span class="gp">...</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">check_signature</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="s2">"handler"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">validate_signature</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="s2">"handler"</span><span class="p">)</span>
 <span class="gt">Traceback (most recent call last):</span>
 <span class="c">...</span>
 <span class="gr">TypeError</span>: <span class="n">handler train must take the context as its only required argument; wrap it in a function or a lambda</span>
