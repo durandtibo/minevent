@@ -4,8 +4,9 @@ This document describes the design that `minevent` should have, then the changes
 current implementation (`main`, `0ca7459`, #905) to get there. The design follows the properties of
 the "How It Works" page (`docs/docs/architecture.md`), the reasons of the "Design Choices" page
 (`docs/docs/design.md`) and the rules of `CLAUDE.md`. It replaces the previous version, whose steps
-were merged (#894 to #905) except two: step 6 was dropped, and step 12 was closed without a merge
-(#906, see F7).
+were merged (#894 to #905) except two: step 6 was dropped, and step 12, which removed the tests from
+the source distribution, was closed on purpose (#906): the source distribution ships the tests
+(D4).
 
 The aim in one line: **a small library whose every stated guarantee is true, with each rule written
 once.**
@@ -65,14 +66,15 @@ a claim, but not true today).
 
 ### Engineering
 
-| #   | Property          | Statement                                                                                                                                                                 | Status | Enforced by                |
-| --- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | -------------------------- |
-| P17 | Typed             | Fully typed, `py.typed`, `ty check` clean, no cast and no ignore. A handler argument is typed `Handler`. The values of a `Context` are `Any`.                             | same   | `ty check`                 |
-| P18 | Fast and linear   | About 0.3 µs for a trigger with one trivial handler, 0.07 µs for each extra one, 0.8 µs with a small dict, 5.5 µs for a registration plus its removal. A removal is O(1). | same   | `tests/benchmarks/`        |
-| P19 | One home per rule | One documentation page states each rule; a docstring states what its own object does and names the page or the function that holds the rule. The other pages link to it.  | fixed  | review                     |
-| P20 | Layered           | `manager` imports `conditions` and `calls`, which import `context`. The two middle modules do not import each other. A new module must be placed in a layer.              | fixed  | `lint-imports`, exhaustive |
-| P21 | Tested systems    | The tests run on Linux and macOS and on every supported Python. Windows is not supported.                                                                                 | same   | `ci.yaml`                  |
-| P22 | Lean to maintain  | Every file and every dependency serves a property of this table. A published distribution holds nothing that cannot run.                                                  | fixed  | review, `pyproject.toml`   |
+| #   | Property          | Statement                                                                                                                                                                 | Status | Enforced by                       |
+| --- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | --------------------------------- |
+| P17 | Typed             | Fully typed, `py.typed`, `ty check` clean, no cast and no ignore. A handler argument is typed `Handler`. The values of a `Context` are `Any`.                             | same   | `ty check`                        |
+| P18 | Fast and linear   | About 0.3 µs for a trigger with one trivial handler, 0.07 µs for each extra one, 0.8 µs with a small dict, 5.5 µs for a registration plus its removal. A removal is O(1). | same   | `tests/benchmarks/`               |
+| P19 | One home per rule | One documentation page states each rule; a docstring states what its own object does and names the page or the function that holds the rule. The other pages link to it.  | fixed  | review                            |
+| P20 | Layered           | `manager` imports `conditions` and `calls`, which import `context`. The two middle modules do not import each other. A new module must be placed in a layer.              | fixed  | `lint-imports`, exhaustive        |
+| P21 | Tested systems    | The tests run on Linux and macOS and on every supported Python. Windows is not supported.                                                                                 | same   | `ci.yaml`                         |
+| P22 | Lean to maintain  | Every file and every dependency of the repository serves a property of this table.                                                                                        | fixed  | review, `pyproject.toml`          |
+| P23 | Testable release  | The source distribution holds the tests and what they need, in the layout of the repository, and they pass from it. The wheel holds the package only.                     | fixed  | `pyproject.toml`, `ci-build.yaml` |
 
 Not guaranteed, and documented as such (**new** marks an item that the documentation does not list
 today, or lists wrongly):
@@ -115,7 +117,8 @@ today, or lists wrongly):
 3. **Standard library only** (P2).
 4. **A trigger does not get slower.** No change of this plan touches the trigger.
 5. **Decisions of the maintainer stay**: Linux and macOS only, `int` only for the integer arguments,
-   no `workflow-config.json`, no aggregate `ci` job, benchmarks nightly only, plain imports.
+   no `workflow-config.json`, no aggregate `ci` job, benchmarks nightly only, plain imports, the
+   tests in the source distribution but not in the wheel, and the check of the cyclic imports.
 6. **Settled designs without a defect stay**: sequential async, fail-fast, the snapshot, the calling
    rule inferred from the signature (D2), one `Context` per trigger, values typed `Any`, a
    non-copyable manager, and the non-goals of the design page.
@@ -142,14 +145,14 @@ No defect was found in the order, the snapshot, the `once` claim between threads
 
 ### Documentation, tests and repository
 
-| #   | Finding                                                                                                                                                                                                                                                                                                                                                                                                     | Property | Status                 |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ---------------------- |
-| F6  | **Rules have several homes.** `once`, `atrigger_event`, the calling rule and the `with` block each appear in 5 to 7 files among the README, the pages and the docstrings. The five "Pitfalls" of the guide repeat the "Limits" and the "Registration" sections of the architecture page. The "In practice" lines of the design page and the "Recommendations" of the guide give advice twice.               | P19      | [verified], by search  |
-| F7  | **The source distribution ships tests that cannot run.** It holds `tests/` but not `dev/`: `pytest tests/unit tests/integration` in the unpacked archive stops at collection with `No module named 'dev'`. #906 removed the tests from it; it was closed on 2026-11-26 without a merge or a comment from a person, three seconds after #905 was merged, so whether this was intended is not recorded (D4).  | P22      | [verified]             |
-| F8  | **Files and dependencies without a use.** `review/context_object_design.md` describes an API that no longer exists (`trigger_event("e", epoch=3)`, `filter_payload`). The docs dependency `mkdocs-include-markdown-plugin` is in no plugin list and no page, and the strict build passes without a use of it. The changelog describes removals of names that no release had (`__len__`, `AfterNCondition`). | P22      | [verified]             |
-| F9  | **The layering contract is not exhaustive**: a new module that is in no layer is not checked. `exhaustive = true` passes on `main`.                                                                                                                                                                                                                                                                         | P20      | [verified]             |
-| F10 | **Tests against their own rules**: `test_calls_does_not_import_annotationlib_before_python_3_14` has three asserts, and 3 pairs of unit tests have identical bodies. `test_manager.py` has 1,725 lines and 14 sections, among them the tests of `Subscription` conveniences, `_remove` and registration.                                                                                                    | P22      | [verified]             |
-| F11 | **The header of `ci.yaml` is false**: it says that the branch protection of `main` requires three checks, and `.github/GUIDELINES.md` calls the job ids load-bearing for it. The branch protection and the ruleset have an empty list of required checks.                                                                                                                                                   | P19      | [verified], 2026-11-26 |
+| #   | Finding                                                                                                                                                                                                                                                                                                                                                                                                                          | Property | Status                 |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ---------------------- |
+| F6  | **Rules have several homes.** `once`, `atrigger_event`, the calling rule and the `with` block each appear in 5 to 7 files among the README, the pages and the docstrings. The five "Pitfalls" of the guide repeat the "Limits" and the "Registration" sections of the architecture page. The "In practice" lines of the design page and the "Recommendations" of the guide give advice twice.                                    | P19      | [verified], by search  |
+| F7  | **The tests of the source distribution do not pass.** It holds `tests/` but not `dev/`, so the collection of `tests/unit` stops with `No module named 'dev'`. With `dev/` added, 800 tests pass and `test_version_fallback_without_metadata` fails: `sources = ["src"]` applies to the sdist too and moves `src/minevent` to `minevent`, and the test reads `src`. A packager who runs the tests of a release gets these errors. | P23      | [verified]             |
+| F8  | **Files and dependencies without a use.** `review/context_object_design.md` describes an API that no longer exists (`trigger_event("e", epoch=3)`, `filter_payload`). The docs dependency `mkdocs-include-markdown-plugin` is in no plugin list and no page, and the strict build passes without a use of it. The changelog describes removals of names that no release had (`__len__`, `AfterNCondition`).                      | P22      | [verified]             |
+| F9  | **The layering contract is not exhaustive**: a new module that is in no layer is not checked. `exhaustive = true` passes on `main`.                                                                                                                                                                                                                                                                                              | P20      | [verified]             |
+| F10 | **Tests against their own rules**: `test_calls_does_not_import_annotationlib_before_python_3_14` has three asserts, and 3 pairs of unit tests have identical bodies. `test_manager.py` has 1,725 lines and 14 sections, among them the tests of `Subscription` conveniences, `_remove` and registration.                                                                                                                         | P22      | [verified]             |
+| F11 | **The header of `ci.yaml` is false**: it says that the branch protection of `main` requires three checks, and `.github/GUIDELINES.md` calls the job ids load-bearing for it. The branch protection and the ruleset have an empty list of required checks.                                                                                                                                                                        | P19      | [verified], 2026-11-26 |
 
 What is already right and must not regress: callables as handlers and conditions; the calling rule
 checked once; the early rejection of coroutine and generator functions; one read-only `Context` per
@@ -258,7 +261,18 @@ existed between two releases are folded into the description of the final one.
   split `test_manager.py` by feature (`test_manager_registration.py`, `test_manager_context.py`,
   `test_manager_trigger.py`, next to the files for async, `once` and subscriptions).
 - **CI comments**: `ci.yaml` and `GUIDELINES.md` describe the protection that exists (D6).
-- **Distribution**: `only-include = ["src"]` for the sdist, if D4 is confirmed.
+- **Distribution** (F7): the sdist keeps the tests, adds `dev/` and keeps the `src/` layout. The
+  rewrite of the paths is a setting of the wheel only, so the wheel holds the same files as today:
+
+  ```toml
+  [tool.hatch.build.targets.sdist]
+  only-include = ["dev", "src", "tests"]
+
+  [tool.hatch.build.targets.wheel]
+  packages = ["src/minevent"]
+  ```
+
+  `ci-build.yaml` runs the unit and integration tests from an unpacked sdist (D10).
 
 ## 5. Public API after the change
 
@@ -298,7 +312,7 @@ condition(), condition.reset(), condition.freq, condition.start
 | ------------------------------------------------------------------- | ------------------------------------------------------------------ |
 | `repr` of a `once`, conditional or removed subscription: two fields | it adds `once=True`, `condition='...'` or `active=False`           |
 | the whole integer in a `ValueError` of `PeriodicCondition`          | shortened by `reprlib`                                             |
-| `tests/` in the source distribution (D4)                            | not shipped: take them from the repository                         |
+| `minevent/` at the root of the source distribution                  | `src/minevent/`, next to `tests/` and the new `dev/`               |
 | the functions of `minevent.calls` in the reference                  | `adapt_call` only; they stay importable and have no stability rule |
 
 ## 6. Evidence
@@ -324,6 +338,18 @@ the documentation pages pass, and 797 tests pass and 4 fail: the 4 tests of the 
 subscription that is built by hand, which now shows `active=False`. The message of
 `PeriodicCondition(-10**4000)` has 85 characters.
 
+**Source distribution** [verified, 3.14, macOS]. Built with `uv build`, installed in a new
+environment with the test tools, and tested from the unpacked archive:
+
+| Configuration            | Unit and integration tests | Benchmarks, disabled |
+| ------------------------ | -------------------------- | -------------------- |
+| `main`                   | collection error           | 40 pass              |
+| `main` plus `dev/`       | 800 pass, 1 fails          | 40 pass              |
+| the configuration of 4.5 | 801 pass                   | 40 pass              |
+
+With the configuration of 4.5, the wheel lists the same files as on `main`, an editable install
+imports `src/minevent`, and the archive grows from 57,267 to 59,026 bytes.
+
 **Speed of `main`** (Python 3.14.10, µs, best of 9 repetitions) [verified]: 0.20 for a trigger
 without handler, 0.31 with one, 0.88 with ten, 0.73 with one and a small dict, 5.5 for a
 registration plus its removal, 0.15 for a call of a `PeriodicCondition`. They agree with P18.
@@ -333,7 +359,7 @@ integration and benchmark tests have 5,131, 1,269 and 391 lines.
 
 **Not verified**: the tests, the signal stress and the speed on Linux; the free-threaded builds; F1
 on 3.12 and 3.15, and F2 on 3.15; the changes of 4.1, 4.4 and 4.5, apart from the `exhaustive`
-contract.
+contract and the configuration of the distributions; the CI step of D10.
 
 ## 7. Changes to reach the target state
 
@@ -346,14 +372,15 @@ docstrings, the documentation and the changelog for what it changes.
 | 2    | `bugfix/shorten-condition-errors`        | `reprlib` in the errors of `PeriodicCondition` (4.3)                                                                             | messages     | F2         |
 | 3    | `feat/show-subscription-options`         | The `repr` of a subscription (4.2), the troubleshooting of the guide                                                             | output       | F4         |
 | 4    | `chore/remove-unused-files`              | The old proposal, the docs dependency, `exhaustive = true` (4.5)                                                                 | no           | F8, F9     |
-| 5    | `chore/source-only-sdist`                | `only-include = ["src"]`, after D4                                                                                               | distribution | F7         |
+| 5    | `bugfix/run-the-tests-of-the-sdist`      | The content and the layout of the sdist, and its CI step (4.5)                                                                   | distribution | F7         |
 | 6    | `test/split-manager-tests`               | The tests (4.5)                                                                                                                  | no           | F10        |
 | 7    | `ci/fix-protection-comments`             | The comments about the branch protection (D6)                                                                                    | no           | F11        |
 | 8    | `docs/give-each-rule-one-page` (on 1, 3) | The pages, the reference of `calls`, the public API statement, the changelog (4.4)                                               | no           | F5, F6, F8 |
 
 Order of value if only part is taken: **1 and 2** (a documented guarantee is false), then **3**,
-then **8** (the largest maintenance gain), then the others. Release `0.6.0` after the steps 1 to 3
-and 8, with `SECURITY.md` set to `0.6.x` and its generic advice reduced to what concerns `minevent`.
+then **5** (a release that cannot be tested), **8** (the largest maintenance gain) and the others.
+Release `0.6.0` after the steps 1 to 3, 5 and 8, with `SECURITY.md` set to `0.6.x` and its generic
+advice reduced to what concerns `minevent`.
 
 ## 8. Tests and gates
 
@@ -372,11 +399,12 @@ every `pytest.raises`, literals for expected values, a regression test that fail
 No test asserts the behaviour under a signal (F1): it is a limit, and a test of it would depend on
 timing.
 
-Gates before each merge: `ruff check src tests`, `ruff format src tests`, `ty check`, `lint-imports`,
-`pytest tests/unit tests/integration --cov=minevent --cov-branch` at 100%, `inv test.doctest`,
-`mkdocs build --strict -f docs/mkdocs.yml` and `python tests/package_checks.py`. Step 5 is checked
-with `uv build` and an installation of the sdist. Step 6 compares the list of the collected tests
-before and after: only the removed duplicates and the split test differ.
+Gates before each merge: `ruff check src tests`, `ruff format src tests`, `ty check`,
+`lint-imports`, `pytest tests/unit tests/integration --cov=minevent --cov-branch` at 100%,
+`inv test.doctest`, `mkdocs build --strict -f docs/mkdocs.yml` and `python tests/package_checks.py`.
+Step 5 is checked with `uv build`, the tests run from the unpacked sdist and the list of the files of the
+wheel. Step 6 compares the list of the collected tests before and after: only the removed duplicates
+and the split test differ.
 
 ## 9. Decisions for the maintainers
 
@@ -391,13 +419,12 @@ before and after: only the removed duplicates and the split test differ.
   registration. This is the one large simplification that is left.
 - **D3. Show the options in the `repr` of a subscription?** _Recommended: yes_ (about 8 lines).
   Alternative: keep the short form and the troubleshooting steps.
-- **D4. Ship the source only in the sdist?** _Recommended: yes, unless #906 was closed on purpose._
-  Alternative: add `dev/` and keep the layout of `src/`, which makes the sdist a second copy of the
-  repository to keep working.
-- **D5. Remove `ci-cyclic-imports.yaml`?** _Recommended: yes, after step 4._ An exhaustive layers
-  contract, run by the pre-commit workflow, forbids every cycle between the modules of its layers
-  [reading]: check first that the CI job of the hooks installs `import-linter`, which needs Python
-  3.14. Alternative: keep both.
+- **D4. Ship the tests in the sdist?** _Decided: yes_, and not in the wheel (#906 was closed on
+  purpose). Downstream packagers, such as Linux distributions and conda-forge, and offline users
+  build from the sdist and run its tests. The cost is that the tests must keep passing there (P23).
+- **D5. Remove `ci-cyclic-imports.yaml`?** _Decided: no._ It has another purpose than the layers
+  contract: it verifies the package itself, from the imports of its source, while the contract checks
+  declared rules, which can be outdated and miss a cycle.
 - **D6. Require the checks that `ci.yaml` names, or fix the comment?** _Recommended: fix the
   comment._ When read, the last 60 runs of `ci.yaml` (2026-11-26) held 1 success, 46 cancelled, 12
   queued and 1 pending [verified]: a required check would block merges while the queue is that long.
@@ -409,6 +436,9 @@ before and after: only the removed duplicates and the split test differ.
   functions use it. Alternative: write the check four times.
 - **D9. Give `PeriodicCondition` a `step` property**, since its `repr` shows a value that cannot be
   read? _Recommended: no_ until a user needs it.
+- **D10. Test the sdist in CI?** _Recommended: yes_, one step of the existing build job, for the
+  sdist and one Python version. Without it, P23 breaks unnoticed, as it has on `main`. Alternative:
+  check it by hand before a release.
 
 ## 10. Not covered
 
