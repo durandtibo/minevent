@@ -1031,7 +1031,7 @@ recipes and the <a href="../guide/">user guide</a> gives the recommendations.</p
 <td>P4</td>
 <td>Validated at the door</td>
 <td><code>add_event_handler</code> and <code>on</code> reject, with a <code>TypeError</code> that names the argument and the value: a non-<code>str</code> event, a non-callable handler or condition, a signature that P13 rejects, and a generator or async generator function. A rejected registration leaves the manager unchanged. The annotations of a handler or a condition do not have to be resolvable.</td>
-<td><code>add_event_handler</code>, <code>_needs_context</code>, <code>test_manager.py</code></td>
+<td><code>add_event_handler</code>, <code>calls.needs_context</code>, <code>test_manager.py</code></td>
 </tr>
 <tr>
 <td>P5</td>
@@ -1055,7 +1055,7 @@ recipes and the <a href="../guide/">user guide</a> gives the recommendations.</p
 <td>P8</td>
 <td>Fail-fast with context</td>
 <td>An exception of a handler or a condition propagates unchanged (same object, same type); the remaining handlers are skipped. It carries a note with the event and the function of the handler (under a <code>functools.partial</code>), once per distinct pair. No message and no <code>repr</code> of the package runs the <code>repr</code> of user data to name a handler.</td>
-<td><code>_describe</code>, <code>_add_error_note</code>, <code>test_manager.py</code></td>
+<td><code>calls.add_error_note</code>, <code>test_calls.py</code>, <code>test_manager.py</code></td>
 </tr>
 <tr>
 <td>P9</td>
@@ -1067,7 +1067,7 @@ recipes and the <a href="../guide/">user guide</a> gives the recommendations.</p
 <td>P10</td>
 <td>Synchronous by default</td>
 <td><code>trigger_event</code> never awaits; a handler that returns an awaitable raises <code>TypeError</code>. <code>atrigger_event</code> awaits the handlers one after the other (an object with <code>async def __call__</code> is a coroutine handler too). <strong>Conditions are synchronous in both</strong>: a condition that returns an awaitable raises <code>TypeError</code>. A coroutine that is rejected is closed.</td>
-<td><code>_check_not_awaitable</code>, <code>Subscription._call</code>, <code>test_manager_async.py</code></td>
+<td><code>calls.reject_awaitable</code>, <code>Subscription._call</code>, <code>test_manager_async.py</code></td>
 </tr>
 <tr>
 <td>P11</td>
@@ -1085,7 +1085,7 @@ recipes and the <a href="../guide/">user guide</a> gives the recommendations.</p
 <td>P13</td>
 <td>Two calls</td>
 <td>A handler and a condition are called as <code>f()</code> or <code>f(context)</code>. <strong>A parameter that has a default keeps it: the manager never fills it.</strong> A callable whose other parameters are none is called as <code>f()</code>; one with exactly one other parameter, positional, is called as <code>f(context)</code>; any other signature (including <code>*args</code> and <code>**kwargs</code>), or one that cannot be inspected, is rejected (P4). Names and annotations are not checked. The signature is the one that <code>inspect.signature</code> reports, read once, at registration (<a href="#the-calling-rule">the calling rule</a>).</td>
-<td><code>_needs_context</code>, <code>test_manager.py</code></td>
+<td><code>calls.needs_context</code>, <code>test_calls.py</code></td>
 </tr>
 <tr>
 <td>P14</td>
@@ -1102,7 +1102,7 @@ recipes and the <a href="../guide/">user guide</a> gives the recommendations.</p
 <tr>
 <td>P16</td>
 <td>Fast and linear</td>
-<td>About 0.3 µs for a trigger with one trivial handler, 0.1 µs for each extra one, 0.75 µs with a small dict (it is copied into a <code>Context</code>), and 4.5 µs for a registration plus its removal (the signature is inspected there, never in a trigger). Registering <em>k</em> handlers and removing them in any order costs O(<em>k</em>). Measured on a laptop with Python 3.14.</td>
+<td>About 0.3 µs for a trigger with one trivial handler, 0.1 µs for each extra one, 0.75 µs with a small dict (it is copied into a <code>Context</code>), and 4.5 µs for a registration plus its removal (the signature is inspected there, never in a trigger). Reading a value of a <code>Context</code> costs the same, present or missing, whatever the number of keys (<code>get</code> and <code>in</code>; <code>context[key]</code> lists the keys in its <code>KeyError</code>). Registering <em>k</em> handlers and removing them in any order costs O(<em>k</em>). Measured on a laptop with Python 3.14.</td>
 <td><code>tests/benchmarks/</code></td>
 </tr>
 <tr>
