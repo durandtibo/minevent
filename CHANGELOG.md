@@ -72,7 +72,8 @@ the new API are in the
 - `add_event_handler` returns a `Subscription`, which removes exactly its registration, is a context
   manager and has the properties `event`, `handler`, `once`, `condition` and `active`.
 - The keyword-only options `once` (run at most once, the first time the condition is `True`, even
-  with several threads) and `condition` of `add_event_handler`, and the `on` decorator.
+  with several threads) and `condition` of `add_event_handler`, and the `on` decorator. `once` must
+  be a `bool`: another value, such as `1` or `"False"`, raises a `TypeError` (#895).
 - `EventManager.events`, `get_subscriptions`, `clear_event`, `__len__` and `__contains__`. A manager
   is always truthy.
 - `AfterNCondition`, and the `start` option and the `reset` method of `PeriodicCondition`,
