@@ -16,7 +16,8 @@ pip install minevent
 
 `minevent` has no dependency, so no optional dependencies or extras are required. It requires
 Python 3.11 or newer on the `main` branch (see the
-[version table](https://github.com/durandtibo/minevent#installation) for the releases).
+[version table](https://github.com/durandtibo/minevent#installation) for the releases). It supports
+Linux and macOS: Windows is not supported.
 
 This command installs the latest release. Version `0.5.0` and older have a different API than the
 one of the `main` documentation. To install the code of the `main` branch:
