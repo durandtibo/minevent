@@ -121,3 +121,5 @@ the new API are in the
   of `dev/`. The wheel holds the package only (#915).
 - Development: `pyright` checks the source too (`inv types.check --complete`), and `Context.get`
   returns the default for a key that is not a `str` even if it is equal to one (#926).
+- Development: the CI type checks with `pyright` too, and a weekly workflow updates
+  `dev/config/package_versions.json` (#927).
