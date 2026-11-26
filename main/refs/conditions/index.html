@@ -1125,26 +1125,13 @@
     <div class="doc doc-contents first">
 
         <p>Implement some conditions that can be used in the event system.</p>
-<p>A condition is any function that returns a boolean: a lambda, a
-method, or an object with a <code>__call__(self) -&gt; bool</code> method like the
-conditions of this module. It is called as <code>condition()</code>, or as
-<code>condition(context)</code> with the read-only <code>Context</code> of the trigger if
-it has a parameter without default, so it can depend on the payload:
-<code>lambda context: context.get("epoch", 0) &gt; 5</code>. Like a handler, it
-keeps the values of the parameters that have a default, and any other
-signature is rejected at registration. A condition is synchronous, in
-<code>atrigger_event</code> too: a coroutine function is rejected at
-registration, and the trigger raises a <code>TypeError</code> if a condition
-returns an awaitable.
-<code>Condition</code> is the type alias
-<code>Callable[[], bool] | Callable[[Context], bool]</code>. A condition is
-called each time the event is triggered, before the handler, and the
-handler is executed only if it returns <code>True</code>. A condition can keep a
-state between calls. The built-in conditions take no parameter.</p>
-<p>To combine conditions, write a function. The function decides which
-conditions are evaluated: <code>lambda: a() and b()</code> skips <code>b</code> when
-<code>a</code> is <code>False</code>, while <code>lambda: all([a(), b()])</code> evaluates both,
-so stateful conditions advance together.</p>
+<p>A condition is any synchronous function that returns a boolean (a
+lambda, a method or a callable object). It is called before its handler,
+like a handler: as <code>condition()</code>, or as <code>condition(context)</code> with
+the read-only <code>Context</code> of the trigger (see
+<code>minevent.calls.needs_context</code>). <code>Condition</code> is its type, and
+<code>EventManager.add_event_handler</code> states how a registration uses it.
+The user guide shows how to combine conditions.</p>
 
 
 <details class="example" open>

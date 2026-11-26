@@ -1291,9 +1291,9 @@ recipes, and the <a href="../architecture/">architecture page</a> states the rul
   <code>event1</code> or <code>done</code>.</li>
 <li>Pick one convention for the whole project, for example <code>snake_case</code> (<code>batch_end</code>) or a namespace
   (<code>training.batch.end</code>). Names are only strings, so <code>minevent</code> has no notion of hierarchy.</li>
-<li>Define the names in one place (constants or an <code>Enum</code> with <code>str</code> values) to avoid typos: the
-  events <code>"epoch_end"</code> and <code>"epoch-end"</code> are different, and triggering an event without handler does
-  nothing.</li>
+<li>Define the names in one place (constants or a <code>StrEnum</code>) to avoid typos: the events
+  <code>"epoch_end"</code> and <code>"epoch-end"</code> are different, and triggering an event without handler does
+  nothing. A member of a plain <code>Enum</code> is not a <code>str</code>, so it is rejected.</li>
 </ul>
 <h3 id="handlers-and-payload">Handlers and payload<a class="headerlink" href="#handlers-and-payload" title="Permanent link">&para;</a></h3>
 <ul>

@@ -1013,7 +1013,7 @@ recipes and the <a href="../guide/">user guide</a> gives the recommendations.</p
 <td>P1</td>
 <td>Small surface</td>
 <td>Events are strings, handlers are plain callables, the manager connects them. Seven exported names and <code>__version__</code> (<code>EventManager</code>, <code>Subscription</code>, <code>Context</code>, <code>Handler</code>, <code>Condition</code>, <code>PeriodicCondition</code>, <code>AfterNCondition</code>). <code>EventManager</code> has 8 public members (<code>events</code>, <code>get_subscriptions</code>, <code>add_event_handler</code>, <code>on</code>, <code>trigger_event</code>, <code>atrigger_event</code>, <code>clear_event</code>, <code>reset</code>) and <code>__len__</code>, <code>__contains__</code>.</td>
-<td><code>test_init.py</code></td>
+<td><code>__all__</code> and review</td>
 </tr>
 <tr>
 <td>P2</td>
@@ -1024,8 +1024,8 @@ recipes and the <a href="../guide/">user guide</a> gives the recommendations.</p
 <tr>
 <td>P3</td>
 <td>Events are strings</td>
-<td>An event name is a case-sensitive <code>str</code>; any other type raises <code>TypeError</code>. The empty string is valid. Reading the manager never creates an event.</td>
-<td><code>test_manager.py</code></td>
+<td>An event name is a case-sensitive <code>str</code> (a <code>StrEnum</code> member is one, and is kept as given); <code>add_event_handler</code>, <code>on</code>, <code>get_subscriptions</code>, <code>trigger_event</code>, <code>atrigger_event</code> and <code>clear_event</code> raise <code>TypeError</code> for another type. <code>in</code> answers like a dict (<code>1 in manager</code> is <code>False</code>). The empty string is valid. Reading the manager never creates an event.</td>
+<td><code>_check_event</code>, <code>test_manager.py</code></td>
 </tr>
 <tr>
 <td>P4</td>
@@ -1114,7 +1114,7 @@ recipes and the <a href="../guide/">user guide</a> gives the recommendations.</p
 <tr>
 <td>P18</td>
 <td>One way to do each thing</td>
-<td>One way to register (<code>add_event_handler</code>, with <code>on</code> as its decorator form and the same keyword-only options <code>once</code> and <code>condition</code>), one way to adapt a callable (wrap it in a function, a lambda or a <code>functools.partial</code> that needs nothing or only the context), one way to run once (<code>once=True</code>), one way to extend (write a callable), one option to shift a period (<code>start</code> of <code>PeriodicCondition</code>). No handler base class. One page states each rule.</td>
+<td>One way to register (<code>add_event_handler</code>, with <code>on</code> as its decorator form and the same keyword-only options <code>once</code> and <code>condition</code>), one way to adapt a callable (wrap it in a function, a lambda or a <code>functools.partial</code> that needs nothing or only the context), one way to run once (<code>once=True</code>), one way to extend (write a callable), one option to shift a period (<code>start</code> of <code>PeriodicCondition</code>). No handler base class. One page states each rule; a docstring states what its own object does and names the page or the function that holds the rule.</td>
 <td>the signatures, the documents</td>
 </tr>
 <tr>
@@ -1229,12 +1229,17 @@ first, without default: <code>lambda context, i=i: print(i, context["epoch"])</c
 <li><strong>Blocking.</strong> A synchronous handler in <code>atrigger_event</code> blocks the event loop.</li>
 <li><strong>A callable object whose <code>__call__</code> is a generator</strong>, and a function that <em>returns</em> a generator,
   do nothing. Only generator <em>functions</em> are rejected (P4) and awaitables detected (P10).</li>
-<li><strong>A coroutine handler registered with <code>once=True</code> and triggered with <code>trigger_event</code></strong> is consumed:
-  the <code>TypeError</code> is raised after the call.</li>
+<li><strong>A coroutine handler used with <code>trigger_event</code>.</strong> The <code>TypeError</code> is raised after the call: the
+  handlers before it have run, and a <code>once</code> registration is consumed.</li>
 <li><strong>An optional parameter never receives the context.</strong> <code>def f(context=None)</code> is called as <code>f()</code> and
   gets <code>None</code>, without an error: the context needs a parameter without default.</li>
 <li><strong>A decorated function</strong> is judged by the signature that <code>inspect.signature</code> reports: with
   <code>functools.wraps</code>, that is the signature of the wrapped function.</li>
+<li><strong>A signature that depends on Python.</strong> The calling rule reads what <code>inspect.signature</code> reports,
+  and the standard library adds signatures to C callables between versions: <code>set.add</code> and
+  <code>time.time</code> are rejected on Python 3.11 and 3.12, and accepted from 3.13.</li>
+<li><strong>A condition counts its calls, not the triggers.</strong> It is not called when an earlier handler
+  raised, nor for a removed registration.</li>
 <li><strong>A mutable value of the payload</strong> can be mutated by a handler, and the next ones see it.</li>
 <li><strong>Threads.</strong> The handlers run in the thread that triggers the event, concurrently if several
   threads trigger it, so a handler that shares state must protect it. The state of a condition of a
