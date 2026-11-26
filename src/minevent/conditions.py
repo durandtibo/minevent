@@ -62,7 +62,8 @@ class PeriodicCondition:
     Note that a call is not idempotent: each call advances the
     counter, so the condition is stateful. Do not share one instance
     between several handlers, because they would advance the same
-    counter. Use ``reset`` to restart the counter.
+    counter. The ``step`` property reads the counter without advancing
+    it, and ``reset`` restarts it.
 
     The counter is protected by a lock, so every call is counted once,
     from any number of threads, with and without the GIL. A lock cannot
@@ -175,6 +176,32 @@ class PeriodicCondition:
             ```
         """
         return self._start
+
+    @property
+    def step(self) -> int:
+        r"""Get the number of calls counted by the condition.
+
+        Reading it does not advance the counter.
+
+        Returns:
+            The number of calls since the creation or the last
+                ``reset``. A copy of the condition starts with the value
+                of the original.
+
+        Example:
+            ```pycon
+            >>> from minevent import PeriodicCondition
+            >>> condition = PeriodicCondition(freq=3)
+            >>> condition.step
+            0
+            >>> condition(), condition()
+            (True, False)
+            >>> condition.step
+            2
+
+            ```
+        """
+        return self._step
 
     def reset(self) -> None:
         r"""Reset the internal counter, as if the condition was just

@@ -88,6 +88,8 @@ the new API are in the
   the `AfterNCondition(n)` of the development versions (#898).
 - The `repr` of `PeriodicCondition` shows `freq`, `start` and `step` without thousands separator,
   for example `PeriodicCondition(freq=1000, start=0, step=0)` (#900).
+- The read-only `step` property of `PeriodicCondition`, the number of calls that its `repr` shows
+  (#919).
 - The type aliases `Handler` and `Condition`.
 - The registry of `EventManager` is thread-safe, and a removal is O(1). The handlers, the
   conditions and the finalizers of the removed handlers run outside its lock.

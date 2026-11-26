@@ -212,6 +212,33 @@ def test_periodic_condition_repr_large_step() -> None:
     assert repr(condition) == "PeriodicCondition(freq=3, start=0, step=1000000)"
 
 
+@pytest.mark.parametrize("n_calls", [0, 1, 2, 7])
+def test_periodic_condition_step(n_calls: int) -> None:
+    condition = PeriodicCondition(3)
+    _ = [condition() for _ in range(n_calls)]
+    assert condition.step == n_calls
+
+
+def test_periodic_condition_step_reset() -> None:
+    condition = PeriodicCondition(3)
+    condition()
+    condition.reset()
+    assert condition.step == 0
+
+
+def test_periodic_condition_step_does_not_advance() -> None:
+    condition = PeriodicCondition(2)
+    condition()
+    _ = condition.step
+    assert not condition()
+
+
+def test_periodic_condition_step_is_read_only() -> None:
+    condition: Any = PeriodicCondition(3)
+    with pytest.raises(AttributeError, match=r"property 'step' .* has no setter"):
+        condition.step = 1
+
+
 def always_true() -> bool:
     r"""Implement a condition that is ``True``."""
     return True
