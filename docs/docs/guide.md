@@ -106,6 +106,11 @@ valid: write `trigger_event("epoch_end", {"epoch": 1})`.
 
 An event is a `str`, for example a `StrEnum` member. A member of a plain `Enum` is not.
 
+### `TypeError: once must be a bool`
+
+`once` is `True` or `False`. A value that is only truthy or falsy, such as `1` or the string
+`"False"`, is rejected: convert it first.
+
 ### `TypeError: EventManager cannot be copied or pickled`
 
 A manager, or an object that holds one, was copied or sent to another process. Create a new manager

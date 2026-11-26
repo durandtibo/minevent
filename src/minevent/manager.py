@@ -518,11 +518,11 @@ class EventManager:
         Raises:
             TypeError: if ``event`` is not a string, if ``handler`` is not
                 callable, if ``condition`` is neither ``None`` nor callable, if
-                ``handler`` or ``condition`` is a generator function, needs
-                another argument than the context, or has a signature that
-                cannot be inspected, or if ``condition`` is a coroutine
-                function. A callable object is judged by its ``__call__``.
-                The manager is unchanged.
+                ``once`` is not a ``bool``, if ``handler`` or ``condition`` is
+                a generator function, needs another argument than the context,
+                or has a signature that cannot be inspected, or if
+                ``condition`` is a coroutine function. A callable object is
+                judged by its ``__call__``. The manager is unchanged.
 
         Example:
             ```pycon
@@ -549,6 +549,9 @@ class EventManager:
             raise TypeError(msg)
         if condition is not None and not callable(condition):
             msg = f"condition must be callable, but got {reprlib.repr(condition)}"
+            raise TypeError(msg)
+        if not isinstance(once, bool):
+            msg = f"once must be a bool, but got {type(once).__qualname__}"
             raise TypeError(msg)
         subscription = Subscription(self, event, handler, once=once, condition=condition)
         with self._lock:
@@ -579,8 +582,8 @@ class EventManager:
 
         Raises:
             TypeError: if ``event`` is not a string, or, when the decorator is
-                applied, if ``add_event_handler`` rejects the decorated object
-                or the condition.
+                applied, if ``add_event_handler`` rejects the decorated object,
+                ``once`` or the condition.
 
         Example:
             ```pycon
