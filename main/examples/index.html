@@ -1462,18 +1462,32 @@ happens, so logging, checkpointing or monitoring is added without changing the l
 <p>The first call of <code>train</code> prints nothing because no handler is registered.</p>
 <h2 id="run-a-handler-every-n-epochs">Run a handler every N epochs<a class="headerlink" href="#run-a-handler-every-n-epochs" title="Permanent link">&para;</a></h2>
 <p>Give the registration a condition. <code>PeriodicCondition(freq=3)</code> is <code>True</code> on the first call and then
-every three calls; <code>skip_first=True</code> skips the first call:</p>
+every three calls. <code>start</code> is the index (from 0) of the first call that is <code>True</code>: <code>start=3</code> skips
+the first call:</p>
 <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span><span class="p">,</span> <span class="n">PeriodicCondition</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="s2">"epoch_end"</span><span class="p">,</span>
 <span class="gp">... </span>    <span class="k">lambda</span> <span class="n">context</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"checkpoint at epoch </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">'epoch'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">),</span>
-<span class="gp">... </span>    <span class="n">condition</span><span class="o">=</span><span class="n">PeriodicCondition</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">skip_first</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+<span class="gp">... </span>    <span class="n">condition</span><span class="o">=</span><span class="n">PeriodicCondition</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">3</span><span class="p">),</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">7</span><span class="p">):</span>
 <span class="gp">... </span>    <span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"epoch"</span><span class="p">:</span> <span class="n">epoch</span><span class="p">})</span>
 <span class="go">checkpoint at epoch 3</span>
 <span class="go">checkpoint at epoch 6</span>
+</code></pre></div>
+<p>With the epochs counted from 0, <code>start=2</code> runs the handler at the end of every third epoch:</p>
+<div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span><span class="p">,</span> <span class="n">PeriodicCondition</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="s2">"epoch_end"</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="k">lambda</span> <span class="n">context</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"evaluate at epoch </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">'epoch'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">),</span>
+<span class="gp">... </span>    <span class="n">condition</span><span class="o">=</span><span class="n">PeriodicCondition</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">7</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"epoch"</span><span class="p">:</span> <span class="n">epoch</span><span class="p">})</span>
+<span class="go">evaluate at epoch 2</span>
+<span class="go">evaluate at epoch 5</span>
 </code></pre></div>
 <p><code>AfterNCondition(n)</code> is <code>False</code> for the first <code>n</code> calls, which is useful for a warm-up:</p>
 <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">AfterNCondition</span><span class="p">,</span> <span class="n">EventManager</span>

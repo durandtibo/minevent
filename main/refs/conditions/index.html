@@ -847,10 +847,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#minevent.conditions.PeriodicCondition.skip_first" class="md-nav__link">
+  <a href="#minevent.conditions.PeriodicCondition.start" class="md-nav__link">
     <span class="md-ellipsis">
       
-        skip_first
+        start
       
     </span>
   </a>
@@ -1059,10 +1059,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#minevent.conditions.PeriodicCondition.skip_first" class="md-nav__link">
+  <a href="#minevent.conditions.PeriodicCondition.start" class="md-nav__link">
     <span class="md-ellipsis">
       
-        skip_first
+        start
       
     </span>
   </a>
@@ -1439,9 +1439,12 @@ created.</p>
 
 
         <p>Implement a periodic condition.</p>
-<p>This condition evaluates to <code>True</code> on the first call and then every <code>freq</code> calls. It
-maintains an internal counter that increments with each call. The condition is <code>True</code> when
-the counter modulo <code>freq</code> equals zero.</p>
+<p>This condition evaluates to <code>True</code> on one call in <code>freq</code>, from the call of index
+<code>start</code> (the first call has the index 0). It maintains an internal counter that increments
+with each call. The condition is <code>True</code> when the counter minus <code>start</code> is not negative and
+is a multiple of <code>freq</code>. With <code>freq=3</code>, <code>start=0</code> is <code>True</code> on the calls 0, 3 and 6,
+<code>start=3</code> skips the first call (3, 6 and 9), and <code>start=2</code> is <code>True</code> at the end of every
+third call (2, 5 and 8).</p>
 <p>Note that a call is not idempotent: each call advances the
 counter, so the condition is stateful. Do not share one instance
 between several handlers, because they would advance the same
@@ -1480,20 +1483,20 @@ evaluates to <code>True</code>. Must be a positive integer.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>skip_first</code>
+                <code>start</code>
             </td>
             <td>
-                  <code><span title="bool">bool</span></code>
+                  <code><span title="int">int</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>If <code>True</code>, the first call evaluates to
-<code>False</code>, and then the condition evaluates to <code>True</code>
-every <code>freq</code> calls. Default is <code>False</code>.</p>
+                <p>The index, from 0, of the first call that evaluates to
+<code>True</code>. Must be a non-negative integer. Default is
+<code>0</code>.</p>
               </div>
             </td>
             <td>
-                  <code>False</code>
+                  <code>0</code>
             </td>
           </tr>
       </tbody>
@@ -1515,7 +1518,7 @@ every <code>freq</code> calls. Default is <code>False</code>.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>if <code>freq</code> is not an integer.</p>
+                <p>if <code>freq</code> or <code>start</code> is not an integer.</p>
               </div>
             </td>
           </tr>
@@ -1525,7 +1528,8 @@ every <code>freq</code> calls. Default is <code>False</code>.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>if <code>freq</code> is lower than 1.</p>
+                <p>if <code>freq</code> is lower than 1, or if <code>start</code> is
+lower than 0.</p>
               </div>
             </td>
           </tr>
@@ -1539,9 +1543,9 @@ every <code>freq</code> calls. Default is <code>False</code>.</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">condition</span> <span class="o">=</span> <span class="n">PeriodicCondition</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="p">[</span><span class="n">condition</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">7</span><span class="p">)]</span>
 <span class="go">[True, False, False, True, False, False, True]</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">condition</span> <span class="o">=</span> <span class="n">PeriodicCondition</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">skip_first</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="p">[</span><span class="n">condition</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">)]</span>
-<span class="go">[False, False, True]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">condition</span> <span class="o">=</span> <span class="n">PeriodicCondition</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">[</span><span class="n">condition</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">7</span><span class="p">)]</span>
+<span class="go">[False, False, True, False, False, True, False]</span>
 </code></pre></div>
 </details>
 
@@ -1614,21 +1618,21 @@ condition evaluates to <code>True</code> every <code>freq</code> calls.</p>
 
 
 
-<h4 id="minevent.conditions.PeriodicCondition.skip_first" class="doc doc-heading">
-            <span class="doc doc-object-name doc-attribute-name">minevent.conditions.PeriodicCondition.skip_first</span>
+<h4 id="minevent.conditions.PeriodicCondition.start" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">minevent.conditions.PeriodicCondition.start</span>
 
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-property"><code>property</code></small>
   </span>
 
-<a href="#minevent.conditions.PeriodicCondition.skip_first" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="n">skip_first</span><span class="p">:</span> <span class="n"><span title="bool">bool</span></span>
+<a href="#minevent.conditions.PeriodicCondition.start" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">start</span><span class="p">:</span> <span class="n"><span title="int">int</span></span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>Indicate if the first call is skipped.</p>
+        <p>Get the index of the first call that is <code>True</code>.</p>
 
 
     <p><span class="doc-section-title">Returns:</span></p>
@@ -1642,12 +1646,12 @@ condition evaluates to <code>True</code> every <code>freq</code> calls.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="bool">bool</span></code>
+                  <code><span title="int">int</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p><code>True</code> if the first call returns <code>False</code>, otherwise
-<code>False</code>.</p>
+                <p>The index, from 0, of the first call that evaluates to
+<code>True</code>.</p>
               </div>
             </td>
           </tr>

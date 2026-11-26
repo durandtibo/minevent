@@ -1114,7 +1114,7 @@ recipes and the <a href="../guide/">user guide</a> gives the recommendations.</p
 <tr>
 <td>P18</td>
 <td>One way to do each thing</td>
-<td>One way to register (<code>add_event_handler</code>, with <code>on</code> as its decorator form and the same keyword-only options <code>once</code> and <code>condition</code>), one way to adapt a callable (wrap it in a function, a lambda or a <code>functools.partial</code> that needs nothing or only the context), one way to run once (<code>once=True</code>), one way to extend (write a callable). No handler base class. One page states each rule.</td>
+<td>One way to register (<code>add_event_handler</code>, with <code>on</code> as its decorator form and the same keyword-only options <code>once</code> and <code>condition</code>), one way to adapt a callable (wrap it in a function, a lambda or a <code>functools.partial</code> that needs nothing or only the context), one way to run once (<code>once=True</code>), one way to extend (write a callable), one option to shift a period (<code>start</code> of <code>PeriodicCondition</code>). No handler base class. One page states each rule.</td>
 <td>the signatures, the documents</td>
 </tr>
 <tr>
@@ -1126,8 +1126,8 @@ recipes and the <a href="../guide/">user guide</a> gives the recommendations.</p
 <tr>
 <td>P20</td>
 <td>Everything that runs, is run</td>
-<td>Each pull request runs the unit and integration tests, the doctests, <code>tests/package_checks.py</code> and one pass of every benchmark (except the import benchmarks, which need the statistics and run on a schedule), so a change of the API cannot leave one of them behind.</td>
-<td><code>ci.yaml</code>, <code>test_package_checks.py</code></td>
+<td>Each pull request runs the unit and integration tests, the doctests and <code>tests/package_checks.py</code>; <strong>every</strong> benchmark runs nightly, not at each pull request. A test passes or fails for the same reason on every Python of the matrix, with and without the GIL.</td>
+<td><code>ci.yaml</code>, the nightly benchmark workflows, <code>test_package_checks.py</code></td>
 </tr>
 <tr>
 <td>P21</td>
