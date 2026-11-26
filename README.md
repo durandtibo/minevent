@@ -43,6 +43,9 @@ fired.
 - **event handler** which is a callable to execute when the event happens.
 - **event manager** (`EventManager`) which stores the event handlers and triggers the events.
 
+A typical use is a training loop that triggers events such as `epoch_end`: logging, checkpointing
+or monitoring is then added by registering handlers, without changing the loop.
+
 The library provides a built-in condition (`PeriodicCondition`) to control when a handler runs, and
 it is easy to extend: a handler is a callable and a condition is any
 function that returns a boolean, so there is no base class to extend.
@@ -93,8 +96,74 @@ done
 ```
 
 A handler is always called with the context of the trigger (see
-[the calling rule](https://durandtibo.github.io/minevent/main/architecture/#the-calling-rule)).
-The [quickstart](https://durandtibo.github.io/minevent/main/quickstart/) shows the other features.
+[the calling rule](https://durandtibo.github.io/minevent/main/architecture/#the-calling-rule)),
+which holds the data given to `trigger_event`.
+
+### Control when a handler runs
+
+A condition is a function of the context that returns a boolean. With `once=True`, a handler runs at
+most once:
+
+```pycon
+>>> from minevent import EventManager, PeriodicCondition
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler(
+...     "epoch_end", lambda _: print("checkpoint"), condition=PeriodicCondition(freq=2)
+... )
+>>> _ = manager.add_event_handler("epoch_end", lambda _: print("first epoch"), once=True)
+>>> _ = manager.add_event_handler(
+...     "epoch_end",
+...     lambda _: print("low loss"),
+...     condition=lambda context: context["loss"] < 0.5,
+... )
+>>> for loss in [0.9, 0.6, 0.4]:
+...     manager.trigger_event("epoch_end", {"loss": loss})
+checkpoint
+first epoch
+checkpoint
+low loss
+
+```
+
+### Remove a handler
+
+`add_event_handler` returns a `Subscription`. Call its `remove` method, or use it in a `with` block
+to scope the registration:
+
+```pycon
+>>> from minevent import EventManager
+>>> manager = EventManager()
+>>> subscription = manager.add_event_handler("batch_end", lambda _: print("batch"))
+>>> subscription.remove()
+True
+>>> with manager.add_event_handler("batch_end", lambda _: print("profile the batch")):
+...     manager.trigger_event("batch_end")
+profile the batch
+>>> manager
+EventManager(events={})
+
+```
+
+### Await coroutine handlers
+
+`atrigger_event` awaits the coroutine handlers, one after the other, and runs the synchronous ones:
+
+```pycon
+>>> import asyncio
+>>> from minevent import Context, EventManager
+>>> async def upload(context: Context) -> None:
+...     await asyncio.sleep(0)
+...     print(f"uploaded {context['path']}")
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler("checkpoint_saved", upload)
+>>> asyncio.run(manager.atrigger_event("checkpoint_saved", {"path": "model.pt"}))
+uploaded model.pt
+
+```
+
+The [quickstart](https://durandtibo.github.io/minevent/main/quickstart/) shows each feature, and the
+[examples](https://durandtibo.github.io/minevent/main/examples/) combine them in training loops,
+plugins, async programs and tests.
 
 ## Documentation
 

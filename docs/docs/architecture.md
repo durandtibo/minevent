@@ -8,6 +8,21 @@ recommendations.
 
 ## Overview
 
+An `EventManager` maps each event to registrations, kept in the order they were added. A
+registration is a `Subscription`: one handler, with its options. A trigger builds one `Context` from
+your data and runs the handlers of one event.
+
+```text
+EventManager
+ |-- "epoch_end"    --> Subscription(handler=log)
+ |                      Subscription(handler=save, condition=PeriodicCondition(freq=5))
+ |-- "training_end" --> Subscription(handler=report, once=True)
+
+trigger_event("epoch_end", {"epoch": 3})
+    log(context), then save(context) if its condition is true
+    with context == Context({'epoch': 3})
+```
+
 | Name                | Role                                                                             |
 | ------------------- | -------------------------------------------------------------------------------- |
 | event               | A case-sensitive `str` that names something that happens.                        |
@@ -30,6 +45,18 @@ is what `minevent` exports**: the other names of its modules, such as the functi
 | `atrigger_event(event, context=None, /)`                             | Same, and await the coroutine handlers |
 | `events`, `get_subscriptions(event)`, `event in manager`             | Look at the registrations.             |
 | `clear_event(event)`, `reset()` (and `remove()` of a `Subscription`) | Remove registrations.                  |
+
+## Source Layout
+
+The package has four modules. Each one imports only the modules below it, and `conditions` and
+`calls` do not import each other:
+
+| Module       | Holds                                                           |
+| ------------ | --------------------------------------------------------------- |
+| `manager`    | `EventManager` and `Subscription`: the registry and the trigger |
+| `conditions` | `Condition` and `PeriodicCondition`                             |
+| `calls`      | `Handler`, and how your callables are checked, called and named |
+| `context`    | `Context`                                                       |
 
 ## Registration
 
@@ -70,6 +97,23 @@ for each registration of the snapshot, in registration order:
 If a condition or a handler raises, the trigger stops: the exception reaches the caller, and the
 next registrations are skipped. Triggering an event that has no handler does nothing (the event and
 the context are still checked).
+
+The registrations visited are the ones of the snapshot. Here the first handler adds a second one,
+which runs from the next trigger:
+
+```pycon
+>>> from minevent import Context, EventManager
+>>> manager = EventManager()
+>>> def first(_: Context) -> None:
+...     print("first")
+...     manager.add_event_handler("step", lambda _: print("added"), once=True)
+>>> subscription = manager.add_event_handler("step", first, once=True)
+>>> manager.trigger_event("step")
+first
+>>> manager.trigger_event("step")
+added
+
+```
 
 ## The Calling Rule
 
@@ -143,6 +187,8 @@ context comes first, without default.
 
 - The handlers of an event run in the order they were registered, one after the other, in the calling
   thread.
+- A trigger returns `None`. The value that a handler returns is ignored, unless it is awaitable (see
+  [Coroutines](#coroutines)).
 - A trigger visits the registrations that exist when it starts. A registration **added** by a
   running handler takes effect at the next trigger. A registration **removed** before its handler is
   called (by `remove()`, `clear_event`, `reset` or a `once` claim) does not run, whoever removed it:
@@ -220,6 +266,8 @@ context comes first, without default.
 
 `minevent` does not protect against the following:
 
+### Threads, signals and recursion
+
 - **A removal in another thread** cannot stop a handler whose trigger has already checked that it is
   registered.
 - **A signal handler or a garbage collection finalizer** can interrupt a method of the manager in
@@ -230,6 +278,9 @@ context comes first, without default.
   event, possibly at the same time. A handler or a condition of yours that shares state must protect
   it.
 - **Recursion.** A handler that triggers its own event recurses until `RecursionError`.
+
+### Async programs
+
 - **Blocking.** A synchronous handler in `atrigger_event` blocks the event loop.
 - **`StopIteration` in `atrigger_event`.** A coroutine cannot raise it, so Python turns the one of a
   handler or a condition into a `RuntimeError`, whose `__cause__` is the original exception and has
@@ -238,32 +289,38 @@ context comes first, without default.
   its coroutine starts to run, not when it is created: a task sees a change made to the dict, or a
   handler added, before it starts. To fix the payload at the creation, give it a `Context`, which is
   copied when it is built.
-- **A hidden coroutine.** A lambda, or a synchronous `functools.wraps` wrapper, that returns a
-  coroutine is only detected after its call by `trigger_event`: the handlers before it have run, and
-  a `once` registration is consumed.
-- **A cached function.** `functools.cache` and `functools.lru_cache` hash their arguments, and a
-  `Context` is not hashable: such a handler or condition raises a `TypeError` at the trigger.
 - **A background task returned by a handler** is an awaitable like any other: `trigger_event`
   raises after the task is scheduled, and `atrigger_event` waits for it. A handler that
   [starts background work](examples.md#start-background-work-from-a-handler) returns nothing.
+
+### Handlers and conditions
+
+- **A hidden coroutine.** A lambda, or a synchronous `functools.wraps` wrapper, that returns a
+  coroutine is only detected after its call by `trigger_event`: the handlers before it have run, and
+  a `once` registration is consumed.
 - **Hidden generators.** A function that returns a generator or an asynchronous generator, such as
   a lambda that calls a generator function, does nothing.
+- **Names are not checked.** An unbound method such as `Model.save` has one parameter without
+  default, `self`, so it is accepted and called with the context as `self`.
 - **A signature that depends on Python.** The standard library adds signatures to C callables
   between versions: `set().add` and `time.sleep` are rejected on Python 3.11 and 3.12, and accepted
   from 3.13.
+- **A cached function.** `functools.cache` and `functools.lru_cache` hash their arguments, and a
+  `Context` is not hashable: such a handler or condition raises a `TypeError` at the trigger.
 - **A condition is evaluated by truthiness, and counts its calls, not the triggers.** It is not
   called when an earlier handler raised, nor for a removed registration. The count of a
   `PeriodicCondition` starts at 0 in a new process, unless the condition is saved and restored (see
   [Resume a training](examples.md#resume-a-training)).
-- **Names are not checked.** An unbound method such as `Model.save` has one parameter without
-  default, `self`, so it is accepted and called with the context as `self`.
-- **A huge integer in a message** on Python 3.11 and 3.12: showing an integer of more than 4,300
-  digits (a value given as a handler, a key, an argument of `PeriodicCondition`) raises the
-  `ValueError` of Python instead of the error of `minevent`.
+
+### Payload, memory and messages
+
 - **A mutable value of the payload** can be mutated by a handler, and the next ones see it.
 - **Delayed release.** A manager with registrations is in a reference cycle (manager, registry,
   `Subscription`, manager): `del manager` does not free it until the garbage collector runs.
   `reset()` releases the handlers at a known point.
+- **A huge integer in a message** on Python 3.11 and 3.12: showing an integer of more than 4,300
+  digits (a value given as a handler, a key, an argument of `PeriodicCondition`) raises the
+  `ValueError` of Python instead of the error of `minevent`.
 
 ## Performance
 

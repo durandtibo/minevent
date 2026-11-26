@@ -13,10 +13,10 @@ Every file is prefixed by what it does:
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ci-`       | Quality/test checks, most of them reusable workflows called from `workflows/ci.yaml`.                                                                                                 |
 | `lib-`      | Reusable workflows with no event trigger of their own; they only expose `workflow_call` outputs (e.g. reading the test matrix or `pyproject.toml`) and are `needs:`-ed by other jobs. |
-| `bot-`      | Scheduled automation that pushes commits / opens PRs as the `ci-bot` GitHub App.                                                                                                      |
+| `bot-`      | Scheduled maintenance automation, most of it opening pull requests with the `ci-bot` GitHub App token.                                                                                |
 | `nightly-`  | Scheduled checks against the _published_ PyPI package (as opposed to `ci-*`, which checks the repo's source).                                                                         |
 | `release-`  | Publishing: PyPI package, GitHub release assets, documentation.                                                                                                                       |
-| `security-` | Supply-chain/security scanning (Scorecard, dependency review).                                                                                                                        |
+| `security-` | Supply-chain/security scanning (Scorecard, dependency review, dependency audit).                                                                                                      |
 
 `workflows/ci.yaml` is the entry point for pull requests/pushes to `main`; it fans out
 to the `ci-*.yaml` reusable workflows so each check can also be run/dispatched
@@ -56,7 +56,7 @@ The trigger of a reusable workflow is `workflow_call`: it runs when another work
 | `release-docs.yaml`                  | version tag `v*.*.*`, manual           | Deploy the documentation of the stable version (with `mike`).                                 |
 | `release-docs-dev.yaml`              | push to `main`, manual                 | Deploy the documentation of the development version.                                          |
 | `release-docs-publish.yaml`          | called by the two previous workflows   | Build and deploy the documentation (shared logic).                                            |
-| `security-audit.yaml`                | scheduled, manual                      | Audit the dependencies for known vulnerabilities.                                             |
+| `security-audit.yaml`                | weekly (Monday), manual                | Audit the dependencies for known vulnerabilities.                                             |
 | `security-dependency-review.yaml`    | pull request                           | Review the dependencies added by the pull request.                                            |
 | `security-scorecard.yaml`            | weekly, push, branch protection change | OSSF Scorecard supply-chain analysis.                                                         |
 | `bot-cancel-stale-queued-runs.yaml`  | hourly                                 | Cancel the runs that have been queued for too long.                                           |
@@ -86,10 +86,11 @@ publish a version that is already on PyPI, a tag that does not match the version
 ## Composite actions vs. reusable workflows
 
 - **`.github/actions/*`** (composite actions): used when the shared unit is a
-  handful of _steps_ inside a single job (e.g. checkout + `uv` setup,
-  generating a bot token + checking out, or opening the resulting PR as
-  ci-bot). Composite actions cannot produce a job-level output usable in a
-  `strategy.matrix`.
+  handful of _steps_ inside a single job: `setup-doc-deploy` prepares a
+  documentation deployment, and `verify-installed-package` checks an installed
+  package. The steps shared with other repositories (e.g. the `uv` setup) come
+  from external actions. Composite actions cannot produce a job-level output
+  usable in a `strategy.matrix`.
 - **`.github/workflows/lib-*.yaml`** (reusable workflows called with `uses:
 ./.github/workflows/lib-....yaml`): used when the output needs to feed a
   matrix, or when the shared logic is naturally a whole job (e.g. reading
@@ -118,15 +119,16 @@ action/reusable workflow over copy-pasting steps.
   `contents: read` to check out, `contents: write` to push, `id-token: write`
   for OIDC).
 - **Timeouts**: every job sets `timeout-minutes`, sized to what the job
-  actually does (2 for a config-read job, 5 for most checks, 10 or 15 for slower
+  actually does (2 for a config-read job, 5 for most checks, 10 for slower
   jobs like the tests, Scorecard or the benchmarks) so a hung step can't occupy a runner
   indefinitely.
 - **Runners**: `ubuntu-slim` for lightweight jobs that only run a small
   action or a couple of shell commands (no Python/build tooling); otherwise
   `ubuntu-latest`, or the OS matrix under test for `workflows/ci-test.yaml` /
   `nightly-test-package.yaml`.
-- **`workflow_dispatch`**: added to every workflow (checks and automation
-  alike) so it can be re-run manually without waiting for its normal trigger.
+- **`workflow_dispatch`**: added to the workflows (checks and automation
+  alike) so they can be re-run manually without waiting for their normal trigger,
+  with the exceptions listed under the catalogue.
 
 ## Shared configuration
 

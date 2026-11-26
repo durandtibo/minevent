@@ -1,26 +1,23 @@
 # Get Started
 
-It is highly recommended to install in
-a [virtual environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/)
-to keep your system in order.
+`minevent` requires Python 3.11 or newer on the `main` branch (see the
+[version table](https://github.com/durandtibo/minevent#installation) for the releases), and has no
+dependency, so there is no optional dependency or extra to choose. It supports Linux and macOS:
+Windows is not supported.
 
 ## Installing with `pip` (recommended)
 
 We highly recommend installing
-a [virtual environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/).
-`minevent` can be installed from pip using the following command:
+a [virtual environment](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/)
+to keep your system in order. `minevent` can be installed from pip using the following command:
 
 ```shell
 pip install minevent
 ```
 
-`minevent` has no dependency, so no optional dependencies or extras are required. It requires
-Python 3.11 or newer on the `main` branch (see the
-[version table](https://github.com/durandtibo/minevent#installation) for the releases). It supports
-Linux and macOS: Windows is not supported.
-
-This command installs the latest release. Version `0.5.0` and older have a different API than the
-one of the `main` documentation. To install the code of the `main` branch:
+This command installs the latest release. Read the version of the documentation that matches it (see
+the version selector). To install the code of the `main` branch, which the `main` documentation
+describes:
 
 ```shell
 pip install git+https://github.com/durandtibo/minevent.git
@@ -36,6 +33,8 @@ Check the installation:
 Hello!
 
 ```
+
+Then follow the [quickstart](quickstart.md).
 
 ## Installing from source
 

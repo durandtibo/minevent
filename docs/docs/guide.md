@@ -45,8 +45,8 @@ This guide collects the recommendations and the troubleshooting tips for using `
 
 ### The event manager
 
-- Create the manager once and pass it where it is needed. `minevent` has no global manager on
-  purpose: it keeps the tests independent and makes the ownership clear.
+- Create the manager once and pass it where it is needed. `minevent` has no global manager (see
+  [the design choice](design.md#the-manager-is-an-explicit-object)).
 - Keep the `Subscription` of a handler that you may remove. A registered handler lives as long as
   the manager (`obj.method` keeps `obj` alive, and so do the arguments of a `functools.partial` and
   the closures), and `minevent` uses no weak reference. Remove the subscriptions that you do not

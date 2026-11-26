@@ -139,3 +139,9 @@ the new API are in the
   distribution leaves out (#938).
 - Release: the `Changelog` link of the package points to this file, and the security policy supports
   `0.6.x` (#939).
+- Documentation: the docstrings match the current calling rule and name how a coroutine handler is
+  triggered, the README adds examples of the conditions, the removal and the coroutine handlers, and
+  the workflow guidelines match the workflows (#941).
+- Documentation: the pages explain the current library: the home page says what it is for, "How It
+  Works" shows how the parts fit and groups the limits, "Design Choices" groups the trade-offs under
+  the goals of the library, and the examples are grouped by topic (#942).
