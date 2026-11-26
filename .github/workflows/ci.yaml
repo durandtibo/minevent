@@ -15,10 +15,10 @@
 # The individual check jobs below call out to per-check reusable workflows
 # (ci-build.yaml, ci-format.yaml, ...) instead of inlining their steps here,
 # so each check can still be run/tested on its own (workflow_dispatch) and to
-# keep this file short. Job ids are load-bearing: main's branch protection
-# requires status checks named "format / format", "pre-commit / pre-commit"
-# and "type-checking / type-checking", derived from the job id here plus the
-# job id in the called workflow - keep both in sync if either is renamed.
+# keep this file short. The name of a status check, such as "format / format",
+# comes from the job id here plus the job id in the called workflow. No status
+# check is required to merge into main: the lists of required checks of its
+# branch protection and of its ruleset are empty.
 
 name: CI
 on:
