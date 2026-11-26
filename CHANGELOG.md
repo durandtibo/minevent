@@ -131,3 +131,5 @@ the new API are in the
 - Documentation: each rule has one home. The docstrings of `validate_signature`, `add_event_handler`
   and `conditions` link to the calling rule, and the behaviour of `Subscription`,
   `PeriodicCondition` and `Context` is left to their docstrings (#933).
+- Development: a broken link or anchor between the documentation pages fails the build, in the CI and
+  in the releases too (#936).
