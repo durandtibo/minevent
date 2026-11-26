@@ -5,38 +5,36 @@
 [![Python](https://img.shields.io/pypi/pyversions/minevent.svg)](https://pypi.org/project/minevent/)
 [![BSD-3-Clause](https://img.shields.io/pypi/l/minevent)](https://opensource.org/licenses/BSD-3-Clause)
 
-The full list of badges, the installation instructions and the version table are in the
+The full list of badges and the version table are in the
 [README](https://github.com/durandtibo/minevent#readme).
 
 ## Overview
 
 `minevent` is a Python library that provides a minimal event system for Machine Learning.
-It allows you to customize code by adding pieces of code that are executed when an event is
-fired.
+It lets you customize a piece of code without changing it: the code announces what happens, and you
+attach the code that must run at that moment.
+
+For example, a training loop triggers `epoch_end`. Logging, checkpointing or monitoring is added by
+registering a handler to that event, and the loop does not know about any of them.
+
 `minevent` is organized around three main concepts:
 
 - **event** which is a case-sensitive string that names something that happens.
 - **event handler** which is a callable to execute when the event happens.
 - **event manager** (`EventManager`) which stores the event handlers and triggers the events.
 
-A trigger can pass data to the handlers in a read-only `Context`, a condition can decide if a handler
-runs, and each registration returns a `Subscription` that removes it. `minevent` has no dependency
-and is fully typed.
+```text
+your code                      EventManager                       your handlers
+    |                    "epoch_end" -> [log, save]                     |
+    |-- trigger_event("epoch_end", data) -->|-- log(context) ---------->|
+    |                                       |-- save(context) --------->|
+    |<--------------------------------------|   one after the other     |
+```
 
-A handler is a plain callable, so it can be tested without the event manager, and there is no base
-class to extend.
+## A first example
 
-!!! note "Version"
-
-    The documentation of the `main` version describes the code of the `main` branch. Version `0.5.0`
-    and older have a different API: use the version selector of their documentation, or see the
-    [changelog](https://github.com/durandtibo/minevent/blob/main/CHANGELOG.md) to migrate.
-
-## Motivation
-
-`minevent` provides a minimal event system to customize a piece of code without changing its
-implementation.
-Below is an example on how to use `minevent` library.
+The function `say_something` triggers an event. Registering a handler changes what happens when the
+function runs, without changing the function:
 
 ```pycon
 >>> from minevent import EventManager
@@ -55,19 +53,39 @@ Hello!
 
 ```
 
-It allows you to customize the function `say_something` without changing its implementation.
+## What you can do
 
-## Where to go next
+| You want to                           | Use                                                                    |
+| ------------------------------------- | ---------------------------------------------------------------------- |
+| Pass data to the handlers             | [The payload of a trigger](quickstart.md#pass-data-to-the-handlers)    |
+| Run a handler only sometimes, or once | [Conditions and `once`](quickstart.md#control-when-a-handler-runs)     |
+| Remove a handler                      | [The `Subscription` of a registration](quickstart.md#remove-a-handler) |
+| Use `async def` handlers              | [`atrigger_event`](quickstart.md#coroutine-handlers)                   |
+| Find which handler raised an error    | [The note of the exception](quickstart.md#errors)                      |
 
-| Page                            | Content                                              |
-| ------------------------------- | ---------------------------------------------------- |
-| [Get started](get_started.md)   | Install the library.                                 |
-| [Quickstart](quickstart.md)     | The basics in a few minutes.                         |
-| [Examples](examples.md)         | Recipes for training loops, plugins, async and tests |
-| [User guide](guide.md)          | Recommendations and troubleshooting.                 |
-| [How it works](architecture.md) | The rules, the guarantees and the limits.            |
-| [Design choices](design.md)     | Why it works this way, and the trade-offs.           |
-| [Reference](refs/index.md)      | The classes and functions.                           |
+`minevent` has no dependency and is fully typed. A handler is a plain callable, so it can be tested
+without the event manager, and there is no base class to extend. The library leaves out features
+such as priorities, wildcards or background dispatch: see
+[what is not provided](design.md#what-is-not-provided).
+
+## Documentation
+
+| Page                            | Content                                                |
+| ------------------------------- | ------------------------------------------------------ |
+| [Get started](get_started.md)   | Install the library.                                   |
+| [Quickstart](quickstart.md)     | Each feature in a few minutes.                         |
+| [Examples](examples.md)         | Recipes for training loops, plugins, async and tests.  |
+| [User guide](guide.md)          | Recommendations and troubleshooting.                   |
+| [How it works](architecture.md) | The parts, the rules, the guarantees and the limits.   |
+| [Design choices](design.md)     | Why it works this way, and the trade-offs.             |
+| [Reference](refs/index.md)      | The signatures and the docstrings of the public names. |
+
+!!! note "Versions of the documentation"
+
+    Each version of this documentation describes one version of `minevent`: `main` follows the `main`
+    branch, and `latest` the latest release. Choose the one of your installed version with the version
+    selector. The changes between the releases are in the
+    [changelog](https://github.com/durandtibo/minevent/blob/main/CHANGELOG.md).
 
 ## API stability
 

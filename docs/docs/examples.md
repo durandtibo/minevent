@@ -4,7 +4,11 @@ This page shows how to use `minevent` in practical situations. The `pycon` examp
 The [quickstart](quickstart.md) shows each feature on its own, the [user guide](guide.md) lists the
 recommendations and the [how it works page](architecture.md) states the rules.
 
-## Add logging to a training loop
+## Training loops
+
+Add behavior to a loop that triggers events.
+
+### Add logging to a training loop
 
 The training loop triggers events and knows nothing about the handlers. The caller decides what
 happens, so logging, checkpointing or monitoring is added without changing the loop:
@@ -34,7 +38,7 @@ Training ended
 
 The first call of `train` prints nothing because no handler is registered.
 
-## Run a handler every N epochs
+### Run a handler every N epochs
 
 Give the registration a condition. `PeriodicCondition(freq=3)` is `True` on the first call and then
 every three calls. `start` is the index (from 0) of the first call that is `True`: `start=3` skips
@@ -90,46 +94,7 @@ validate at epoch 3
 
 ```
 
-## Write a custom condition
-
-A class with `__call__` is useful when a condition has a state or reads another object:
-
-```pycon
->>> from minevent import Context, EventManager
->>> class Flag:
-...     def __init__(self) -> None:
-...         self.enabled = False
-...
-...     def __call__(self, _: Context) -> bool:
-...         return self.enabled
->>> verbose = Flag()
->>> manager = EventManager()
->>> _ = manager.add_event_handler("batch_end", lambda _: print("batch done"), condition=verbose)
->>> manager.trigger_event("batch_end")
->>> verbose.enabled = True
->>> manager.trigger_event("batch_end")
-batch done
-
-```
-
-## Restart a condition
-
-`reset()` restarts the counter of a `PeriodicCondition`, for example at the start of a new training:
-
-```pycon
->>> from minevent import EventManager, PeriodicCondition
->>> warmup = PeriodicCondition(freq=1, start=1)
->>> manager = EventManager()
->>> _ = manager.add_event_handler("epoch_end", lambda _: print("validate"), condition=warmup)
->>> for _ in range(2):
-...     manager.trigger_event("epoch_end")
-validate
->>> warmup.reset()
->>> manager.trigger_event("epoch_end")
-
-```
-
-## Resume a training
+### Resume a training
 
 A `PeriodicCondition` counts its calls: a new one, in a training resumed at epoch 7, counts from 0
 and not from the epoch. If the payload has the epoch, decide from it:
@@ -175,52 +140,33 @@ checkpoint at epoch 12
 
 ```
 
-## Combine conditions
+## Conditions
 
-Write a function. `all([a(context), b(context)])` evaluates every condition at each call, so
-stateful conditions advance together:
+Decide when a handler runs.
+
+### Write a custom condition
+
+A class with `__call__` is useful when a condition has a state or reads another object:
 
 ```pycon
->>> from minevent import EventManager, PeriodicCondition
->>> after_one, periodic = PeriodicCondition(freq=1, start=1), PeriodicCondition(freq=2)
+>>> from minevent import Context, EventManager
+>>> class Flag:
+...     def __init__(self) -> None:
+...         self.enabled = False
+...
+...     def __call__(self, _: Context) -> bool:
+...         return self.enabled
+>>> verbose = Flag()
 >>> manager = EventManager()
->>> _ = manager.add_event_handler(
-...     "epoch_end",
-...     lambda _: print("validate"),
-...     condition=lambda context: all([after_one(context), periodic(context)]),
-... )
->>> for _ in range(5):
-...     manager.trigger_event("epoch_end")
-validate
-validate
+>>> _ = manager.add_event_handler("batch_end", lambda _: print("batch done"), condition=verbose)
+>>> manager.trigger_event("batch_end")
+>>> verbose.enabled = True
+>>> manager.trigger_event("batch_end")
+batch done
 
 ```
 
-## Use one condition per handler
-
-A stateful condition keeps its counter in the instance, so create one per registration, for example
-with a function:
-
-```pycon
->>> import functools
->>> from minevent import Context, EventManager, PeriodicCondition
->>> manager = EventManager()
->>> def say(name: str, _: Context) -> None:
-...     print(name)
->>> def register(name: str) -> None:
-...     manager.add_event_handler(
-...         name, functools.partial(say, name), condition=PeriodicCondition(freq=2)
-...     )
->>> register("first")
->>> register("second")
->>> manager.trigger_event("first")
-first
->>> manager.trigger_event("second")
-second
-
-```
-
-## Decide from the payload
+### Decide from the payload
 
 A condition reads the payload of the trigger. A handler and its condition can read
 different keys:
@@ -246,53 +192,73 @@ save the model of epoch 3
 function that calls both:
 `condition=lambda context: periodic(context) and is_improving(context)`.
 
-## Keep a state in a handler
+### Combine conditions
 
-A class with a `__call__(self, context)` method is a handler with its own state. This one
-collects the losses and is read after the training:
-
-```pycon
->>> from minevent import Context, EventManager
->>> class LossHistory:
-...     def __init__(self) -> None:
-...         self.losses = []
-...
-...     def __call__(self, context: Context) -> None:
-...         self.losses.append(context["loss"])
->>> history = LossHistory()
->>> manager = EventManager()
->>> _ = manager.add_event_handler("epoch_end", history)
->>> for epoch, loss in enumerate([0.9, 0.6, 0.4]):
-...     manager.trigger_event("epoch_end", {"epoch": epoch, "loss": loss})
->>> history.losses
-[0.9, 0.6, 0.4]
-
-```
-
-The handler ignores the keys that it does not read, here `epoch`.
-
-## Pass a dict or a Context
-
-A dict is copied and validated at each trigger, while a `Context` is passed as is, so build it once
-to reuse it:
+Write a function. `all([a(context), b(context)])` evaluates every condition at each call, so
+stateful conditions advance together:
 
 ```pycon
->>> from minevent import Context, EventManager
+>>> from minevent import EventManager, PeriodicCondition
+>>> after_one, periodic = PeriodicCondition(freq=1, start=1), PeriodicCondition(freq=2)
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler(
-...     "epoch_end", lambda context: print(f"epoch {context['epoch']}, loss {context['loss']}")
+...     "epoch_end",
+...     lambda _: print("validate"),
+...     condition=lambda context: all([after_one(context), periodic(context)]),
 ... )
->>> manager.trigger_event("epoch_end", {"epoch": 3, "loss": 0.5})
-epoch 3, loss 0.5
->>> context = Context({"epoch": 4, "loss": 0.4})
->>> manager.trigger_event("epoch_end", context)
-epoch 4, loss 0.4
->>> manager.trigger_event("epoch_end", context)
-epoch 4, loss 0.4
+>>> for _ in range(5):
+...     manager.trigger_event("epoch_end")
+validate
+validate
 
 ```
 
-## Adapt an existing function
+### Use one condition per handler
+
+A stateful condition keeps its counter in the instance, so create one per registration, for example
+with a function:
+
+```pycon
+>>> import functools
+>>> from minevent import Context, EventManager, PeriodicCondition
+>>> manager = EventManager()
+>>> def say(name: str, _: Context) -> None:
+...     print(name)
+>>> def register(name: str) -> None:
+...     manager.add_event_handler(
+...         name, functools.partial(say, name), condition=PeriodicCondition(freq=2)
+...     )
+>>> register("first")
+>>> register("second")
+>>> manager.trigger_event("first")
+first
+>>> manager.trigger_event("second")
+second
+
+```
+
+### Restart a condition
+
+`reset()` restarts the counter of a `PeriodicCondition`, for example at the start of a new training:
+
+```pycon
+>>> from minevent import EventManager, PeriodicCondition
+>>> warmup = PeriodicCondition(freq=1, start=1)
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler("epoch_end", lambda _: print("validate"), condition=warmup)
+>>> for _ in range(2):
+...     manager.trigger_event("epoch_end")
+validate
+>>> warmup.reset()
+>>> manager.trigger_event("epoch_end")
+
+```
+
+## Handlers and payload
+
+Write, adapt and organize the handlers.
+
+### Adapt an existing function
 
 A handler is called with the context, so wrap a function that does not take it, such as
 `model.train`, in a lambda that ignores it and chooses the arguments. A default saves the value of a
@@ -320,7 +286,53 @@ train mode: False
 
 ```
 
-## Keep a snapshot of the payload
+### Keep a state in a handler
+
+A class with a `__call__(self, context)` method is a handler with its own state. This one
+collects the losses and is read after the training:
+
+```pycon
+>>> from minevent import Context, EventManager
+>>> class LossHistory:
+...     def __init__(self) -> None:
+...         self.losses = []
+...
+...     def __call__(self, context: Context) -> None:
+...         self.losses.append(context["loss"])
+>>> history = LossHistory()
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler("epoch_end", history)
+>>> for epoch, loss in enumerate([0.9, 0.6, 0.4]):
+...     manager.trigger_event("epoch_end", {"epoch": epoch, "loss": loss})
+>>> history.losses
+[0.9, 0.6, 0.4]
+
+```
+
+The handler ignores the keys that it does not read, here `epoch`.
+
+### Pass a dict or a Context
+
+A dict is copied and validated at each trigger, while a `Context` is passed as is, so build it once
+to reuse it:
+
+```pycon
+>>> from minevent import Context, EventManager
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler(
+...     "epoch_end", lambda context: print(f"epoch {context['epoch']}, loss {context['loss']}")
+... )
+>>> manager.trigger_event("epoch_end", {"epoch": 3, "loss": 0.5})
+epoch 3, loss 0.5
+>>> context = Context({"epoch": 4, "loss": 0.4})
+>>> manager.trigger_event("epoch_end", context)
+epoch 4, loss 0.4
+>>> manager.trigger_event("epoch_end", context)
+epoch 4, loss 0.4
+
+```
+
+### Keep a snapshot of the payload
 
 The values of a `Context` are not copied. `copy.deepcopy` takes a snapshot that the next handlers
 cannot change:
@@ -338,7 +350,7 @@ cannot change:
 
 ```
 
-## Register a handler only once
+### Register a handler only once
 
 Registering the same handler twice runs it twice. Look at the registrations to add it only if it is
 not there. Compare with `==`, not `is`: a bound method such as `greeter.hello` is a new object at
@@ -359,34 +371,7 @@ EventManager(events={'my_event': 1})
 
 ```
 
-## Trace the handlers
-
-Wrap a handler to see its calls. `functools.wraps` keeps the signature, which is checked at
-registration:
-
-```pycon
->>> import functools
->>> from minevent import Context, EventManager
->>> def traced(handler):
-...     @functools.wraps(handler)
-...     def wrapper(*args):
-...         print(f"calling {handler.__name__}")
-...         return handler(*args)
-...
-...     return wrapper
->>> def log_epoch(context: Context) -> None:
-...     print(f"epoch {context['epoch']}")
->>> manager = EventManager()
->>> _ = manager.add_event_handler("epoch_end", traced(log_epoch))
->>> _ = manager.add_event_handler("epoch_end", lambda context: print(dict(context)))
->>> manager.trigger_event("epoch_end", {"epoch": 1})
-calling log_epoch
-epoch 1
-{'epoch': 1}
-
-```
-
-## Write a plugin
+### Write a plugin
 
 A plugin registers its handlers when it is set up, and keeps the subscriptions to remove them when
 it is torn down:
@@ -422,7 +407,38 @@ EventManager(events={})
 
 ```
 
-## Trigger events from several threads
+### Trace the handlers
+
+Wrap a handler to see its calls. `functools.wraps` keeps the signature, which is checked at
+registration:
+
+```pycon
+>>> import functools
+>>> from minevent import Context, EventManager
+>>> def traced(handler):
+...     @functools.wraps(handler)
+...     def wrapper(*args):
+...         print(f"calling {handler.__name__}")
+...         return handler(*args)
+...
+...     return wrapper
+>>> def log_epoch(context: Context) -> None:
+...     print(f"epoch {context['epoch']}")
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler("epoch_end", traced(log_epoch))
+>>> _ = manager.add_event_handler("epoch_end", lambda context: print(dict(context)))
+>>> manager.trigger_event("epoch_end", {"epoch": 1})
+calling log_epoch
+epoch 1
+{'epoch': 1}
+
+```
+
+## Threads and async
+
+Use the manager in concurrent programs.
+
+### Trigger events from several threads
 
 The manager can be shared between threads. The handlers run in the thread that triggers the event,
 possibly at the same time, so a handler protects the state that it shares:
@@ -449,7 +465,7 @@ possibly at the same time, so a handler protects the state that it shares:
 
 ```
 
-## Trigger events from an async function
+### Trigger events from an async function
 
 In an async program, `await` the trigger inside your coroutines. The next step starts when every
 handler is done:
@@ -479,7 +495,7 @@ done
 
 ```
 
-## Use options with coroutine handlers
+### Use options with coroutine handlers
 
 `once`, `condition` and the `on` decorator work the same way with coroutine
 handlers:
@@ -501,7 +517,7 @@ uploaded epoch 2
 
 ```
 
-## Run the work of a handler concurrently
+### Run the work of a handler concurrently
 
 The handlers of an event run sequentially, so a slow handler delays the next ones. To run several
 awaitables at the same time, use `asyncio.gather` inside one handler:
@@ -525,7 +541,7 @@ uploaded ['a.pt', 'b.pt']
 Hand a long computation to an executor (`await loop.run_in_executor(...)` or `asyncio.to_thread`)
 from a coroutine handler.
 
-## Start background work from a handler
+### Start background work from a handler
 
 A handler that starts background work **returns nothing**. A task is awaitable, so a handler such as
 `lambda _: loop.create_task(upload())` returns one: `trigger_event` raises after the task is
@@ -557,7 +573,11 @@ uploaded model.pt
 The task needs a running event loop, so the event is triggered from a coroutine. The manager does not
 see the task: await it before the loop ends, and handle its errors in the coroutine that it runs.
 
-## Test a handler
+## Tests
+
+Check your handlers and their registration.
+
+### Test a handler
 
 A handler is a plain callable, so test it without a manager. Test the wiring with a mock:
 
