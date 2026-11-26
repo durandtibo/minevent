@@ -18,7 +18,7 @@ from minevent import Context, EventManager
 logger = logging.getLogger(__name__)
 
 
-def check_event_manager() -> None:
+def validate_event_manager() -> None:
     r"""Check that a registered handler runs when its event is
     triggered."""
     logger.info("Checking event manager...")
@@ -31,7 +31,7 @@ def check_event_manager() -> None:
     assert "my_event" in event_manager
 
 
-def check_once() -> None:
+def validate_once() -> None:
     r"""Check that a ``once`` handler runs once."""
     logger.info("Checking once...")
 
@@ -44,7 +44,7 @@ def check_once() -> None:
     assert "my_event" not in event_manager
 
 
-def check_payload() -> None:
+def validate_payload() -> None:
     r"""Check that a handler receives the payload of the trigger."""
     logger.info("Checking payload...")
 
@@ -59,7 +59,7 @@ def check_payload() -> None:
     assert received == [{"epoch": 3, "event": "batch_end"}]
 
 
-def check_subscription() -> None:
+def validate_subscription() -> None:
     r"""Check that a removed subscription does not run."""
     logger.info("Checking subscription...")
 
@@ -73,7 +73,7 @@ def check_subscription() -> None:
     assert not subscription.active
 
 
-def check_async_trigger() -> None:
+def validate_async_trigger() -> None:
     r"""Check that ``atrigger_event`` awaits a coroutine handler."""
     logger.info("Checking atrigger_event...")
 
@@ -88,7 +88,7 @@ def check_async_trigger() -> None:
     assert calls == [7]
 
 
-def check_no_third_party_import() -> None:
+def validate_no_third_party_import() -> None:
     r"""Check that ``import minevent`` loads no third-party package."""
     logger.info("Checking that minevent imports no third-party package...")
     # Only the modules loaded by the import are checked: the interpreter can load third-party
@@ -105,14 +105,14 @@ def check_no_third_party_import() -> None:
     subprocess.run([sys.executable, "-c", code], check=True)  # noqa: S603
 
 
-def check_exports() -> None:
+def validate_exports() -> None:
     r"""Check that every name of ``__all__`` exists."""
     logger.info("Checking exports...")
     for name in minevent.__all__:
         assert hasattr(minevent, name), f"missing export: {name}"
 
 
-def check_version() -> None:
+def validate_version() -> None:
     r"""Check that the version is read from the installed package."""
     logger.info("Checking version...")
     assert minevent.__version__ != "0.0.0"
@@ -123,14 +123,14 @@ def main() -> None:
 
     A failed check raises.
     """
-    check_no_third_party_import()
-    check_exports()
-    check_version()
-    check_event_manager()
-    check_once()
-    check_payload()
-    check_subscription()
-    check_async_trigger()
+    validate_no_third_party_import()
+    validate_exports()
+    validate_version()
+    validate_event_manager()
+    validate_once()
+    validate_payload()
+    validate_subscription()
+    validate_async_trigger()
 
 
 if __name__ == "__main__":

@@ -1,12 +1,12 @@
 # Calls
 
 How the handlers and the conditions are called. `minevent` exports `Handler` only, and
-`check_signature` states [the calling rule](../architecture.md#the-calling-rule). It is not part of
-the [public API](../architecture.md#overview), and neither are the other functions of the module.
+`validate_signature` states [the calling rule](../architecture.md#the-calling-rule). It is not part
+of the [public API](../architecture.md#overview), and neither are the other functions of the module.
 
 <!-- prettier-ignore -->
 ::: minevent.calls
     options:
       members:
         - Handler
-        - check_signature
+        - validate_signature

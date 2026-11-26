@@ -17,11 +17,11 @@ import pytest
 from minevent import Context, PeriodicCondition, calls
 from minevent.calls import (
     add_error_note,
-    check_signature,
     describe,
     describe_event,
     has_kind,
     reject_awaitable,
+    validate_signature,
 )
 from tests.unit.handlers import (
     AsyncConditionMethod,
@@ -148,9 +148,9 @@ class UninspectableCallable:
         r"""Implement a handler."""
 
 
-#####################################
-#     Tests for check_signature     #
-#####################################
+########################################
+#     Tests for validate_signature     #
+########################################
 
 
 def no_parameter_handler() -> None:
@@ -181,8 +181,8 @@ async def async_no_parameter_handler() -> None:
         create_autospec(read_epoch),
     ],
 )
-def test_check_signature_accepted(func: Callable[..., object]) -> None:
-    assert check_signature(func, "handler") is None
+def test_validate_signature_accepted(func: Callable[..., object]) -> None:
+    assert validate_signature(func, "handler") is None
 
 
 REJECTED_SIGNATURES = [
@@ -221,16 +221,16 @@ REJECTED_SIGNATURES = [
 
 
 @pytest.mark.parametrize("func", REJECTED_SIGNATURES)
-def test_check_signature_rejected(func: Callable[..., object]) -> None:
+def test_validate_signature_rejected(func: Callable[..., object]) -> None:
     with pytest.raises(
         TypeError, match=r"^handler .+ must take the context as its only required argument"
     ):
-        check_signature(func, "handler")
+        validate_signature(func, "handler")
 
 
-def test_check_signature_does_not_call_func() -> None:
+def test_validate_signature_does_not_call_func() -> None:
     func = create_autospec(read_epoch)
-    check_signature(func, "handler")
+    validate_signature(func, "handler")
     assert func.call_count == 0
 
 
@@ -247,51 +247,51 @@ def test_check_signature_does_not_call_func() -> None:
         functools.partial(GeneratorObject()),
     ],
 )
-def test_check_signature_generator_function(func: Callable[..., object]) -> None:
+def test_validate_signature_generator_function(func: Callable[..., object]) -> None:
     with pytest.raises(TypeError, match=r"^handler must not be a generator function, but got"):
-        check_signature(func, "handler")
+        validate_signature(func, "handler")
 
 
-def test_check_signature_error_names_the_argument_and_the_function() -> None:
+def test_validate_signature_error_names_the_argument_and_the_function() -> None:
     with pytest.raises(
         TypeError,
         match=r"^condition named_handler must take the context as its only required argument; "
         r"wrap it in a function or a lambda$",
     ):
-        check_signature(named_handler, "condition")
+        validate_signature(named_handler, "condition")
 
 
-def test_check_signature_generator_error_names_the_argument_and_the_function() -> None:
+def test_validate_signature_generator_error_names_the_argument_and_the_function() -> None:
     with pytest.raises(
         TypeError,
         match=r"^condition must not be a generator function, but got generator_handler$",
     ):
-        check_signature(generator_handler, "condition")
+        validate_signature(generator_handler, "condition")
 
 
-def test_check_signature_error_ignores_repr_of_bound_arguments() -> None:
+def test_validate_signature_error_ignores_repr_of_bound_arguments() -> None:
     func = functools.partial(var_positional_handler, BadReprCallable())
     with pytest.raises(TypeError, match=r"^handler var_positional_handler must take"):
-        check_signature(func, "handler")
+        validate_signature(func, "handler")
 
 
-def test_check_signature_uninspectable_error_has_the_cause() -> None:
+def test_validate_signature_uninspectable_error_has_the_cause() -> None:
     with pytest.raises(
         TypeError, match=r"must take the context as its only required argument"
     ) as exc_info:
-        check_signature(UninspectableCallable(), "handler")
+        validate_signature(UninspectableCallable(), "handler")
     assert isinstance(exc_info.value.__cause__, TypeError)
 
 
 @requires_lazy_annotations
 @pytest.mark.parametrize("name", ["unresolved_return", "unresolved_parameter"])
-def test_check_signature_unresolved_annotation(tmp_path: Path, name: str) -> None:
-    assert check_signature(unresolved_function(tmp_path, name), "handler") is None
+def test_validate_signature_unresolved_annotation(tmp_path: Path, name: str) -> None:
+    assert validate_signature(unresolved_function(tmp_path, name), "handler") is None
 
 
-def test_check_signature_before_python_3_14(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_validate_signature_before_python_3_14(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(sys, "version_info", (3, 13, 0))
-    assert check_signature(positional_handler, "handler") is None
+    assert validate_signature(positional_handler, "handler") is None
 
 
 def test_calls_does_not_import_annotationlib_before_python_3_14(

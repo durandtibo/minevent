@@ -1,6 +1,6 @@
 r"""Implement how the code of a user is called.
 
-``Handler`` is the type of a handler. ``check_signature`` rejects a
+``Handler`` is the type of a handler. ``validate_signature`` rejects a
 handler or a condition that cannot be called with the context,
 ``has_kind`` says if it is a generator or a coroutine function,
 ``describe`` names it, ``describe_event`` shows an event name,
@@ -16,11 +16,11 @@ from __future__ import annotations
 __all__ = [
     "Handler",
     "add_error_note",
-    "check_signature",
     "describe",
     "describe_event",
     "has_kind",
     "reject_awaitable",
+    "validate_signature",
 ]
 
 import contextlib
@@ -44,7 +44,7 @@ Handler = Callable[[Context], object]
 """A handler: a function of the ``Context`` of the trigger."""
 
 
-def check_signature(func: Callable[..., object], name: str) -> None:
+def validate_signature(func: Callable[..., object], name: str) -> None:
     r"""Check that a handler or a condition can be called with the
     context.
 
@@ -79,14 +79,14 @@ def check_signature(func: Callable[..., object], name: str) -> None:
 
     Example:
         ```pycon
-        >>> from minevent.calls import check_signature
+        >>> from minevent.calls import validate_signature
         >>> def read_epoch(context):
         ...     return context["epoch"]
         ...
-        >>> check_signature(read_epoch, "handler")
+        >>> validate_signature(read_epoch, "handler")
         >>> def train(mode=True): ...
         ...
-        >>> check_signature(train, "handler")
+        >>> validate_signature(train, "handler")
         Traceback (most recent call last):
         ...
         TypeError: handler train must take the context as its only required argument; wrap it in a function or a lambda

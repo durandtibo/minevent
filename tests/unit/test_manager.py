@@ -13,7 +13,7 @@ from minevent import (
     EventManager,
     Subscription,
 )
-from minevent.manager import _check_event
+from minevent.manager import _validate_event
 from tests.unit.handlers import (
     hello_handler,
     noop_handler,
@@ -339,25 +339,25 @@ def test_event_manager_get_subscriptions_event_handler() -> None:
     assert manager.get_subscriptions("my_event")[0].handler is handler
 
 
-##################################
-#     Tests for _check_event     #
-##################################
+#####################################
+#     Tests for _validate_event     #
+#####################################
 
 
 @pytest.mark.parametrize("event", ["my_event", ""])
-def test_check_event_accepts_str(event: str) -> None:
-    assert _check_event(event) is None
+def test_validate_event_accepts_str(event: str) -> None:
+    assert _validate_event(event) is None
 
 
 @pytest.mark.parametrize("event", [1, None, b"e"])
-def test_check_event_rejects_non_str(event: object) -> None:
+def test_validate_event_rejects_non_str(event: object) -> None:
     with pytest.raises(TypeError, match=r"event must be a str, but got"):
-        _check_event(event)
+        _validate_event(event)
 
 
-def test_check_event_error_names_the_type() -> None:
+def test_validate_event_error_names_the_type() -> None:
     with pytest.raises(TypeError, match=r"but got bytes"):
-        _check_event(b"e")
+        _validate_event(b"e")
 
 
 #############################
