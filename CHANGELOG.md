@@ -83,15 +83,11 @@ the new API are in the
   with several threads) and `condition` of `add_event_handler`, and the `on` decorator. `once` must
   be a `bool`: another value, such as `1` or `"False"`, raises a `TypeError` (#895).
 - `EventManager.events`, `get_subscriptions`, `clear_event` and `__contains__`. A manager is always
-  truthy. It has no length: the `__len__` of the development versions is removed, and the number of
-  handlers of an event is `len(manager.get_subscriptions(event))` (#901).
-- The `start` option and the `reset` method of `PeriodicCondition`, which now validates `freq`.
-  `PeriodicCondition(freq=1, start=n)` is a warm-up, `False` for the first `n` calls: it replaces
-  the `AfterNCondition(n)` of the development versions (#898).
-- The `repr` of `PeriodicCondition` shows `freq`, `start` and `step` without thousands separator,
-  for example `PeriodicCondition(freq=1000, start=0, step=0)` (#900).
-- The read-only `step` property of `PeriodicCondition`, the number of calls that its `repr` shows
-  (#919).
+  truthy.
+- The `start` option, the `reset` method and the read-only `step` property of `PeriodicCondition`,
+  which now validates `freq`. `PeriodicCondition(freq=1, start=n)` is a warm-up, `False` for the
+  first `n` calls. Its `repr` shows `freq`, `start` and `step` without thousands separator, for
+  example `PeriodicCondition(freq=1000, start=0, step=0)` (#898, #900, #919).
 - The type aliases `Handler` and `Condition`.
 - The registry of `EventManager` is thread-safe, and a removal is O(1). The handlers, the
   conditions and the finalizers of the removed handlers run outside its lock.
@@ -104,27 +100,21 @@ the new API are in the
   `__version__` is read from the package metadata at the import.
 - Documentation: an [examples page](https://durandtibo.github.io/minevent/main/examples/) and a
   user guide, and the FAQ is removed (#861). The documentation describes the current library, with
-  a "How It Works" page for the rules and a "Design Choices" page for the trade-offs (#876). The
-  limits state when `atrigger_event` reads the registrations and the payload (#904).
-- Documentation: the limits state that a signal handler or a garbage collection finalizer must not
-  change the manager, that a `StopIteration` leaves `atrigger_event` as a `RuntimeError`, that a
-  returned asynchronous generator does nothing, and which signatures depend on the version of
-  Python (#911).
+  a "How It Works" page for the rules, the guarantees, the limits and the public API, which is what
+  `minevent` exports, and a "Design Choices" page for the trade-offs. Each rule has one page, and the
+  reference of `minevent.calls` shows `Handler` and `check_signature` only (#876, #904, #911, #PR).
 - Packaging: the classifiers are `Development Status :: 3 - Alpha`, `Operating System :: MacOS` and
   `Operating System :: POSIX :: Linux`, and there is no `all` extra. Windows is not supported
   (#894). The license is given by its SPDX expression only, without a `License ::` classifier (#890).
-- Development: `import-linter` checks the layering of the modules, and the invoke tasks come from
-  `invoke-tasklib` `>=0.1.0` (#890).
+- Development: `import-linter` checks the layering of the modules, and rejects a module that is in no
+  layer. The invoke tasks come from `invoke-tasklib` `>=0.1.0`, and the documentation no longer
+  depends on `mkdocs-include-markdown-plugin` (#890, #914).
 - Releases: the files published to PyPI are signed, and the GitHub release has a SLSA provenance
   file. A GitHub build provenance attestation is stored. A manual run only publishes a pre-release
   (#891).
 - Development: each pull request runs `tests/package_checks.py` (#851), and the benchmarks run
   nightly only. A benchmark run compares the medians with the ones of the last finished run of
   `main`. The nightly package test runs the checks of the tag of the installed version.
-- Development: the import time of the package is no longer tracked: the daily workflow, its benchmark
-  and trend script and the `inv test.benchmark-import` task are removed (#905).
-- Development: `import-linter` rejects a module that is in no layer, and the documentation no longer
-  depends on `mkdocs-include-markdown-plugin` (#914).
 - Packaging: the source distribution holds the sources and the tests in the layout of the repository
   (`src/minevent/` next to `tests/`), so the tests pass from it. It leaves out the test of a script
   of `dev/`. The wheel holds the package only (#915).

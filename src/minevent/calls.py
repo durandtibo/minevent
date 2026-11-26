@@ -6,8 +6,9 @@ handler or a condition that cannot be called with the context,
 ``describe`` names it, ``describe_event`` shows an event name,
 ``reject_awaitable`` rejects the awaitable result of a synchronous call,
 and ``add_error_note`` completes the exception that it raises. These
-helpers are used by ``minevent.manager``, and ``minevent`` exports
-``Handler`` only.
+helpers are used by ``minevent.manager``. ``minevent`` exports
+``Handler`` only: the functions are not part of the public API, and can
+change.
 """
 
 from __future__ import annotations
