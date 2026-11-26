@@ -24,8 +24,8 @@ _KEYS_REPR.maxlist = 20
 class Context(Mapping[str, "Any"]):
     r"""Implement a read-only mapping of the payload of a trigger.
 
-    The data is copied at construction into a private dict, and a
-    context has no method that changes it (no ``__setitem__``,
+    The data is copied at construction into a private dict, whose keys
+    are checked, and a context has no method that changes it (no ``__setitem__``,
     ``update`` or ``pop``), so neither the code that built the context
     nor a handler can change what the next handler sees. The values
     themselves are not copied: a mutable value stays mutable. A context
@@ -79,16 +79,16 @@ class Context(Mapping[str, "Any"]):
     __slots__ = ("_data",)
 
     def __init__(self, data: Mapping[str, object] | None = None) -> None:
-        if data is None:
-            data = {}
-        elif type(data) is not dict and not isinstance(data, Mapping):
+        if data is not None and type(data) is not dict and not isinstance(data, Mapping):
             msg = f"data must be a mapping or None, but got {type(data).__qualname__}"
             raise TypeError(msg)
-        for key in data:
+        copy = {} if data is None else dict(data)
+        # The copy is checked, not ``data``, which can differ between two iterations.
+        for key in copy:
             if not isinstance(key, str):
                 msg = f"the keys of data must be str, but got {reprlib.repr(key)}"
                 raise TypeError(msg)
-        self._data = dict(data)
+        self._data = copy
 
     def __getitem__(self, key: str) -> Any:
         try:

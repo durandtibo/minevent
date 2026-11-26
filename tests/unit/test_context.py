@@ -4,7 +4,7 @@ import copy
 import operator
 import pickle
 import threading
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 from typing import Any
 from unittest.mock import patch
 
@@ -290,6 +290,38 @@ def test_context_invalid_key_repr_raises() -> None:
     data: Any = {BadReprCallable(): 1}
     with pytest.raises(TypeError, match=r"the keys of data must be str, but got <BadReprCallable"):
         Context(data)
+
+
+class ChangingMapping(Mapping[Any, int]):
+    r"""Implement a mapping of one key that is different at each
+    iteration, as a mapping modified by another thread."""
+
+    def __init__(self, *keys: object) -> None:
+        self._keys = iter(keys)
+
+    def __getitem__(self, key: object) -> int:
+        return 0
+
+    def __iter__(self) -> Iterator[Any]:
+        yield next(self._keys)
+
+    def __len__(self) -> int:
+        return 1
+
+
+def test_context_validates_the_copy() -> None:
+    assert dict(Context(ChangingMapping("a", 1))) == {"a": 0}
+
+
+def test_context_rejects_a_non_str_key_of_the_copy() -> None:
+    with pytest.raises(TypeError, match=r"^the keys of data must be str, but got 1$"):
+        Context(ChangingMapping(1, "a"))
+
+
+def test_context_reads_the_mapping_once() -> None:
+    data = ChangingMapping("a", "b")
+    Context(data)
+    assert list(data) == ["b"]
 
 
 @pytest.mark.parametrize("protocol", range(2, pickle.HIGHEST_PROTOCOL + 1))

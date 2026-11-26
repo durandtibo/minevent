@@ -146,7 +146,7 @@ first, without default: `lambda context, i=i: print(i, context["epoch"])`.
   `Context` as is, into one read-only `Context` per trigger, shared by the handlers and the
   conditions. Both arguments are positional-only.
 - Any `str` key is allowed, it does not need to be a valid identifier. Another key raises a
-  `TypeError`.
+  `TypeError`. The mapping is read once: the keys that are checked are the keys that are stored.
 - The values are not copied. A `Context` can be copied, deep-copied and pickled (protocol 2 or
   higher) if its values can.
 - A `Context` is equal to a mapping that has the same items, and it is not hashable.
