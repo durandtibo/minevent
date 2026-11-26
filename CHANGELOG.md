@@ -66,7 +66,8 @@ the new API are in the
   at most 20 of the available keys), `get`, `in`, `len`, iteration and `==`. Its values are typed
   `Any`, and it can be copied, deep-copied and pickled if its values can. `get` and `in` cost the
   same for a present key and a missing one, whatever the number of keys. The mapping is read once,
-  so the keys that are checked are the keys that are stored.
+  so the keys that are checked are the keys that are stored. `Context` is final: a type checker
+  reports a subclass (#902).
 - `atrigger_event` to await coroutine handlers.
 - The error messages stay short whatever the size of the data: values are shown with `reprlib`, and
   an event name is shortened above 200 characters in a note or a message (#897).
