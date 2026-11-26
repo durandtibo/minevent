@@ -1069,21 +1069,19 @@
 
 
 <h1 id="get-started">Get Started<a class="headerlink" href="#get-started" title="Permanent link">&para;</a></h1>
-<p>It is highly recommended to install in
-a <a href="https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/">virtual environment</a>
-to keep your system in order.</p>
+<p><code>minevent</code> requires Python 3.11 or newer on the <code>main</code> branch (see the
+<a href="https://github.com/durandtibo/minevent#installation">version table</a> for the releases), and has no
+dependency, so there is no optional dependency or extra to choose. It supports Linux and macOS:
+Windows is not supported.</p>
 <h2 id="installing-with-pip-recommended">Installing with <code>pip</code> (recommended)<a class="headerlink" href="#installing-with-pip-recommended" title="Permanent link">&para;</a></h2>
 <p>We highly recommend installing
-a <a href="https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/">virtual environment</a>.
-<code>minevent</code> can be installed from pip using the following command:</p>
+a <a href="https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/">virtual environment</a>
+to keep your system in order. <code>minevent</code> can be installed from pip using the following command:</p>
 <div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>minevent
 </code></pre></div>
-<p><code>minevent</code> has no dependency, so no optional dependencies or extras are required. It requires
-Python 3.11 or newer on the <code>main</code> branch (see the
-<a href="https://github.com/durandtibo/minevent#installation">version table</a> for the releases). It supports
-Linux and macOS: Windows is not supported.</p>
-<p>This command installs the latest release. Version <code>0.5.0</code> and older have a different API than the
-one of the <code>main</code> documentation. To install the code of the <code>main</code> branch:</p>
+<p>This command installs the latest release. Read the version of the documentation that matches it (see
+the version selector). To install the code of the <code>main</code> branch, which the <code>main</code> documentation
+describes:</p>
 <div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/durandtibo/minevent.git
 </code></pre></div>
 <p>Check the installation:</p>
@@ -1093,6 +1091,7 @@ one of the <code>main</code> documentation. To install the code of the <code>mai
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"hello"</span><span class="p">)</span>
 <span class="go">Hello!</span>
 </code></pre></div>
+<p>Then follow the <a href="../quickstart/">quickstart</a>.</p>
 <h2 id="installing-from-source">Installing from source<a class="headerlink" href="#installing-from-source" title="Permanent link">&para;</a></h2>
 <p>To install <code>minevent</code> from source, you can follow the steps below.</p>
 <h3 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">&para;</a></h3>

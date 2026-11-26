@@ -459,10 +459,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#motivation" class="md-nav__link">
+  <a href="#a-first-example" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Motivation
+        A first example
       
     </span>
   </a>
@@ -470,10 +470,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#where-to-go-next" class="md-nav__link">
+  <a href="#what-you-can-do" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Where to go next
+        What you can do
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Documentation
       
     </span>
   </a>
@@ -947,10 +958,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#motivation" class="md-nav__link">
+  <a href="#a-first-example" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Motivation
+        A first example
       
     </span>
   </a>
@@ -958,10 +969,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#where-to-go-next" class="md-nav__link">
+  <a href="#what-you-can-do" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Where to go next
+        What you can do
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Documentation
       
     </span>
   </a>
@@ -1015,32 +1037,29 @@
 <a href="https://pypi.org/project/minevent/"><img alt="PyPI version" src="https://img.shields.io/pypi/v/minevent" /></a>
 <a href="https://pypi.org/project/minevent/"><img alt="Python" src="https://img.shields.io/pypi/pyversions/minevent.svg" /></a>
 <a href="https://opensource.org/licenses/BSD-3-Clause"><img alt="BSD-3-Clause" src="https://img.shields.io/pypi/l/minevent" /></a></p>
-<p>The full list of badges, the installation instructions and the version table are in the
+<p>The full list of badges and the version table are in the
 <a href="https://github.com/durandtibo/minevent#readme">README</a>.</p>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
 <p><code>minevent</code> is a Python library that provides a minimal event system for Machine Learning.
-It allows you to customize code by adding pieces of code that are executed when an event is
-fired.
-<code>minevent</code> is organized around three main concepts:</p>
+It lets you customize a piece of code without changing it: the code announces what happens, and you
+attach the code that must run at that moment.</p>
+<p>For example, a training loop triggers <code>epoch_end</code>. Logging, checkpointing or monitoring is added by
+registering a handler to that event, and the loop does not know about any of them.</p>
+<p><code>minevent</code> is organized around three main concepts:</p>
 <ul>
 <li><strong>event</strong> which is a case-sensitive string that names something that happens.</li>
 <li><strong>event handler</strong> which is a callable to execute when the event happens.</li>
 <li><strong>event manager</strong> (<code>EventManager</code>) which stores the event handlers and triggers the events.</li>
 </ul>
-<p>A trigger can pass data to the handlers in a read-only <code>Context</code>, a condition can decide if a handler
-runs, and each registration returns a <code>Subscription</code> that removes it. <code>minevent</code> has no dependency
-and is fully typed.</p>
-<p>A handler is a plain callable, so it can be tested without the event manager, and there is no base
-class to extend.</p>
-<p>!!! note "Version"</p>
-<div class="highlight"><pre><span></span><code>The documentation of the `main` version describes the code of the `main` branch. Version `0.5.0`
-and older have a different API: use the version selector of their documentation, or see the
-[changelog](https://github.com/durandtibo/minevent/blob/main/CHANGELOG.md) to migrate.
+<div class="highlight"><pre><span></span><code>your code                      EventManager                       your handlers
+    |                    "epoch_end" -&gt; [log, save]                     |
+    |-- trigger_event("epoch_end", data) --&gt;|-- log(context) ----------&gt;|
+    |                                       |-- save(context) ---------&gt;|
+    |&lt;--------------------------------------|   one after the other     |
 </code></pre></div>
-<h2 id="motivation">Motivation<a class="headerlink" href="#motivation" title="Permanent link">&para;</a></h2>
-<p><code>minevent</code> provides a minimal event system to customize a piece of code without changing its
-implementation.
-Below is an example on how to use <code>minevent</code> library.</p>
+<h2 id="a-first-example">A first example<a class="headerlink" href="#a-first-example" title="Permanent link">&para;</a></h2>
+<p>The function <code>say_something</code> triggers an event. Registering a handler changes what happens when the
+function runs, without changing the function:</p>
 <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">say_something</span><span class="p">(</span><span class="n">manager</span><span class="p">:</span> <span class="n">EventManager</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">"Hello, I am Bob!"</span><span class="p">)</span>
@@ -1055,8 +1074,42 @@ Below is an example on how to use <code>minevent</code> library.</p>
 <span class="go">Hello, I am Bob!</span>
 <span class="go">Hello!</span>
 </code></pre></div>
-<p>It allows you to customize the function <code>say_something</code> without changing its implementation.</p>
-<h2 id="where-to-go-next">Where to go next<a class="headerlink" href="#where-to-go-next" title="Permanent link">&para;</a></h2>
+<h2 id="what-you-can-do">What you can do<a class="headerlink" href="#what-you-can-do" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>You want to</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pass data to the handlers</td>
+<td><a href="quickstart/#pass-data-to-the-handlers">The payload of a trigger</a></td>
+</tr>
+<tr>
+<td>Run a handler only sometimes, or once</td>
+<td><a href="quickstart/#control-when-a-handler-runs">Conditions and <code>once</code></a></td>
+</tr>
+<tr>
+<td>Remove a handler</td>
+<td><a href="quickstart/#remove-a-handler">The <code>Subscription</code> of a registration</a></td>
+</tr>
+<tr>
+<td>Use <code>async def</code> handlers</td>
+<td><a href="quickstart/#coroutine-handlers"><code>atrigger_event</code></a></td>
+</tr>
+<tr>
+<td>Find which handler raised an error</td>
+<td><a href="quickstart/#errors">The note of the exception</a></td>
+</tr>
+</tbody>
+</table>
+<p><code>minevent</code> has no dependency and is fully typed. A handler is a plain callable, so it can be tested
+without the event manager, and there is no base class to extend. The library leaves out features
+such as priorities, wildcards or background dispatch: see
+<a href="design/#what-is-not-provided">what is not provided</a>.</p>
+<h2 id="documentation">Documentation<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -1071,11 +1124,11 @@ Below is an example on how to use <code>minevent</code> library.</p>
 </tr>
 <tr>
 <td><a href="quickstart/">Quickstart</a></td>
-<td>The basics in a few minutes.</td>
+<td>Each feature in a few minutes.</td>
 </tr>
 <tr>
 <td><a href="examples/">Examples</a></td>
-<td>Recipes for training loops, plugins, async and tests</td>
+<td>Recipes for training loops, plugins, async and tests.</td>
 </tr>
 <tr>
 <td><a href="guide/">User guide</a></td>
@@ -1083,7 +1136,7 @@ Below is an example on how to use <code>minevent</code> library.</p>
 </tr>
 <tr>
 <td><a href="architecture/">How it works</a></td>
-<td>The rules, the guarantees and the limits.</td>
+<td>The parts, the rules, the guarantees and the limits.</td>
 </tr>
 <tr>
 <td><a href="design/">Design choices</a></td>
@@ -1091,10 +1144,16 @@ Below is an example on how to use <code>minevent</code> library.</p>
 </tr>
 <tr>
 <td><a href="refs/">Reference</a></td>
-<td>The classes and functions.</td>
+<td>The signatures and the docstrings of the public names.</td>
 </tr>
 </tbody>
 </table>
+<p>!!! note "Versions of the documentation"</p>
+<div class="highlight"><pre><span></span><code>Each version of this documentation describes one version of `minevent`: `main` follows the `main`
+branch, and `latest` the latest release. Choose the one of your installed version with the version
+selector. The changes between the releases are in the
+[changelog](https://github.com/durandtibo/minevent/blob/main/CHANGELOG.md).
+</code></pre></div>
 <h2 id="api-stability">API stability<a class="headerlink" href="#api-stability" title="Permanent link">&para;</a></h2>
 <p><img alt="⚠" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@16.0.1/assets/svg/26a0.svg" title=":warning:" /> While <code>minevent</code> is in development stage, no API is guaranteed to be stable from one
 release to the next. In fact, it is very likely that the API will change multiple times before a

@@ -1435,8 +1435,8 @@
 </ul>
 <h3 id="the-event-manager">The event manager<a class="headerlink" href="#the-event-manager" title="Permanent link">&para;</a></h3>
 <ul>
-<li>Create the manager once and pass it where it is needed. <code>minevent</code> has no global manager on
-  purpose: it keeps the tests independent and makes the ownership clear.</li>
+<li>Create the manager once and pass it where it is needed. <code>minevent</code> has no global manager (see
+  <a href="../design/#the-manager-is-an-explicit-object">the design choice</a>).</li>
 <li>Keep the <code>Subscription</code> of a handler that you may remove. A registered handler lives as long as
   the manager (<code>obj.method</code> keeps <code>obj</code> alive, and so do the arguments of a <code>functools.partial</code> and
   the closures), and <code>minevent</code> uses no weak reference. Remove the subscriptions that you do not

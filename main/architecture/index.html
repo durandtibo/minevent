@@ -713,6 +713,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#source-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Source Layout
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#registration" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -847,6 +858,56 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Limits">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#threads-signals-and-recursion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Threads, signals and recursion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#async-programs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Async programs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#handlers-and-conditions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Handlers and conditions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#payload-memory-and-messages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Payload, memory and messages
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1057,6 +1118,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#source-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Source Layout
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#registration" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1192,6 +1264,56 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Limits">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#threads-signals-and-recursion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Threads, signals and recursion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#async-programs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Async programs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#handlers-and-conditions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Handlers and conditions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#payload-memory-and-messages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Payload, memory and messages
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1232,6 +1354,18 @@ on the <a href="../design/">design choices page</a>. The <a href="../quickstart/
 <a href="../examples/">examples</a> are runnable recipes and the <a href="../guide/">user guide</a> gives the
 recommendations.</p>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<p>An <code>EventManager</code> maps each event to registrations, kept in the order they were added. A
+registration is a <code>Subscription</code>: one handler, with its options. A trigger builds one <code>Context</code> from
+your data and runs the handlers of one event.</p>
+<div class="highlight"><pre><span></span><code>EventManager
+ |-- "epoch_end"    --&gt; Subscription(handler=log)
+ |                      Subscription(handler=save, condition=PeriodicCondition(freq=5))
+ |-- "training_end" --&gt; Subscription(handler=report, once=True)
+
+trigger_event("epoch_end", {"epoch": 3})
+    log(context), then save(context) if its condition is true
+    with context == Context({'epoch': 3})
+</code></pre></div>
 <table>
 <thead>
 <tr>
@@ -1307,6 +1441,35 @@ is what <code>minevent</code> exports</strong>: the other names of its modules, 
 </tr>
 </tbody>
 </table>
+<h2 id="source-layout">Source Layout<a class="headerlink" href="#source-layout" title="Permanent link">&para;</a></h2>
+<p>The package has four modules. Each one imports only the modules below it, and <code>conditions</code> and
+<code>calls</code> do not import each other:</p>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Holds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>manager</code></td>
+<td><code>EventManager</code> and <code>Subscription</code>: the registry and the trigger</td>
+</tr>
+<tr>
+<td><code>conditions</code></td>
+<td><code>Condition</code> and <code>PeriodicCondition</code></td>
+</tr>
+<tr>
+<td><code>calls</code></td>
+<td><code>Handler</code>, and how your callables are checked, called and named</td>
+</tr>
+<tr>
+<td><code>context</code></td>
+<td><code>Context</code></td>
+</tr>
+</tbody>
+</table>
 <h2 id="registration">Registration<a class="headerlink" href="#registration" title="Permanent link">&para;</a></h2>
 <p><code>add_event_handler</code> does the following, once:</p>
 <ol>
@@ -1340,6 +1503,19 @@ for each registration of the snapshot, in registration order:
 <p>If a condition or a handler raises, the trigger stops: the exception reaches the caller, and the
 next registrations are skipped. Triggering an event that has no handler does nothing (the event and
 the context are still checked).</p>
+<p>The registrations visited are the ones of the snapshot. Here the first handler adds a second one,
+which runs from the next trigger:</p>
+<div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">EventManager</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">first</span><span class="p">(</span><span class="n">_</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">"first"</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"step"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"added"</span><span class="p">),</span> <span class="n">once</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">subscription</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"step"</span><span class="p">,</span> <span class="n">first</span><span class="p">,</span> <span class="n">once</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"step"</span><span class="p">)</span>
+<span class="go">first</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"step"</span><span class="p">)</span>
+<span class="go">added</span>
+</code></pre></div>
 <h2 id="the-calling-rule">The Calling Rule<a class="headerlink" href="#the-calling-rule" title="Permanent link">&para;</a></h2>
 <p>A handler and a condition are always called as <code>f(context)</code>, with the read-only <code>Context</code> of the
 trigger. <strong>Exactly one parameter must lack a default, and it must be positional: it receives the
@@ -1454,6 +1630,8 @@ context comes first, without default.</p>
 <ul>
 <li>The handlers of an event run in the order they were registered, one after the other, in the calling
   thread.</li>
+<li>A trigger returns <code>None</code>. The value that a handler returns is ignored, unless it is awaitable (see
+  <a href="#coroutines">Coroutines</a>).</li>
 <li>A trigger visits the registrations that exist when it starts. A registration <strong>added</strong> by a
   running handler takes effect at the next trigger. A registration <strong>removed</strong> before its handler is
   called (by <code>remove()</code>, <code>clear_event</code>, <code>reset</code> or a <code>once</code> claim) does not run, whoever removed it:
@@ -1529,6 +1707,7 @@ context comes first, without default.</p>
 </ul>
 <h2 id="limits">Limits<a class="headerlink" href="#limits" title="Permanent link">&para;</a></h2>
 <p><code>minevent</code> does not protect against the following:</p>
+<h3 id="threads-signals-and-recursion">Threads, signals and recursion<a class="headerlink" href="#threads-signals-and-recursion" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>A removal in another thread</strong> cannot stop a handler whose trigger has already checked that it is
   registered.</li>
@@ -1540,6 +1719,9 @@ context comes first, without default.</p>
   event, possibly at the same time. A handler or a condition of yours that shares state must protect
   it.</li>
 <li><strong>Recursion.</strong> A handler that triggers its own event recurses until <code>RecursionError</code>.</li>
+</ul>
+<h3 id="async-programs">Async programs<a class="headerlink" href="#async-programs" title="Permanent link">&para;</a></h3>
+<ul>
 <li><strong>Blocking.</strong> A synchronous handler in <code>atrigger_event</code> blocks the event loop.</li>
 <li><strong><code>StopIteration</code> in <code>atrigger_event</code>.</strong> A coroutine cannot raise it, so Python turns the one of a
   handler or a condition into a <code>RuntimeError</code>, whose <code>__cause__</code> is the original exception and has
@@ -1548,32 +1730,38 @@ context comes first, without default.</p>
   its coroutine starts to run, not when it is created: a task sees a change made to the dict, or a
   handler added, before it starts. To fix the payload at the creation, give it a <code>Context</code>, which is
   copied when it is built.</li>
-<li><strong>A hidden coroutine.</strong> A lambda, or a synchronous <code>functools.wraps</code> wrapper, that returns a
-  coroutine is only detected after its call by <code>trigger_event</code>: the handlers before it have run, and
-  a <code>once</code> registration is consumed.</li>
-<li><strong>A cached function.</strong> <code>functools.cache</code> and <code>functools.lru_cache</code> hash their arguments, and a
-  <code>Context</code> is not hashable: such a handler or condition raises a <code>TypeError</code> at the trigger.</li>
 <li><strong>A background task returned by a handler</strong> is an awaitable like any other: <code>trigger_event</code>
   raises after the task is scheduled, and <code>atrigger_event</code> waits for it. A handler that
   <a href="../examples/#start-background-work-from-a-handler">starts background work</a> returns nothing.</li>
+</ul>
+<h3 id="handlers-and-conditions">Handlers and conditions<a class="headerlink" href="#handlers-and-conditions" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>A hidden coroutine.</strong> A lambda, or a synchronous <code>functools.wraps</code> wrapper, that returns a
+  coroutine is only detected after its call by <code>trigger_event</code>: the handlers before it have run, and
+  a <code>once</code> registration is consumed.</li>
 <li><strong>Hidden generators.</strong> A function that returns a generator or an asynchronous generator, such as
   a lambda that calls a generator function, does nothing.</li>
+<li><strong>Names are not checked.</strong> An unbound method such as <code>Model.save</code> has one parameter without
+  default, <code>self</code>, so it is accepted and called with the context as <code>self</code>.</li>
 <li><strong>A signature that depends on Python.</strong> The standard library adds signatures to C callables
   between versions: <code>set().add</code> and <code>time.sleep</code> are rejected on Python 3.11 and 3.12, and accepted
   from 3.13.</li>
+<li><strong>A cached function.</strong> <code>functools.cache</code> and <code>functools.lru_cache</code> hash their arguments, and a
+  <code>Context</code> is not hashable: such a handler or condition raises a <code>TypeError</code> at the trigger.</li>
 <li><strong>A condition is evaluated by truthiness, and counts its calls, not the triggers.</strong> It is not
   called when an earlier handler raised, nor for a removed registration. The count of a
   <code>PeriodicCondition</code> starts at 0 in a new process, unless the condition is saved and restored (see
   <a href="../examples/#resume-a-training">Resume a training</a>).</li>
-<li><strong>Names are not checked.</strong> An unbound method such as <code>Model.save</code> has one parameter without
-  default, <code>self</code>, so it is accepted and called with the context as <code>self</code>.</li>
-<li><strong>A huge integer in a message</strong> on Python 3.11 and 3.12: showing an integer of more than 4,300
-  digits (a value given as a handler, a key, an argument of <code>PeriodicCondition</code>) raises the
-  <code>ValueError</code> of Python instead of the error of <code>minevent</code>.</li>
+</ul>
+<h3 id="payload-memory-and-messages">Payload, memory and messages<a class="headerlink" href="#payload-memory-and-messages" title="Permanent link">&para;</a></h3>
+<ul>
 <li><strong>A mutable value of the payload</strong> can be mutated by a handler, and the next ones see it.</li>
 <li><strong>Delayed release.</strong> A manager with registrations is in a reference cycle (manager, registry,
   <code>Subscription</code>, manager): <code>del manager</code> does not free it until the garbage collector runs.
   <code>reset()</code> releases the handlers at a known point.</li>
+<li><strong>A huge integer in a message</strong> on Python 3.11 and 3.12: showing an integer of more than 4,300
+  digits (a value given as a handler, a key, an argument of <code>PeriodicCondition</code>) raises the
+  <code>ValueError</code> of Python instead of the error of <code>minevent</code>.</li>
 </ul>
 <h2 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">&para;</a></h2>
 <p>The registry maps each event to an ordered <code>dict</code> of subscriptions, used as an ordered set:</p>
