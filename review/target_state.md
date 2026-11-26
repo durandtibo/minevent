@@ -59,13 +59,13 @@ construction. "Status" compares the row with `main`: **same** (stated and true t
 
 ### Engineering
 
-| #   | Property            | Statement                                                                                                                                                                                          | Status | Enforced by              |
-| --- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ------------------------ |
-| P17 | Typed               | Fully typed, `py.typed`, `ty check` clean, no cast and no ignore. A handler argument is typed `Handler`. The values of a `Context` are `Any`.                                                      | same   | `ty check`               |
-| P18 | Fast and linear     | About 0.3 µs for a trigger with one trivial handler, 0.07 µs for each extra one, 0.8 µs with a small dict, 5.5 µs for a registration plus its removal. A removal is O(1).                          | same   | `tests/benchmarks/`      |
-| P19 | One home per rule   | One documentation page states each rule; a docstring states what its own object does and names the page or the function that holds the rule.                                                       | same   | review                   |
-| P20 | Tested before merge | **No change reaches `main` without the result of its tests**, on Linux, macOS and Windows and on every supported Python. One required check says so. The suite stays small enough to get a result. | new    | the ruleset, `ci.yaml`   |
-| P21 | Lean to maintain    | Every file of the repository serves a property of this table. The published distributions hold the package, not a part of the repository that cannot run.                                          | new    | review, `pyproject.toml` |
+| #   | Property            | Statement                                                                                                                                                                                                            | Status | Enforced by              |
+| --- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ------------------------ |
+| P17 | Typed               | Fully typed, `py.typed`, `ty check` clean, no cast and no ignore. A handler argument is typed `Handler`. The values of a `Context` are `Any`.                                                                        | same   | `ty check`               |
+| P18 | Fast and linear     | About 0.3 µs for a trigger with one trivial handler, 0.07 µs for each extra one, 0.8 µs with a small dict, 5.5 µs for a registration plus its removal. A removal is O(1).                                            | same   | `tests/benchmarks/`      |
+| P19 | One home per rule   | One documentation page states each rule; a docstring states what its own object does and names the page or the function that holds the rule.                                                                         | same   | review                   |
+| P20 | Tested before merge | **No change reaches `main` without the result of its tests**, on Linux and macOS and on every supported Python (Windows is not supported). One required check says so. The suite stays small enough to get a result. | new    | the ruleset, `ci.yaml`   |
+| P21 | Lean to maintain    | Every file of the repository serves a property of this table. The published distributions hold the package, not a part of the repository that cannot run.                                                            | new    | review, `pyproject.toml` |
 
 Not guaranteed, and documented as such:
 
@@ -136,7 +136,7 @@ No defect was found in the dispatch (P7 to P10). The findings are at the edges.
 | --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ---------------------- |
 | F10 | **Nothing gates a merge.** The branch protection and the ruleset of `main` have an empty list of required status checks, while the header of `ci.yaml` says that three checks are required.                                                                                                                                                                                                                                                                                             | P20      | [verified], 2026-11-26 |
 | F11 | **Merges happen before any test result.** One CI run has about 130 jobs, 104 of them tests (13 runners, 8 Pythons). When read, none of the 104 test jobs of the merged pull requests #877 to #880 and #882 to #890 had a conclusion (those of #877, #884 and #890, looked at one by one, were queued). Of the last 100 runs of `ci.yaml`, 80 were cancelled, 20 queued or pending and none successful; the last success found is of 2026-11-23. Why the queue is long was not examined. | P20      | [verified], 2026-11-26 |
-| F12 | **No Windows test**, while the classifier says `Operating System :: OS Independent`. The 13 runners are variants of Ubuntu and macOS, for a pure-Python package.                                                                                                                                                                                                                                                                                                                        | P20      | [reading]              |
+| F12 | **The classifier claims too much**: it says `Operating System :: OS Independent`, while Windows is not supported. The 13 runners are variants of Ubuntu and macOS, for a pure-Python package.                                                                                                                                                                                                                                                                                           | P20      | [reading]              |
 | F13 | **The source distribution ships tests that cannot run.** It holds `tests/` but not `dev/`, so the collection of `tests/unit` fails with `No module named 'dev'`. It also moves `src/minevent` to `minevent`, so a test that reads `src` fails even with `dev/` added.                                                                                                                                                                                                                   | P21      | [verified]             |
 | F14 | **The import time is tracked but is not a design input** (P2): a daily workflow, a benchmark, a trend script without unit tests and the tests of the benchmark helper, about 370 lines.                                                                                                                                                                                                                                                                                                 | P21      | [reading]              |
 
@@ -269,16 +269,16 @@ deleted. Nothing changes at run time; a type checker reports a subclass.
 ### 4.6 Repository (F10 to F14)
 
 - **One small matrix.** `.github/workflow-config.json`, read by `durandtibo/workflow-config-action`
-  through its `config` input, lists `ubuntu-latest`, `macos-latest` and `windows-latest`, and the same
-  Python versions as today. `lib-get-test-matrix.yaml` checks out the repository, passes the file and
-  uses `os_all`. A CI run goes from 104 test jobs to 24. The versions and the runners stay in one
-  place, as `CLAUDE.md` asks.
+  through its `config` input, lists `ubuntu-latest` and `macos-latest`, and the same Python versions
+  as today. `lib-get-test-matrix.yaml` checks out the repository, passes the file and uses `os_unix`.
+  A CI run goes from 104 test jobs to 16. The versions and the runners stay in one place, as
+  `CLAUDE.md` asks.
 - **One required check.** `ci.yaml` ends with a job `ci` that depends on all the others, runs with
   `if: ${{ always() }}` and fails unless each result is `success`. The ruleset of `main` requires that
   check (a setting that a maintainer changes, not a pull request). The header of `ci.yaml` and
   `GUIDELINES.md` name it.
-- **Windows.** The `run` steps that use shell syntax (`nightly-test-package.yaml`, `ci-build.yaml`)
-  declare `shell: bash`.
+- **Supported systems.** Windows is not supported. `pyproject.toml` has the classifiers of Linux and
+  macOS, and the README and the get started page state that Windows is not supported.
 - **A source-only distribution**: `only-include = ["src"]` for the sdist. The wheel built from it holds
   the modules and `py.typed` [verified].
 - **No import time tracking**: delete `ci-benchmark-import.yaml`, `dev/benchmark_import_trend.py`,
@@ -367,7 +367,7 @@ subscription to be active and 1 expects no note for an event whose `repr` raises
 
 The ranges overlap: no cost was measured.
 
-**Not verified**: the test suite and the speed on Windows and Linux; a numeric library (`__index__`
+**Not verified**: the test suite and the speed on Linux; a numeric library (`__index__`
 was tried with a stand-in class); the workflow changes of 4.6, which a pull request alone cannot
 prove; the build of the documentation; and the nightly benchmark since #878, which had not run on
 `main` after that change when it was read.
@@ -378,20 +378,21 @@ One branch and one pull request per step (`CLAUDE.md`), each green on its own, s
 so. Each step updates the docstrings, `architecture.md`, `design.md`, the guide, the examples, the
 README and the changelog for what it changes.
 
-| Step | Branch                               | Change                                                                                               | Breaking | Fixes   |
-| ---- | ------------------------------------ | ---------------------------------------------------------------------------------------------------- | -------- | ------- |
-| 1    | `ci/gate-pull-requests`              | The matrix file, Windows, the `ci` job, `GUIDELINES.md` (4.6); then require the check in the ruleset | no       | F10-F12 |
-| 2    | `bugfix/validate-once`               | The check of `once` (4.1)                                                                            | **yes**  | F1      |
-| 3    | `bugfix/inactive-until-registered`   | The owner of `active`, `Subscription.__reduce__`, the comment of the lock (4.2)                      | **yes**  | F2, F9  |
-| 4    | `bugfix/shorten-event-names`         | `describe_event` (4.3)                                                                               | messages | F5      |
-| 5    | `feat/single-counting-condition`     | Delete `AfterNCondition` and the base class (4.4)                                                    | **yes**  | F6      |
-| 6    | `feat/accept-index-integers` (on 5)  | `_to_int` (4.4)                                                                                      | no       | F3      |
-| 7    | `bugfix/plain-condition-repr` (on 6) | The `repr` of the condition (4.4)                                                                    | output   | F4      |
-| 8    | `feat/remove-manager-len`            | Delete `__len__` and `__bool__` (4.1); `repr` and `get_subscriptions` in the examples                | **yes**  | F7      |
-| 9    | `feat/final-context`                 | `typing.final` (4.5)                                                                                 | typing   | F8      |
-| 10   | `docs/state-async-trigger-start`     | The limit of `atrigger_event` and the hidden coroutine of a cache (section 1)                        | no       | F9      |
-| 11   | `chore/remove-import-benchmark`      | Delete the import time tracking (4.6)                                                                | no       | F14     |
-| 12   | `chore/source-only-sdist`            | `only-include = ["src"]`                                                                             | no       | F13     |
+| Step | Branch                               | Change                                                                                      | Breaking | Fixes    |
+| ---- | ------------------------------------ | ------------------------------------------------------------------------------------------- | -------- | -------- |
+| 1    | `ci/gate-pull-requests`              | The matrix file, the `ci` job, `GUIDELINES.md` (4.6); then require the check in the ruleset | no       | F10, F11 |
+| 2    | `bugfix/validate-once`               | The check of `once` (4.1)                                                                   | **yes**  | F1       |
+| 3    | `bugfix/inactive-until-registered`   | The owner of `active`, `Subscription.__reduce__`, the comment of the lock (4.2)             | **yes**  | F2, F9   |
+| 4    | `bugfix/shorten-event-names`         | `describe_event` (4.3)                                                                      | messages | F5       |
+| 5    | `feat/single-counting-condition`     | Delete `AfterNCondition` and the base class (4.4)                                           | **yes**  | F6       |
+| 6    | `feat/accept-index-integers` (on 5)  | `_to_int` (4.4)                                                                             | no       | F3       |
+| 7    | `bugfix/plain-condition-repr` (on 6) | The `repr` of the condition (4.4)                                                           | output   | F4       |
+| 8    | `feat/remove-manager-len`            | Delete `__len__` and `__bool__` (4.1); `repr` and `get_subscriptions` in the examples       | **yes**  | F7       |
+| 9    | `feat/final-context`                 | `typing.final` (4.5)                                                                        | typing   | F8       |
+| 10   | `docs/state-async-trigger-start`     | The limit of `atrigger_event` and the hidden coroutine of a cache (section 1)               | no       | F9       |
+| 11   | `chore/remove-import-benchmark`      | Delete the import time tracking (4.6)                                                       | no       | F14      |
+| 12   | `chore/source-only-sdist`            | `only-include = ["src"]`                                                                    | no       | F13      |
+| 13   | `chore/state-windows-unsupported`    | The classifiers of Linux and macOS; state that Windows is not supported (4.6)               | no       | F12      |
 
 Order of value if only part is taken: **1** (without it, no later step is known to work), then **2
 and 3** (a program does something else than what was asked, or an object lies), then **5 and 8** (the
@@ -424,7 +425,7 @@ Gates before each merge: `ruff check src tests`, `ruff format src tests`, `ty ch
 `pytest tests/unit tests/integration --cov=minevent --cov-branch` at 100%, `inv test.doctest`,
 `python tests/package_checks.py`, and from step 1 the required check `ci`. Steps 5 and 8 compare the
 benchmarks with `main` locally. Step 1 is checked with `actionlint` and with one run on its own pull
-request that ends on the three systems; step 12 with `uv build` and an installation of the sdist.
+request that ends on both systems; step 12 with `uv build` and an installation of the sdist.
 
 ## 9. Decisions for the maintainers
 
@@ -442,8 +443,8 @@ request that ends on the three systems; step 12 with `uv build` and an installat
   signature inspection, the differences between Python versions and the optional-parameter surprise.
   But `model.train` and `lambda: ...` could no longer be registered as they are, and a wrong signature
   would be found at the trigger instead of at registration.
-- **D5. Three runners instead of 13?** _Recommended: yes._ The package is pure Python, so the images
-  of one system add almost nothing, while merges happen before the results. Alternative: three
+- **D5. Two runners instead of 13?** _Recommended: yes._ The package is pure Python, so the images
+  of one system add almost nothing, while merges happen before the results. Alternative: two
   runners on pull requests and the full list in a nightly run, at the price of a second matrix file.
 - **D6. Stop tracking the import time?** _Recommended: yes._ P2 says it is not a design input, so a
   regression would not be acted on. Alternative: keep one test that bounds the number of modules.
@@ -477,7 +478,7 @@ request that ends on the three systems; step 12 with `uv build` and an installat
 | `conditions.py` statements   |         69 |         46 | one class, one check of the integers                |
 | other `src` statements       |        278 |        286 | the check of `once`, `describe_event`, `__reduce__` |
 | `src` statements             |        347 |        332 |                                                     |
-| test jobs of a CI run        |        104 |         24 | three runners (not prototyped)                      |
+| test jobs of a CI run        |        104 |         16 | two runners (not prototyped)                        |
 | import time tracking (lines) |       ~370 |          0 | deleted (not prototyped)                            |
 | runtime dependencies         |          0 |          0 |                                                     |
 
