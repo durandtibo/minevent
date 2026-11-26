@@ -402,9 +402,9 @@ timing.
 Gates before each merge: `ruff check src tests`, `ruff format src tests`, `ty check`,
 `lint-imports`, `pytest tests/unit tests/integration --cov=minevent --cov-branch` at 100%,
 `inv test.doctest`, `mkdocs build --strict -f docs/mkdocs.yml` and `python tests/package_checks.py`.
-Step 5 is checked with `uv build`, the tests run from the unpacked sdist and the list of the files of the
-wheel. Step 6 compares the list of the collected tests before and after: only the removed duplicates
-and the split test differ.
+Step 5 is checked with `uv build`, the tests run from the unpacked sdist and the list of the files
+of the wheel. Step 6 compares the list of the collected tests before and after: only the removed
+duplicates and the split test differ.
 
 ## 9. Decisions for the maintainers
 
