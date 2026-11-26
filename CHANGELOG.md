@@ -112,3 +112,5 @@ the new API are in the
 - Development: each pull request runs `tests/package_checks.py` (#851), and the benchmarks run
   nightly only. A benchmark run compares the medians with the ones of the last finished run of
   `main`. The nightly package test runs the checks of the tag of the installed version.
+- Development: the import time of the package is no longer tracked: the daily workflow, its benchmark
+  and trend script and the `inv test.benchmark-import` task are removed (#905).

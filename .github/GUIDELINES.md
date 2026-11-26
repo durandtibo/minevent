@@ -24,10 +24,9 @@ on its own. Job ids in `ci.yaml` and in the workflows it calls are
 load-bearing for branch protection (see the comment at the top of `ci.yaml`)
 — keep them in sync if you rename either side.
 
-Three `ci-*` workflows are deliberately _not_ called from `ci.yaml`, each
-standalone with its own trigger instead: `ci-benchmark.yaml` and
-`ci-benchmark-import.yaml` run nightly on their own schedule rather than gating
-every PR/push, since a benchmark regression isn't a merge blocker; `ci-verify-workflows.yaml` lints
+Two `ci-*` workflows are deliberately _not_ called from `ci.yaml`, each standalone with its own
+trigger instead: `ci-benchmark.yaml` runs nightly on its own schedule rather than gating every
+PR/push, since a benchmark regression isn't a merge blocker; `ci-verify-workflows.yaml` lints
 `.github/workflows/*` itself and has its own trigger (every pull request and push to `main`, with no
 path filter, so it can be a required check).
 
@@ -39,7 +38,6 @@ The trigger of a reusable workflow is `workflow_call`: it runs when another work
 | Workflow                            | Trigger                                | Purpose                                                                                       |
 | ----------------------------------- | -------------------------------------- | --------------------------------------------------------------------------------------------- |
 | `ci.yaml`                           | pull request, push to `main`, nightly  | Entry point: calls the `ci-*` checks below.                                                   |
-| `ci-benchmark-import.yaml`          | nightly, manual                        | Track the import time of the package (not a merge gate).                                      |
 | `ci-build.yaml`                     | called by `ci.yaml`                    | Build the package and check that the built package installs.                                  |
 | `ci-cyclic-imports.yaml`            | called by `ci.yaml`, manual            | Check that there is no circular import (`inv imports.check-cycles`).                          |
 | `ci-doctest.yaml`                   | called by `ci.yaml`, manual            | Run the doctests (`inv test.doctest`) and check that the documentation builds.                |
@@ -70,9 +68,9 @@ The trigger of a reusable workflow is `workflow_call`: it runs when another work
 All the workflows can also be triggered manually (`workflow_dispatch`), except the reusable ones
 that need inputs and the pull request security review.
 
-The two benchmark workflows compare the median of each benchmark with the one of the last run of
-`main` that finished, successful or not, and fail if it is more than 50% slower. A regression
-therefore fails one run: the next one compares with it.
+The benchmark workflow compares the median of each benchmark with the one of the last run of `main`
+that finished, successful or not, and fails if it is more than 50% slower. A regression therefore
+fails one run: the next one compares with it.
 
 `nightly-test-package.yaml` checks the published package with `tests/package_checks.py` of the tag
 `v<installed version>`, not of `main`, so each version is checked with its own checks. A published
