@@ -2436,6 +2436,19 @@ exception of a handler or a condition also propagates.</p>
               </div>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="RuntimeError">RuntimeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>if a handler or a condition raises a
+<code>StopIteration</code>: Python does not let a coroutine raise it.
+The <code>__cause__</code> of the error is the <code>StopIteration</code>, which
+has the note.</p>
+              </div>
+            </td>
+          </tr>
       </tbody>
     </table>
 

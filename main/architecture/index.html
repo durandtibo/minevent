@@ -1586,7 +1586,8 @@ first, without default: <code>lambda context, i=i: print(i, context["epoch"])</c
 <h3 id="errors">Errors<a class="headerlink" href="#errors" title="Permanent link">&para;</a></h3>
 <ul>
 <li>An exception of a handler or a condition propagates unchanged (same object, same type), and the
-  remaining handlers are skipped.</li>
+  remaining handlers are skipped. Python makes one exception to this: a <code>StopIteration</code> leaves
+  <code>atrigger_event</code> as a <code>RuntimeError</code> (see <a href="#limits">Limits</a>).</li>
 <li>An <code>Exception</code> carries a note with the event and what raised it: the handler, or the condition and
   its handler (each named by its function, under a <code>functools.partial</code>). The same note is not added
   twice. An exception that cannot take a note (a frozen dataclass exception, for example) propagates
@@ -1615,8 +1616,10 @@ first, without default: <code>lambda context, i=i: print(i, context["epoch"])</c
 <ul>
 <li>Registering, removing, triggering and reading the manager are safe from several threads, with and
   without the GIL.</li>
-<li>Your code (handlers, conditions, <code>repr</code> and finalizers) runs outside the lock of the manager, so
-  it can use the manager.</li>
+<li>Your code (handlers, conditions, <code>repr</code> and the finalizers of the removed handlers) runs outside
+  the lock of the manager, so it can use the manager. The lock protects the manager against the
+  other threads only: a signal handler or a garbage collection finalizer must not change it (see
+  <a href="#limits">Limits</a>).</li>
 <li><code>PeriodicCondition</code> counts every call once, from any number of threads. It can be copied and
   pickled: a copy starts at the same step and has its own counter. Its <code>repr</code> shows <code>freq</code>,
   <code>start</code> and the number of calls as Python writes integers, without separator.</li>
@@ -1636,11 +1639,18 @@ first, without default: <code>lambda context, i=i: print(i, context["epoch"])</c
 <ul>
 <li><strong>A removal in another thread</strong> cannot stop a handler whose trigger has already checked that it is
   registered.</li>
+<li><strong>A signal handler or a garbage collection finalizer</strong> can interrupt a method of the manager in
+  the same thread. One that adds, removes or triggers a <code>once</code> registration can make <code>remove()</code>
+  raise, or leave a subscription <code>active</code> that is not registered. Set a flag in it, and use the
+  manager in the main code.</li>
 <li><strong>Concurrent calls.</strong> A registration without <code>once</code> is called by every thread that triggers its
   event, possibly at the same time. A handler or a condition of yours that shares state must protect
   it.</li>
 <li><strong>Recursion.</strong> A handler that triggers its own event recurses until <code>RecursionError</code>.</li>
 <li><strong>Blocking.</strong> A synchronous handler in <code>atrigger_event</code> blocks the event loop.</li>
+<li><strong><code>StopIteration</code> in <code>atrigger_event</code>.</strong> A coroutine cannot raise it, so Python turns the one of a
+  handler or a condition into a <code>RuntimeError</code>, whose <code>__cause__</code> is the original exception and has
+  the note.</li>
 <li><strong>The start of a coroutine.</strong> <code>atrigger_event</code> reads the registrations and copies the payload when
   its coroutine starts to run, not when it is created: a task sees a change made to the dict, or a
   handler added, before it starts. To fix the payload at the creation, give it a <code>Context</code>, which is
@@ -1648,17 +1658,18 @@ first, without default: <code>lambda context, i=i: print(i, context["epoch"])</c
 <li><strong>A hidden coroutine.</strong> A lambda, a <code>functools.cache</code> of a coroutine function, or a synchronous
   <code>functools.wraps</code> wrapper, that returns a coroutine is only detected after its call by
   <code>trigger_event</code>: the handlers before it have run, and a <code>once</code> registration is consumed.</li>
-<li><strong>Hidden generators.</strong> A function that returns a generator, such as a lambda that calls a
-  generator function, does nothing.</li>
+<li><strong>Hidden generators.</strong> A function that returns a generator or an asynchronous generator, such as
+  a lambda that calls a generator function, does nothing.</li>
 <li><strong>An optional parameter never receives the context.</strong> <code>def f(context=None)</code> is called as <code>f()</code> and
   gets <code>None</code>, without an error: the context needs a parameter without default.</li>
 <li><strong>A signature that depends on Python.</strong> The standard library adds signatures to C callables
-  between versions: <code>set.add</code> is rejected on Python 3.11 and 3.12, and accepted from 3.13.</li>
+  between versions: <code>set().add</code> and <code>time.sleep</code> are rejected on Python 3.11 and 3.12, and accepted
+  from 3.13.</li>
 <li><strong>A condition counts its calls, not the triggers.</strong> It is not called when an earlier handler
   raised, nor for a removed registration.</li>
-<li><strong>A huge integer in a message</strong> on Python 3.11 and 3.12: showing an integer of more than 4,300
-  digits (a value given as a handler, a key) raises the <code>ValueError</code> of Python instead of the error
-  of <code>minevent</code>.</li>
+<li><strong>A huge integer in a message.</strong> Showing an integer of more than 4,300 digits raises the
+  <code>ValueError</code> of Python instead of the error of <code>minevent</code>: on Python 3.11 and 3.12 for a value
+  given as a handler or a key, and on every version for an argument of <code>PeriodicCondition</code>.</li>
 <li><strong>A mutable value of the payload</strong> can be mutated by a handler, and the next ones see it.</li>
 <li><strong>Delayed release.</strong> A manager with registrations is in a reference cycle (manager, registry,
   <code>Subscription</code>, manager): <code>del manager</code> does not free it until the garbage collector runs.
