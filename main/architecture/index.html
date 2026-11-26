@@ -1614,10 +1614,9 @@ first, without default: <code>lambda context, i=i: print(i, context["epoch"])</c
 </ul>
 <h3 id="import-and-typing">Import and typing<a class="headerlink" href="#import-and-typing" title="Permanent link">&para;</a></h3>
 <ul>
-<li><code>minevent</code> uses the standard library only. <code>import minevent</code> starts no thread, reads no file,
-  emits no warning, writes no log, and does not import <code>logging</code>, <code>inspect</code>, <code>asyncio</code> or
-  <code>importlib.metadata</code>: <code>inspect</code> is imported at the first registration, and the version is read at
-  the first access of <code>__version__</code>.</li>
+<li><code>minevent</code> uses the standard library only. <code>import minevent</code> starts no thread, emits no warning
+  and writes no output and no log. It reads <code>__version__</code> from the metadata of the installed
+  package.</li>
 <li>The package is fully typed (<code>py.typed</code>). A handler argument is typed <code>Handler</code>, so a type checker
   reports a callable that needs two arguments, a keyword-only argument or an argument of another
   type than <code>Context</code>. The run-time check of the calling rule stays the authority. The values of a
