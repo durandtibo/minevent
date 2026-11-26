@@ -82,6 +82,8 @@ the new API are in the
 - The `start` option and the `reset` method of `PeriodicCondition`, which now validates `freq`.
   `PeriodicCondition(freq=1, start=n)` is a warm-up, `False` for the first `n` calls: it replaces
   the `AfterNCondition(n)` of the development versions (#898).
+- `freq` and `start` of `PeriodicCondition` accept any integer, an object with `__index__` such as
+  the integers of numeric libraries, but not a `bool` (#899).
 - The type aliases `Handler` and `Condition`.
 - The registry of `EventManager` is thread-safe, and a removal is O(1). The handlers, the
   conditions and the finalizers of the removed handlers run outside its lock.

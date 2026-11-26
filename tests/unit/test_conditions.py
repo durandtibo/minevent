@@ -7,9 +7,79 @@ from typing import TYPE_CHECKING, Any
 import pytest
 
 from minevent import PeriodicCondition
+from minevent.conditions import _to_int
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+
+class Index:
+    r"""Implement an integer that is not an ``int``.
+
+    Args:
+        value: The value returned by ``__index__``.
+    """
+
+    def __init__(self, value: int) -> None:
+        self._value = value
+
+    def __index__(self) -> int:
+        return self._value
+
+
+class IntSubclass(int):
+    r"""Implement a subclass of ``int``."""
+
+
+#############################
+#     Tests for _to_int     #
+#############################
+
+
+@pytest.mark.parametrize(
+    ("value", "minimum", "expected"),
+    [
+        pytest.param(3, 1, 3, id="int"),
+        pytest.param(0, 0, 0, id="zero"),
+        pytest.param(1, 1, 1, id="minimum"),
+        pytest.param(-2, -3, -2, id="negative"),
+        pytest.param(10**30, 0, 1_000_000_000_000_000_000_000_000_000_000, id="huge"),
+        pytest.param(Index(3), 1, 3, id="index"),
+        pytest.param(IntSubclass(3), 1, 3, id="int-subclass"),
+    ],
+)
+def test_to_int(value: object, minimum: int, expected: int) -> None:
+    assert _to_int(value, "freq", minimum) == expected
+
+
+@pytest.mark.parametrize("value", [Index(3), IntSubclass(3)])
+def test_to_int_returns_an_int(value: object) -> None:
+    assert type(_to_int(value, "freq", 1)) is int
+
+
+@pytest.mark.parametrize("value", [True, False, 2.0, 2.9, "3", None])
+def test_to_int_incorrect_type(value: object) -> None:
+    with pytest.raises(
+        TypeError, match=r"^freq must be an integer, got (bool|float|str|NoneType)$"
+    ):
+        _to_int(value, "freq", 0)
+
+
+@pytest.mark.parametrize("value", [0, -1, Index(0)])
+def test_to_int_below_the_minimum(value: object) -> None:
+    with pytest.raises(ValueError, match=r"^start must be greater than or equal to 1, got (0|-1)$"):
+        _to_int(value, "start", 1)
+
+
+def test_to_int_index_raises() -> None:
+    class BadIndex:
+        def __index__(self) -> int:
+            msg = "index failed"
+            raise RuntimeError(msg)
+
+    with pytest.raises(RuntimeError, match=r"^index failed$"):
+        _to_int(BadIndex(), "freq", 1)
+
 
 #######################################
 #     Tests for PeriodicCondition     #
@@ -54,6 +124,24 @@ def test_periodic_condition_incorrect_freq_value(freq: int) -> None:
 def test_periodic_condition_incorrect_freq_type(freq: Any) -> None:
     with pytest.raises(TypeError, match=r"freq must be an integer"):
         PeriodicCondition(freq)
+
+
+def test_periodic_condition_freq_with_index() -> None:
+    assert PeriodicCondition(Index(3)).freq == 3
+
+
+def test_periodic_condition_start_with_index() -> None:
+    assert PeriodicCondition(3, start=Index(2)).start == 2
+
+
+def test_periodic_condition_call_with_index() -> None:
+    condition = PeriodicCondition(Index(3), start=Index(2))
+    assert "".join("T" if condition() else "F" for _ in range(10)) == "FFTFFTFFTF"
+
+
+def test_periodic_condition_repr_with_index() -> None:
+    condition = PeriodicCondition(Index(3), start=Index(2))
+    assert repr(condition) == "PeriodicCondition(freq=3, start=2, step=0)"
 
 
 def test_periodic_condition_start_default() -> None:
