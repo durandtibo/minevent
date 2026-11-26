@@ -1475,11 +1475,11 @@ def test_remove_unknown_event_returns_false() -> None:
     assert not EventManager()._remove(subscription)
 
 
-def test_remove_never_registered_stays_active() -> None:
+def test_remove_never_registered_stays_inactive() -> None:
     manager = EventManager()
     subscription = Subscription(manager, "my_event", noop_handler)
     manager._remove(subscription)
-    assert subscription.active
+    assert not subscription.active
 
 
 #################################

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import copy
 import functools
 import inspect
 import logging
+import pickle
 from typing import TYPE_CHECKING, Any
 from unittest.mock import create_autospec
 
@@ -200,7 +202,26 @@ def test_subscription_active_after_add() -> None:
 
 
 def test_subscription_active_never_registered() -> None:
-    assert Subscription(EventManager(), "my_event", noop_handler).active
+    assert not Subscription(EventManager(), "my_event", noop_handler).active
+
+
+@pytest.mark.parametrize("func", [copy.copy, copy.deepcopy, pickle.dumps])
+def test_subscription_cannot_be_copied(func: Callable[[object], object]) -> None:
+    subscription = EventManager().add_event_handler("my_event", noop_handler)
+    with pytest.raises(
+        TypeError,
+        match=r"^Subscription cannot be copied or pickled: register the handler again$",
+    ):
+        func(subscription)
+
+
+def test_subscription_copy_subclass_names_subclass() -> None:
+    class MySubscription(Subscription):
+        pass
+
+    subscription = MySubscription(EventManager(), "my_event", noop_handler)
+    with pytest.raises(TypeError, match=r"MySubscription cannot be copied or pickled"):
+        copy.copy(subscription)
 
 
 def test_subscription_active_false_after_remove() -> None:
@@ -562,6 +583,12 @@ def test_flag_and_registry_agree_before_removal() -> None:
     manager = EventManager()
     subscription = manager.add_event_handler("my_event", noop_handler)
     assert flag_and_registry(manager, subscription) == (True, True)
+
+
+def test_flag_and_registry_agree_before_registration() -> None:
+    manager = EventManager()
+    subscription = Subscription(manager, "my_event", noop_handler)
+    assert flag_and_registry(manager, subscription) == (False, False)
 
 
 def test_flag_and_registry_agree_after_remove() -> None:
