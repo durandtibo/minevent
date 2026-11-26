@@ -90,9 +90,9 @@ the new API are in the
 - Documentation: an [examples page](https://durandtibo.github.io/minevent/main/examples/) and a
   user guide, and the FAQ is removed (#861). The documentation describes the current library, with
   a "How It Works" page for the rules and a "Design Choices" page for the trade-offs (#876).
-- Packaging: the classifiers are `Development Status :: 3 - Alpha` and
-  `Operating System :: OS Independent`, and there is no `all` extra. The license is given by its SPDX
-  expression only, without a `License ::` classifier (#890).
+- Packaging: the classifiers are `Development Status :: 3 - Alpha`, `Operating System :: MacOS` and
+  `Operating System :: POSIX :: Linux`, and there is no `all` extra. Windows is not supported
+  (#894). The license is given by its SPDX expression only, without a `License ::` classifier (#890).
 - Development: `import-linter` checks the layering of the modules, and the invoke tasks come from
   `invoke-tasklib` `>=0.1.0` (#890).
 - Releases: the files published to PyPI are signed, and the GitHub release has a SLSA provenance

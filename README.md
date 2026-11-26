@@ -195,7 +195,8 @@ a [virtual environment](https://packaging.python.org/guides/installing-using-pip
 pip install minevent
 ```
 
-`minevent` has no dependency, so no optional dependencies or extras are required.
+`minevent` has no dependency, so no optional dependencies or extras are required. It supports Linux
+and macOS: Windows is not supported.
 
 This command installs the latest release. To use the API described on this page before it is
 released, install the `main` branch:
