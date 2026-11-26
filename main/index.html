@@ -1160,7 +1160,7 @@ Below is an example on how to use <code>minevent</code> library.</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">say_something</span><span class="p">(</span><span class="n">manager</span><span class="p">)</span>
 <span class="go">Hello, I am Bob!</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">hello_handler</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">hello_handler</span><span class="p">(</span><span class="n">_</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">"Hello!"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"after"</span><span class="p">,</span> <span class="n">hello_handler</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">say_something</span><span class="p">(</span><span class="n">manager</span><span class="p">)</span>
@@ -1191,7 +1191,7 @@ Below is an example on how to use <code>minevent</code> library.</p>
 </tr>
 <tr>
 <td><a href="guide/">User guide</a></td>
-<td>Recommendations, pitfalls and troubleshooting.</td>
+<td>Recommendations and troubleshooting.</td>
 </tr>
 <tr>
 <td><a href="architecture/">How it works</a></td>

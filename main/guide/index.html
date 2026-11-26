@@ -698,17 +698,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#pitfalls" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Pitfalls
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#troubleshooting" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -798,10 +787,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#typeerror-must-need-no-argument-or-only-the-context" class="md-nav__link">
+  <a href="#typeerror-must-take-the-context-as-its-only-required-argument" class="md-nav__link">
     <span class="md-ellipsis">
       
-        TypeError: ... must need no argument or only the context
+        TypeError: ... must take the context as its only required argument
       
     </span>
   </a>
@@ -1335,17 +1324,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#pitfalls" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Pitfalls
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#troubleshooting" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1435,10 +1413,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#typeerror-must-need-no-argument-or-only-the-context" class="md-nav__link">
+  <a href="#typeerror-must-take-the-context-as-its-only-required-argument" class="md-nav__link">
     <span class="md-ellipsis">
       
-        TypeError: ... must need no argument or only the context
+        TypeError: ... must take the context as its only required argument
       
     </span>
   </a>
@@ -1526,9 +1504,9 @@
 
 
 <h1 id="user-guide">User guide<a class="headerlink" href="#user-guide" title="Permanent link">&para;</a></h1>
-<p>This guide collects the recommendations, the pitfalls and the troubleshooting tips for using
-<code>minevent</code>. The <a href="../quickstart/">quickstart</a> shows the basics, the <a href="../examples/">examples</a> are the
-recipes, the <a href="../architecture/">how it works page</a> states the rules of the library and the
+<p>This guide collects the recommendations and the troubleshooting tips for using <code>minevent</code>. The
+<a href="../quickstart/">quickstart</a> shows the basics, the <a href="../examples/">examples</a> are the recipes, the
+<a href="../architecture/">how it works page</a> states the rules and the limits of the library and the
 <a href="../design/">design choices page</a> explains them.</p>
 <h2 id="recommendations">Recommendations<a class="headerlink" href="#recommendations" title="Permanent link">&para;</a></h2>
 <h3 id="events">Events<a class="headerlink" href="#events" title="Permanent link">&para;</a></h3>
@@ -1547,10 +1525,10 @@ recipes, the <a href="../architecture/">how it works page</a> states the rules o
   in the order they must run.</li>
 <li>Pass the data of a trigger as a dict. Build a <code>Context</code> yourself to reuse it for several triggers:
   it is validated and copied only once.</li>
-<li>Read an optional value with <code>context.get(key, default)</code>, so that handlers with different needs can
-  share an event.</li>
-<li>Register a method or a function that has default arguments as it is, and wrap it in a lambda to
-  choose a value (see <a href="../architecture/#the-calling-rule">the calling rule</a>).</li>
+<li>Read a required value with <code>context["key"]</code> and an optional one with <code>context.get(key, default)</code>,
+  so that handlers with different needs can share an event.</li>
+<li>Write <code>def f(_)</code> for a handler that ignores the context, and wrap an existing function in a lambda
+  such as <code>lambda _: model.train()</code> (see <a href="../architecture/#the-calling-rule">the calling rule</a>).</li>
 <li>If the failure of a handler must not stop the program, catch the exception in the handler.</li>
 <li>A synchronous handler that is slow blocks the caller (and the event loop in <code>atrigger_event</code>).
   Hand the work to an executor in the handler if the caller must not wait.</li>
@@ -1561,9 +1539,10 @@ recipes, the <a href="../architecture/">how it works page</a> states the rules o
   the same counter. Call <code>reset()</code> to restart it.</li>
 <li>For a warm-up, use <code>PeriodicCondition(freq=1, start=n)</code>: it is <code>False</code> for the first <code>n</code> calls,
   then <code>True</code>.</li>
-<li>To combine conditions, write a function. <code>lambda: a() and b()</code> skips <code>b</code> when <code>a</code> is <code>False</code>, so
-  use it when <code>b</code> is costly and stateless. <code>lambda: all([a(), b()])</code> evaluates both, so stateful
-  conditions advance together.</li>
+<li>To combine conditions, write a function. <code>lambda context: a(context) and b(context)</code> skips <code>b</code> when
+  <code>a</code> is <code>False</code>, so use it when <code>b</code> is costly and stateless.
+  <code>lambda context: all([a(context), b(context)])</code> evaluates both, so stateful conditions advance
+  together.</li>
 <li>Use a condition to avoid the work of an expensive handler.</li>
 </ul>
 <h3 id="the-event-manager">The event manager<a class="headerlink" href="#the-event-manager" title="Permanent link">&para;</a></h3>
@@ -1586,18 +1565,6 @@ recipes, the <a href="../architecture/">how it works page</a> states the rules o
 <a href="../architecture/#performance">Performance</a>). To find a slow handler, time it or wrap it (see
 <a href="../examples/#trace-the-handlers">Trace the handlers</a>). In a loop that triggers often with the same
 data, build one <code>Context</code> and reuse it.</p>
-<h2 id="pitfalls">Pitfalls<a class="headerlink" href="#pitfalls" title="Permanent link">&para;</a></h2>
-<ul>
-<li><strong>A handler that triggers its own event</strong> recurses until <code>RecursionError</code>. Use a different event
-  or a flag.</li>
-<li><strong>Registering the same handler twice</strong> runs it twice (see
-  <a href="../examples/#register-a-handler-only-once">Register a handler only once</a>).</li>
-<li><strong>Mutating a value of the payload</strong>: the values are not copied, so the next handlers see the
-  change.</li>
-<li><strong>An optional parameter</strong>: <code>def f(context=None)</code> never receives the context.</li>
-<li><strong>Threads</strong>: a handler that shares state must protect it, and so must a stateful condition that
-  you write. <code>PeriodicCondition</code> protects its counter.</li>
-</ul>
 <h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
 <h3 id="my-handler-does-not-run">My handler does not run<a class="headerlink" href="#my-handler-does-not-run" title="Permanent link">&para;</a></h3>
 <ol>
@@ -1630,9 +1597,10 @@ valid: write <code>trigger_event("epoch_end", {"epoch": 1})</code>.</p>
 <p>A manager or a subscription, or an object that holds one, was copied or sent to another process.
 Create a new manager there and register the handlers, or exclude the manager and the subscriptions
 from the state of the object.</p>
-<h3 id="typeerror-must-need-no-argument-or-only-the-context"><code>TypeError: ... must need no argument or only the context</code><a class="headerlink" href="#typeerror-must-need-no-argument-or-only-the-context" title="Permanent link">&para;</a></h3>
-<p>The manager cannot call the handler or the condition with nothing or with the context only. Wrap it
-in a function or a lambda, or bind the extra arguments with <code>functools.partial</code> (see
+<h3 id="typeerror-must-take-the-context-as-its-only-required-argument"><code>TypeError: ... must take the context as its only required argument</code><a class="headerlink" href="#typeerror-must-take-the-context-as-its-only-required-argument" title="Permanent link">&para;</a></h3>
+<p>The manager cannot call the handler or the condition as <code>f(context)</code>, for example a function without
+parameter, or <code>def f(context=None)</code>. Give it one parameter without default, wrap it in a function or
+a lambda, or bind the extra arguments with <code>functools.partial</code> (see
 <a href="../architecture/#the-calling-rule">the calling rule</a>).</p>
 <h3 id="typeerror-must-not-be-a-generator-function"><code>TypeError: ... must not be a generator function</code><a class="headerlink" href="#typeerror-must-not-be-a-generator-function" title="Permanent link">&para;</a></h3>
 <p>Calling a function with <code>yield</code>, or an object whose <code>__call__</code> has one, runs none of its code.

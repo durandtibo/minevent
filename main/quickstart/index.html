@@ -1174,30 +1174,30 @@
 <h1 id="quickstart">Quickstart<a class="headerlink" href="#quickstart" title="Permanent link">&para;</a></h1>
 <p><code>minevent</code> has three concepts:</p>
 <ul>
-<li>an <strong>event</strong> is a case-sensitive string that names something that happens;</li>
+<li>an <strong>event</strong> is a string that names something that happens;</li>
 <li>an <strong>event handler</strong> is a callable that runs when the event happens;</li>
 <li>an <strong>event manager</strong> stores the handlers and triggers the events.</li>
 </ul>
-<p>This page shows how to register a handler, trigger an event, pass data and remove a handler. The
-<a href="../examples/">examples</a> show more recipes, and the <a href="../architecture/">how it works page</a> states the
-rules of the library. To install it, see <a href="../get_started/">Get Started</a>.</p>
+<p>This page shows one example of each feature. The <a href="../architecture/">how it works page</a> states the
+rules of the library, and the <a href="../examples/">examples</a> combine the features. To install it, see
+<a href="../get_started/">Get Started</a>.</p>
 <h2 id="register-a-handler-and-trigger-an-event">Register a handler and trigger an event<a class="headerlink" href="#register-a-handler-and-trigger-an-event" title="Permanent link">&para;</a></h2>
-<p>Create an <code>EventManager</code>, add a handler to an event and trigger the event:</p>
-<div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">hello_handler</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<p>Create an <code>EventManager</code>, add a handler to an event and trigger the event. A handler is called with
+the context of the trigger, and <code>_</code> shows that this one does not use it (see
+<a href="../architecture/#the-calling-rule">the calling rule</a>):</p>
+<div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">EventManager</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">hello_handler</span><span class="p">(</span><span class="n">_</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">"Hello!"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"training_end"</span><span class="p">,</span> <span class="n">hello_handler</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"training_end"</span><span class="p">)</span>
 <span class="go">Hello!</span>
 </code></pre></div>
-<p>The manager has no global state: create one instance and pass it where it is needed. Triggering an
-event that has no handler does nothing. The handlers of an event run one after the other, in the
-order they were added:</p>
+<p>An event can have several handlers:</p>
 <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"training_end"</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"save the model"</span><span class="p">))</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"training_end"</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"send a report"</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"training_end"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"save the model"</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"training_end"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"send a report"</span><span class="p">))</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"training_end"</span><span class="p">)</span>
 <span class="go">save the model</span>
 <span class="go">send a report</span>
@@ -1206,34 +1206,29 @@ order they were added:</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">events</span>
 <span class="go">['training_end']</span>
 </code></pre></div>
-<p>The decorator <code>on</code> registers a function and returns it unchanged:</p>
-<div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
+<p>The decorator <code>on</code> registers a function:</p>
+<div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nd">@manager</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s2">"training_start"</span><span class="p">)</span>
-<span class="gp">... </span><span class="k">def</span><span class="w"> </span><span class="nf">log_start</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="gp">... </span><span class="k">def</span><span class="w"> </span><span class="nf">log_start</span><span class="p">(</span><span class="n">_</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">"start"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"training_start"</span><span class="p">)</span>
 <span class="go">start</span>
 </code></pre></div>
 <h2 id="pass-data-to-the-handlers">Pass data to the handlers<a class="headerlink" href="#pass-data-to-the-handlers" title="Permanent link">&para;</a></h2>
-<p>The second argument of <code>trigger_event</code> is the payload, a dict for example. A handler that has a
-parameter receives it in a read-only <code>Context</code>; a handler without parameter ignores it:</p>
+<p>The second argument of <code>trigger_event</code> is the payload, a dict for example. The handlers read it in a
+<code>Context</code>, with <code>context["key"]</code> for a required value and <code>context.get("key")</code> for an optional one:</p>
 <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">log_epoch</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"epoch </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">'epoch'</span><span class="p">]</span><span class="si">}</span><span class="s2">, loss </span><span class="si">{</span><span class="n">context</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'loss'</span><span class="p">,</span><span class="w"> </span><span class="s1">'unknown'</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">log_epoch</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"done"</span><span class="p">))</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"epoch"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"loss"</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">})</span>
 <span class="go">epoch 1, loss 0.5</span>
-<span class="go">done</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"epoch"</span><span class="p">:</span> <span class="mi">2</span><span class="p">})</span>
 <span class="go">epoch 2, loss unknown</span>
-<span class="go">done</span>
 </code></pre></div>
-<p><code>context["epoch"]</code> reads a required value and raises a <code>KeyError</code> if it is missing, and
-<code>context.get("loss")</code> reads an optional one. The arguments that do not come from the payload are
-bound with <code>functools.partial</code>:</p>
+<p>The arguments that do not come from the payload can be bound with <code>functools.partial</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">functools</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -1243,20 +1238,16 @@ bound with <code>functools.partial</code>:</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"epoch"</span><span class="p">:</span> <span class="mi">3</span><span class="p">})</span>
 <span class="go">save epoch 3 to model.pt</span>
 </code></pre></div>
-<p>A handler needs no argument or only the context. A callable such as <code>print</code> is rejected when it is
-registered: wrap it in a function or a lambda (see
-<a href="../architecture/#the-calling-rule">the calling rule</a>).</p>
 <h2 id="control-when-a-handler-runs">Control when a handler runs<a class="headerlink" href="#control-when-a-handler-runs" title="Permanent link">&para;</a></h2>
-<p>A <strong>condition</strong> is a function that returns a boolean: the handler runs only if it returns <code>True</code>.
-<code>PeriodicCondition</code> is provided, and a condition can read the payload:</p>
+<p>A <strong>condition</strong> is a function of the context that returns a boolean, such as <code>PeriodicCondition</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span><span class="p">,</span> <span class="n">PeriodicCondition</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="s2">"epoch_end"</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"checkpoint"</span><span class="p">),</span> <span class="n">condition</span><span class="o">=</span><span class="n">PeriodicCondition</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="s2">"epoch_end"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"checkpoint"</span><span class="p">),</span> <span class="n">condition</span><span class="o">=</span><span class="n">PeriodicCondition</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="s2">"epoch_end"</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="k">lambda</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"late epoch"</span><span class="p">),</span>
+<span class="gp">... </span>    <span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"late epoch"</span><span class="p">),</span>
 <span class="gp">... </span>    <span class="n">condition</span><span class="o">=</span><span class="k">lambda</span> <span class="n">context</span><span class="p">:</span> <span class="n">context</span><span class="p">[</span><span class="s2">"epoch"</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">,</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
@@ -1268,32 +1259,31 @@ registered: wrap it in a function or a lambda (see
 <p>With <code>once=True</code>, a handler runs at most once:</p>
 <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"first epoch"</span><span class="p">),</span> <span class="n">once</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"first epoch"</span><span class="p">),</span> <span class="n">once</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">)</span>
 <span class="go">first epoch</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="remove-a-handler">Remove a handler<a class="headerlink" href="#remove-a-handler" title="Permanent link">&para;</a></h2>
-<p><code>add_event_handler</code> returns a <code>Subscription</code>, the registration of the handler. Its <code>remove()</code> method
-removes that registration only:</p>
+<p><code>add_event_handler</code> returns a <code>Subscription</code>, which removes the registration:</p>
 <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">subscription</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"epoch"</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">subscription</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"epoch"</span><span class="p">))</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">subscription</span><span class="o">.</span><span class="n">remove</span><span class="p">()</span>
 <span class="go">True</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">subscription</span><span class="o">.</span><span class="n">remove</span><span class="p">()</span>
 <span class="go">False</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">)</span>
 </code></pre></div>
-<p>A <code>with</code> block removes the registration when it exits. <code>clear_event</code> removes all the handlers of an
-event, and <code>reset</code> removes all the handlers:</p>
+<p>A <code>with</code> block scopes a registration, <code>clear_event</code> removes the handlers of an event, and <code>reset</code>
+removes all the handlers:</p>
 <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"batch_end"</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"batch"</span><span class="p">)):</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"batch_end"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"batch"</span><span class="p">)):</span>
 <span class="gp">... </span>    <span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"batch_end"</span><span class="p">)</span>
 <span class="go">batch</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"batch_end"</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"batch_end"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="kc">None</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="kc">None</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">clear_event</span><span class="p">(</span><span class="s2">"batch_end"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">events</span>
 <span class="go">['epoch_end']</span>
@@ -1302,20 +1292,22 @@ event, and <code>reset</code> removes all the handlers:</p>
 <span class="go">EventManager(events={})</span>
 </code></pre></div>
 <h2 id="coroutine-handlers">Coroutine handlers<a class="headerlink" href="#coroutine-handlers" title="Permanent link">&para;</a></h2>
-<p>Trigger an event with <code>atrigger_event</code> to await its coroutine handlers (<code>trigger_event</code> raises a
-<code>TypeError</code> for them):</p>
+<p>Trigger an event with <code>atrigger_event</code> to await its coroutine handlers. It runs the synchronous
+handlers too:</p>
 <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">hello_handler</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Hello </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">'name'</span><span class="p">]</span><span class="si">}</span><span class="s2">!"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">hello_handler</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"done"</span><span class="p">))</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">manager</span><span class="o">.</span><span class="n">atrigger_event</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"name"</span><span class="p">:</span> <span class="s2">"John"</span><span class="p">}))</span>
 <span class="go">Hello John!</span>
+<span class="go">done</span>
 </code></pre></div>
 <h2 id="errors">Errors<a class="headerlink" href="#errors" title="Permanent link">&para;</a></h2>
-<p>An exception of a handler reaches the caller of the trigger, and the next handlers are skipped. A
-note says which handler raised it:</p>
+<p>An exception of a handler reaches the caller of the trigger, with a note that says which handler
+raised it:</p>
 <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">EventManager</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">log_loss</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="n">context</span><span class="p">[</span><span class="s2">"loss"</span><span class="p">])</span>
@@ -1332,7 +1324,7 @@ note says which handler raised it:</p>
 <h2 id="next-steps">Next steps<a class="headerlink" href="#next-steps" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../examples/">Examples</a>: recipes for training loops, plugins, async programs and tests.</li>
-<li><a href="../guide/">User guide</a>: recommendations, pitfalls and troubleshooting.</li>
+<li><a href="../guide/">User guide</a>: recommendations and troubleshooting.</li>
 <li><a href="../architecture/">How it works</a>: the rules, the guarantees and the limits.</li>
 <li><a href="../design/">Design choices</a>: the reasons and the trade-offs.</li>
 <li><a href="../refs/">Reference</a>: the signatures of the classes.</li>

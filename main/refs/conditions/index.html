@@ -1213,9 +1213,9 @@
         <p>Implement the conditions that can be used in the event system.</p>
 <p>A condition is any synchronous function that returns a boolean (a
 lambda, a method or a callable object). It is called before its handler,
-like a handler: as <code>condition()</code>, or as <code>condition(context)</code> with
-the read-only <code>Context</code> of the trigger (see
-<code>minevent.calls.adapt_call</code>). <code>Condition</code> is its type, and
+like a handler: as <code>condition(context)</code> with the read-only <code>Context</code>
+of the trigger (see <code>minevent.calls.check_signature</code>). <code>Condition</code>
+is its type, and
 <code>EventManager.add_event_handler</code> states how a registration uses it.
 <code>PeriodicCondition</code> counts its calls. The user guide of the
 documentation shows how to combine conditions.</p>
@@ -1226,16 +1226,16 @@ documentation shows how to combine conditions.</p>
   <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span><span class="p">,</span> <span class="n">PeriodicCondition</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="s2">"hello"</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"Hello!"</span><span class="p">),</span> <span class="n">condition</span><span class="o">=</span><span class="n">PeriodicCondition</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="s2">"hello"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"Hello!"</span><span class="p">),</span> <span class="n">condition</span><span class="o">=</span><span class="n">PeriodicCondition</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"hello"</span><span class="p">)</span>
 <span class="go">Hello!</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"hello"</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"bye"</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"Bye!"</span><span class="p">),</span> <span class="n">condition</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="kc">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"bye"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"Bye!"</span><span class="p">),</span> <span class="n">condition</span><span class="o">=</span><span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="kc">False</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"bye"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="s2">"epoch_end"</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="k">lambda</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"late epoch"</span><span class="p">),</span>
+<span class="gp">... </span>    <span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"late epoch"</span><span class="p">),</span>
 <span class="gp">... </span>    <span class="n">condition</span><span class="o">=</span><span class="k">lambda</span> <span class="n">context</span><span class="p">:</span> <span class="n">context</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"epoch"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">,</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">trigger_event</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"epoch"</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span>
@@ -1273,13 +1273,13 @@ documentation shows how to combine conditions.</p>
   </span>
 
 <a href="#minevent.conditions.Condition" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="n">Condition</span> <span class="o">=</span> <span class="n"><span title="collections.abc.Callable">Callable</span></span><span class="p">[[],</span> <span class="n"><span title="bool">bool</span></span><span class="p">]</span> <span class="o">|</span> <span class="n"><span title="collections.abc.Callable">Callable</span></span><span class="p">[[</span><span class="n"><a class="autorefs autorefs-internal" title="minevent.context.Context" href="../context/#minevent.context.Context">Context</a></span><span class="p">],</span> <span class="n"><span title="bool">bool</span></span><span class="p">]</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">Condition</span> <span class="o">=</span> <span class="n"><span title="collections.abc.Callable">Callable</span></span><span class="p">[[</span><span class="n"><a class="autorefs autorefs-internal" title="minevent.context.Context" href="../context/#minevent.context.Context">Context</a></span><span class="p">],</span> <span class="n"><span title="bool">bool</span></span><span class="p">]</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>A condition: a function that returns a boolean, without parameter or
-with the <code>Context</code> of the trigger.</p>
+        <p>A condition: a function of the <code>Context</code> of the trigger that
+returns a boolean.</p>
 
     </div>
 
@@ -1314,7 +1314,8 @@ calls and <code>True</code> afterwards.</p>
 counter, so the condition is stateful. Do not share one instance
 between several handlers, because they would advance the same
 counter. The <code>step</code> property reads the counter without advancing
-it, and <code>reset</code> restarts it.</p>
+it, and <code>reset</code> restarts it. The condition is called with the
+context of the trigger, like any condition, and ignores it.</p>
 <p>The counter is protected by a lock, so every call is counted once,
 from any number of threads, with and without the GIL. A lock cannot
 be copied or pickled: a copy of a condition (<code>copy.copy</code>,
@@ -1408,15 +1409,16 @@ lower than 0.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">PeriodicCondition</span>
+  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">PeriodicCondition</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">context</span> <span class="o">=</span> <span class="n">Context</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">condition</span> <span class="o">=</span> <span class="n">PeriodicCondition</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="p">[</span><span class="n">condition</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">7</span><span class="p">)]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">[</span><span class="n">condition</span><span class="p">(</span><span class="n">context</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">7</span><span class="p">)]</span>
 <span class="go">[True, False, False, True, False, False, True]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">condition</span> <span class="o">=</span> <span class="n">PeriodicCondition</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="p">[</span><span class="n">condition</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">7</span><span class="p">)]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">[</span><span class="n">condition</span><span class="p">(</span><span class="n">context</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">7</span><span class="p">)]</span>
 <span class="go">[False, False, True, False, False, True, False]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">condition</span> <span class="o">=</span> <span class="n">PeriodicCondition</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="p">[</span><span class="n">condition</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">)]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">[</span><span class="n">condition</span><span class="p">(</span><span class="n">context</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">)]</span>
 <span class="go">[False, False, True, True]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">clone</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span>
@@ -1603,11 +1605,11 @@ of the original.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">PeriodicCondition</span>
+  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">PeriodicCondition</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">condition</span> <span class="o">=</span> <span class="n">PeriodicCondition</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">condition</span><span class="o">.</span><span class="n">step</span>
 <span class="go">0</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">condition</span><span class="p">(),</span> <span class="n">condition</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">condition</span><span class="p">(</span><span class="n">Context</span><span class="p">()),</span> <span class="n">condition</span><span class="p">(</span><span class="n">Context</span><span class="p">())</span>
 <span class="go">(True, False)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">condition</span><span class="o">.</span><span class="n">step</span>
 <span class="go">2</span>
@@ -1639,12 +1641,12 @@ created.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">PeriodicCondition</span>
+  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">PeriodicCondition</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">condition</span> <span class="o">=</span> <span class="n">PeriodicCondition</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">condition</span><span class="p">(),</span> <span class="n">condition</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">condition</span><span class="p">(</span><span class="n">Context</span><span class="p">()),</span> <span class="n">condition</span><span class="p">(</span><span class="n">Context</span><span class="p">())</span>
 <span class="go">(True, False)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">condition</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">condition</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">condition</span><span class="p">(</span><span class="n">Context</span><span class="p">())</span>
 <span class="go">True</span>
 </code></pre></div>
 </details>

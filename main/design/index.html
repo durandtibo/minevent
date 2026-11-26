@@ -752,10 +752,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#the-signature-decides-how-a-handler-is-called" class="md-nav__link">
+  <a href="#a-handler-is-always-called-with-the-context" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The signature decides how a handler is called
+        A handler is always called with the context
       
     </span>
   </a>
@@ -1207,10 +1207,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#the-signature-decides-how-a-handler-is-called" class="md-nav__link">
+  <a href="#a-handler-is-always-called-with-the-context" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The signature decides how a handler is called
+        A handler is always called with the context
       
     </span>
   </a>
@@ -1404,7 +1404,7 @@ themselves are on the <a href="../architecture/">how it works page</a>.</p>
 <li><strong>Costs</strong>: a typo is silent, because triggering an event without handler is valid. There is no
   hierarchy or wildcard: <code>training.batch.end</code> is only a naming convention, and the data of an event
   goes in the payload, not in the event.</li>
-<li><strong>In practice</strong>: define the names once, as constants or a <code>StrEnum</code>.</li>
+<li><strong>In practice</strong>: see the <a href="../guide/#events">recommendations about events</a>.</li>
 </ul>
 <h2 id="a-handler-is-a-plain-callable">A handler is a plain callable<a class="headerlink" href="#a-handler-is-a-plain-callable" title="Permanent link">&para;</a></h2>
 <p>There is no base class or protocol to implement, and a condition is a function too.</p>
@@ -1415,18 +1415,18 @@ themselves are on the <a href="../architecture/">how it works page</a>.</p>
   signature is found at registration (or by your type checker), not by an interface.</li>
 <li><strong>In practice</strong>: use a class with <code>__call__</code> when a handler needs a state.</li>
 </ul>
-<h2 id="the-signature-decides-how-a-handler-is-called">The signature decides how a handler is called<a class="headerlink" href="#the-signature-decides-how-a-handler-is-called" title="Permanent link">&para;</a></h2>
-<p>A handler is called as <code>f()</code> or <code>f(context)</code>, according to the parameters that have no default
-(<a href="../architecture/#the-calling-rule">the calling rule</a>). The signature is read once, at
+<h2 id="a-handler-is-always-called-with-the-context">A handler is always called with the context<a class="headerlink" href="#a-handler-is-always-called-with-the-context" title="Permanent link">&para;</a></h2>
+<p>A handler and a condition are called as <code>f(context)</code>
+(<a href="../architecture/#the-calling-rule">the calling rule</a>). The signature is checked once, at
 registration.</p>
 <ul>
-<li><strong>Benefits</strong>: a handler declares only what it needs, with no option to repeat at each
-  registration, and functions with default arguments, such as <code>model.train(mode=True)</code>, are
-  registered as they are. A callable that cannot be called is rejected immediately.</li>
-<li><strong>Costs</strong>: the behavior is implicit. An optional parameter such as <code>context=None</code> never receives
-  the context, and callables that accept <code>*args</code> (<code>print</code>, <code>Mock()</code>) or cannot be inspected are
-  rejected, even when a call would work.</li>
-<li><strong>In practice</strong>: wrap such a callable in a lambda or a function, which states how it is called.</li>
+<li><strong>Benefits</strong>: there is one call to learn, and a context is always there. Adding or removing a
+  default never changes the call, and a callable that cannot be called is rejected immediately,
+  before a long training.</li>
+<li><strong>Costs</strong>: a function that does not need the context declares it anyway, or is wrapped in a lambda,
+  so <code>model.train</code> is not registered as it is. Callables that accept <code>*args</code> (<code>print</code>, <code>Mock()</code>) or
+  cannot be inspected are rejected, even when a call would work.</li>
+<li><strong>In practice</strong>: see the <a href="../guide/#handlers-and-payload">recommendations about handlers</a>.</li>
 </ul>
 <h2 id="the-payload-is-one-read-only-context">The payload is one read-only Context<a class="headerlink" href="#the-payload-is-one-read-only-context" title="Permanent link">&para;</a></h2>
 <p>The data of a trigger is passed as one <code>Context</code>, not as keyword arguments.</p>
@@ -1437,9 +1437,7 @@ registration.</p>
 <li><strong>Costs</strong>: the signature of a handler does not list the data that it needs, a typo in a key is
   found at run time, and a dict is copied at each trigger. <code>Context</code> is final: it is data, so build
   one from your mapping, or wrap it, instead of subclassing it.</li>
-<li><strong>In practice</strong>: read a required value with <code>context["key"]</code> and an optional one with
-  <code>context.get("key", default)</code>. Build a <code>Context</code> once to reuse it. To give named arguments to an
-  existing function, adapt it: <code>lambda context: f(context["epoch"])</code>.</li>
+<li><strong>In practice</strong>: see the <a href="../guide/#handlers-and-payload">recommendations about the payload</a>.</li>
 </ul>
 <p>The protection is shallow: the values are not copied, because copying arbitrary objects (a model, a
 tensor) is expensive or impossible. A mutable value can be changed by a handler; take a
@@ -1481,8 +1479,7 @@ handlers are skipped.</p>
   your code, and the dispatch has no error policy to configure.</li>
 <li><strong>Costs</strong>: one failing handler prevents the next ones from running, and there is no option to
   collect the errors into an <code>ExceptionGroup</code>.</li>
-<li><strong>In practice</strong>: if a handler must not stop the others, catch its exceptions inside it, or wrap it
-  in a function that does.</li>
+<li><strong>In practice</strong>: see the <a href="../guide/#handlers-and-payload">recommendations about handlers</a>.</li>
 </ul>
 <h2 id="handlers-run-one-after-the-other">Handlers run one after the other<a class="headerlink" href="#handlers-run-one-after-the-other" title="Permanent link">&para;</a></h2>
 <p>A trigger is synchronous and sequential. Coroutines are opt-in with <code>atrigger_event</code>, which awaits
@@ -1492,7 +1489,7 @@ them one at a time, and the library starts no thread.</p>
   suits the sequential workflows of Machine Learning, and it is easy to debug.</li>
 <li><strong>Costs</strong>: a slow handler delays the next ones and the caller, handlers do not run concurrently,
   and a synchronous handler blocks the event loop.</li>
-<li><strong>In practice</strong>: inside one handler, use <code>asyncio.gather</code>, <code>asyncio.to_thread</code> or an executor.</li>
+<li><strong>In practice</strong>: see the <a href="../guide/#handlers-and-payload">recommendations about handlers</a>.</li>
 </ul>
 <h2 id="a-synchronous-trigger-rejects-coroutine-handlers-first">A synchronous trigger rejects coroutine handlers first<a class="headerlink" href="#a-synchronous-trigger-rejects-coroutine-handlers-first" title="Permanent link">&para;</a></h2>
 <p><code>trigger_event</code> looks for a coroutine function among the handlers before it runs anything.</p>
@@ -1501,15 +1498,16 @@ them one at a time, and the library starts no thread.</p>
   mistake appears at the first trigger, not at the first one where a condition is true.</li>
 <li><strong>Costs</strong>: one more pass over the handlers at each trigger, and a coroutine handler whose
   condition is false rejects the trigger too.</li>
-<li><strong>In practice</strong>: trigger an event that has coroutine handlers with <code>atrigger_event</code>.</li>
+<li><strong>In practice</strong>: see the
+  <a href="../guide/#typeerror-is-a-coroutine-function-use-atrigger_event-and-returned-an-awaitable">troubleshooting of coroutine handlers</a>.</li>
 </ul>
 <h2 id="conditions-are-synchronous">Conditions are synchronous<a class="headerlink" href="#conditions-are-synchronous" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Benefits</strong>: a condition has the same meaning with <code>trigger_event</code> and <code>atrigger_event</code>, and a
   coroutine, which is truthy, cannot make a handler run by mistake.</li>
 <li><strong>Costs</strong>: a decision that needs I/O cannot be a condition.</li>
-<li><strong>In practice</strong>: compute the value before the trigger and pass it in the payload, or decide inside
-  a coroutine handler.</li>
+<li><strong>In practice</strong>: see the
+  <a href="../guide/#typeerror-condition-must-be-synchronous-and-condition-returned-an-awaitable">troubleshooting of asynchronous conditions</a>.</li>
 </ul>
 <h2 id="once-is-claimed-before-the-call"><code>once</code> is claimed before the call<a class="headerlink" href="#once-is-claimed-before-the-call" title="Permanent link">&para;</a></h2>
 <p>A <code>once</code> registration is removed after its condition and just before its handler.</p>
@@ -1539,21 +1537,20 @@ and it cannot be copied or pickled.</p>
   "is there a manager". A copy that silently shares or loses registrations cannot happen.</li>
 <li><strong>Costs</strong>: you pass the manager to the code that triggers events, and an object that holds a
   manager needs its own rule to be pickled, for example to be sent to another process.</li>
-<li><strong>In practice</strong>: create a new manager in each process and register the handlers there.</li>
+<li><strong>In practice</strong>: see the
+  <a href="../guide/#typeerror-eventmanager-cannot-be-copied-or-pickled-and-subscription-cannot-be">troubleshooting of copies</a>.</li>
 </ul>
 <h2 id="the-manager-keeps-strong-references">The manager keeps strong references<a class="headerlink" href="#the-manager-keeps-strong-references" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Benefits</strong>: a registered lambda or bound method cannot disappear unexpectedly.</li>
 <li><strong>Costs</strong>: an object stays alive while one of its methods is registered.</li>
-<li><strong>In practice</strong>: remove the subscriptions that you do not need, with <code>remove()</code>, a <code>with</code> block,
-  <code>clear_event</code> or <code>reset</code>.</li>
+<li><strong>In practice</strong>: see the <a href="../guide/#the-event-manager">recommendations about the manager</a>.</li>
 </ul>
 <h2 id="nothing-is-logged">Nothing is logged<a class="headerlink" href="#nothing-is-logged" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Benefits</strong>: no configuration, no output that you did not ask for, and no cost on a trigger.</li>
 <li><strong>Costs</strong>: to see which handlers ran, you add the trace yourself.</li>
-<li><strong>In practice</strong>: look at <code>repr(manager)</code> and <code>get_subscriptions(event)</code>, or
-  <a href="../examples/#trace-the-handlers">trace the handlers</a>.</li>
+<li><strong>In practice</strong>: see <a href="../guide/#debug">how to debug</a>.</li>
 </ul>
 <h2 id="no-dependency-and-a-small-surface">No dependency and a small surface<a class="headerlink" href="#no-dependency-and-a-small-surface" title="Permanent link">&para;</a></h2>
 <p><code>minevent</code> depends on the standard library only, so it can be added to any project without a version

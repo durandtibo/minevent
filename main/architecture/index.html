@@ -1358,7 +1358,7 @@ recommendations.</p>
 </tr>
 <tr>
 <td><code>Handler</code></td>
-<td>A callable that runs when the event happens, called as <code>f()</code> or <code>f(context)</code>.</td>
+<td>A callable that runs when the event happens, called as <code>f(context)</code>.</td>
 </tr>
 <tr>
 <td><code>EventManager</code></td>
@@ -1382,8 +1382,9 @@ recommendations.</p>
 </tr>
 </tbody>
 </table>
-<p>These six names (all but "event") and <code>__version__</code> are what <code>minevent</code> exports. <code>EventManager</code>
-has the following members:</p>
+<p>These six names (all but "event") and <code>__version__</code> are what <code>minevent</code> exports. <strong>The public API
+is what <code>minevent</code> exports</strong>: the other names of its modules, such as the functions of
+<code>minevent.calls</code>, can change. <code>EventManager</code> has the following members:</p>
 <table>
 <thead>
 <tr>
@@ -1423,10 +1424,10 @@ has the following members:</p>
 <ol>
 <li>It checks that the event is a <code>str</code>, that the handler and the condition (if any) are callable,
    and that <code>once</code> is a <code>bool</code> (not <code>1</code> or <code>"yes"</code>).</li>
-<li>It reads the signature of the handler and of the condition to decide how to call each of them
-   (see <a href="#the-calling-rule">the calling rule</a>). It also rejects a generator function, and a
-   coroutine function used as a condition. A callable object is judged by its <code>__call__</code>. It
-   remembers whether the handler is a coroutine function.</li>
+<li>It reads the signature of the handler and of the condition, and rejects one that cannot be called
+   with the context (see <a href="#the-calling-rule">the calling rule</a>). It also rejects a generator
+   function, and a coroutine function used as a condition. A callable object is judged by its
+   <code>__call__</code>. It remembers whether the handler is a coroutine function.</li>
 <li>It creates a <code>Subscription</code> and appends it to the registrations of the event.</li>
 </ol>
 <p>Every rejection is a <code>TypeError</code> that says which argument is wrong, and it leaves the manager
@@ -1445,16 +1446,17 @@ for each registration of the snapshot, in registration order:
     has a condition that is False?       -&gt; skip
     removed by its condition?            -&gt; skip
     once=True?                           -&gt; remove the registration, or skip if already removed
-    call handler() or handler(context)
+    call handler(context)
     the handler returned an awaitable?   -&gt; trigger_event raises, atrigger_event awaits it
 </code></pre></div>
 <p>If a condition or a handler raises, the trigger stops: the exception reaches the caller, and the
 next registrations are skipped. Triggering an event that has no handler does nothing (the event and
 the context are still checked).</p>
 <h2 id="the-calling-rule">The Calling Rule<a class="headerlink" href="#the-calling-rule" title="Permanent link">&para;</a></h2>
-<p>A handler is written as <code>def g()</code> or <code>def g(context: Context)</code>, and any callable that can be called
-in one of these two ways works: <strong>the parameters that have a default are ignored.</strong> The same rule
-applies to a condition, which returns a boolean. It is checked once, at registration.</p>
+<p>A handler and a condition are always called as <code>f(context)</code>, with the read-only <code>Context</code> of the
+trigger. <strong>Exactly one parameter must lack a default, and it must be positional: it receives the
+context.</strong> The other parameters keep their default. A condition returns a boolean. The rule is
+checked once, at registration.</p>
 <table>
 <thead>
 <tr>
@@ -1465,29 +1467,29 @@ applies to a condition, which returns a boolean. It is checked once, at registra
 </thead>
 <tbody>
 <tr>
-<td>none: no parameter</td>
-<td><code>def g()</code></td>
-<td><code>g()</code></td>
-</tr>
-<tr>
-<td>none: only positional with defaults</td>
-<td><code>model.train</code>, <code>lambda i=i: ...</code></td>
-<td><code>g()</code></td>
-</tr>
-<tr>
-<td>none: only keyword-only with defaults</td>
-<td><code>def g(*, v=1)</code>, <code>partial(f, v=1)</code></td>
-<td><code>g()</code></td>
-</tr>
-<tr>
 <td>one, positional</td>
-<td><code>def g(context)</code></td>
+<td><code>def g(context)</code>, <code>def g(_)</code></td>
 <td><code>g(context)</code></td>
 </tr>
 <tr>
 <td>one, positional, then defaults</td>
 <td><code>def g(context, verbose=False)</code></td>
 <td><code>g(context)</code></td>
+</tr>
+<tr>
+<td>one, left by a partial</td>
+<td><code>partial(save, "model.pt")</code></td>
+<td><code>save(path, context)</code></td>
+</tr>
+<tr>
+<td>none: no parameter</td>
+<td><code>def g()</code></td>
+<td><code>TypeError</code></td>
+</tr>
+<tr>
+<td>none: only parameters with defaults</td>
+<td><code>def g(context=None)</code>, <code>model.train</code></td>
+<td><code>TypeError</code></td>
 </tr>
 <tr>
 <td><code>*args</code>, with or without <code>**kwargs</code></td>
@@ -1516,7 +1518,7 @@ applies to a condition, which returns a boolean. It is checked once, at registra
 </tr>
 <tr>
 <td>(any) generator or async generator</td>
-<td><code>def g(): yield</code></td>
+<td><code>def g(context): yield</code></td>
 <td><code>TypeError</code></td>
 </tr>
 </tbody>
@@ -1527,17 +1529,19 @@ and <code>functools.partial</code> objects follow the same table. The signature 
 that it binds, and a decorator that uses <code>functools.wraps</code> has the signature of the wrapped
 function. For the generator and coroutine checks, a callable object is judged by its <code>__call__</code> (a
 partial by its function): an object whose <code>__call__</code> yields is rejected like a generator function.</p>
-<p>To adapt a callable, wrap it in a function, a lambda or a <code>functools.partial</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_start"</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">)</span>  <span class="c1"># model.train()</span>
-<span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_start"</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>  <span class="c1"># a chosen value</span>
+<p>A handler that does not need the context declares it and ignores it: <code>def save_model(_)</code> is the
+recommended form. To register a function that cannot be changed, wrap it in a lambda:</p>
+<div class="highlight"><pre><span></span><code><span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_start"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">())</span>  <span class="c1"># an existing function</span>
 <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"batch_end"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">context</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="n">context</span><span class="p">))</span>  <span class="c1"># print the context</span>
-<span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">save</span><span class="p">,</span> <span class="s2">"model.pt"</span><span class="p">))</span>  <span class="c1"># save(path, context)</span>
+<span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="n">save</span><span class="p">(</span><span class="s2">"model.pt"</span><span class="p">))</span>  <span class="c1"># save(path)</span>
+<span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">log</span><span class="p">,</span> <span class="s2">"log.txt"</span><span class="p">))</span>  <span class="c1"># log(path, context)</span>
 </code></pre></div>
+<p>A lambda costs two things: the notes and the <code>repr</code> show <code>&lt;lambda&gt;</code>, and a coroutine function behind
+it is only detected after its call by <code>trigger_event</code>, once the earlier handlers have run.</p>
 <p>In a test, <code>unittest.mock.create_autospec(func)</code> replaces <code>Mock()</code>: it has the signature of <code>func</code>.</p>
 <p>A lambda created in a loop reads the loop variable when it is <strong>called</strong>, but a default value is
-evaluated when the lambda is <strong>created</strong>. So <code>lambda i=i: print(i)</code> saves the current value, and it
-is called without argument. A handler that needs a saved value <strong>and</strong> the context takes the context
-first, without default: <code>lambda context, i=i: print(i, context["epoch"])</code>.</p>
+evaluated when the lambda is <strong>created</strong>. So <code>lambda _, i=i: print(i)</code> saves the current value: the
+context comes first, without default.</p>
 <h2 id="behavior-you-can-rely-on">Behavior You Can Rely On<a class="headerlink" href="#behavior-you-can-rely-on" title="Permanent link">&para;</a></h2>
 <h3 id="events-and-registrations">Events and registrations<a class="headerlink" href="#events-and-registrations" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1634,8 +1638,9 @@ first, without default: <code>lambda context, i=i: print(i, context["epoch"])</c
   and writes no output and no log. It reads <code>__version__</code> from the metadata of the installed
   package.</li>
 <li>The package is fully typed (<code>py.typed</code>). A handler argument is typed <code>Handler</code>, so a type checker
-  reports a callable that needs two arguments, a keyword-only argument or an argument of another
-  type than <code>Context</code>. The run-time check of the calling rule stays the authority. The values of a
+  reports a function without parameter, or a callable that needs two arguments, a keyword-only
+  argument or an argument of another type than <code>Context</code>. The run-time check of the calling rule
+  stays the authority. The values of a
   <code>Context</code> are typed <code>Any</code>.</li>
 </ul>
 <h2 id="limits">Limits<a class="headerlink" href="#limits" title="Permanent link">&para;</a></h2>
@@ -1659,18 +1664,20 @@ first, without default: <code>lambda context, i=i: print(i, context["epoch"])</c
   its coroutine starts to run, not when it is created: a task sees a change made to the dict, or a
   handler added, before it starts. To fix the payload at the creation, give it a <code>Context</code>, which is
   copied when it is built.</li>
-<li><strong>A hidden coroutine.</strong> A lambda, a <code>functools.cache</code> of a coroutine function, or a synchronous
-  <code>functools.wraps</code> wrapper, that returns a coroutine is only detected after its call by
-  <code>trigger_event</code>: the handlers before it have run, and a <code>once</code> registration is consumed.</li>
+<li><strong>A hidden coroutine.</strong> A lambda, or a synchronous <code>functools.wraps</code> wrapper, that returns a
+  coroutine is only detected after its call by <code>trigger_event</code>: the handlers before it have run, and
+  a <code>once</code> registration is consumed.</li>
+<li><strong>A cached function.</strong> <code>functools.cache</code> and <code>functools.lru_cache</code> hash their arguments, and a
+  <code>Context</code> is not hashable: such a handler or condition raises a <code>TypeError</code> at the trigger.</li>
 <li><strong>Hidden generators.</strong> A function that returns a generator or an asynchronous generator, such as
   a lambda that calls a generator function, does nothing.</li>
-<li><strong>An optional parameter never receives the context.</strong> <code>def f(context=None)</code> is called as <code>f()</code> and
-  gets <code>None</code>, without an error: the context needs a parameter without default.</li>
 <li><strong>A signature that depends on Python.</strong> The standard library adds signatures to C callables
   between versions: <code>set().add</code> and <code>time.sleep</code> are rejected on Python 3.11 and 3.12, and accepted
   from 3.13.</li>
-<li><strong>A condition counts its calls, not the triggers.</strong> It is not called when an earlier handler
-  raised, nor for a removed registration.</li>
+<li><strong>A condition is evaluated by truthiness, and counts its calls, not the triggers.</strong> It is not
+  called when an earlier handler raised, nor for a removed registration.</li>
+<li><strong>Names are not checked.</strong> An unbound method such as <code>Model.save</code> has one parameter without
+  default, <code>self</code>, so it is accepted and called with the context as <code>self</code>.</li>
 <li><strong>A huge integer in a message</strong> on Python 3.11 and 3.12: showing an integer of more than 4,300
   digits (a value given as a handler, a key, an argument of <code>PeriodicCondition</code>) raises the
   <code>ValueError</code> of Python instead of the error of <code>minevent</code>.</li>
