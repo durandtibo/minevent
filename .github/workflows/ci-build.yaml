@@ -50,7 +50,6 @@ jobs:
           package-name: ${{ needs.get-metadata.outputs.name }}
           dist-type: ${{ matrix.dist-type }}
       - name: Run package checks
-        shell: bash
         run: |2
 
           set -euo pipefail
