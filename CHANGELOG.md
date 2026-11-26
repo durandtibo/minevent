@@ -133,3 +133,5 @@ the new API are in the
   `PeriodicCondition` and `Context` is left to their docstrings (#933).
 - Development: a broken link or anchor between the documentation pages fails the build, in the CI and
   in the releases too (#936).
+- Development: the CI runs the unit and integration tests from the source distribution on every
+  `sdist` build (#937).
