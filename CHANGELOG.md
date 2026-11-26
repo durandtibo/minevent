@@ -84,8 +84,6 @@ the new API are in the
 - The `start` option and the `reset` method of `PeriodicCondition`, which now validates `freq`.
   `PeriodicCondition(freq=1, start=n)` is a warm-up, `False` for the first `n` calls: it replaces
   the `AfterNCondition(n)` of the development versions (#898).
-- `freq` and `start` of `PeriodicCondition` accept any integer, an object with `__index__` such as
-  the integers of numeric libraries, but not a `bool` (#899).
 - The `repr` of `PeriodicCondition` shows `freq`, `start` and `step` without thousands separator,
   for example `PeriodicCondition(freq=1000, start=0, step=0)` (#900).
 - The type aliases `Handler` and `Condition`.
