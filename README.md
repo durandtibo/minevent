@@ -127,8 +127,7 @@ pip install minevent
 `minevent` has no dependency, so no optional dependencies or extras are required. It supports Linux
 and macOS: Windows is not supported.
 
-This command installs the latest release. To use the API described on this page before it is
-released, install the `main` branch:
+This command installs the latest release. To install the code of the `main` branch instead:
 
 ```shell
 pip install git+https://github.com/durandtibo/minevent.git
@@ -144,6 +143,7 @@ the changes, with the migration from `0.5.0`, are listed in the
 | `minevent` | `python` |
 | ---------- | -------- |
 | `main`     | `>=3.11` |
+| `0.6.0`    | `>=3.11` |
 | `0.5.0`    | `>=3.10` |
 | `0.4.0`    | `>=3.10` |
 

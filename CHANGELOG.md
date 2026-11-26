@@ -3,7 +3,7 @@
 All notable changes to `minevent` are documented in this file. The releases are also listed on
 [GitHub](https://github.com/durandtibo/minevent/releases).
 
-## Unreleased
+## 0.6.0
 
 Changes since `0.5.0` (the pull request numbers are in the commit history of `main`). The rules of
 the new API are in the

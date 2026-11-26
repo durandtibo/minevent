@@ -17,7 +17,7 @@ packages = ["src/minevent"]
 
 [project]
 name = "minevent"
-version = "0.6.0a0"
+version = "0.6.0"
 description = "Minimal event system for Machine Learning"
 readme = "README.md"
 authors = [{ name = "Thibaut Durand", email = "durand.tibo+gh@gmail.com" }]
@@ -80,7 +80,7 @@ docs = [
 Homepage = "https://github.com/durandtibo/minevent"
 Repository = "https://github.com/durandtibo/minevent"
 Documentation = "https://durandtibo.github.io/minevent/"
-Changelog = "https://github.com/durandtibo/minevent/releases"
+Changelog = "https://github.com/durandtibo/minevent/blob/main/CHANGELOG.md"
 Issues = "https://github.com/durandtibo/minevent/issues"
 
 [tool.codespell]

@@ -6,8 +6,8 @@ We release patches for security vulnerabilities in the following versions:
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 0.5.x   | :white_check_mark: |
-| < 0.5   | :x:                |
+| 0.6.x   | :white_check_mark: |
+| < 0.6   | :x:                |
 
 ## Reporting a Vulnerability
 
@@ -25,9 +25,7 @@ Please report security bugs in third-party modules to the person or team maintai
 
 ## Security Best Practices
 
-When using `minevent`, please follow these security best practices:
-
-### 1. Validate the Payload
+### Validate the Payload
 
 The values of a `Context` are not checked by `minevent`. If the data of a trigger comes from an
 untrusted source, validate it in the handler to prevent injection attacks or unexpected behavior:
@@ -50,41 +48,11 @@ manager.add_event_handler("user_action", safe_handler)
 manager.trigger_event("user_action", {"user_input": "hello"})
 ```
 
-### 2. Be Cautious with Dynamic Handler Creation
+### Run Trusted Code and Load Trusted Data
 
-Avoid creating event handlers from untrusted sources or user input:
-
-```python
-# DON'T DO THIS
-user_function_name = input("Enter function name: ")
-handler = eval(user_function_name)  # DANGEROUS!
-
-# DO THIS INSTEAD
-allowed_handlers = {
-    "handler1": safe_handler1,
-    "handler2": safe_handler2,
-}
-user_choice = input("Choose handler (handler1/handler2): ")
-if user_choice in allowed_handlers:
-    handler = allowed_handlers[user_choice]
-```
-
-### 3. Keep Dependencies Updated
-
-`minevent` has no dependency. Regularly update it to get the latest security patches:
-
-```shell
-uv pip install --upgrade minevent
-```
-
-### 4. Review Event Handler Code
-
-Regularly review event handler code for potential security issues, especially handlers that:
-
-- Access file systems
-- Make network requests
-- Execute system commands
-- Process user input
+A handler or a condition runs with the privileges of your program, so register only code that you
+trust. A `Context` and a `PeriodicCondition` can be pickled: load a pickle from a source that you
+trust only.
 
 ## Disclosure Policy
 
