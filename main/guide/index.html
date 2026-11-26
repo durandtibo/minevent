@@ -773,10 +773,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#typeerror-condition-returned-an-awaitable" class="md-nav__link">
+  <a href="#typeerror-condition-must-be-synchronous-and-condition-returned-an-awaitable" class="md-nav__link">
     <span class="md-ellipsis">
       
-        TypeError: condition ... returned an awaitable
+        TypeError: condition must be synchronous and condition ... returned an awaitable
       
     </span>
   </a>
@@ -1212,10 +1212,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#typeerror-condition-returned-an-awaitable" class="md-nav__link">
+  <a href="#typeerror-condition-must-be-synchronous-and-condition-returned-an-awaitable" class="md-nav__link">
     <span class="md-ellipsis">
       
-        TypeError: condition ... returned an awaitable
+        TypeError: condition must be synchronous and condition ... returned an awaitable
       
     </span>
   </a>
@@ -1368,9 +1368,11 @@ in a function or a lambda, or bind the extra arguments with <code>functools.part
 <h3 id="typeerror-must-not-be-a-generator-function"><code>TypeError: ... must not be a generator function</code><a class="headerlink" href="#typeerror-must-not-be-a-generator-function" title="Permanent link">&para;</a></h3>
 <p>Calling a function with <code>yield</code> runs none of its code. Register a function that iterates over the
 generator.</p>
-<h3 id="typeerror-condition-returned-an-awaitable"><code>TypeError: condition ... returned an awaitable</code><a class="headerlink" href="#typeerror-condition-returned-an-awaitable" title="Permanent link">&para;</a></h3>
-<p>The condition is asynchronous. Compute the value before the trigger and pass it in the payload, or
-decide inside a coroutine handler.</p>
+<h3 id="typeerror-condition-must-be-synchronous-and-condition-returned-an-awaitable"><code>TypeError: condition must be synchronous</code> and <code>condition ... returned an awaitable</code><a class="headerlink" href="#typeerror-condition-must-be-synchronous-and-condition-returned-an-awaitable" title="Permanent link">&para;</a></h3>
+<p>The condition is asynchronous: a coroutine function is rejected at registration, and a condition
+that returns an awaitable another way (a lambda that returns a coroutine, an object with
+<code>async def __call__</code>) fails at the trigger. Compute the value before the trigger and pass it in the
+payload, or decide inside a coroutine handler.</p>
 <h3 id="typeerror-returned-an-awaitable-use-atrigger_event"><code>TypeError: ... returned an awaitable; use atrigger_event</code><a class="headerlink" href="#typeerror-returned-an-awaitable-use-atrigger_event" title="Permanent link">&para;</a></h3>
 <p>A coroutine handler was triggered with <code>trigger_event</code>. Call
 <code>await manager.atrigger_event(...)</code>.</p>

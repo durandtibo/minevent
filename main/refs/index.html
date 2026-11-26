@@ -2315,15 +2315,17 @@ Default is <code>False</code>.</p>
             <td>
               <div class="doc-md-description">
                 <p>An optional condition: a synchronous function
-that returns a boolean (a condition that returns an
-awaitable, such as a coroutine function, makes the
-trigger raise a <code>TypeError</code>). It is called each time the event is
-triggered, before the handler, and the handler runs
-only if it returns <code>True</code>. It is called as
-<code>condition()</code> or <code>condition(context)</code>, with the
-rule of the handlers: a parameter that has a default
-keeps it. If
-<code>None</code>, the handler always runs. An exception
+that returns a boolean. A coroutine function is
+rejected here, and a condition that returns an
+awaitable another way (a lambda that returns a
+coroutine, or an object with <code>async def __call__</code>)
+makes the trigger raise a <code>TypeError</code>. It is called
+each time the event is triggered, before the handler,
+and the handler runs only if it returns <code>True</code>. It is
+called as <code>condition()</code> or <code>condition(context)</code>,
+with the rule of the handlers: a parameter that has a
+default keeps it. If <code>None</code>, the handler always
+runs. An exception
 raised by the condition propagates to the caller of
 <code>trigger_event</code>. A stateful condition, such as
 <code>PeriodicCondition</code>, must not be shared between
@@ -2379,10 +2381,11 @@ registration only.</p>
               <div class="doc-md-description">
                 <p>if <code>event</code> is not a string, if <code>handler</code>
 is not callable, if <code>condition</code> is neither <code>None</code>
-nor callable, or if <code>handler</code> or <code>condition</code> is a
+nor callable, if <code>handler</code> or <code>condition</code> is a
 generator function, needs another argument than the
-context, or has a signature that cannot be inspected.
-The manager is unchanged.</p>
+context, or has a signature that cannot be inspected,
+or if <code>condition</code> is a coroutine function. The
+manager is unchanged.</p>
               </div>
             </td>
           </tr>
@@ -2911,8 +2914,9 @@ handler. See <code>add_event_handler</code>. Default is <code>None</code>.</p>
                 <p>if <code>event</code> is not a string, or, when the
 decorator is applied, if <code>condition</code> is neither
 <code>None</code> nor callable, if the decorated object is not
-callable, or if <code>add_event_handler</code> rejects the
-signature of the function or of the condition.</p>
+callable, if <code>add_event_handler</code> rejects the
+signature of the function or of the condition, or if
+<code>condition</code> is a coroutine function.</p>
               </div>
             </td>
           </tr>
@@ -3555,7 +3559,8 @@ context if it has a parameter without default. Default is
             <td>
               <div class="doc-md-description">
                 <p>if the signature of <code>handler</code> or <code>condition</code>
-is rejected (see <code>EventManager.add_event_handler</code>).</p>
+is rejected, or if <code>condition</code> is a coroutine function
+(see <code>EventManager.add_event_handler</code>).</p>
               </div>
             </td>
           </tr>

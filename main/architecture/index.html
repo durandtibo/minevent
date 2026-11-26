@@ -1030,8 +1030,8 @@ recipes and the <a href="../guide/">user guide</a> gives the recommendations.</p
 <tr>
 <td>P4</td>
 <td>Validated at the door</td>
-<td><code>add_event_handler</code> and <code>on</code> reject, with a <code>TypeError</code> that names the argument and the value: a non-<code>str</code> event, a non-callable handler or condition, a signature that P13 rejects, and a generator or async generator function. A rejected registration leaves the manager unchanged. The annotations of a handler or a condition do not have to be resolvable.</td>
-<td><code>add_event_handler</code>, <code>calls.needs_context</code>, <code>test_manager.py</code></td>
+<td><code>add_event_handler</code> and <code>on</code> reject, with a <code>TypeError</code> that names the argument and the value: a non-<code>str</code> event, a non-callable handler or condition, a signature that P13 rejects, a generator or async generator function, and <strong>a coroutine function used as a condition</strong>. A rejected registration leaves the manager unchanged. The annotations of a handler or a condition do not have to be resolvable.</td>
+<td><code>Subscription</code>, <code>calls.needs_context</code>, <code>test_manager.py</code></td>
 </tr>
 <tr>
 <td>P5</td>
@@ -1066,8 +1066,8 @@ recipes and the <a href="../guide/">user guide</a> gives the recommendations.</p
 <tr>
 <td>P10</td>
 <td>Synchronous by default</td>
-<td><code>trigger_event</code> never awaits; a handler that returns an awaitable raises <code>TypeError</code>. <code>atrigger_event</code> awaits the handlers one after the other (an object with <code>async def __call__</code> is a coroutine handler too). <strong>Conditions are synchronous in both</strong>: a condition that returns an awaitable raises <code>TypeError</code>. A coroutine that is rejected is closed.</td>
-<td><code>calls.reject_awaitable</code>, <code>Subscription._claim</code>, <code>test_manager_async.py</code></td>
+<td><code>trigger_event</code> never awaits; a handler that returns an awaitable raises <code>TypeError</code>. <code>atrigger_event</code> awaits the handlers one after the other (an object with <code>async def __call__</code> is a coroutine handler too). <strong>Conditions are synchronous in both</strong>: a coroutine function is rejected at registration (P4), and a condition that returns an awaitable raises <code>TypeError</code>. A coroutine that is rejected is closed.</td>
+<td><code>calls.reject_awaitable</code>, <code>Subscription</code>, <code>test_manager_async.py</code></td>
 </tr>
 <tr>
 <td>P11</td>
