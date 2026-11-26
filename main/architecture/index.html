@@ -1624,8 +1624,9 @@ first, without default: <code>lambda context, i=i: print(i, context["epoch"])</c
   other threads only: a signal handler or a garbage collection finalizer must not change it (see
   <a href="#limits">Limits</a>).</li>
 <li><code>PeriodicCondition</code> counts every call once, from any number of threads. It can be copied and
-  pickled: a copy starts at the same step and has its own counter. Its <code>repr</code> shows <code>freq</code>,
-  <code>start</code> and the number of calls as Python writes integers, without separator.</li>
+  pickled: a copy starts at the same step and has its own counter. Its <code>step</code> property reads the
+  number of calls since the creation or the last <code>reset()</code>, without advancing the counter. Its
+  <code>repr</code> shows <code>freq</code>, <code>start</code> and <code>step</code> as Python writes integers, without separator.</li>
 </ul>
 <h3 id="import-and-typing">Import and typing<a class="headerlink" href="#import-and-typing" title="Permanent link">&para;</a></h3>
 <ul>
