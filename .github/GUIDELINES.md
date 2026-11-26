@@ -124,10 +124,6 @@ action/reusable workflow over copy-pasting steps.
   action or a couple of shell commands (no Python/build tooling); otherwise
   `ubuntu-latest`, or the OS matrix under test for `workflows/ci-test.yaml` /
   `nightly-test-package.yaml`.
-- **Windows**: the matrix of `ci-test.yaml` and `nightly-test-package.yaml` includes Windows,
-  where the default shell is PowerShell. A `run` step of these workflows that uses shell syntax
-  declares `shell: bash`. `ci-test.yaml` does not use `setup-venv-uv-action` or `invoke`, which do
-  not support Windows.
 - **`workflow_dispatch`**: added to every workflow (checks and automation
   alike) so it can be re-run manually without waiting for its normal trigger.
 
