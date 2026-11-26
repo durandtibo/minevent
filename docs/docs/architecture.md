@@ -17,9 +17,8 @@ recommendations.
 | `Context`           | The read-only payload of one trigger.                                            |
 | `Condition`         | A synchronous function that returns a boolean and decides if a handler runs.     |
 | `PeriodicCondition` | A condition that is `True` on one call in `freq`.                                |
-| `AfterNCondition`   | A condition that is `False` for the first `n` calls, then `True`.                |
 
-These seven names (all but "event") and `__version__` are what `minevent` exports. `EventManager`
+These six names (all but "event") and `__version__` are what `minevent` exports. `EventManager`
 has the following members:
 
 | Member                                                                   | Use                                    |
@@ -191,8 +190,8 @@ first, without default: `lambda context, i=i: print(i, context["epoch"])`.
   without the GIL.
 - Your code (handlers, conditions, `repr` and finalizers) runs outside the lock of the manager, so
   it can use the manager.
-- `PeriodicCondition` and `AfterNCondition` count every call once, from any number of threads. They
-  can be copied and pickled: a copy starts at the same step and has its own counter.
+- `PeriodicCondition` counts every call once, from any number of threads. It can be copied and
+  pickled: a copy starts at the same step and has its own counter.
 
 ### Import and typing
 

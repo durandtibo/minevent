@@ -33,8 +33,10 @@ recipes, the [how it works page](architecture.md) states the rules of the librar
 
 ### Conditions
 
-- Give each registration its own `PeriodicCondition` or `AfterNCondition`: an instance shared by two
-  handlers advances the same counter. Call `reset()` to restart it.
+- Give each registration its own `PeriodicCondition`: an instance shared by two handlers advances
+  the same counter. Call `reset()` to restart it.
+- For a warm-up, use `PeriodicCondition(freq=1, start=n)`: it is `False` for the first `n` calls,
+  then `True`.
 - To combine conditions, write a function. `lambda: a() and b()` skips `b` when `a` is `False`, so
   use it when `b` is costly and stateless. `lambda: all([a(), b()])` evaluates both, so stateful
   conditions advance together.
@@ -72,7 +74,7 @@ data, build one `Context` and reuse it.
   change.
 - **An optional parameter**: `def f(context=None)` never receives the context.
 - **Threads**: a handler that shares state must protect it, and so must a stateful condition that
-  you write. The built-in conditions protect their counter.
+  you write. `PeriodicCondition` protects its counter.
 
 ## Troubleshooting
 

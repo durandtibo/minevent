@@ -72,15 +72,16 @@ evaluate at epoch 5
 
 ```
 
-`AfterNCondition(n)` is `False` for the first `n` calls, which is useful for a warm-up:
+With `freq=1`, the condition is `False` for the first `start` calls, then always `True`, which is
+useful for a warm-up:
 
 ```pycon
->>> from minevent import AfterNCondition, EventManager
+>>> from minevent import EventManager, PeriodicCondition
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler(
 ...     "epoch_end",
 ...     lambda context: print(f"validate at epoch {context['epoch']}"),
-...     condition=AfterNCondition(2),
+...     condition=PeriodicCondition(freq=1, start=2),
 ... )
 >>> for epoch in range(4):
 ...     manager.trigger_event("epoch_end", {"epoch": epoch})
@@ -113,11 +114,11 @@ batch done
 
 ## Restart a condition
 
-`reset()` restarts the counter of a built-in condition, for example at the start of a new training:
+`reset()` restarts the counter of a `PeriodicCondition`, for example at the start of a new training:
 
 ```pycon
->>> from minevent import AfterNCondition, EventManager
->>> warmup = AfterNCondition(1)
+>>> from minevent import EventManager, PeriodicCondition
+>>> warmup = PeriodicCondition(freq=1, start=1)
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("epoch_end", lambda: print("validate"), condition=warmup)
 >>> for _ in range(2):
@@ -134,8 +135,8 @@ Write a function. `all([a(), b()])` evaluates every condition at each call, so s
 advance together:
 
 ```pycon
->>> from minevent import AfterNCondition, EventManager, PeriodicCondition
->>> after_one, periodic = AfterNCondition(1), PeriodicCondition(2)
+>>> from minevent import EventManager, PeriodicCondition
+>>> after_one, periodic = PeriodicCondition(freq=1, start=1), PeriodicCondition(freq=2)
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler(
 ...     "epoch_end",
@@ -195,8 +196,8 @@ save the model of epoch 3
 
 ```
 
-The built-in conditions (`PeriodicCondition`, `AfterNCondition`) take no parameter. To combine one
-with a condition on the payload, write a function that calls it:
+`PeriodicCondition` takes no parameter. To combine it with a condition on the payload, write a
+function that calls it:
 `condition=lambda context: periodic() and is_improving(context)`.
 
 ## Keep a state in a handler
@@ -351,10 +352,13 @@ cannot change:
 the first trigger where the condition is `True`:
 
 ```pycon
->>> from minevent import AfterNCondition, EventManager
+>>> from minevent import EventManager, PeriodicCondition
 >>> manager = EventManager()
 >>> subscription = manager.add_event_handler(
-...     "epoch_end", lambda: print("saved"), once=True, condition=AfterNCondition(2)
+...     "epoch_end",
+...     lambda: print("saved"),
+...     once=True,
+...     condition=PeriodicCondition(freq=1, start=2),
 ... )
 >>> for _ in range(4):
 ...     manager.trigger_event("epoch_end")

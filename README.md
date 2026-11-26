@@ -43,8 +43,8 @@ fired.
 - **event handler** which is a callable to execute when the event happens.
 - **event manager** (`EventManager`) which stores the event handlers and triggers the events.
 
-The library provides two built-in conditions (`PeriodicCondition` and `AfterNCondition`) to control
-when a handler runs, and it is easy to extend: a handler is a callable and a condition is any
+The library provides a built-in condition (`PeriodicCondition`) to control when a handler runs, and
+it is easy to extend: a handler is a callable and a condition is any
 function that returns a boolean, so there is no base class to extend.
 It is possible to use all the components or just a subset based on the need.
 For example, a handler is a plain callable, so it can be tested without the event manager.
@@ -66,8 +66,8 @@ different API: see [Installation](#installation).
 - **No dependency**, standard library only
 - **Plain callables** as handlers, called with no argument or with the data of the trigger
 - **Read-only payload**: the data of a trigger is shared in an immutable `Context`
-- **Conditions** to control when a handler runs, with `PeriodicCondition`, `AfterNCondition` or any
-  function that returns a boolean
+- **Conditions** to control when a handler runs, with `PeriodicCondition` or any function that
+  returns a boolean
 - **Registrations** that run once, are removed with their `Subscription`, or are scoped with a
   `with` block
 - **Coroutine handlers** with `atrigger_event`

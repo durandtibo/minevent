@@ -6,9 +6,9 @@ from typing import Any
 import pytest
 
 from minevent import (
-    AfterNCondition,
     Context,
     EventManager,
+    PeriodicCondition,
     Subscription,
 )
 from tests.unit.utils import trace
@@ -266,21 +266,27 @@ def test_once_false_condition_does_not_call_handler() -> None:
 
 def test_once_does_not_run_before_condition_is_true() -> None:
     manager = EventManager()
-    manager.add_event_handler("my_event", hello_handler, condition=AfterNCondition(2), once=True)
+    manager.add_event_handler(
+        "my_event", hello_handler, condition=PeriodicCondition(1, start=2), once=True
+    )
     trigger_n_times(manager, 2)
     assert hello_handler.call_count == 0
 
 
 def test_once_runs_on_third_trigger_with_after_n_condition() -> None:
     manager = EventManager()
-    manager.add_event_handler("my_event", hello_handler, condition=AfterNCondition(2), once=True)
+    manager.add_event_handler(
+        "my_event", hello_handler, condition=PeriodicCondition(1, start=2), once=True
+    )
     trigger_n_times(manager, 3)
     assert hello_handler.call_count == 1
 
 
 def test_once_removed_after_condition_becomes_true() -> None:
     manager = EventManager()
-    manager.add_event_handler("my_event", hello_handler, condition=AfterNCondition(2), once=True)
+    manager.add_event_handler(
+        "my_event", hello_handler, condition=PeriodicCondition(1, start=2), once=True
+    )
     trigger_n_times(manager, 3)
     assert len(manager) == 0
 
