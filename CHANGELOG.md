@@ -103,7 +103,7 @@ the new API are in the
   a "How It Works" page for the rules, the guarantees, the limits and the public API, which is what
   `minevent` exports, and a "Design Choices" page for the trade-offs. Each rule has one page, and the
   reference is one page that shows what `minevent` exports
-  (#876, #904, #911, #921, #923, #931).
+  (#876, #904, #911, #921, #923, #931, #934).
 - Packaging: the classifiers are `Development Status :: 3 - Alpha`, `Operating System :: MacOS` and
   `Operating System :: POSIX :: Linux`, and there is no `all` extra. Windows is not supported
   (#894). The license is given by its SPDX expression only, without a `License ::` classifier (#890).
