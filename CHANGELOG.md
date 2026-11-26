@@ -105,7 +105,8 @@ the new API are in the
   of a `functools.cache` is detected after its call (#904).
 - Packaging: the classifiers are `Development Status :: 3 - Alpha` and
   `Operating System :: OS Independent`, and there is no `all` extra. The license is given by its SPDX
-  expression only, without a `License ::` classifier (#890).
+  expression only, without a `License ::` classifier (#890). The source distribution holds the source
+  only, without the tests (#906).
 - Development: `import-linter` checks the layering of the modules, and the invoke tasks come from
   `invoke-tasklib` `>=0.1.0` (#890).
 - Releases: the files published to PyPI are signed, and the GitHub release has a SLSA provenance
