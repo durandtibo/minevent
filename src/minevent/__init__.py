@@ -6,8 +6,7 @@ case-sensitive string), a handler (``Handler``) and an event manager
 A registration returns a ``Subscription``, the handlers and the
 conditions that take a parameter receive the payload of a trigger in a
 read-only ``Context``, and a ``Condition``, such as
-``PeriodicCondition`` or ``AfterNCondition``, controls when a handler
-runs.
+``PeriodicCondition``, controls when a handler runs.
 
 The package has no dependency, and ``__version__`` is the version of the
 installed package.
@@ -26,7 +25,6 @@ Example:
 from __future__ import annotations
 
 __all__ = [
-    "AfterNCondition",
     "Condition",
     "Context",
     "EventManager",
@@ -39,11 +37,7 @@ __all__ = [
 from importlib.metadata import PackageNotFoundError, version
 
 from minevent.calls import Handler
-from minevent.conditions import (
-    AfterNCondition,
-    Condition,
-    PeriodicCondition,
-)
+from minevent.conditions import Condition, PeriodicCondition
 from minevent.context import Context
 from minevent.manager import EventManager, Subscription
 

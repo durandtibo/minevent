@@ -79,12 +79,14 @@ the new API are in the
   be a `bool`: another value, such as `1` or `"False"`, raises a `TypeError` (#895).
 - `EventManager.events`, `get_subscriptions`, `clear_event`, `__len__` and `__contains__`. A manager
   is always truthy.
-- `AfterNCondition`, and the `start` option and the `reset` method of `PeriodicCondition`,
-  which now validates `freq`. The type aliases `Handler` and `Condition`.
+- The `start` option and the `reset` method of `PeriodicCondition`, which now validates `freq`.
+  `PeriodicCondition(freq=1, start=n)` is a warm-up, `False` for the first `n` calls: it replaces
+  the `AfterNCondition(n)` of the development versions (#898).
+- The type aliases `Handler` and `Condition`.
 - The registry of `EventManager` is thread-safe, and a removal is O(1). The handlers, the
   conditions and the finalizers of the removed handlers run outside its lock.
-- `PeriodicCondition` and `AfterNCondition` count every call once from any number of threads, with
-  and without the GIL, and can be copied and pickled.
+- `PeriodicCondition` counts every call once from any number of threads, with and without the GIL,
+  and can be copied and pickled.
 - The exception of a handler or a condition has a note with the event and what raised it: the
   handler, or the condition and its handler. Neither naming the callable nor adding the note replaces
   the exception.

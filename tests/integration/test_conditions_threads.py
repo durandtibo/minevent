@@ -6,9 +6,7 @@ import threading
 from concurrent.futures import ProcessPoolExecutor
 from typing import TYPE_CHECKING
 
-import pytest
-
-from minevent import AfterNCondition, EventManager, PeriodicCondition
+from minevent import EventManager, PeriodicCondition
 from tests.integration.helpers import run_threads
 
 if TYPE_CHECKING:
@@ -53,27 +51,18 @@ def test_periodic_condition_with_start_counts_every_call_from_threads() -> None:
     assert count_true_calls(PeriodicCondition(freq=2, start=100_000)) == 30_000
 
 
-def test_after_n_condition_counts_every_call_from_threads() -> None:
-    """Test that an ``AfterNCondition`` called from several threads is
-    false for exactly ``n`` calls."""
-    assert count_true_calls(AfterNCondition(n=100_000)) == 60_000
+def test_periodic_condition_warm_up_counts_every_call_from_threads() -> None:
+    """Test that a ``PeriodicCondition`` with a ``freq`` of 1, called
+    from several threads, is false for exactly ``start`` calls."""
+    assert count_true_calls(PeriodicCondition(freq=1, start=100_000)) == 60_000
 
 
-@pytest.mark.parametrize(
-    ("condition_class", "expected"),
-    [
-        (PeriodicCondition, "PeriodicCondition(freq=2, start=0, step=160,000)"),
-        (AfterNCondition, "AfterNCondition(n=2, step=160,000)"),
-    ],
-)
-def test_condition_step_is_exact_after_calls_from_threads(
-    condition_class: type[PeriodicCondition | AfterNCondition], expected: str
-) -> None:
-    """Test that the counter of a built-in condition has the exact
+def test_periodic_condition_step_is_exact_after_calls_from_threads() -> None:
+    """Test that the counter of a ``PeriodicCondition`` has the exact
     number of calls made from several threads."""
-    condition = condition_class(2)
+    condition = PeriodicCondition(freq=2)
     count_true_calls(condition)
-    assert repr(condition) == expected
+    assert repr(condition) == "PeriodicCondition(freq=2, start=0, step=160,000)"
 
 
 def test_condition_of_a_trigger_counts_every_trigger_from_threads() -> None:
@@ -97,21 +86,12 @@ def test_condition_of_a_trigger_counts_every_trigger_from_threads() -> None:
     assert len(calls) == 2_000
 
 
-@pytest.mark.parametrize(
-    ("condition_class", "expected"),
-    [
-        (PeriodicCondition, "PeriodicCondition(freq=2, start=0, step=1)"),
-        (AfterNCondition, "AfterNCondition(n=2, step=1)"),
-    ],
-)
-def test_condition_goes_to_a_worker_process(
-    condition_class: type[PeriodicCondition | AfterNCondition], expected: str
-) -> None:
+def test_periodic_condition_goes_to_a_worker_process() -> None:
     """Test that a condition sent to a worker process comes back with
     the same state."""
-    condition = condition_class(2)
+    condition = PeriodicCondition(freq=2)
     condition()
     spawn = multiprocessing.get_context("spawn")
     with ProcessPoolExecutor(max_workers=1, mp_context=spawn) as executor:
         result = executor.submit(copy.copy, condition).result()
-    assert repr(result) == expected
+    assert repr(result) == "PeriodicCondition(freq=2, start=0, step=1)"

@@ -148,8 +148,8 @@ your code outside of it.
   other threads, and a lock of yours cannot deadlock with the one of the manager.
 - **Costs**: handlers can run concurrently, and a removal in one thread cannot stop a call that
   another thread is about to make.
-- **In practice**: protect the shared state of your handlers and conditions. The built-in conditions
-  protect their counter.
+- **In practice**: protect the shared state of your handlers and conditions. `PeriodicCondition`
+  protects its counter.
 
 ## The manager is an explicit object
 
