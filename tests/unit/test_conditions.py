@@ -184,8 +184,14 @@ def test_periodic_condition_repr() -> None:
 
 def test_periodic_condition_repr_large_values() -> None:
     assert repr(PeriodicCondition(1000, start=2000)) == (
-        "PeriodicCondition(freq=1,000, start=2,000, step=0)"
+        "PeriodicCondition(freq=1000, start=2000, step=0)"
     )
+
+
+def test_periodic_condition_repr_large_step() -> None:
+    condition = PeriodicCondition(3)
+    condition.__setstate__({"_step": 1_000_000, "_freq": 3, "_start": 0})
+    assert repr(condition) == "PeriodicCondition(freq=3, start=0, step=1000000)"
 
 
 def always_true() -> bool:

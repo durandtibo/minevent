@@ -191,7 +191,8 @@ first, without default: `lambda context, i=i: print(i, context["epoch"])`.
 - Your code (handlers, conditions, `repr` and finalizers) runs outside the lock of the manager, so
   it can use the manager.
 - `PeriodicCondition` counts every call once, from any number of threads. It can be copied and
-  pickled: a copy starts at the same step and has its own counter.
+  pickled: a copy starts at the same step and has its own counter. Its `repr` shows `freq`,
+  `start` and the number of calls as Python writes integers, without separator.
 
 ### Import and typing
 
