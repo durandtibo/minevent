@@ -4,9 +4,13 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.sdist]
 # The tests of the package run from the source distribution, in the layout of the repository. The
-# test of ``dev/``, which is not shipped, is left out.
+# tests of ``dev/``, which is not shipped, are left out.
 only-include = ["src", "tests"]
-exclude = ["tests/unit/test_benchmark_trend.py"]
+exclude = [
+  "tests/integration/test_generate_versions.py",
+  "tests/unit/test_benchmark_trend.py",
+  "tests/unit/test_generate_versions.py",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/minevent"]
