@@ -37,6 +37,7 @@ from __future__ import annotations
 
 __all__ = ["Condition", "PeriodicCondition"]
 
+import reprlib
 import threading
 from collections.abc import Callable
 
@@ -106,13 +107,13 @@ class PeriodicCondition:
             msg = f"freq must be an integer, got {type(freq).__qualname__}"
             raise TypeError(msg)
         if freq < 1:
-            msg = f"freq must be greater than or equal to 1, got {freq}"
+            msg = f"freq must be greater than or equal to 1, got {reprlib.repr(freq)}"
             raise ValueError(msg)
         if isinstance(start, bool) or not isinstance(start, int):
             msg = f"start must be an integer, got {type(start).__qualname__}"
             raise TypeError(msg)
         if start < 0:
-            msg = f"start must be greater than or equal to 0, got {start}"
+            msg = f"start must be greater than or equal to 0, got {reprlib.repr(start)}"
             raise ValueError(msg)
         self._freq = freq
         self._start = start

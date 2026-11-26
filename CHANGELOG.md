@@ -70,7 +70,8 @@ the new API are in the
   reports a subclass (#902).
 - `atrigger_event` to await coroutine handlers.
 - The error messages stay short whatever the size of the data: values are shown with `reprlib`, and
-  an event name is shortened above 200 characters in a note or a message (#897).
+  an event name is shortened above 200 characters in a note or a message (#897). So are the
+  arguments of `PeriodicCondition` in its `ValueError` (#912).
 - `add_event_handler` returns a `Subscription`, which removes exactly its registration, is a context
   manager and has the properties `event`, `handler`, `once`, `condition` and `active`. `active` is
   `True` exactly while the registration is in the manager, and a `Subscription` cannot be copied or
