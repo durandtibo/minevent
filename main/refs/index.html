@@ -3496,10 +3496,11 @@ condition evaluates to <code>True</code> every <code>freq</code> calls.</p>
 <p><code>EventManager.add_event_handler</code> returns a subscription: it is the
 registration itself, so <code>remove</code> removes that registration only,
 even if the same handler is registered several times. Subscriptions
-are compared by identity. A subscription is a context manager: the
+are compared by identity, and copying or pickling one raises a
+<code>TypeError</code>. A subscription is a context manager: the
 registration is removed when the <code>with</code> block exits.</p>
 <p>The constructor is internal: subscriptions are created by the event
-manager.</p>
+manager, and one that is built by hand is not <code>active</code>.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -3706,9 +3707,10 @@ manager.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p><code>True</code> until the registration is removed, by whatever means
-(<code>remove</code>, <code>clear_event</code>, <code>reset</code> or the claim of a
-<code>once</code> registration), then <code>False</code>.</p>
+                <p><code>True</code> exactly while the registration is in the manager:
+it becomes <code>False</code> when the registration is removed, by
+whatever means (<code>remove</code>, <code>clear_event</code>, <code>reset</code> or
+the claim of a <code>once</code> registration).</p>
               </div>
             </td>
           </tr>

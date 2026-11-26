@@ -787,10 +787,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#typeerror-eventmanager-cannot-be-copied-or-pickled" class="md-nav__link">
+  <a href="#typeerror-eventmanager-cannot-be-copied-or-pickled-and-subscription-cannot-be" class="md-nav__link">
     <span class="md-ellipsis">
       
-        TypeError: EventManager cannot be copied or pickled
+        TypeError: EventManager cannot be copied or pickled and Subscription cannot be ...
       
     </span>
   </a>
@@ -1424,10 +1424,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#typeerror-eventmanager-cannot-be-copied-or-pickled" class="md-nav__link">
+  <a href="#typeerror-eventmanager-cannot-be-copied-or-pickled-and-subscription-cannot-be" class="md-nav__link">
     <span class="md-ellipsis">
       
-        TypeError: EventManager cannot be copied or pickled
+        TypeError: EventManager cannot be copied or pickled and Subscription cannot be ...
       
     </span>
   </a>
@@ -1622,9 +1622,10 @@ valid: write <code>trigger_event("epoch_end", {"epoch": 1})</code>.</p>
 <h3 id="typeerror-once-must-be-a-bool"><code>TypeError: once must be a bool</code><a class="headerlink" href="#typeerror-once-must-be-a-bool" title="Permanent link">&para;</a></h3>
 <p><code>once</code> is <code>True</code> or <code>False</code>. A value that is only truthy or falsy, such as <code>1</code> or the string
 <code>"False"</code>, is rejected: convert it first.</p>
-<h3 id="typeerror-eventmanager-cannot-be-copied-or-pickled"><code>TypeError: EventManager cannot be copied or pickled</code><a class="headerlink" href="#typeerror-eventmanager-cannot-be-copied-or-pickled" title="Permanent link">&para;</a></h3>
-<p>A manager, or an object that holds one, was copied or sent to another process. Create a new manager
-there and register the handlers, or exclude the manager from the state of the object.</p>
+<h3 id="typeerror-eventmanager-cannot-be-copied-or-pickled-and-subscription-cannot-be"><code>TypeError: EventManager cannot be copied or pickled</code> and <code>Subscription cannot be ...</code><a class="headerlink" href="#typeerror-eventmanager-cannot-be-copied-or-pickled-and-subscription-cannot-be" title="Permanent link">&para;</a></h3>
+<p>A manager or a subscription, or an object that holds one, was copied or sent to another process.
+Create a new manager there and register the handlers, or exclude the manager and the subscriptions
+from the state of the object.</p>
 <h3 id="typeerror-must-need-no-argument-or-only-the-context"><code>TypeError: ... must need no argument or only the context</code><a class="headerlink" href="#typeerror-must-need-no-argument-or-only-the-context" title="Permanent link">&para;</a></h3>
 <p>The manager cannot call the handler or the condition with nothing or with the context only. Wrap it
 in a function or a lambda, or bind the extra arguments with <code>functools.partial</code> (see

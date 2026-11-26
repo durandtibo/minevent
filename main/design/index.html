@@ -1457,7 +1457,9 @@ comparing callables.</p>
 <li><strong>Benefits</strong>: the same callable can be registered several times with different options, a removal
   is exact and O(1), including for lambdas and partials that you cannot compare, and a <code>with</code> block
   scopes a registration.</li>
-<li><strong>Costs</strong>: you must keep the <code>Subscription</code> if you want to remove it later.</li>
+<li><strong>Costs</strong>: you must keep the <code>Subscription</code> if you want to remove it later, and an object that
+  holds one cannot be copied or pickled as it is: a copy would describe a registration that does not
+  exist.</li>
 <li><strong>In practice</strong>: otherwise, search the result of <code>get_subscriptions(event)</code> for your handler.</li>
 </ul>
 <h2 id="a-trigger-works-on-a-snapshot">A trigger works on a snapshot<a class="headerlink" href="#a-trigger-works-on-a-snapshot" title="Permanent link">&para;</a></h2>
