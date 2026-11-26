@@ -197,7 +197,7 @@ def test_event_manager_trigger_event_async_handler_added_during_trigger_waits() 
         "my_event", lambda: manager.add_event_handler("my_event", plain_async_handler)
     )
     manager.trigger_event("my_event")
-    assert len(manager) == 2
+    assert len(manager.get_subscriptions("my_event")) == 2
 
 
 def test_event_manager_trigger_event_invalid_context_before_async_handler() -> None:

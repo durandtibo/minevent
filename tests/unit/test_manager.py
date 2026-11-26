@@ -213,7 +213,7 @@ def test_event_manager_reset() -> None:
     event_manager.add_event_handler("my_event", hello_handler)
     event_manager.add_event_handler("my_other_event", hello_handler)
     event_manager.reset()
-    assert len(event_manager) == 0
+    assert event_manager.events == []
 
 
 def test_event_manager_reset_empty() -> None:
@@ -373,7 +373,7 @@ def test_event_manager_add_event_handler_invalid_handler_is_not_registered(handl
     manager = EventManager()
     with pytest.raises(TypeError, match=r"handler must be callable"):
         manager.add_event_handler("my_event", handler)
-    assert len(manager) == 0
+    assert manager.events == []
 
 
 class BadReprValue:
@@ -391,7 +391,7 @@ def test_event_manager_add_event_handler_not_callable_repr_raises(option: str) -
     options: dict[str, Any] = {"handler": noop_handler, option: BadReprValue()}
     with pytest.raises(TypeError, match=rf"^{option} must be callable, but got <BadReprValue "):
         manager.add_event_handler("my_event", **options)
-    assert len(manager) == 0
+    assert manager.events == []
 
 
 @pytest.mark.parametrize("option", ["handler", "condition"])
@@ -415,7 +415,7 @@ def test_event_manager_on_invalid_handler_is_not_registered() -> None:
     handler: Any = 5
     with pytest.raises(TypeError, match=r"handler must be callable"):
         manager.on("my_event")(handler)
-    assert len(manager) == 0
+    assert manager.events == []
 
 
 def test_event_manager_add_event_handler_condition_must_be_callable() -> None:
@@ -429,7 +429,7 @@ def test_event_manager_add_event_handler_invalid_condition_is_not_registered() -
     condition: Any = 5
     with pytest.raises(TypeError, match=r"condition must be callable"):
         manager.add_event_handler("my_event", hello_handler, condition=condition)
-    assert len(manager) == 0
+    assert manager.events == []
 
 
 def test_event_manager_add_event_handler_plain_function() -> None:
@@ -900,6 +900,12 @@ def test_event_manager_bool_with_registration() -> None:
     assert bool(manager) is True
 
 
+def test_event_manager_has_no_len() -> None:
+    manager: Any = EventManager()
+    with pytest.raises(TypeError, match=r"object of type 'EventManager' has no len\(\)"):
+        len(manager)
+
+
 def test_event_manager_empty_manager_or_default_keeps_manager() -> None:
     manager = EventManager()
     assert (manager or EventManager()) is manager
@@ -919,28 +925,9 @@ def test_event_manager_copy_subclass_names_subclass() -> None:
         copy.copy(MyManager())
 
 
-###############################################
-#     Tests for get_subscriptions and len     #
-###############################################
-
-
-def test_event_manager_len_empty() -> None:
-    assert len(EventManager()) == 0
-
-
-def test_event_manager_len_counts_registrations_of_all_events() -> None:
-    manager = EventManager()
-    manager.add_event_handler("my_event", hello_handler)
-    manager.add_event_handler("my_event", hello_handler)
-    manager.add_event_handler("my_other_event", hello_handler)
-    assert len(manager) == 3
-
-
-def test_event_manager_len_after_remove() -> None:
-    manager = EventManager()
-    subscription = manager.add_event_handler("my_event", hello_handler)
-    subscription.remove()
-    assert len(manager) == 0
+#######################################
+#     Tests for get_subscriptions     #
+#######################################
 
 
 def test_event_manager_get_subscriptions_empty() -> None:
@@ -1204,7 +1191,7 @@ def test_event_manager_add_event_handler_rejected_handler_leaves_manager_unchang
     manager = EventManager()
     with pytest.raises(TypeError, match=r"^handler "):
         manager.add_event_handler("my_event", handler)
-    assert len(manager) == 0
+    assert manager.events == []
 
 
 @pytest.mark.parametrize("condition", [Mock(), named_handler, generator_handler])
@@ -1214,7 +1201,7 @@ def test_event_manager_add_event_handler_rejected_condition_leaves_manager_uncha
     manager = EventManager()
     with pytest.raises(TypeError, match=r"^condition "):
         manager.add_event_handler("my_event", noop_handler, condition=condition)
-    assert len(manager) == 0
+    assert manager.events == []
 
 
 def test_event_manager_add_event_handler_async_callable_condition() -> None:
@@ -1224,7 +1211,7 @@ def test_event_manager_add_event_handler_async_callable_condition() -> None:
         TypeError, match=r"^condition must be synchronous, but got AsyncConditionObject$"
     ):
         manager.add_event_handler("my_event", noop_handler, condition=condition)
-    assert len(manager) == 0
+    assert manager.events == []
 
 
 @pytest.mark.parametrize("handler", [GeneratorObject(), AsyncGeneratorObject()])
@@ -1232,7 +1219,7 @@ def test_event_manager_add_event_handler_generator_object(handler: Any) -> None:
     manager = EventManager()
     with pytest.raises(TypeError, match=r"^handler must not be a generator function, but got "):
         manager.add_event_handler("my_event", handler)
-    assert len(manager) == 0
+    assert manager.events == []
 
 
 @pytest.mark.parametrize(
@@ -1249,7 +1236,7 @@ def test_event_manager_add_event_handler_async_condition(condition: Any) -> None
     manager = EventManager()
     with pytest.raises(TypeError, match=r"^condition must be synchronous, but got "):
         manager.add_event_handler("my_event", noop_handler, condition=condition)
-    assert len(manager) == 0
+    assert manager.events == []
 
 
 def test_event_manager_on_async_condition() -> None:
@@ -1258,7 +1245,7 @@ def test_event_manager_on_async_condition() -> None:
     decorator = manager.on("my_event", condition=condition)
     with pytest.raises(TypeError, match=r"^condition must be synchronous, but got async_condition"):
         decorator(noop_handler)
-    assert len(manager) == 0
+    assert manager.events == []
 
 
 def test_event_manager_on_rejected_signature() -> None:
@@ -1267,7 +1254,7 @@ def test_event_manager_on_rejected_signature() -> None:
     handler: Any = named_handler
     with pytest.raises(TypeError, match=r"^handler named_handler must need no argument"):
         decorator(handler)
-    assert len(manager) == 0
+    assert manager.events == []
 
 
 def test_event_manager_on_rejected_condition_signature() -> None:
@@ -1275,7 +1262,7 @@ def test_event_manager_on_rejected_condition_signature() -> None:
     decorator = manager.on("my_event", condition=Mock())
     with pytest.raises(TypeError, match=r"^condition Mock must need no argument"):
         decorator(noop_handler)
-    assert len(manager) == 0
+    assert manager.events == []
 
 
 def test_event_manager_trigger_event_keeps_the_default_of_a_bound_method() -> None:

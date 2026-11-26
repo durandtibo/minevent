@@ -136,11 +136,11 @@ class Subscription:
         >>> subscription.active
         False
         >>> with manager.add_event_handler("my_event", lambda: None):
-        ...     len(manager)
+        ...     manager
         ...
-        1
-        >>> len(manager)
-        0
+        EventManager(events={'my_event': 1})
+        >>> manager
+        EventManager(events={})
 
         ```
     """
@@ -379,12 +379,13 @@ class EventManager:
     it. The ``on`` decorator registers the function that it decorates.
     ``trigger_event`` and ``atrigger_event`` run the handlers of an event
     in the order they were added, and ``clear_event`` and ``reset``
-    remove registrations. ``events``, ``get_subscriptions``,
-    ``event in manager`` and ``len(manager)`` (the number of
-    registrations) read the registry, which is thread-safe. A manager is
-    always truthy. Copying or pickling it raises a ``TypeError``. The
-    guarantees and the limits are in the "How It Works" page of the
-    documentation, and the reasons in its "Design Choices" page.
+    remove registrations. ``events``, ``get_subscriptions`` and
+    ``event in manager`` read the registry, which is thread-safe, and
+    ``repr`` shows the number of handlers of each event. A manager is
+    always truthy and has no length. Copying or pickling it raises a
+    ``TypeError``. The guarantees and the limits are in the "How It
+    Works" page of the documentation, and the reasons in its "Design
+    Choices" page.
 
     Example:
         ```pycon
@@ -415,13 +416,6 @@ class EventManager:
     def __contains__(self, event: object) -> bool:
         with self._lock:
             return event in self._subscriptions
-
-    def __len__(self) -> int:
-        with self._lock:
-            return sum(len(subs) for subs in self._subscriptions.values())
-
-    def __bool__(self) -> bool:
-        return True
 
     def __reduce__(self) -> NoReturn:
         msg = f"{type(self).__qualname__} cannot be copied or pickled: create a new one"
@@ -481,7 +475,7 @@ class EventManager:
             True
             >>> subscription.handler is handler
             True
-            >>> len(manager)
+            >>> len(manager.get_subscriptions("my_event"))
             1
 
             ```
@@ -810,8 +804,8 @@ class EventManager:
             >>> manager = EventManager()
             >>> _ = manager.add_event_handler("my_event", lambda: None)
             >>> manager.reset()
-            >>> len(manager)
-            0
+            >>> manager
+            EventManager(events={})
 
             ```
         """
