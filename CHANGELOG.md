@@ -126,3 +126,5 @@ the new API are in the
 - Development: the `check_*` functions are renamed to `validate_*`, in the package
   (`calls.validate_signature`, which is not part of the public API) and in the tests, except the
   checks of `tests/package_checks.py` (#931).
+- Documentation: the examples add recipes to start background work from a handler and to resume a
+  training, and the recipe to register a handler only once works with a bound method (#932).
