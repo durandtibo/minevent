@@ -56,6 +56,17 @@ class BadReprCallable:
         r"""Implement a handler."""
 
 
+class BadReprCondition:
+    r"""Implement a condition whose ``repr`` raises."""
+
+    def __repr__(self) -> str:
+        msg = "repr failed"
+        raise RuntimeError(msg)
+
+    def __call__(self) -> bool:
+        return True
+
+
 class UnnameableCallable:
     r"""Implement a handler that raises a ``ValueError``, and whose
     ``__qualname__`` cannot be read, like some proxies."""

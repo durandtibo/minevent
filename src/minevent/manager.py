@@ -106,7 +106,10 @@ class Subscription:
     even if the same handler is registered several times. Subscriptions
     are compared by identity, and copying or pickling one raises a
     ``TypeError``. A subscription is a context manager: the
-    registration is removed when the ``with`` block exits.
+    registration is removed when the ``with`` block exits. Its ``repr``
+    shows the event and the name of the handler, then what else decides
+    whether the handler runs: ``once=True``, the name of the condition
+    and ``active=False`` if the registration is not in the manager.
 
     The constructor is internal: subscriptions are created by the event
     manager, and one that is built by hand is not ``active``.
@@ -127,6 +130,12 @@ class Subscription:
     Example:
         ```pycon
         >>> from minevent import EventManager
+        >>> def print_epoch(context):
+        ...     print(context["epoch"])
+        ...
+        >>> def is_late(context):
+        ...     return context["epoch"] >= 2
+        ...
         >>> manager = EventManager()
         >>> subscription = manager.add_event_handler("my_event", lambda: None)
         >>> subscription
@@ -135,6 +144,11 @@ class Subscription:
         (True, False)
         >>> subscription.active
         False
+        >>> subscription
+        Subscription(event='my_event', handler='<lambda>', active=False)
+        >>> manager.add_event_handler("my_event", print_epoch, once=True, condition=is_late)
+        Subscription(event='my_event', handler='print_epoch', once=True, condition='is_late')
+        >>> manager.reset()
         >>> with manager.add_event_handler("my_event", lambda: None):
         ...     manager
         ...
@@ -188,10 +202,14 @@ class Subscription:
         self.remove()
 
     def __repr__(self) -> str:
-        return (
-            f"{self.__class__.__qualname__}"
-            f"(event={self._event!r}, handler={describe(self._handler)!r})"
-        )
+        parts = [f"event={self._event!r}", f"handler={describe(self._handler)!r}"]
+        if self._once:
+            parts.append("once=True")
+        if self._condition is not None:
+            parts.append(f"condition={describe(self._condition)!r}")
+        if not self._active:
+            parts.append("active=False")
+        return f"{self.__class__.__qualname__}({', '.join(parts)})"
 
     def __reduce__(self) -> NoReturn:
         msg = f"{type(self).__qualname__} cannot be copied or pickled: register the handler again"

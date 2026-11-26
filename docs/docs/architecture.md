@@ -127,6 +127,9 @@ first, without default: `lambda context, i=i: print(i, context["epoch"])`.
   becomes `False` when the registration is removed, by whatever means. A `Subscription` cannot be
   copied or pickled (`copy.copy`, `copy.deepcopy` and `pickle` raise a `TypeError`), and the manager
   alone creates one.
+- The `repr` of a `Subscription` shows what decides whether its handler runs: after the event and
+  the name of the handler, `once=True`, the name of the condition and `active=False`, each only if
+  it applies.
 - `bool(manager)` is always `True`, empty or not, and a manager has no length: the number of
   handlers of an event is `len(manager.get_subscriptions(event))`, and `repr(manager)` shows it for
   each event. A manager cannot be copied or pickled (`copy.copy`, `copy.deepcopy` and `pickle`
