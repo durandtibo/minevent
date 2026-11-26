@@ -13,6 +13,24 @@ import pytest
 from minevent import Context
 from tests.unit.handlers import BadReprCallable
 
+
+class EqualToA:
+    r"""Implement a key that is not a ``str`` but is equal to
+    ``'a'``."""
+
+    def __eq__(self, other: object) -> bool:
+        return other == "a"
+
+    def __hash__(self) -> int:
+        return hash("a")
+
+
+class Key(str):
+    r"""Implement a subclass of ``str``."""
+
+    __slots__ = ()
+
+
 #############################
 #     Tests for Context     #
 #############################
@@ -94,6 +112,14 @@ def test_context_get_empty_context() -> None:
 @pytest.mark.parametrize("key", [1, None, ("a",), b"a"])
 def test_context_get_key_not_str(key: object) -> None:
     assert Context({"a": 1}).get(key, 5) == 5
+
+
+def test_context_get_key_not_str_equal_to_a_key() -> None:
+    assert Context({"a": 1}).get(EqualToA(), 5) == 5
+
+
+def test_context_get_key_str_subclass() -> None:
+    assert Context({"a": 1}).get(Key("a"), 5) == 1
 
 
 def test_context_get_returns_the_value_object() -> None:

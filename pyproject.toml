@@ -26,8 +26,8 @@ classifiers = [
   "Intended Audience :: Developers",
   "Intended Audience :: Information Technology",
   "Intended Audience :: Science/Research",
-  "Operating System :: MacOS",
   "Operating System :: POSIX :: Linux",
+  "Operating System :: MacOS",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
@@ -55,6 +55,7 @@ dev = [
   "invoke>=3.0,<4.0",
   "pre-commit>=4.7,<5.0",
   "pygments>=2.21,<3.0",
+  "pyright>=1.1.414,<2.0",
   "pytest-benchmark>=5.1,<6.0",
   "pytest-cov>=7.1,<8.0",
   "pytest-timeout>=2.4,<3.0",
@@ -214,6 +215,12 @@ max-doc-length = 72
 force-sort-within-sections = false
 combine-as-imports = true
 known-first-party = ["minevent"]
+
+[tool.pyright]
+include = ["src"]
+pythonVersion = "3.11"
+venvPath = "."
+venv = ".venv"
 
 [tool.ty.src]
 include = ["src", "tests", "dev"]
