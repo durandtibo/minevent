@@ -1214,8 +1214,9 @@
 <p>A condition is any synchronous function that returns a boolean (a
 lambda, a method or a callable object). It is called before its handler,
 like a handler: as <code>condition(context)</code> with the read-only <code>Context</code>
-of the trigger (see <code>minevent.calls.validate_signature</code>). <code>Condition</code>
-is its type, and
+of the trigger (see
+<a href="https://durandtibo.github.io/minevent/main/architecture/#the-calling-rule">the calling rule</a>).
+<code>Condition</code> is its type, and
 <code>EventManager.add_event_handler</code> states how a registration uses it.
 <code>PeriodicCondition</code> counts its calls. The user guide of the
 documentation shows how to combine conditions.</p>
@@ -1320,7 +1321,8 @@ context of the trigger, like any condition, and ignores it.</p>
 from any number of threads, with and without the GIL. A lock cannot
 be copied or pickled: a copy of a condition (<code>copy.copy</code>,
 <code>copy.deepcopy</code> or <code>pickle</code>) starts at the same step, and then
-has its own counter and lock.</p>
+has its own counter and lock. Its <code>repr</code> shows <code>freq</code>, <code>start</code>
+and <code>step</code> as Python writes integers, without separator.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>

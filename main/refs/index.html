@@ -2182,8 +2182,9 @@ Choices" page.</p>
         <p>Add a handler to an event.</p>
 <p>Each trigger of the event calls the handler after the handlers added
 before it, as <code>handler(context)</code> with the read-only <code>Context</code> of
-the trigger. <code>minevent.calls.validate_signature</code> states which
-signatures are accepted.</p>
+the trigger.
+<a href="https://durandtibo.github.io/minevent/main/architecture/#the-calling-rule">The calling rule</a>
+states which signatures are accepted.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -3059,7 +3060,8 @@ context of the trigger, like any condition, and ignores it.</p>
 from any number of threads, with and without the GIL. A lock cannot
 be copied or pickled: a copy of a condition (<code>copy.copy</code>,
 <code>copy.deepcopy</code> or <code>pickle</code>) starts at the same step, and then
-has its own counter and lock.</p>
+has its own counter and lock. Its <code>repr</code> shows <code>freq</code>, <code>start</code>
+and <code>step</code> as Python writes integers, without separator.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>

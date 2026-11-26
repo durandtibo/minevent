@@ -1095,7 +1095,7 @@
 
 <h1 id="calls">Calls<a class="headerlink" href="#calls" title="Permanent link">&para;</a></h1>
 <p>How the handlers and the conditions are called. <code>minevent</code> exports <code>Handler</code> only, and
-<code>validate_signature</code> states <a href="../../architecture/#the-calling-rule">the calling rule</a>. It is not part
+<code>validate_signature</code> checks <a href="../../architecture/#the-calling-rule">the calling rule</a>. It is not part
 of the <a href="../../architecture/#overview">public API</a>, and neither are the other functions of the module.</p>
 <!-- prettier-ignore -->
 
@@ -1184,23 +1184,9 @@ change.</p>
 
         <p>Check that a handler or a condition can be called with the
 context.</p>
-<p>A handler and a condition are always called as <code>func(context)</code>.
-Exactly one parameter must lack a default, and it must be
-positional: it receives the context. The other parameters keep their
-default, because the manager never fills them. Names and annotations
-are not checked. Any other signature is rejected, including
-<code>*args</code> and <code>**kwargs</code> (they do not say whether the context is
-expected), and so is a callable whose signature cannot be inspected.
-A generator function or an async generator function, and a callable
-object whose <code>__call__</code> is one (see <code>has_kind</code>), is rejected too,
-because calling it runs none of its code. The signature is the one
-that <code>inspect.signature</code> reports: it does not contain the
-positional arguments that a <code>functools.partial</code> binds, and it is
-the one of the wrapped function for a decorator that uses
-<code>functools.wraps</code>. The annotations do not have to be resolvable:
-on Python 3.14+, a name that is only imported under
-<code>TYPE_CHECKING</code> is kept as a forward reference instead of raising
-a <code>NameError</code>. <code>func</code> is not called.</p>
+<p>The accepted signatures are the ones of
+<a href="https://durandtibo.github.io/minevent/main/architecture/#the-calling-rule">the calling rule</a>.
+<code>func</code> is not called.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>

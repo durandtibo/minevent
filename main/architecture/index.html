@@ -1523,12 +1523,14 @@ checked once, at registration.</p>
 </tr>
 </tbody>
 </table>
-<p>Names and annotations are not checked. Coroutine functions, bound methods, callable objects, classes
-and <code>functools.partial</code> objects follow the same table. The signature is the one that
-<code>inspect.signature</code> reports: the signature of a partial does not contain the positional arguments
-that it binds, and a decorator that uses <code>functools.wraps</code> has the signature of the wrapped
-function. For the generator and coroutine checks, a callable object is judged by its <code>__call__</code> (a
-partial by its function): an object whose <code>__call__</code> yields is rejected like a generator function.</p>
+<p>Names and annotations are not checked, and the annotations do not have to be resolvable: on Python
+3.14 and later, a name that is only imported under <code>TYPE_CHECKING</code> does not raise a <code>NameError</code>.
+Coroutine functions, bound methods, callable objects, classes and <code>functools.partial</code> objects follow
+the same table. The signature is the one that <code>inspect.signature</code> reports: the signature of a
+partial does not contain the positional arguments that it binds, and a decorator that uses
+<code>functools.wraps</code> has the signature of the wrapped function. For the generator and coroutine checks,
+a callable object is judged by its <code>__call__</code> (a partial by its function): an object whose
+<code>__call__</code> yields is rejected like a generator function.</p>
 <p>A handler that does not need the context declares it and ignores it: <code>def save_model(_)</code> is the
 recommended form. To register a function that cannot be changed, wrap it in a lambda:</p>
 <div class="highlight"><pre><span></span><code><span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_start"</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">())</span>  <span class="c1"># an existing function</span>
@@ -1555,9 +1557,6 @@ context comes first, without default.</p>
   becomes <code>False</code> when the registration is removed, by whatever means. A <code>Subscription</code> cannot be
   copied or pickled (<code>copy.copy</code>, <code>copy.deepcopy</code> and <code>pickle</code> raise a <code>TypeError</code>), and the manager
   alone creates one.</li>
-<li>The <code>repr</code> of a <code>Subscription</code> shows what decides whether its handler runs: after the event and
-  the name of the handler, <code>once=True</code>, the name of the condition and <code>active=False</code>, each only if
-  it applies.</li>
 <li><code>bool(manager)</code> is always <code>True</code>, empty or not, and a manager has no length: the number of
   handlers of an event is <code>len(manager.get_subscriptions(event))</code>, and <code>repr(manager)</code> shows it for
   each event. A manager cannot be copied or pickled (<code>copy.copy</code>, <code>copy.deepcopy</code> and <code>pickle</code>
@@ -1604,8 +1603,8 @@ context comes first, without default.</p>
   never raises in place of your exception: the name of its class is used if its own name cannot be
   read.</li>
 <li>The messages and the notes of <code>minevent</code> stay short whatever the size of your data: a value is
-  shown with <a href="https://docs.python.org/3/library/reprlib.html"><code>reprlib</code></a>, an event name is
-  shortened above 200 characters, and the <code>KeyError</code> of a <code>Context</code> lists at most 20 keys.</li>
+  shown with <a href="https://docs.python.org/3/library/reprlib.html"><code>reprlib</code></a>, and an event name is
+  shortened above 200 characters.</li>
 </ul>
 <h3 id="coroutines">Coroutines<a class="headerlink" href="#coroutines" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1627,10 +1626,7 @@ context comes first, without default.</p>
   the lock of the manager, so it can use the manager. The lock protects the manager against the
   other threads only: a signal handler or a garbage collection finalizer must not change it (see
   <a href="#limits">Limits</a>).</li>
-<li><code>PeriodicCondition</code> counts every call once, from any number of threads. It can be copied and
-  pickled: a copy starts at the same step and has its own counter. Its <code>step</code> property reads the
-  number of calls since the creation or the last <code>reset()</code>, without advancing the counter. Its
-  <code>repr</code> shows <code>freq</code>, <code>start</code> and <code>step</code> as Python writes integers, without separator.</li>
+<li><code>PeriodicCondition</code> counts every call once, from any number of threads.</li>
 </ul>
 <h3 id="import-and-typing">Import and typing<a class="headerlink" href="#import-and-typing" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1699,7 +1695,7 @@ context comes first, without default.</p>
 <li>the signature is inspected at registration, never during a trigger;</li>
 <li>a mapping given to a trigger is copied (linear in its number of keys), while a <code>Context</code> is not;</li>
 <li><code>context.get(key, default)</code> and <code>key in context</code> cost the same for a present key and a missing
-  one. <code>context[key]</code> lists up to 20 keys in its <code>KeyError</code>, so a missing key costs more.</li>
+  one. <code>context[key]</code> lists keys in its <code>KeyError</code>, so a missing key costs more.</li>
 </ul>
 <p>As an order of magnitude, measured on a laptop with Python 3.14: about 0.3 µs for a trigger with one
 trivial handler, 0.07 µs for each extra one, 0.8 µs with a small dict, and 5.5 µs for a registration

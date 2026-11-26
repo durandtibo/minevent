@@ -1578,8 +1578,7 @@ data, build one <code>Context</code> and reuse it.</p>
 <li>A handler of the same event ahead of it raised: the next handlers are skipped.</li>
 </ol>
 <h3 id="keyerror-key-epoch-not-found-in-the-context"><code>KeyError: "key 'epoch' not found in the context; ..."</code><a class="headerlink" href="#keyerror-key-epoch-not-found-in-the-context" title="Permanent link">&para;</a></h3>
-<p>The trigger did not give the key that the handler requires. The message lists the available keys (at
-most 20 of them).
+<p>The trigger did not give the key that the handler requires. The message lists the available keys.
 Give the key to the trigger, or read it as an optional value.</p>
 <h3 id="typeerror-context-must-be-a-mapping-or-none-and-the-keys-of-data-must-be-str"><code>TypeError: context must be a mapping or None</code> and <code>the keys of data must be str</code><a class="headerlink" href="#typeerror-context-must-be-a-mapping-or-none-and-the-keys-of-data-must-be-str" title="Permanent link">&para;</a></h3>
 <p>The data of a trigger is a mapping with <code>str</code> keys, such as a dict, given as the second argument:
