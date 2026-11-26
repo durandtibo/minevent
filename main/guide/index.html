@@ -1346,8 +1346,8 @@ recipes, and the <a href="../architecture/">architecture page</a> states the rul
 <li><strong>Mutating a value of the payload</strong>: the values are not copied, so the next handlers see the
   change.</li>
 <li><strong>An optional parameter</strong>: <code>def f(context=None)</code> never receives the context.</li>
-<li><strong>Threads</strong>: a handler that shares state must protect it, and a stateful condition should be
-  called from one thread.</li>
+<li><strong>Threads</strong>: a handler that shares state must protect it, and so must a stateful condition that
+  you write. The built-in conditions protect their counter.</li>
 </ul>
 <h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
 <h3 id="my-handler-does-not-run">My handler does not run<a class="headerlink" href="#my-handler-does-not-run" title="Permanent link">&para;</a></h3>

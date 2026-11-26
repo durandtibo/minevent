@@ -755,17 +755,6 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#minevent.AfterNCondition.reset" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        reset
-      
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
   
@@ -915,17 +904,6 @@
     <span class="md-ellipsis">
       
         skip_first
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#minevent.PeriodicCondition.reset" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        reset
       
     </span>
   </a>
@@ -1224,17 +1202,6 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#minevent.AfterNCondition.reset" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        reset
-      
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
   
@@ -1384,17 +1351,6 @@
     <span class="md-ellipsis">
       
         skip_first
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#minevent.PeriodicCondition.reset" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        reset
       
     </span>
   </a>
@@ -1615,6 +1571,8 @@ with the <code>Context</code> of the trigger.</p>
 
 
     <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="minevent.conditions._CountingCondition">_CountingCondition</span></code></p>
 
 
 
@@ -1622,8 +1580,9 @@ with the <code>Context</code> of the trigger.</p>
 calls and <code>True</code> afterwards.</p>
 <p>The condition is stateful, like <code>PeriodicCondition</code>: each call
 advances the counter, so do not share one instance between
-several handlers, and call it from one thread because the counter
-is not protected by a lock. Use <code>reset</code> to restart the counter.</p>
+several handlers. Use <code>reset</code> to restart the counter. Every call
+is counted once, from any number of threads, and the condition can
+be copied and pickled.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -1766,39 +1725,6 @@ integer.</p>
 
 
 
-
-<div class="doc doc-object doc-function">
-
-
-<h4 id="minevent.AfterNCondition.reset" class="doc doc-heading">
-            <span class="doc doc-object-name doc-function-name">minevent.AfterNCondition.reset</span>
-
-
-<a href="#minevent.AfterNCondition.reset" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">reset</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
-</code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Reset the internal counter, as if the condition was just
-created.</p>
-
-
-<details class="example" open>
-  <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">AfterNCondition</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">condition</span> <span class="o">=</span> <span class="n">AfterNCondition</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">condition</span><span class="p">(),</span> <span class="n">condition</span><span class="p">()</span>
-<span class="go">(False, True)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">condition</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">condition</span><span class="p">()</span>
-<span class="go">False</span>
-</code></pre></div>
-</details>
-
-    </div>
-
-</div>
 
 
 
@@ -1996,8 +1922,9 @@ it. So handlers can be registered in one thread and events
 triggered from worker threads. The handlers themselves run in the
 thread that triggers the event, concurrently if several threads
 trigger the same event, so a handler that shares state must be
-thread-safe. The mutable state of a condition, such as the
-counter of <code>PeriodicCondition</code>, is not protected.</p>
+thread-safe. The built-in conditions protect their counter (see
+<code>minevent.conditions</code>), and the state of another condition is not
+protected.</p>
 <p>A manager is a service, not a collection: <code>bool(manager)</code> is
 always <code>True</code>, even when it has no handler, so <code>manager or
 default</code> means "is there a manager". Use <code>len(manager)</code> for the
@@ -3078,6 +3005,8 @@ own event.</p>
 
 
     <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="minevent.conditions._CountingCondition">_CountingCondition</span></code></p>
 
 
 
@@ -3088,9 +3017,9 @@ the counter modulo <code>freq</code> equals zero.</p>
 <p>Note that a call is not idempotent: each call advances the
 counter, so the condition is stateful. Do not share one instance
 between several handlers, because they would advance the same
-counter. Use <code>reset</code> to restart the counter. The counter is not
-protected by a lock, so a condition should be called from one
-thread.</p>
+counter. Use <code>reset</code> to restart the counter. Every call is
+counted once, from any number of threads, and the condition can be
+copied and pickled.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -3303,39 +3232,6 @@ condition evaluates to <code>True</code> every <code>freq</code> calls.</p>
 
 
 
-
-<div class="doc doc-object doc-function">
-
-
-<h4 id="minevent.PeriodicCondition.reset" class="doc doc-heading">
-            <span class="doc doc-object-name doc-function-name">minevent.PeriodicCondition.reset</span>
-
-
-<a href="#minevent.PeriodicCondition.reset" class="headerlink" title="Permanent link">&para;</a></h4>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">reset</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
-</code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Reset the internal counter, as if the condition was just
-created.</p>
-
-
-<details class="example" open>
-  <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">PeriodicCondition</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">condition</span> <span class="o">=</span> <span class="n">PeriodicCondition</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">condition</span><span class="p">(),</span> <span class="n">condition</span><span class="p">()</span>
-<span class="go">(True, False)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">condition</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">condition</span><span class="p">()</span>
-<span class="go">True</span>
-</code></pre></div>
-</details>
-
-    </div>
-
-</div>
 
 
 

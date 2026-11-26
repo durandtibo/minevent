@@ -1374,8 +1374,9 @@ it. So handlers can be registered in one thread and events
 triggered from worker threads. The handlers themselves run in the
 thread that triggers the event, concurrently if several threads
 trigger the same event, so a handler that shares state must be
-thread-safe. The mutable state of a condition, such as the
-counter of <code>PeriodicCondition</code>, is not protected.</p>
+thread-safe. The built-in conditions protect their counter (see
+<code>minevent.conditions</code>), and the state of another condition is not
+protected.</p>
 <p>A manager is a service, not a collection: <code>bool(manager)</code> is
 always <code>True</code>, even when it has no handler, so <code>manager or
 default</code> means "is there a manager". Use <code>len(manager)</code> for the

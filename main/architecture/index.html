@@ -1129,6 +1129,12 @@ recipes and the <a href="../guide/">user guide</a> gives the recommendations.</p
 <td>Each pull request runs the unit and integration tests, the doctests, <code>tests/package_checks.py</code> and one pass of every benchmark (except the import benchmarks, which need the statistics and run on a schedule), so a change of the API cannot leave one of them behind.</td>
 <td><code>ci.yaml</code>, <code>test_package_checks.py</code></td>
 </tr>
+<tr>
+<td>P21</td>
+<td>Exact built-in conditions</td>
+<td><code>PeriodicCondition</code> and <code>AfterNCondition</code> count every call once, from any number of threads, with and without the GIL. They can be copied and pickled: a copy starts at the same step and has its own counter.</td>
+<td><code>_CountingCondition</code>, <code>test_conditions.py</code>, <code>test_conditions_threads.py</code></td>
+</tr>
 </tbody>
 </table>
 <h2 id="the-calling-rule">The Calling Rule<a class="headerlink" href="#the-calling-rule" title="Permanent link">&para;</a></h2>
@@ -1233,8 +1239,8 @@ first, without default: <code>lambda context, i=i: print(i, context["epoch"])</c
   replaced by the error of <code>add_note</code>.</li>
 <li><strong>A mutable value of the payload</strong> can be mutated by a handler, and the next ones see it.</li>
 <li><strong>Threads.</strong> The handlers run in the thread that triggers the event, concurrently if several
-  threads trigger it, so a handler that shares state must protect it. The state of a condition (the
-  counter of <code>PeriodicCondition</code>, for example) is not protected.</li>
+  threads trigger it, so a handler that shares state must protect it. The state of a condition of a
+  user is not protected: only the built-in conditions are (P21).</li>
 <li><strong>Prompt reclamation.</strong> A manager with registrations is in a reference cycle (manager, dict,
   <code>Subscription</code>, manager): <code>del manager</code> does not free it until the garbage collector runs.
   <code>reset()</code> releases the handlers at a known point.</li>
