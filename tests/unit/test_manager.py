@@ -74,6 +74,11 @@ async def async_handler_with_argument(secret: str) -> None:
     r"""Implement a coroutine handler that has an argument."""
 
 
+def coroutine_with_argument(secret: str) -> object:
+    r"""Implement a synchronous handler that returns a coroutine."""
+    return async_handler_with_argument(secret)
+
+
 @trace
 def positional_bound_handler(first: int, second: int, context: Context) -> None:
     r"""Implements a handler that receives two bound values and the
@@ -1632,11 +1637,18 @@ def test_event_manager_trigger_event_keyword_payload_is_rejected() -> None:
 #################################################
 
 
-def test_event_manager_trigger_event_awaitable_names_function_of_partial() -> None:
+def test_event_manager_trigger_event_coroutine_function_names_function_of_partial() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", functools.partial(async_handler_with_argument, "secret"))
+    with pytest.raises(TypeError, match=r"^async_handler_with_argument is a coroutine function; "):
+        manager.trigger_event("my_event")
+
+
+def test_event_manager_trigger_event_hidden_coroutine_names_function_of_partial() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", functools.partial(coroutine_with_argument, "secret"))
     with pytest.raises(
-        TypeError, match=r"^async_handler_with_argument returned an awaitable; use atrigger_event"
+        TypeError, match=r"^coroutine_with_argument returned an awaitable; use atrigger_event"
     ):
         manager.trigger_event("my_event")
 

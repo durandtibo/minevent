@@ -129,10 +129,12 @@ rejected at registration, and a condition that returns an awaitable another way 
 returns a coroutine) fails at the trigger. Compute the value before the trigger and pass it in the
 payload, or decide inside a coroutine handler.
 
-### `TypeError: ... returned an awaitable; use atrigger_event`
+### `TypeError: ... is a coroutine function; use atrigger_event` and `... returned an awaitable`
 
 A coroutine handler was triggered with `trigger_event`. Call
-`await manager.atrigger_event(...)`.
+`await manager.atrigger_event(...)`. For a coroutine function, nothing ran. A handler that returns
+an awaitable another way (a lambda that returns a coroutine) fails after its call, so the handlers
+before it have run.
 
 ### `subscription.remove()` returns `False`
 

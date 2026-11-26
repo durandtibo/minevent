@@ -54,7 +54,8 @@ the new API are in the
 - **Manager**: `last_triggered_event` is removed, the `repr` is simpler
   (`EventManager(events={'my_event': 1})`), a manager cannot be copied or pickled, and nothing is
   logged (`0.5.0` logged at the `DEBUG` level).
-- **Async**: a handler that returns an awaitable raises a `TypeError` in `trigger_event` (the
+- **Async**: `trigger_event` raises a `TypeError` before anything runs if a handler of the event is
+  a coroutine function, and after the call of a handler that returns an awaitable another way (the
   coroutine was silently dropped): use `atrigger_event`.
 
 ### Added

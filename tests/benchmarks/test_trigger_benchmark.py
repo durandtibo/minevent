@@ -96,6 +96,18 @@ def test_trigger_event_once_benchmark(benchmark: BenchmarkFixture) -> None:
     benchmark(register_and_trigger)
 
 
+def test_trigger_event_rejected_async_handler_benchmark(benchmark: BenchmarkFixture) -> None:
+    # The coroutine handler is the last one: the whole snapshot is visited before the rejection.
+    manager = make_manager(99)
+    manager.add_event_handler("e", async_no_argument)
+
+    def trigger() -> None:
+        with pytest.raises(TypeError, match=r"use atrigger_event"):
+            manager.trigger_event("e")
+
+    benchmark(trigger)
+
+
 def test_atrigger_event_benchmark(benchmark: BenchmarkFixture) -> None:
     manager = EventManager()
     manager.add_event_handler("e", async_no_argument)

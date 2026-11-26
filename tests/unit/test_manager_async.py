@@ -30,6 +30,10 @@ async def append_async(values: list[str], value: str) -> None:
     values.append(value)
 
 
+async def plain_async_handler() -> None:
+    r"""Implement a coroutine handler that does nothing."""
+
+
 async def failing_async_handler() -> None:
     r"""Implement a coroutine handler that raises a ``ValueError``."""
     msg = "boom"
@@ -131,9 +135,87 @@ async def test_event_manager_atrigger_event_snapshot() -> None:
 
 def test_event_manager_trigger_event_coroutine_handler_raises() -> None:
     manager = EventManager()
-    manager.add_event_handler("my_event", async_handler)
+    manager.add_event_handler("my_event", plain_async_handler)
+    with pytest.raises(
+        TypeError,
+        match=r"^plain_async_handler is a coroutine function; use atrigger_event for the event "
+        r"'my_event'$",
+    ):
+        manager.trigger_event("my_event")
+
+
+def test_event_manager_trigger_event_async_handler_runs_nothing() -> None:
+    manager = EventManager()
+    calls: list[str] = []
+
+    def condition() -> bool:
+        calls.append("condition")
+        return True
+
+    manager.add_event_handler("my_event", lambda: calls.append("first"), condition=condition)
+    manager.add_event_handler("my_event", plain_async_handler)
+    with pytest.raises(TypeError, match=r"is a coroutine function"):
+        manager.trigger_event("my_event")
+    assert calls == []
+
+
+def test_event_manager_trigger_event_async_handler_keeps_once() -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler("my_event", plain_async_handler, once=True)
+    with pytest.raises(TypeError, match=r"is a coroutine function"):
+        manager.trigger_event("my_event")
+    assert subscription.active
+
+
+def test_event_manager_trigger_event_async_handler_has_no_note() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", plain_async_handler)
+    with pytest.raises(TypeError, match=r"is a coroutine function") as exc_info:
+        manager.trigger_event("my_event")
+    assert not hasattr(exc_info.value, "__notes__")
+
+
+def test_event_manager_trigger_event_removed_async_handler_is_ignored() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", plain_async_handler).remove()
+    manager.add_event_handler("my_event", hello_handler)
+    manager.trigger_event("my_event")
+    assert hello_handler.call_count == 1
+
+
+def test_event_manager_trigger_event_async_handler_of_other_event_is_ignored() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_other_event", plain_async_handler)
+    manager.add_event_handler("my_event", hello_handler)
+    manager.trigger_event("my_event")
+    assert hello_handler.call_count == 1
+
+
+def test_event_manager_trigger_event_async_handler_added_during_trigger_waits() -> None:
+    manager = EventManager()
+    manager.add_event_handler(
+        "my_event", lambda: manager.add_event_handler("my_event", plain_async_handler)
+    )
+    manager.trigger_event("my_event")
+    assert len(manager) == 2
+
+
+def test_event_manager_trigger_event_invalid_context_before_async_handler() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", plain_async_handler)
+    context: Any = 1
+    with pytest.raises(TypeError, match=r"^context must be a mapping or None, but got int$"):
+        manager.trigger_event("my_event", context)
+
+
+def test_event_manager_trigger_event_hidden_coroutine() -> None:
+    manager = EventManager()
+    calls: list[str] = []
+    manager.add_event_handler("my_event", lambda: calls.append("first"))
+    manager.add_event_handler("my_event", lambda: append_async(calls, "second"))
     with pytest.raises(TypeError, match=r"returned an awaitable; use atrigger_event"):
         manager.trigger_event("my_event")
+    assert calls == ["first"]
 
 
 async def test_event_manager_atrigger_event_handler_raises_adds_note() -> None:
@@ -272,7 +354,9 @@ def test_event_manager_trigger_event_sync_callable_object() -> None:
 def test_event_manager_trigger_event_async_callable_object_raises() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", AsyncCallable([]))
-    with pytest.raises(TypeError, match=r"returned an awaitable; use atrigger_event"):
+    with pytest.raises(
+        TypeError, match=r"^AsyncCallable is a coroutine function; use atrigger_event"
+    ):
         manager.trigger_event("my_event")
 
 
@@ -280,12 +364,15 @@ def test_event_manager_trigger_event_async_callable_object_is_not_called_twice()
     manager = EventManager()
     calls: list[dict[str, Any]] = []
     manager.add_event_handler("my_event", AsyncCallable(calls))
-    with pytest.raises(TypeError, match=r"returned an awaitable; use atrigger_event"):
+    with pytest.raises(
+        TypeError, match=r"^AsyncCallable is a coroutine function; use atrigger_event"
+    ):
         manager.trigger_event("my_event")
     assert calls == []
 
 
-def test_event_manager_trigger_event_plain_coroutine_function_raises() -> None:
+def test_event_manager_trigger_event_traced_coroutine_function_raises() -> None:
+    # The tracer is a synchronous wrapper: the coroutine is only detected after its call.
     manager = EventManager()
     manager.add_event_handler("my_event", async_handler)
     with pytest.raises(TypeError, match=r"returned an awaitable; use atrigger_event"):
@@ -360,11 +447,11 @@ def test_event_manager_trigger_event_object_with_await_raises() -> None:
         manager.trigger_event("my_event")
 
 
-def test_event_manager_trigger_event_condition_false_does_not_call_coroutine_function() -> None:
+def test_event_manager_trigger_event_condition_false_rejects_coroutine_function() -> None:
     manager = EventManager()
-    manager.add_event_handler("my_event", async_handler, condition=lambda: False)
-    manager.trigger_event("my_event")
-    assert async_handler.call_count == 0
+    manager.add_event_handler("my_event", plain_async_handler, condition=lambda: False)
+    with pytest.raises(TypeError, match=r"^plain_async_handler is a coroutine function"):
+        manager.trigger_event("my_event")
 
 
 async def test_event_manager_atrigger_event_context_coroutine_function() -> None:
