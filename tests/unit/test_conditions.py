@@ -71,6 +71,24 @@ def test_periodic_condition_incorrect_start_value(start: int) -> None:
         PeriodicCondition(3, start=start)
 
 
+def test_periodic_condition_huge_negative_freq() -> None:
+    with pytest.raises(
+        ValueError,
+        match=r"^freq must be greater than or equal to 1, "
+        r"got -10000000000000000\.\.\.0000000000000000000$",
+    ):
+        PeriodicCondition(-(10**4000))
+
+
+def test_periodic_condition_huge_negative_start() -> None:
+    with pytest.raises(
+        ValueError,
+        match=r"^start must be greater than or equal to 0, "
+        r"got -10000000000000000\.\.\.0000000000000000000$",
+    ):
+        PeriodicCondition(3, start=-(10**4000))
+
+
 @pytest.mark.parametrize("start", [2.9, "3", None, True, False])
 def test_periodic_condition_incorrect_start_type(start: Any) -> None:
     with pytest.raises(TypeError, match=r"start must be an integer, got "):

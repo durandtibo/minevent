@@ -244,9 +244,9 @@ first, without default: `lambda context, i=i: print(i, context["epoch"])`.
   from 3.13.
 - **A condition counts its calls, not the triggers.** It is not called when an earlier handler
   raised, nor for a removed registration.
-- **A huge integer in a message.** Showing an integer of more than 4,300 digits raises the
-  `ValueError` of Python instead of the error of `minevent`: on Python 3.11 and 3.12 for a value
-  given as a handler or a key, and on every version for an argument of `PeriodicCondition`.
+- **A huge integer in a message** on Python 3.11 and 3.12: showing an integer of more than 4,300
+  digits (a value given as a handler, a key, an argument of `PeriodicCondition`) raises the
+  `ValueError` of Python instead of the error of `minevent`.
 - **A mutable value of the payload** can be mutated by a handler, and the next ones see it.
 - **Delayed release.** A manager with registrations is in a reference cycle (manager, registry,
   `Subscription`, manager): `del manager` does not free it until the garbage collector runs.
