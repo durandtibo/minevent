@@ -404,8 +404,10 @@ class EventManager:
         # This variable is used to store the registrations of each event, in the order they run.
         # A dict is an ordered set: the keys keep the registration order and removing is O(1).
         self._subscriptions: dict[str, dict[Subscription, None]] = {}
-        # This lock protects the state above. The handlers run without it. It is reentrant, so a
-        # signal handler or a finalizer that runs while it is held can use the manager.
+        # This lock protects the state above against the other threads. The handlers run without
+        # it. It is reentrant, so a signal handler or a finalizer that interrupts a method does not
+        # deadlock, but it must not change the manager: the method that it interrupts expects the
+        # state to stay.
         self._lock = threading.RLock()
 
     def __repr__(self) -> str:
@@ -733,6 +735,10 @@ class EventManager:
                 ``None`` nor a mapping with ``str`` keys, or if a condition
                 returns an awaitable (a condition is never awaited). Any
                 exception of a handler or a condition also propagates.
+            RuntimeError: if a handler or a condition raises a
+                ``StopIteration``: Python does not let a coroutine raise it.
+                The ``__cause__`` of the error is the ``StopIteration``, which
+                has the note.
 
         Example:
             ```pycon

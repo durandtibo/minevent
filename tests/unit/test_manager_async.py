@@ -40,6 +40,12 @@ async def failing_async_handler() -> None:
     raise ValueError(msg)
 
 
+def stop_iteration_handler() -> None:
+    r"""Implement a handler that raises a ``StopIteration``."""
+    msg = "stop"
+    raise StopIteration(msg)
+
+
 @trace
 def hello_handler() -> None:
     r"""Implements a simple handler that prints hello."""
@@ -101,6 +107,13 @@ async def test_event_manager_atrigger_event_fail_fast_skips_next_handlers() -> N
     with pytest.raises(RuntimeError, match=r"async failed"):
         await manager.atrigger_event("my_event")
     assert hello_handler.call_count == 0
+
+
+async def test_event_manager_atrigger_event_stop_iteration() -> None:
+    manager = EventManager()
+    manager.add_event_handler("my_event", stop_iteration_handler)
+    with pytest.raises(RuntimeError, match=r"coroutine raised StopIteration"):
+        await manager.atrigger_event("my_event")
 
 
 async def test_event_manager_atrigger_event_incorrect_event() -> None:
