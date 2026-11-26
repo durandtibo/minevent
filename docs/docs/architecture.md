@@ -162,7 +162,8 @@ first, without default: `lambda context, i=i: print(i, context["epoch"])`.
 ### Errors
 
 - An exception of a handler or a condition propagates unchanged (same object, same type), and the
-  remaining handlers are skipped.
+  remaining handlers are skipped. Python makes one exception to this: a `StopIteration` leaves
+  `atrigger_event` as a `RuntimeError` (see [Limits](#limits)).
 - An `Exception` carries a note with the event and what raised it: the handler, or the condition and
   its handler (each named by its function, under a `functools.partial`). The same note is not added
   twice. An exception that cannot take a note (a frozen dataclass exception, for example) propagates
@@ -191,8 +192,10 @@ first, without default: `lambda context, i=i: print(i, context["epoch"])`.
 
 - Registering, removing, triggering and reading the manager are safe from several threads, with and
   without the GIL.
-- Your code (handlers, conditions, `repr` and finalizers) runs outside the lock of the manager, so
-  it can use the manager.
+- Your code (handlers, conditions, `repr` and the finalizers of the removed handlers) runs outside
+  the lock of the manager, so it can use the manager. The lock protects the manager against the
+  other threads only: a signal handler or a garbage collection finalizer must not change it (see
+  [Limits](#limits)).
 - `PeriodicCondition` counts every call once, from any number of threads. It can be copied and
   pickled: a copy starts at the same step and has its own counter. Its `repr` shows `freq`,
   `start` and the number of calls as Python writes integers, without separator.
@@ -213,11 +216,18 @@ first, without default: `lambda context, i=i: print(i, context["epoch"])`.
 
 - **A removal in another thread** cannot stop a handler whose trigger has already checked that it is
   registered.
+- **A signal handler or a garbage collection finalizer** can interrupt a method of the manager in
+  the same thread. One that adds, removes or triggers a `once` registration can make `remove()`
+  raise, or leave a subscription `active` that is not registered. Set a flag in it, and use the
+  manager in the main code.
 - **Concurrent calls.** A registration without `once` is called by every thread that triggers its
   event, possibly at the same time. A handler or a condition of yours that shares state must protect
   it.
 - **Recursion.** A handler that triggers its own event recurses until `RecursionError`.
 - **Blocking.** A synchronous handler in `atrigger_event` blocks the event loop.
+- **`StopIteration` in `atrigger_event`.** A coroutine cannot raise it, so Python turns the one of a
+  handler or a condition into a `RuntimeError`, whose `__cause__` is the original exception and has
+  the note.
 - **The start of a coroutine.** `atrigger_event` reads the registrations and copies the payload when
   its coroutine starts to run, not when it is created: a task sees a change made to the dict, or a
   handler added, before it starts. To fix the payload at the creation, give it a `Context`, which is
@@ -225,17 +235,18 @@ first, without default: `lambda context, i=i: print(i, context["epoch"])`.
 - **A hidden coroutine.** A lambda, a `functools.cache` of a coroutine function, or a synchronous
   `functools.wraps` wrapper, that returns a coroutine is only detected after its call by
   `trigger_event`: the handlers before it have run, and a `once` registration is consumed.
-- **Hidden generators.** A function that returns a generator, such as a lambda that calls a
-  generator function, does nothing.
+- **Hidden generators.** A function that returns a generator or an asynchronous generator, such as
+  a lambda that calls a generator function, does nothing.
 - **An optional parameter never receives the context.** `def f(context=None)` is called as `f()` and
   gets `None`, without an error: the context needs a parameter without default.
 - **A signature that depends on Python.** The standard library adds signatures to C callables
-  between versions: `set.add` is rejected on Python 3.11 and 3.12, and accepted from 3.13.
+  between versions: `set().add` and `time.sleep` are rejected on Python 3.11 and 3.12, and accepted
+  from 3.13.
 - **A condition counts its calls, not the triggers.** It is not called when an earlier handler
   raised, nor for a removed registration.
-- **A huge integer in a message** on Python 3.11 and 3.12: showing an integer of more than 4,300
-  digits (a value given as a handler, a key) raises the `ValueError` of Python instead of the error
-  of `minevent`.
+- **A huge integer in a message.** Showing an integer of more than 4,300 digits raises the
+  `ValueError` of Python instead of the error of `minevent`: on Python 3.11 and 3.12 for a value
+  given as a handler or a key, and on every version for an argument of `PeriodicCondition`.
 - **A mutable value of the payload** can be mutated by a handler, and the next ones see it.
 - **Delayed release.** A manager with registrations is in a reference cycle (manager, registry,
   `Subscription`, manager): `del manager` does not free it until the garbage collector runs.

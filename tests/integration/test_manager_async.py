@@ -74,3 +74,23 @@ def test_trigger_event_detects_the_coroutine_of_a_cache_after_its_call() -> None
     with pytest.raises(TypeError, match=r"upload returned an awaitable; use atrigger_event"):
         manager.trigger_event("epoch_end")
     assert (calls, subscription.active) == (["first"], False)
+
+
+def test_atrigger_event_stop_iteration_has_the_noted_cause() -> None:
+    """Test that the ``RuntimeError`` of ``atrigger_event`` has the
+    ``StopIteration`` of the handler, with its note, as cause."""
+    manager = EventManager()
+
+    def stop() -> None:
+        msg = "stop"
+        raise StopIteration(msg)
+
+    manager.add_event_handler("epoch_end", stop)
+    with pytest.raises(RuntimeError, match=r"coroutine raised StopIteration") as exc_info:
+        asyncio.run(manager.atrigger_event("epoch_end"))
+    assert getattr(exc_info.value.__cause__, "__notes__", None) == [
+        (
+            "raised by test_atrigger_event_stop_iteration_has_the_noted_cause.<locals>.stop "
+            "while handling the event 'epoch_end'"
+        )
+    ]
