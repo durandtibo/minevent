@@ -160,7 +160,9 @@ first, without default: `lambda context, i=i: print(i, context["epoch"])`.
   twice. An exception that cannot take a note (a frozen dataclass exception, for example) propagates
   without it. A `BaseException` that is not an `Exception`, such as `KeyboardInterrupt` or
   `asyncio.CancelledError`, has no note.
-- The messages of `minevent` do not run the `repr` of your objects to name a callable.
+- The messages of `minevent` do not run the `repr` of your objects to name a callable. Naming one
+  never raises in place of your exception: the name of its class is used if its own name cannot be
+  read.
 
 ### Coroutines
 

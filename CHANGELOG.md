@@ -77,7 +77,8 @@ the new API are in the
 - `PeriodicCondition` and `AfterNCondition` count every call once from any number of threads, with
   and without the GIL, and can be copied and pickled.
 - The exception of a handler or a condition has a note with the event and what raised it: the
-  handler, or the condition and its handler. Adding the note never replaces the exception.
+  handler, or the condition and its handler. Neither naming the callable nor adding the note replaces
+  the exception.
 - `import minevent` is cheap: it does not import `logging`, `inspect`, `asyncio` or
   `importlib.metadata`, and `__version__` is read from the package metadata when it is used.
 - Documentation: an [examples page](https://durandtibo.github.io/minevent/main/examples/) and a

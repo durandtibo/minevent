@@ -104,21 +104,24 @@ def needs_context(func: Callable[..., object], name: str) -> bool:
     raise TypeError(msg)
 
 
-def describe(func: Callable[..., object]) -> str:
+def describe(func: object) -> str:
     r"""Name a handler or a condition without calling the ``repr`` of its
     data.
 
     The ``repr`` of a callable can contain its arguments, which can be
     large or raise, so it is not used in the messages of the package.
+    Naming never raises an ``Exception``, so it cannot replace the error
+    that the name is used to report.
 
     Args:
-        func: The callable to name.
+        func: The object to name, usually a handler or a condition.
 
     Returns:
         The qualified name of the function under a
             ``functools.partial`` (nested partials are unwrapped), or
-            the qualified name of the class of the callable if it has
-            no name (for example a callable object).
+            the qualified name of the class of the object if it has no
+            name (for example a callable object), if its name is not a
+            ``str``, or if reading its name raises.
 
     Example:
         ```pycon
@@ -131,9 +134,14 @@ def describe(func: Callable[..., object]) -> str:
 
         ```
     """
-    while isinstance(func, functools.partial):
-        func = func.func
-    return getattr(func, "__qualname__", type(func).__qualname__)
+    # A proxy can raise any exception when one of its attributes, ``__class__`` included, is read.
+    with contextlib.suppress(Exception):
+        while isinstance(func, functools.partial):
+            func = func.func
+        name = getattr(func, "__qualname__", None)
+        if isinstance(name, str):
+            return name
+    return type(func).__qualname__
 
 
 def reject_awaitable(result: object, message: str) -> None:

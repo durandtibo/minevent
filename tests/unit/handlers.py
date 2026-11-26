@@ -15,6 +15,7 @@ from tests.unit.utils import trace
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator, Iterator
     from pathlib import Path
+    from typing import NoReturn
 
     from minevent import Context
 
@@ -53,6 +54,32 @@ class BadReprCallable:
 
     def __call__(self) -> None:
         r"""Implement a handler."""
+
+
+class UnnameableCallable:
+    r"""Implement a handler that raises a ``ValueError``, and whose
+    ``__qualname__`` cannot be read, like some proxies."""
+
+    def __getattr__(self, name: str) -> object:
+        if name == "__qualname__":
+            msg = "attribute failed"
+            raise RuntimeError(msg)
+        raise AttributeError(name)
+
+    def __call__(self) -> NoReturn:
+        r"""Implement a handler or a condition that raises."""
+        msg = "boom"
+        raise ValueError(msg)
+
+
+class UnreadableClass:
+    r"""Implement an object whose ``__class__`` cannot be read, like a
+    proxy of an object that is not available."""
+
+    @property
+    def __class__(self) -> type:
+        msg = "class failed"
+        raise RuntimeError(msg)
 
 
 @trace

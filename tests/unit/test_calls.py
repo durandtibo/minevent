@@ -19,6 +19,8 @@ from tests.unit.handlers import (
     CallableRecorder,
     CustomCondition,
     ModelStandIn,
+    UnnameableCallable,
+    UnreadableClass,
     fail,
     generator_handler,
     hello_handler,
@@ -294,6 +296,29 @@ def test_describe_method() -> None:
 
 def test_describe_callable_object() -> None:
     assert describe(CallableObject()) == "CallableObject"
+
+
+def test_describe_not_callable() -> None:
+    assert describe(1) == "int"
+
+
+def test_describe_qualname_raises() -> None:
+    assert describe(UnnameableCallable()) == "UnnameableCallable"
+
+
+def test_describe_partial_of_unnameable() -> None:
+    assert describe(functools.partial(UnnameableCallable())) == "UnnameableCallable"
+
+
+def test_describe_class_raises() -> None:
+    assert describe(UnreadableClass()) == "UnreadableClass"
+
+
+@pytest.mark.parametrize("name", [None, 1, b"name"])
+def test_describe_qualname_not_a_str(name: object) -> None:
+    handler = CallableObject()
+    vars(handler)["__qualname__"] = name
+    assert describe(handler) == "CallableObject"
 
 
 ######################################
