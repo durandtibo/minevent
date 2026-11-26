@@ -3,8 +3,9 @@ r"""Implement the conditions that can be used in the event system.
 A condition is any synchronous function that returns a boolean (a
 lambda, a method or a callable object). It is called before its handler,
 like a handler: as ``condition(context)`` with the read-only ``Context``
-of the trigger (see ``minevent.calls.validate_signature``). ``Condition``
-is its type, and
+of the trigger (see
+[the calling rule](https://durandtibo.github.io/minevent/main/architecture/#the-calling-rule)).
+``Condition`` is its type, and
 ``EventManager.add_event_handler`` states how a registration uses it.
 ``PeriodicCondition`` counts its calls. The user guide of the
 documentation shows how to combine conditions.
@@ -70,7 +71,8 @@ class PeriodicCondition:
     from any number of threads, with and without the GIL. A lock cannot
     be copied or pickled: a copy of a condition (``copy.copy``,
     ``copy.deepcopy`` or ``pickle``) starts at the same step, and then
-    has its own counter and lock.
+    has its own counter and lock. Its ``repr`` shows ``freq``, ``start``
+    and ``step`` as Python writes integers, without separator.
 
     Args:
         freq: The frequency (interval) at which the condition

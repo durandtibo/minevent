@@ -80,8 +80,7 @@ data, build one `Context` and reuse it.
 
 ### `KeyError: "key 'epoch' not found in the context; ..."`
 
-The trigger did not give the key that the handler requires. The message lists the available keys (at
-most 20 of them).
+The trigger did not give the key that the handler requires. The message lists the available keys.
 Give the key to the trigger, or read it as an optional value.
 
 ### `TypeError: context must be a mapping or None` and `the keys of data must be str`
