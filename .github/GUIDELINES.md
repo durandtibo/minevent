@@ -133,7 +133,8 @@ Values that would otherwise be duplicated across workflows are read once:
 
 - The supported Python versions and the operating systems are in `../workflow-config.json`, read
   once per run by `lib-get-test-matrix.yaml` with `durandtibo/workflow-config-action`. The matrix
-  has one runner per system, because the package is pure Python.
+  has one runner per system, because the package is pure Python. The supported systems are Linux
+  and macOS: Windows is not supported.
 
 The package name and version are never duplicated in the workflows: they are read from
 `../pyproject.toml` by the `durandtibo/extract-pyproject-metadata-action` composite action, wrapped

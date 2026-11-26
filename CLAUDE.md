@@ -2,6 +2,8 @@
 
 ## Environment
 
+- `minevent` supports Linux and macOS. Windows is not supported: add no Windows runner, workaround
+  or test.
 - Activate the virtual environment in `.venv` (`source .venv/bin/activate`) and call `python`,
   `pytest`, `ruff`, `ty` and `inv` by name. There is no `python` on the `PATH` until it is
   activated.
