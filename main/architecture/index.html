@@ -1590,6 +1590,9 @@ first, without default: <code>lambda context, i=i: print(i, context["epoch"])</c
 <li>The messages of <code>minevent</code> do not run the <code>repr</code> of your objects to name a callable. Naming one
   never raises in place of your exception: the name of its class is used if its own name cannot be
   read.</li>
+<li>The messages of <code>minevent</code> stay short whatever the size of your data: a value is shown with
+  <a href="https://docs.python.org/3/library/reprlib.html"><code>reprlib</code></a>, and the <code>KeyError</code> of a <code>Context</code>
+  lists at most 20 keys.</li>
 </ul>
 <h3 id="coroutines">Coroutines<a class="headerlink" href="#coroutines" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1640,6 +1643,9 @@ first, without default: <code>lambda context, i=i: print(i, context["epoch"])</c
   between versions: <code>set.add</code> is rejected on Python 3.11 and 3.12, and accepted from 3.13.</li>
 <li><strong>A condition counts its calls, not the triggers.</strong> It is not called when an earlier handler
   raised, nor for a removed registration.</li>
+<li><strong>A huge integer in a message</strong> on Python 3.11 and 3.12: showing an integer of more than 4,300
+  digits (a value given as a handler, a key) raises the <code>ValueError</code> of Python instead of the error
+  of <code>minevent</code>.</li>
 <li><strong>A mutable value of the payload</strong> can be mutated by a handler, and the next ones see it.</li>
 <li><strong>Delayed release.</strong> A manager with registrations is in a reference cycle (manager, registry,
   <code>Subscription</code>, manager): <code>del manager</code> does not free it until the garbage collector runs.
@@ -1653,7 +1659,7 @@ first, without default: <code>lambda context, i=i: print(i, context["epoch"])</c
 <li>the signature is inspected at registration, never during a trigger;</li>
 <li>a mapping given to a trigger is copied (linear in its number of keys), while a <code>Context</code> is not;</li>
 <li><code>context.get(key, default)</code> and <code>key in context</code> cost the same for a present key and a missing
-  one. <code>context[key]</code> lists the available keys in its <code>KeyError</code>, so a missing key costs more.</li>
+  one. <code>context[key]</code> lists up to 20 keys in its <code>KeyError</code>, so a missing key costs more.</li>
 </ul>
 <p>As an order of magnitude, measured on a laptop with Python 3.14: about 0.3 µs for a trigger with one
 trivial handler, 0.06 µs for each extra one, 0.9 µs with a small dict, and 4.5 µs for a registration
