@@ -21,6 +21,7 @@ from tests.unit.handlers import (
     AsyncConditionObject,
     AwaitableResult,
     BadReprCallable,
+    BadReprCondition,
     CallableRecorder,
     async_condition,
     condition_returning_a_coroutine,
@@ -67,7 +68,7 @@ def flag_and_registry(manager: EventManager, subscription: Subscription) -> tupl
 
 def test_subscription_repr() -> None:
     assert repr(Subscription(EventManager(), "my_event", noop_handler)) == (
-        "Subscription(event='my_event', handler='noop_handler')"
+        "Subscription(event='my_event', handler='noop_handler', active=False)"
     )
 
 
@@ -75,17 +76,76 @@ def test_subscription_repr_names_function_of_partial() -> None:
     subscription = Subscription(
         EventManager(), "my_event", functools.partial(read_secret, "secret")
     )
-    assert repr(subscription) == "Subscription(event='my_event', handler='read_secret')"
+    assert repr(subscription) == (
+        "Subscription(event='my_event', handler='read_secret', active=False)"
+    )
 
 
 def test_subscription_repr_names_class_of_callable_object() -> None:
     subscription = Subscription(EventManager(), "my_event", CallableRecorder([]))
-    assert repr(subscription) == "Subscription(event='my_event', handler='CallableRecorder')"
+    assert (
+        repr(subscription)
+        == "Subscription(event='my_event', handler='CallableRecorder', active=False)"
+    )
 
 
 def test_subscription_repr_ignores_repr_of_handler() -> None:
     assert repr(Subscription(EventManager(), "my_event", BadReprCallable())) == (
-        "Subscription(event='my_event', handler='BadReprCallable')"
+        "Subscription(event='my_event', handler='BadReprCallable', active=False)"
+    )
+
+
+@pytest.mark.parametrize(
+    ("once", "condition", "expected"),
+    [
+        (
+            True,
+            None,
+            "Subscription(event='my_event', handler='noop_handler', once=True)",
+        ),
+        (
+            False,
+            has_payload,
+            "Subscription(event='my_event', handler='noop_handler', condition='has_payload')",
+        ),
+        (
+            True,
+            has_payload,
+            (
+                "Subscription(event='my_event', handler='noop_handler', once=True, "
+                "condition='has_payload')"
+            ),
+        ),
+    ],
+    ids=["once", "condition", "once-and-condition"],
+)
+def test_subscription_repr_options(once: bool, condition: Any, expected: str) -> None:
+    manager = EventManager()
+    subscription = manager.add_event_handler(
+        "my_event", noop_handler, once=once, condition=condition
+    )
+    assert repr(subscription) == expected
+
+
+def test_subscription_repr_removed() -> None:
+    subscription = EventManager().add_event_handler("my_event", noop_handler)
+    subscription.remove()
+    assert repr(subscription) == (
+        "Subscription(event='my_event', handler='noop_handler', active=False)"
+    )
+
+
+def test_subscription_repr_registered() -> None:
+    subscription = EventManager().add_event_handler("my_event", noop_handler)
+    assert repr(subscription) == "Subscription(event='my_event', handler='noop_handler')"
+
+
+def test_subscription_repr_condition_ignores_repr() -> None:
+    subscription = EventManager().add_event_handler(
+        "my_event", noop_handler, condition=BadReprCondition()
+    )
+    assert repr(subscription) == (
+        "Subscription(event='my_event', handler='noop_handler', condition='BadReprCondition')"
     )
 
 

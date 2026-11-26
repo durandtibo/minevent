@@ -80,11 +80,13 @@ data, build one `Context` and reuse it.
 
 ### My handler does not run
 
-1. The handler is registered for that event: `manager.get_subscriptions("my_event")`.
+1. The handler is registered for that event: `print(manager.get_subscriptions("my_event"))` lists
+   the registrations of the event, with `once=True` and `condition='...'` for the ones that have
+   these options.
 2. The event name matches exactly (case-sensitive).
 3. The condition returns `True` (a `PeriodicCondition(freq=5)` skips four calls out of five).
 4. The registration was not removed, for example consumed by `once=True` or removed by its own
-   condition: `subscription.active` is `True`.
+   condition: the `repr` of a removed `Subscription` that you kept shows `active=False`.
 5. A handler of the same event ahead of it raised: the next handlers are skipped.
 
 ### `KeyError: "key 'epoch' not found in the context; ..."`
@@ -151,5 +153,6 @@ The registration is already removed. This is not an error.
 ### Debug
 
 `minevent` does not log. `print(manager)` shows the number of handlers of each event, and
-`manager.get_subscriptions(event)` lists the registrations of an event with the name of each handler.
+`manager.get_subscriptions(event)` lists the registrations of an event with the name of each handler
+and its options.
 To see the calls and the payload, [trace the handlers](examples.md#trace-the-handlers).
