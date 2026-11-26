@@ -19,7 +19,8 @@ that keep it true.**
 Items are tagged **[verified]** (reproduced on 2026-11-26 with a script, a test run, a build or a
 read of the GitHub API, on an Apple laptop; scripts kept outside the repository) or **[reading]**
 (from the code, the documents or the workflows). This change touches this document only: nothing in
-`src`, `tests`, `dev`, `docs` or `.github` is modified.
+`src`, `tests`, `dev`, `docs` or `.github` is modified. The functions
+are named as after the rename of the `check_*` functions to `validate_*` (#931).
 
 ---
 
@@ -37,9 +38,9 @@ construction, or to say exactly where it stops. "Status" compares the row with `
 | --- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------- | ------ |
 | P1  | Small surface         | Six exported names and `__version__` (`EventManager`, `Subscription`, `Context`, `Handler`, `Condition`, `PeriodicCondition`). `EventManager` has 8 public members (`events`, `get_subscriptions`, `add_event_handler`, `on`, `trigger_event`, `atrigger_event`, `clear_event`, `reset`) and `in`. The public API is what `minevent` exports, and the reference shows it and nothing else. | `__all__`, the reference page         | gap F6 |
 | P2  | Standard library only | No runtime dependency. `import minevent` starts no thread, emits no warning and writes no output and no log. Plain imports at the top of the modules.                                                                                                                                                                                                                                      | `package_checks.py`, `test_import.py` | holds  |
-| P3  | Events are strings    | An event name is a case-sensitive `str` (a `StrEnum` member is one). The methods of the manager raise `TypeError` for another type, and `in` answers like a dict. The empty string is valid. Reading the manager never creates an event.                                                                                                                                                   | `_check_event`                        | holds  |
+| P3  | Events are strings    | An event name is a case-sensitive `str` (a `StrEnum` member is one). The methods of the manager raise `TypeError` for another type, and `in` answers like a dict. The empty string is valid. Reading the manager never creates an event.                                                                                                                                                   | `_validate_event`                     | holds  |
 | P4  | Validated at the door | `add_event_handler` checks every argument: `TypeError` for a wrong type, `ValueError` for a wrong value. `once` is a `bool`, and the integers of a condition are an `int` but not a `bool`. A rejection leaves the manager as it was.                                                                                                                                                      | `add_event_handler`, `calls`          | holds  |
-| P5  | One call              | A handler and a condition are always called as `f(context)`. Exactly one parameter lacks a default, and it is positional. Anything else is rejected at registration. The signature is read once. Names and annotations are not checked.                                                                                                                                                    | `calls.check_signature`               | holds  |
+| P5  | One call              | A handler and a condition are always called as `f(context)`. Exactly one parameter lacks a default, and it is positional. Anything else is rejected at registration. The signature is read once. Names and annotations are not checked.                                                                                                                                                    | `calls.validate_signature`            | holds  |
 
 ### Dispatch
 
@@ -133,11 +134,11 @@ No defect was found in the library (P3 to P16).
 | F2  | **A claim that the calling rule made false.** The design page says that "any function, method, lambda, `functools.partial` or callable object works". `model.train`, `print` and a function without parameter are rejected, as the next section of the same page says.                                                                                                                                                                                                              | P19      | [verified]                              |
 | F3  | **A recipe fails for a method.** "Register a handler only once" compares with `s.handler is hello_handler`. A bound method is a new object at each access, so the same recipe with `plugin.on_epoch_end` registers it twice.                                                                                                                                                                                                                                                        | P19      | [verified]                              |
 | F4  | **A resumed training is not covered.** `PeriodicCondition` counts its calls, so after a restart from epoch 7 it counts from 0, not from the epoch. The limit says that it counts calls, but no recipe gives the two ways out: a condition on the payload, or saving the condition with the checkpoint (it can be pickled).                                                                                                                                                          | P19      | [reading]                               |
-| F5  | **Rules still have two homes.** The calling rule is stated in full by the architecture page and by the docstring of `check_signature`. The copy, the `step` and the `repr` of `PeriodicCondition`, the `repr` of a `Subscription` and the limit of 20 keys are each stated by a docstring and by a bullet of the architecture page.                                                                                                                                                 | P20      | [verified], by search                   |
-| F6  | **The reference renders each object twice**: once on "Main classes and functions" (`::: minevent`) and once on one of four module pages. The module pages publish `minevent.calls.check_signature`, which the library says is not public.                                                                                                                                                                                                                                           | P1, P20  | [verified], on the built site           |
+| F5  | **Rules still have two homes.** The calling rule is stated in full by the architecture page and by the docstring of `validate_signature`. The copy, the `step` and the `repr` of `PeriodicCondition`, the `repr` of a `Subscription` and the limit of 20 keys are each stated by a docstring and by a bullet of the architecture page.                                                                                                                                              | P20      | [verified], by search                   |
+| F6  | **The reference renders each object twice**: once on "Main classes and functions" (`::: minevent`) and once on one of four module pages. The module pages publish `minevent.calls.validate_signature`, which the library says is not public.                                                                                                                                                                                                                                        | P1, P20  | [verified], on the built site           |
 | F7  | **A broken anchor passes.** `mkdocs build --strict` of a copy with a link to `guide.md#no-such-anchor` succeeds: MkDocs reports it at the `INFO` level. The CI builds with `mike`, without `--strict`, so it does not fail on a warning either. The rule "one home" makes the pages depend on these anchors.                                                                                                                                                                        | P21      | [verified] (build), [reading] (CI)      |
 | F8  | **Small errors.** The user guide asks for event names "in the past tense" and gives `epoch_end`. `CONTRIBUTING.md` lints `src tests` (the rule is `src tests dev`) and does not name `lint-imports`.                                                                                                                                                                                                                                                                                | P19, P20 | [reading]                               |
-| F9  | **The code breaks a written rule.** `CLAUDE.md` forbids a validator of one `isinstance`. `_check_event` is one, used by four callers, and it is the right code.                                                                                                                                                                                                                                                                                                                     | P20      | [reading]                               |
+| F9  | **The code breaks a written rule.** `CLAUDE.md` forbids a validator of one `isinstance`. `_validate_event` is one, used by four callers, and it is the right code. #930 changes the rule.                                                                                                                                                                                                                                                                                           | P20      | [reading]                               |
 | F10 | **Nothing runs the tests of the source distribution** (#910). They pass today (808 tests from the unpacked archive), but a pull request can break them without a failure: they were broken until #915.                                                                                                                                                                                                                                                                              | P24      | [verified]                              |
 | F11 | **A script without a test.** `dev/generate_versions.py` (#924) has no test, which `CLAUDE.md` requires, and a weekly workflow (#927) runs it. Its output, `dev/config/package_versions.json`, is `{}` while `minevent` has no dependency.                                                                                                                                                                                                                                           | P25      | [reading], [verified] (output)          |
 | F12 | **Not released.** The last tag is `v0.5.0`, whose API is not the one of `main`: `pip install minevent` gives a library that the documentation of `main` does not describe. `SECURITY.md` supports `0.5.x` only.                                                                                                                                                                                                                                                                     | P26      | [verified] (tags), [reading] (the rest) |
@@ -154,8 +155,8 @@ The library keeps its design.
 
 ```text
 add_event_handler(event, handler, *, once, condition)
-        |   _check_event, callable, once is a bool
-        |   Subscription: calls.check_signature, calls.has_kind  -> TypeError if f(context) does not fit
+        |   _validate_event, callable, once is a bool
+        |   Subscription: calls.validate_signature, calls.has_kind  -> TypeError if f(context) does not fit
         v
 EventManager._subscriptions                  event -> ordered dict of Subscription, under the lock
         |   the manager alone sets Subscription._active
@@ -171,13 +172,13 @@ for each subscription:
         exception          -> note with calls.describe and calls.describe_event
 ```
 
-| Module                   | Layer | Holds                                                                             | Change     |
-| ------------------------ | ----- | --------------------------------------------------------------------------------- | ---------- |
-| `minevent/__init__.py`   | top   | the exports, `__version__`                                                        | none       |
-| `minevent/manager.py`    | 1     | `Subscription`, `EventManager`, `_check_event`, `_as_context`                     | docstrings |
-| `minevent/calls.py`      | 2     | how user code is checked and named: `Handler`, `check_signature`, `describe`, ... | docstrings |
-| `minevent/conditions.py` | 2     | `Condition`, `PeriodicCondition`                                                  | docstrings |
-| `minevent/context.py`    | 3     | `Context`                                                                         | none       |
+| Module                   | Layer | Holds                                                                                | Change     |
+| ------------------------ | ----- | ------------------------------------------------------------------------------------ | ---------- |
+| `minevent/__init__.py`   | top   | the exports, `__version__`                                                           | none       |
+| `minevent/manager.py`    | 1     | `Subscription`, `EventManager`, `_validate_event`, `_as_context`                     | docstrings |
+| `minevent/calls.py`      | 2     | how user code is checked and named: `Handler`, `validate_signature`, `describe`, ... | docstrings |
+| `minevent/conditions.py` | 2     | `Condition`, `PeriodicCondition`                                                     | docstrings |
+| `minevent/context.py`    | 3     | `Context`                                                                            | none       |
 
 The code is small (413 lines without docstrings, comments and blank lines, in 1,546), the layers
 are checked, and no module has a second job. Merging or splitting modules would move code without
@@ -230,23 +231,20 @@ the design page links to the recipe, and so does the troubleshooting of "returne
 
 The line between a page and a docstring follows what the rule is about:
 
-| Rule                                          | Home                             | The other place becomes                                  |
-| --------------------------------------------- | -------------------------------- | -------------------------------------------------------- |
-| the calling rule (it binds the whole library) | `architecture.md`                | `check_signature`: one sentence, the link, its `Raises:` |
-| the copy, `step` and `repr` of the condition  | docstring of `PeriodicCondition` | the "Threads" bullet keeps the thread safety only        |
-| the `repr` of a subscription                  | docstring of `Subscription`      | the bullet of the architecture page is deleted           |
-| the keys listed by a `KeyError`               | docstring of `Context`           | the "Errors" bullet keeps "the messages stay short"      |
+| Rule                                          | Home                             | The other place becomes                                     |
+| --------------------------------------------- | -------------------------------- | ----------------------------------------------------------- |
+| the calling rule (it binds the whole library) | `architecture.md`                | `validate_signature`: one sentence, the link, its `Raises:` |
+| the copy, `step` and `repr` of the condition  | docstring of `PeriodicCondition` | the "Threads" bullet keeps the thread safety only           |
+| the `repr` of a subscription                  | docstring of `Subscription`      | the bullet of the architecture page is deleted              |
+| the keys listed by a `KeyError`               | docstring of `Context`           | the "Errors" bullet keeps "the messages stay short"         |
 
 The "Performance" bullet of the architecture page drops the number of keys too. The docstrings that
-point to `check_signature` for the rule (`add_event_handler`, the module of `conditions`) point to
+point to `validate_signature` for the rule (`add_event_handler`, the module of `conditions`) point to
 the page.
 
-`CLAUDE.md` gets the exception that the code already uses (D7):
-
-```markdown
-Do not add a validator that is one `isinstance` or one comparison, unless several functions share
-it. The message of a `TypeError` can name the type of the value instead of the value.
-```
+The pull request #930 gives `CLAUDE.md` the exception that the code already uses (D7): a validator
+is allowed when several functions share it, and the message of a `TypeError` can name the type of
+the value instead of the value.
 
 ### 4.4 One reference page (F6)
 
@@ -345,7 +343,8 @@ with subscription: ...  # removed on exit
 condition(context), condition.reset(), condition.freq, condition.start, condition.step
 ```
 
-**Migration** from `main`: no code changes. The URLs of the four module pages of the reference
+**Migration** from `main`: no change for the exported names. `calls.check_signature`, which is not
+public, is renamed to `calls.validate_signature` (#931). The URLs of the four module pages of the reference
 disappear from the new versions of the documentation. Migration from `0.5.0`: see the changelog.
 
 **Dependents**: none in this repository.
@@ -397,13 +396,14 @@ changes of section 4 in CI; the recipe of 4.2 for a resumed training (not writte
 
 ## 7. Changes to reach the target state
 
+Two changes are already proposed: the validator rule of `CLAUDE.md` (#930, F9) and the rename (#931).
 One branch and one pull request per step (`CLAUDE.md`), each green on its own, each with its
 changelog entry when it changes what a user or a developer sees.
 
 | Step | Branch                                | Change                                                                    | Breaking  | Fixes     |
 | ---- | ------------------------------------- | ------------------------------------------------------------------------- | --------- | --------- |
 | 1    | `docs/fix-misleading-examples`        | The background recipe and limit (4.1), the corrections (4.2)              | no        | F1-F4, F8 |
-| 2    | `docs/state-each-rule-once` (on 1)    | The docstrings, the bullets of the architecture page, `CLAUDE.md` (4.3)   | no        | F5, F9    |
+| 2    | `docs/state-each-rule-once` (on 1)    | The docstrings and the bullets of the architecture page (4.3)             | no        | F5        |
 | 3    | `docs/keep-one-reference-page` (on 2) | One reference page (4.4)                                                  | site URLs | F6        |
 | 4    | `ci/check-the-documentation-links`    | `strict` and `anchors` in `mkdocs.yml` (4.5)                              | no        | F7        |
 | 5    | `ci/test-the-sdist`                   | The step of `ci-build.yaml` (4.6), `.github/GUIDELINES.md`; closes #910   | no        | F10       |
@@ -468,10 +468,9 @@ Gates before each merge: `ruff check src tests dev`, `ruff format src tests dev`
 
 - **D6. Remove the package versions script?** _Decided: no._ The script stays, as a part of the
   layout shared with `coola` (P25), and gets its tests (4.7).
-- **D7. Let `CLAUDE.md` allow a shared validator?** _Recommended: yes_ (4.3). Alternative: write the
-  check of an event four times.
+- **D7. Let `CLAUDE.md` allow a shared validator?** _Decided: yes_ (#930).
 - **D8. Keep one reference page?** _Recommended: yes_ (4.4). Alternative: keep the module pages and
-  delete `::: minevent`, which keeps `check_signature` in the reference and hides what is exported.
+  delete `::: minevent`, which keeps `validate_signature` in the reference and hides what is exported.
 - **D9. Test the source distribution in CI now?** _Recommended: yes_ (4.6). It was postponed until
   the content was fixed (#915). The tests take about 2 s on a laptop.
 - **D10. Where is the home of a rule?** _Recommended: the table of 4.3._ Alternative: the pages state
