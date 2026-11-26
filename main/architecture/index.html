@@ -1049,25 +1049,25 @@ recipes and the <a href="../guide/">user guide</a> gives the recommendations.</p
 <td>P7</td>
 <td>Snapshot dispatch</td>
 <td>A trigger visits the registrations that exist when it starts. A registration <strong>added</strong> by a running handler takes effect at the next trigger. A registration <strong>removed</strong> before its turn (by <code>remove()</code>, <code>clear_event</code>, <code>reset</code> or a <code>once</code> claim) does not run.</td>
-<td><code>Subscription._call</code>, <code>test_manager.py</code></td>
+<td>the dispatch loop, <code>test_manager.py</code></td>
 </tr>
 <tr>
 <td>P8</td>
 <td>Fail-fast with context</td>
-<td>An exception of a handler or a condition propagates unchanged (same object, same type); the remaining handlers are skipped. It carries a note with the event and the function of the handler (under a <code>functools.partial</code>), once per distinct pair. No message and no <code>repr</code> of the package runs the <code>repr</code> of user data to name a handler.</td>
-<td><code>calls.add_error_note</code>, <code>test_calls.py</code>, <code>test_manager.py</code></td>
+<td>An exception of a handler or a condition propagates unchanged (same object, same type); the remaining handlers are skipped. It carries a note with the event and what raised: the handler, or the condition and its handler (each named by its function, under a <code>functools.partial</code>), once per distinct note. Adding the note never replaces the exception: an exception that cannot take it propagates without it. No message and no <code>repr</code> of the package runs the <code>repr</code> of user data to name a callable.</td>
+<td><code>calls.add_error_note</code>, <code>Subscription._claim</code>, <code>test_calls.py</code>, <code>test_manager.py</code></td>
 </tr>
 <tr>
 <td>P9</td>
 <td><code>once</code> is at-most-once</td>
 <td>A <code>once</code> registration is removed by an atomic claim just before its handler is called, after its condition, so it is called at most once whatever the number of threads. A false or raising condition does not consume it; a handler that raises does.</td>
-<td><code>Subscription._call</code>, <code>test_manager_once.py</code>, <code>test_manager_threads.py</code></td>
+<td><code>Subscription._claim</code>, <code>test_manager_once.py</code>, <code>test_manager_threads.py</code></td>
 </tr>
 <tr>
 <td>P10</td>
 <td>Synchronous by default</td>
 <td><code>trigger_event</code> never awaits; a handler that returns an awaitable raises <code>TypeError</code>. <code>atrigger_event</code> awaits the handlers one after the other (an object with <code>async def __call__</code> is a coroutine handler too). <strong>Conditions are synchronous in both</strong>: a condition that returns an awaitable raises <code>TypeError</code>. A coroutine that is rejected is closed.</td>
-<td><code>calls.reject_awaitable</code>, <code>Subscription._call</code>, <code>test_manager_async.py</code></td>
+<td><code>calls.reject_awaitable</code>, <code>Subscription._claim</code>, <code>test_manager_async.py</code></td>
 </tr>
 <tr>
 <td>P11</td>
@@ -1102,7 +1102,7 @@ recipes and the <a href="../guide/">user guide</a> gives the recommendations.</p
 <tr>
 <td>P16</td>
 <td>Fast and linear</td>
-<td>About 0.3 µs for a trigger with one trivial handler, 0.1 µs for each extra one, 0.75 µs with a small dict (it is copied into a <code>Context</code>), and 4.5 µs for a registration plus its removal (the signature is inspected there, never in a trigger). Reading a value of a <code>Context</code> costs the same, present or missing, whatever the number of keys (<code>get</code> and <code>in</code>; <code>context[key]</code> lists the keys in its <code>KeyError</code>). Registering <em>k</em> handlers and removing them in any order costs O(<em>k</em>). Measured on a laptop with Python 3.14.</td>
+<td>About 0.3 µs for a trigger with one trivial handler, 0.06 µs for each extra one, 0.75 µs with a small dict (it is copied into a <code>Context</code>), and 4.5 µs for a registration plus its removal (the signature is inspected there, never in a trigger). Reading a value of a <code>Context</code> costs the same, present or missing, whatever the number of keys (<code>get</code> and <code>in</code>; <code>context[key]</code> lists the keys in its <code>KeyError</code>). Registering <em>k</em> handlers and removing them in any order costs O(<em>k</em>). Measured on a laptop with Python 3.14.</td>
 <td><code>tests/benchmarks/</code></td>
 </tr>
 <tr>
@@ -1235,8 +1235,6 @@ first, without default: <code>lambda context, i=i: print(i, context["epoch"])</c
   gets <code>None</code>, without an error: the context needs a parameter without default.</li>
 <li><strong>A decorated function</strong> is judged by the signature that <code>inspect.signature</code> reports: with
   <code>functools.wraps</code>, that is the signature of the wrapped function.</li>
-<li><strong>An exception class that forbids new attributes</strong> (a <code>frozen=True</code> dataclass exception) is
-  replaced by the error of <code>add_note</code>.</li>
 <li><strong>A mutable value of the payload</strong> can be mutated by a handler, and the next ones see it.</li>
 <li><strong>Threads.</strong> The handlers run in the thread that triggers the event, concurrently if several
   threads trigger it, so a handler that shares state must protect it. The state of a condition of a

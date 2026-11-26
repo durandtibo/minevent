@@ -2461,8 +2461,7 @@ that are coroutine functions (or return an awaitable) are
 awaited. Synchronous handlers can be mixed with coroutine
 handlers. The handlers run one after the other, in the order they were
 added, and they are fail-fast like in <code>trigger_event</code>: the
-exception is not wrapped and has a note with the event and the
-handler. The snapshot of the handlers, the <code>once</code>
+exception is not wrapped and has the same note. The snapshot of the handlers, the <code>once</code>
 registrations and the context follow the rules of
 <code>trigger_event</code>. Synchronous handlers block the event loop
 while they run.</p>
@@ -3014,7 +3013,8 @@ if no handler is registered.</p>
 <p>Handlers are executed fail-fast: if a handler raises, the
 exception propagates and the remaining handlers are skipped.
 The exception is not wrapped: it has a note (<code>__notes__</code>)
-with the event and the function of the handler that raised it.</p>
+with the event and what raised it, the handler or the condition
+and its handler.</p>
 <p>The handlers are read from a snapshot taken when the event is
 triggered. A handler added by a running handler takes effect
 on the next trigger. A registration removed before its turn
