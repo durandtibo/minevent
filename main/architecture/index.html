@@ -1573,7 +1573,7 @@ first, without default: <code>lambda context, i=i: print(i, context["epoch"])</c
   <code>Context</code> as is, into one read-only <code>Context</code> per trigger, shared by the handlers and the
   conditions. Both arguments are positional-only.</li>
 <li>Any <code>str</code> key is allowed, it does not need to be a valid identifier. Another key raises a
-  <code>TypeError</code>.</li>
+  <code>TypeError</code>. The mapping is read once: the keys that are checked are the keys that are stored.</li>
 <li>The values are not copied. A <code>Context</code> can be copied, deep-copied and pickled (protocol 2 or
   higher) if its values can.</li>
 <li>A <code>Context</code> is equal to a mapping that has the same items, and it is not hashable.</li>

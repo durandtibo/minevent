@@ -1970,8 +1970,8 @@ integer.</p>
 
 
         <p>Implement a read-only mapping of the payload of a trigger.</p>
-<p>The data is copied at construction into a private dict, and a
-context has no method that changes it (no <code>__setitem__</code>,
+<p>The data is copied at construction into a private dict, whose keys
+are checked, and a context has no method that changes it (no <code>__setitem__</code>,
 <code>update</code> or <code>pop</code>), so neither the code that built the context
 nor a handler can change what the next handler sees. The values
 themselves are not copied: a mutable value stays mutable. A context
