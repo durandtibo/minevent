@@ -76,6 +76,7 @@ Issues = "https://github.com/durandtibo/minevent/issues"
 
 [tool.codespell]
 skip = "*.lock,./.git,./htmlcov,./docs/site,coverage.xml"
+ignore-words-list = "intoto"
 
 [tool.coverage.paths]
 source = ["src", "*/site-packages"]
