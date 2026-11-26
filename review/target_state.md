@@ -1,28 +1,26 @@
 # `minevent`: target state and the changes to reach it
 
 This document describes the design that `minevent` should have, then the changes to make to the
-current implementation (`main`, `0ca7459`, #905) to get there. The design follows the properties of
+current implementation (`main`, `ebbee93`, #927) to get there. The design follows the properties of
 the "How It Works" page (`docs/docs/architecture.md`), the reasons of the "Design Choices" page
-(`docs/docs/design.md`) and the rules of `CLAUDE.md`. It replaces the previous version, whose steps
-were merged (#894 to #905) except two: step 6 was dropped, and step 12, which removed the tests from
-the source distribution, was closed on purpose (#906): the source distribution ships the tests
-(D4).
+(`docs/docs/design.md`) and the rules of `CLAUDE.md`. It replaces the previous version, whose plan
+was merged (#911 to #921) except the release of `0.6.0`.
 
-The aim in one line: **a small library whose every stated guarantee is true, with each rule written
-once.**
+The conclusion first: **the design of the library is the target.** The review found no defect in the
+registration, the dispatch, the payload or the conditions, and recommends **no change of behaviour
+or of the exported names**. Breaking changes were allowed, and the candidates were compared
+(section 9): each one costs more than the problem it solves. What is left is at the edges: guides
+that lead a user into a trap, rules written twice, documentation links and a distribution that no
+check covers, a script without a test, and a release that has not happened.
 
-The design stays: an event is a string, a handler is a callable, the manager connects them, the
-`Subscription` is the registration, the `Context` is the payload, a condition is a function. One
-rule changes: a handler and a condition are always called as `f(context)`, and a signature that does
-not fit is rejected at registration (D2). The review found no defect in the dispatch. The rest is at
-the edges: guarantees that are stated too strongly, one unbounded message, and the upkeep of the
-documentation, the tests and the repository. The target adds one property, the `step` of the
-condition, and no concept, class or exported name.
+The aim in one line: **ship what is on `main`, with documentation that a user can copy and gates
+that keep it true.**
 
-Items are tagged **[verified]** (reproduced with a script, a test run, a measurement or a read of the
-GitHub API, on an Apple laptop; scripts and prototype kept outside the repository) or **[reading]**
+Items are tagged **[verified]** (reproduced on 2026-11-26 with a script, a test run, a build or a
+read of the GitHub API, on an Apple laptop; scripts kept outside the repository) or **[reading]**
 (from the code, the documents or the workflows). This change touches this document only: nothing in
-`src`, `tests`, `docs` or `.github` is modified.
+`src`, `tests`, `dev`, `docs` or `.github` is modified. The functions
+are named as after the rename of the `check_*` functions to `validate_*` (#931).
 
 ---
 
@@ -30,98 +28,93 @@ GitHub API, on an Apple laptop; scripts and prototype kept outside the repositor
 
 The package is three concepts (_event_, _handler_, _manager_), the `Subscription` that a
 registration returns, the read-only `Context` of a trigger, and the plain-callable _conditions_.
-These are the rules of the **target**. Each design choice below exists to make one of them true by
-construction, or to say exactly where it stops. "Status" compares the row with `main`: **same**
-(stated and true today), **changed** (the statement changes) or **fixed** (claimed, or expected from
-a claim, but not true today).
+These are the rules of the target. Each design choice below exists to make one of them true by
+construction, or to say exactly where it stops. "Status" compares the row with `main`: **holds**
+(true today) or **gap** (see the finding of section 3).
 
 ### Surface and registration
 
-| #   | Property              | Statement                                                                                                                                                                                                                                                                                                                                                                                    | Status  | Enforced by                           |
-| --- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ------------------------------------- |
-| P1  | Small surface         | Six exported names and `__version__` (`EventManager`, `Subscription`, `Context`, `Handler`, `Condition`, `PeriodicCondition`). `EventManager` has 8 public members (`events`, `get_subscriptions`, `add_event_handler`, `on`, `trigger_event`, `atrigger_event`, `clear_event`, `reset`) and `in`. **The public API is what `minevent` exports**: the other names of its modules can change. | changed | `__all__`, the reference pages        |
-| P2  | Standard library only | No runtime dependency. `import minevent` starts no thread, emits no warning and writes no output and no log. Plain imports at the top of the modules; the import time is not a design input.                                                                                                                                                                                                 | same    | `package_checks.py`, `test_import.py` |
-| P3  | Events are strings    | An event name is a case-sensitive `str` (a `StrEnum` member is one, and is kept as given). The methods of the manager raise `TypeError` for another type, and `in` answers like a dict. The empty string is valid. Reading the manager never creates an event.                                                                                                                               | same    | `_check_event`                        |
-| P4  | Validated at the door | Every argument is checked by the function that receives it: `TypeError` for a wrong type, `ValueError` for a wrong value. `once` is a `bool`; the integers of a condition are an `int` but not a `bool`. A callable that cannot be called as documented is rejected. A rejection leaves the manager as it was.                                                                               | same    | `add_event_handler`, `calls`          |
-| P5  | One call              | A handler and a condition are always called as `f(context)`. Exactly one parameter lacks a default, and it is positional; the others keep their default. Anything else is rejected at registration. Names and annotations are not checked. The signature is read once.                                                                                                                       | changed | `calls.check_signature`               |
+| #   | Property              | Statement                                                                                                                                                                                                                                                                                                                                                                                  | Enforced by                           | Status |
+| --- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------- | ------ |
+| P1  | Small surface         | Six exported names and `__version__` (`EventManager`, `Subscription`, `Context`, `Handler`, `Condition`, `PeriodicCondition`). `EventManager` has 8 public members (`events`, `get_subscriptions`, `add_event_handler`, `on`, `trigger_event`, `atrigger_event`, `clear_event`, `reset`) and `in`. The public API is what `minevent` exports, and the reference shows it and nothing else. | `__all__`, the reference page         | gap F6 |
+| P2  | Standard library only | No runtime dependency. `import minevent` starts no thread, emits no warning and writes no output and no log. Plain imports at the top of the modules.                                                                                                                                                                                                                                      | `package_checks.py`, `test_import.py` | holds  |
+| P3  | Events are strings    | An event name is a case-sensitive `str` (a `StrEnum` member is one). The methods of the manager raise `TypeError` for another type, and `in` answers like a dict. The empty string is valid. Reading the manager never creates an event.                                                                                                                                                   | `_validate_event`                     | holds  |
+| P4  | Validated at the door | `add_event_handler` checks every argument: `TypeError` for a wrong type, `ValueError` for a wrong value. `once` is a `bool`, and the integers of a condition are an `int` but not a `bool`. A rejection leaves the manager as it was.                                                                                                                                                      | `add_event_handler`, `calls`          | holds  |
+| P5  | One call              | A handler and a condition are always called as `f(context)`. Exactly one parameter lacks a default, and it is positional. Anything else is rejected at registration. The signature is read once. Names and annotations are not checked.                                                                                                                                                    | `calls.validate_signature`            | holds  |
 
 ### Dispatch
 
-| #   | Property               | Statement                                                                                                                                                                                                                                                           | Status | Enforced by                         |
-| --- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ----------------------------------- |
-| P6  | Registration identity  | `add_event_handler` returns a new `Subscription` every time. `remove()` removes that registration only: `True` the first time, then `False`. `active` is `True` exactly while the registration is in the manager, and a `Subscription` cannot be copied or pickled. | same   | `Subscription`, `EventManager`      |
-| P7  | Order                  | The handlers of an event run in the order they were registered, one after the other, in the calling thread.                                                                                                                                                         | same   | the ordered `dict`                  |
-| P8  | Snapshot, removal wins | A trigger visits the registrations that exist when it starts. An addition waits for the next trigger. A registration removed before its handler is called does not run, whoever removed it.                                                                         | same   | `Subscription._claim`               |
-| P9  | `once` is at-most-once | A `once` registration is removed by an atomic claim after its condition and just before its handler. A false or raising condition does not consume it; a handler that raises does.                                                                                  | same   | `Subscription._claim`               |
-| P10 | Synchronous by default | `trigger_event` never awaits: a coroutine function as handler in the snapshot raises `TypeError` before anything runs, and any other awaitable result raises it after the call. `atrigger_event` awaits one handler at a time. Conditions are synchronous.          | same   | `trigger_event`, `reject_awaitable` |
+| #   | Property               | Statement                                                                                                                                                                                                                                                                          | Enforced by                         | Status |
+| --- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | ------ |
+| P6  | Registration identity  | `add_event_handler` returns a new `Subscription` every time. `remove()` removes that registration only: `True` the first time, then `False`. `active` is `True` exactly while the registration is in the manager. It cannot be copied or pickled.                                  | `Subscription`, `EventManager`      | holds  |
+| P7  | Order                  | The handlers of an event run in the order they were registered, one after the other, in the calling thread.                                                                                                                                                                        | the ordered `dict`                  | holds  |
+| P8  | Snapshot, removal wins | A trigger visits the registrations that exist when it starts. An addition waits for the next trigger. A registration removed before its handler is called does not run, whoever removed it.                                                                                        | `Subscription._claim`               | holds  |
+| P9  | `once` is at-most-once | A `once` registration is removed by an atomic claim after its condition and just before its handler. A false or raising condition does not consume it; a handler that raises does.                                                                                                 | `Subscription._claim`               | holds  |
+| P10 | No silent drop         | The return value of a handler is ignored, unless it is awaitable: `atrigger_event` awaits it, one handler at a time, and `trigger_event` raises `TypeError`. A coroutine function in the snapshot is rejected by `trigger_event` before anything runs. Conditions are synchronous. | `trigger_event`, `reject_awaitable` | holds  |
 
 ### Errors, payload, threads
 
-| #   | Property                | Statement                                                                                                                                                                                                                                                                                                                   | Status  | Enforced by                        |
-| --- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ---------------------------------- |
-| P11 | Fail-fast, never masked | An exception of a handler or a condition propagates unchanged, with a note that names the event and what raised, and the next handlers are skipped. Adding the note and naming the callable never raise instead of it. **One exception comes from Python: a `StopIteration` leaves `atrigger_event` as a `RuntimeError`.**  | fixed   | `calls.add_error_note`, `describe` |
-| P12 | Bounded messages        | A message or a note of `minevent` is short whatever the size of the user data, the event name and **the arguments of a condition** included: values are shown with `reprlib`, and a missing key lists at most 20 keys.                                                                                                      | fixed   | `reprlib`, `calls.describe_event`  |
-| P13 | Payload is data         | One read-only `Context` per trigger, shared by the handlers and the conditions, from a mapping with `str` keys or a `Context` used as is. The keys that are checked are the keys that are stored. `Context` is final.                                                                                                       | same    | `Context`, `typing.final`          |
-| P14 | Thread-safe registry    | The registry is protected by a lock against the other **threads**. Handlers, conditions, `repr` and the finalizers of the removed handlers run outside it. This holds with and without the GIL. **Code that interrupts a method of the manager in the same thread, such as a signal handler, must not change the manager.** | fixed   | `EventManager._lock`               |
-| P15 | Exact condition         | `PeriodicCondition` counts every call once, from any number of threads, and can be copied and pickled. **`step` reads the count that its `repr` shows.**                                                                                                                                                                    | changed | the counter lock                   |
-| P16 | Explicit, no state      | No global manager, no discovery, no side effect of a read. A manager is always truthy, has no length, and cannot be copied or pickled. The library logs nothing. **`repr` of a subscription shows what decides whether it runs.**                                                                                           | changed | `__reduce__`, `__repr__`           |
+| #   | Property                | Statement                                                                                                                                                                                                             | Enforced by                        | Status |
+| --- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- | ------ |
+| P11 | Fail-fast, never masked | An exception of a handler or a condition propagates unchanged, with a note that names the event and what raised, and the next handlers are skipped. Adding the note never raises instead of it.                       | `calls.add_error_note`, `describe` | holds  |
+| P12 | Bounded messages        | A message or a note of `minevent` is short whatever the size of the user data: values are shown with `reprlib`, an event name is shortened above 200 characters, and a missing key lists at most 20 keys.             | `reprlib`, `calls.describe_event`  | holds  |
+| P13 | Payload is data         | One read-only `Context` per trigger, shared by the handlers and the conditions, from a mapping with `str` keys or a `Context` used as is. The keys that are checked are the keys that are stored. `Context` is final. | `Context`, `typing.final`          | holds  |
+| P14 | Thread-safe registry    | The registry is protected by a lock against the other threads, with and without the GIL. Handlers, conditions and the finalizers of the removed handlers run outside it.                                              | `EventManager._lock`               | holds  |
+| P15 | Exact condition         | `PeriodicCondition` counts every call once, from any number of threads, can be copied and pickled, and shows its count in `step`.                                                                                     | the counter lock                   | holds  |
+| P16 | Explicit, no state      | No global manager, no discovery, no side effect of a read, no log. A manager is always truthy, has no length, and cannot be copied or pickled. The `repr` of a subscription shows what decides whether it runs.       | `__reduce__`, `__repr__`           | holds  |
 
 ### Engineering
 
-| #   | Property          | Statement                                                                                                                                                                                             | Status  | Enforced by                 |
-| --- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | --------------------------- |
-| P17 | Typed             | Fully typed, `py.typed`, `ty check` clean, no cast and no ignore. A handler argument is typed `Handler`, so a type checker reports a function without parameter. The values of a `Context` are `Any`. | changed | `ty check`                  |
-| P18 | Fast and linear   | About 0.3 µs for a trigger with one trivial handler, 0.07 µs for each extra one, 0.8 µs with a small dict, 5.5 µs for a registration plus its removal. A removal is O(1).                             | same    | `tests/benchmarks/`         |
-| P19 | One home per rule | One documentation page states each rule; a docstring states what its own object does and names the page or the function that holds the rule. The other pages link to it.                              | fixed   | review                      |
-| P20 | Layered           | `manager` imports `conditions` and `calls`, which import `context`. The two middle modules do not import each other. A new module must be placed in a layer.                                          | fixed   | `lint-imports`, exhaustive  |
-| P21 | Tested systems    | The tests run on Linux and macOS and on every supported Python. Windows is not supported.                                                                                                             | same    | `ci.yaml`                   |
-| P22 | Lean to maintain  | Every file and every dependency of the repository serves a property of this table.                                                                                                                    | fixed   | review, `pyproject.toml`    |
-| P23 | Testable release  | The source distribution holds the tests of the package, in the layout of the repository, and they pass from it. It does not hold `dev/` or the test of `dev/`. The wheel holds the package only.      | fixed   | `pyproject.toml` (CI: #910) |
+| #   | Property          | Statement                                                                                                                                                                                | Enforced by                  | Status         |
+| --- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- | -------------- |
+| P17 | Typed             | Fully typed, `py.typed`, `ty` and `pyright` clean. A type checker reports a handler or a condition without parameter, and an asynchronous condition.                                     | `inv types.check --complete` | holds          |
+| P18 | Fast and linear   | About 0.3 µs for a trigger with one trivial handler, 0.05 µs for each extra one, 0.8 µs with a small dict, 6 µs for a registration plus its removal. A removal is O(1).                  | `tests/benchmarks/`          | holds          |
+| P19 | Copyable docs     | An example or a recommendation of the documentation works as written, and does what its sentence says.                                                                                   | doctests, review             | gap F1 to F4   |
+| P20 | One home per rule | A rule of the library is stated by one documentation page. The behaviour of one object is stated by its docstring. The others link to it.                                                | review                       | gap F5, F6, F9 |
+| P21 | Checked docs      | A broken link or anchor between the pages fails the build.                                                                                                                               | `mkdocs.yml`                 | gap F7         |
+| P22 | Layered           | `manager` imports `conditions` and `calls`, which import `context`. The two middle modules do not import each other. A new module must be placed in a layer.                             | `lint-imports`, exhaustive   | holds          |
+| P23 | Tested systems    | The tests run on Linux and macOS and on every supported Python, free-threaded builds included. Windows is not supported.                                                                 | `ci.yaml`                    | holds          |
+| P24 | Testable release  | The source distribution holds the tests of the package, in the layout of the repository, and they pass from it. A pull request that breaks this fails. The wheel holds the package only. | `pyproject.toml`, `ci-build` | gap F10        |
+| P25 | Lean to maintain  | Every file and every dependency of the repository serves a property of this table or the layout shared with `coola`, and every script has tests.                                         | review, `pyproject.toml`     | gap F11        |
+| P26 | Released          | The latest release has the API that the documentation of `main` describes, or the gap is short.                                                                                          | `release-pypi.yaml`          | gap F12        |
 
-Not guaranteed, and documented as such (**new** marks an item that the documentation does not list
-today, or lists wrongly):
+Not guaranteed, and documented as such (the "Limits" of the architecture page; **new** marks an item
+to add):
 
 - **A removal in another thread** cannot stop a handler whose trigger has already passed the check.
-- **A signal handler or a garbage collection finalizer** can interrupt a method of the manager. One
-  that adds, removes or triggers a `once` registration can make `remove()` raise, or leave a
-  subscription `active` that is not registered. Set a flag in it, and use the manager in the main
-  code. (**new**)
+- **A signal handler or a garbage collection finalizer** must not change the manager that it
+  interrupts.
 - **Concurrent calls.** A registration without `once` is called by every thread that triggers its
-  event, possibly at the same time. The state of a user handler or condition is its own concern.
+  event. The state of a user handler or condition is its own concern.
 - **Recursion.** A handler that triggers its own event recurses until `RecursionError`.
 - **Blocking.** A synchronous handler in `atrigger_event` blocks the event loop.
-- **`StopIteration` in `atrigger_event`.** Python turns it into a `RuntimeError`, whose
-  `__cause__` is the original exception and has the note. (**new**)
-- **The start of a coroutine.** `atrigger_event` reads the registrations and copies the payload when
-  its coroutine starts to run.
-- **A hidden coroutine** (a lambda, a `functools.cache`, a synchronous `functools.wraps` wrapper) is
-  only detected after its call by `trigger_event`.
-- **Hidden generators**, synchronous or **asynchronous** (**new**): a function that returns one does
-  nothing.
-- **Names are not checked.** An unbound method `Model.save` is called with the context as `self`.
-- **A signature that depends on Python.** `set().add` and `time.sleep` are rejected on 3.11 and
-  3.12 and accepted from 3.13. (**new**: the page names `set.add`, which is rejected on every
-  version)
-- **A condition is evaluated by truthiness**, and it counts its calls, not the triggers.
+- **`StopIteration` in `atrigger_event`** becomes a `RuntimeError`.
+- **The start of a coroutine.** `atrigger_event` reads the registrations and the payload when its
+  coroutine starts to run.
+- **Hidden coroutines and generators** are not detected at registration. A hidden coroutine is
+  rejected after its call by `trigger_event`; a hidden generator does nothing.
+- **A background task returned by a handler** is an awaitable like any other: `trigger_event` raises
+  after the task is scheduled, and `atrigger_event` waits for it. (**new**, F1)
+- **Names are not checked**, and a signature of the standard library can depend on Python.
+- **A condition is evaluated by truthiness**, and it counts its calls, not the triggers. Its count
+  starts at 0 in a new process unless the condition is saved and restored. (**new**, F4)
+- **A cached function** cannot be a handler: a `Context` is not hashable.
 - **A mutable value of the payload** can be mutated by a handler.
-- **A huge integer** (more than 4,300 digits) raises the `ValueError` of Python when `minevent` has
-  to show it, on 3.11 and 3.12.
-- **Delayed release.** A manager with registrations is in a reference cycle; `reset()` releases the
-  handlers at a known point.
+- **A huge integer** in a message raises the `ValueError` of Python on 3.11 and 3.12.
+- **Delayed release.** A manager with registrations is in a reference cycle.
 
 ## 2. Constraints on the target
 
 1. **Simple and easy to maintain.** No new concept. A change that costs more code or text than the
-   problem it solves is rejected (D1).
-2. **Breaking changes are fine.** PyPI has `0.5.0` and `main` is `0.6.0a0` [verified]. No alias and
-   no deprecation period; the changelog follows. The future state matters more than the past one.
+   problem it solves is rejected.
+2. **Breaking changes are fine.** The latest tag is `v0.5.0` and `main` is `0.6.0a0`. No alias and no
+   deprecation period. The future state matters more than the past one.
 3. **Standard library only** (P2).
-4. **A trigger does not get slower.** Only the one call (4.7) changes the trigger, and its prototype
-   costs the same (section 10).
+4. **A trigger does not get slower** (P18).
 5. **Decisions of the maintainer stay**: one call, checked; Linux and macOS only; `int` only for the
    integer arguments; no `workflow-config.json`; no aggregate `ci` job; benchmarks nightly only;
-   plain imports; the tests in the source distribution but not in the wheel, without `dev/`; and the
-   check of the cyclic imports.
+   plain imports, with `TYPE_CHECKING` from `typing`; the tests in the source distribution but not
+   in the wheel; and the check of the cyclic imports.
 6. **Settled designs without a defect stay**: sequential async, fail-fast, the snapshot, the check of
    the signature at registration, one `Context` per trigger, values typed `Any`, a non-copyable
    manager, and the non-goals of the design page.
@@ -129,35 +122,26 @@ today, or lists wrongly):
 ## 3. What differs today
 
 **Baseline on `main`** [verified], Python 3.14.10 on macOS: `ruff check`, `ruff format --check`,
-`ty check`, `lint-imports`, `inv test.doctest`, `mkdocs build --strict` and `uv build` pass, 801
-unit and integration tests pass with 100% line and branch coverage (333 statements, 86 branches),
-and `pytest tests/benchmarks --benchmark-disable` passes (40 tests).
+`ty check`, `pyright`, `lint-imports`, `inv test.doctest`, `mkdocs build --strict` and `uv build`
+pass, and 820 unit and integration tests pass with 100% line and branch coverage (345 statements,
+94 branches).
 
-No defect was found in the order, the snapshot, the `once` claim between threads or the way the
-calling rule of `main` is applied (P7 to P10).
+No defect was found in the library (P3 to P16).
 
-### Library
-
-| #   | Finding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Property | Status                |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | --------------------- |
-| F1  | **The reentrancy of the lock promises too much.** Its comment says that a signal handler or a finalizer that runs while it is held "can use the manager". With a signal handler that calls `reset()`, `subscription.remove()`, documented to never raise, raised `KeyError: 'e'`, and a new subscription was `active` without being registered (section 6). `repr(manager)` can raise `dictionary changed size during iteration`.                                                                                                                            | P6, P14  | [verified]            |
-| F2  | **An error message is not bounded.** `PeriodicCondition(-10**4000)` raises a message of 4,047 characters (4,048 for `start`), while the architecture page says that the messages stay short whatever the size of the data. Above 4,300 digits, the `ValueError` of Python replaces it on every version, not on 3.11 and 3.12 only.                                                                                                                                                                                                                           | P12      | [verified]            |
-| F3  | **Two statements about Python are wrong or missing.** (a) A handler or a condition that raises `StopIteration` gives a `RuntimeError` without note from `atrigger_event` (the note is on its `__cause__`): "propagates unchanged" has an exception that no page says. (b) The limit "`set.add` is rejected on Python 3.11 and 3.12, and accepted from 3.13" is false: the unbound `set.add` is rejected on 3.11 to 3.15, and the bound `set().add` is what changes. The unbound `dict.clear` is accepted from 3.13, and would receive the context as `self`. | P11, P19 | [verified, 3.11-3.15] |
-| F4  | **The `repr` of a subscription hides why a handler does not run.** It shows the event and the handler, not `once`, the condition or `active`. The troubleshooting list asks the reader to check the condition and `active` one by one.                                                                                                                                                                                                                                                                                                                       | P16      | [reading]             |
-| F5  | **Internal helpers look public.** The reference publishes the seven names of `minevent.calls`, of which `minevent` exports the type `Handler` only. No page says what is stable.                                                                                                                                                                                                                                                                                                                                                                             | P1       | [reading]             |
-| F12 | **A condition shows a count that cannot be read.** The `repr` of a `PeriodicCondition` has `step`, the number of calls, next to the properties `freq` and `start`, but there is no `step` property.                                                                                                                                                                                                                                                                                                                                                          | P15      | [reading]             |
-| F13 | **A signature decides between two calls.** A user cannot assume that a handler receives the context: adding or removing a default changes the call, and `def f(context=None)` is called without argument.                                                                                                                                                                                                                                                                                                                                                    | P5       | [verified]            |
-
-### Documentation, tests and repository
-
-| #   | Finding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Property | Status                 |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ---------------------- |
-| F6  | **Rules have several homes.** `once`, `atrigger_event`, the calling rule and the `with` block each appear in 5 to 7 files among the README, the pages and the docstrings. The five "Pitfalls" of the guide repeat the "Limits" and the "Registration" sections of the architecture page. The "In practice" lines of the design page and the "Recommendations" of the guide give advice twice.                                                                                               | P19      | [verified], by search  |
-| F7  | **The tests of the source distribution do not pass.** It holds `tests/` but not `dev/`, and `tests/unit/test_benchmark_trend.py` imports `dev.benchmark_trend`, so the collection of `tests/unit` stops with `No module named 'dev'`. That test checks a script of the nightly benchmark, not the package. A second failure hides behind it: `sources = ["src"]` applies to the sdist too and moves `src/minevent` to `minevent`, and `test_version_fallback_without_metadata` reads `src`. | P23      | [verified]             |
-| F8  | **Files and dependencies without a use.** `review/context_object_design.md` describes an API that no longer exists (`trigger_event("e", epoch=3)`, `filter_payload`). The docs dependency `mkdocs-include-markdown-plugin` is in no plugin list and no page, and the strict build passes without a use of it. The changelog describes removals of names that no release had (`__len__`, `AfterNCondition`).                                                                                 | P22      | [verified]             |
-| F9  | **The layering contract is not exhaustive**: a new module that is in no layer is not checked. `exhaustive = true` passes on `main`.                                                                                                                                                                                                                                                                                                                                                         | P20      | [verified]             |
-| F10 | **Tests against their own rules**: `test_calls_does_not_import_annotationlib_before_python_3_14` has three asserts, and 3 pairs of unit tests have identical bodies. `test_manager.py` has 1,725 lines and 14 sections, among them the tests of `Subscription` conveniences, `_remove` and registration.                                                                                                                                                                                    | P22      | [verified]             |
-| F11 | **The header of `ci.yaml` is false**: it says that the branch protection of `main` requires three checks, and `.github/GUIDELINES.md` calls the job ids load-bearing for it. The branch protection and the ruleset have an empty list of required checks.                                                                                                                                                                                                                                   | P19      | [verified], 2026-11-26 |
+| #   | Finding                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Property | Status                                  |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | --------------------------------------- |
+| F1  | **The advice about background work is a trap.** The design page says to "start the tasks or threads inside a handler". A short handler that returns its task, such as `lambda _: loop.create_task(upload())`, makes `trigger_event` raise "returned an awaitable; use atrigger_event" after the task is scheduled. `atrigger_event`, the advised fix, awaits the task, so the work is not in the background any more. No page says to return nothing, and no example starts a task. | P19      | [verified]                              |
+| F2  | **A claim that the calling rule made false.** The design page says that "any function, method, lambda, `functools.partial` or callable object works". `model.train`, `print` and a function without parameter are rejected, as the next section of the same page says.                                                                                                                                                                                                              | P19      | [verified]                              |
+| F3  | **A recipe fails for a method.** "Register a handler only once" compares with `s.handler is hello_handler`. A bound method is a new object at each access, so the same recipe with `plugin.on_epoch_end` registers it twice.                                                                                                                                                                                                                                                        | P19      | [verified]                              |
+| F4  | **A resumed training is not covered.** `PeriodicCondition` counts its calls, so after a restart from epoch 7 it counts from 0, not from the epoch. The limit says that it counts calls, but no recipe gives the two ways out: a condition on the payload, or saving the condition with the checkpoint (it can be pickled).                                                                                                                                                          | P19      | [reading]                               |
+| F5  | **Rules still have two homes.** The calling rule is stated in full by the architecture page and by the docstring of `validate_signature`. The copy, the `step` and the `repr` of `PeriodicCondition`, the `repr` of a `Subscription` and the limit of 20 keys are each stated by a docstring and by a bullet of the architecture page.                                                                                                                                              | P20      | [verified], by search                   |
+| F6  | **The reference renders each object twice**: once on "Main classes and functions" (`::: minevent`) and once on one of four module pages. The module pages publish `minevent.calls.validate_signature`, which the library says is not public.                                                                                                                                                                                                                                        | P1, P20  | [verified], on the built site           |
+| F7  | **A broken anchor passes.** `mkdocs build --strict` of a copy with a link to `guide.md#no-such-anchor` succeeds: MkDocs reports it at the `INFO` level. The CI builds with `mike`, without `--strict`, so it does not fail on a warning either. The rule "one home" makes the pages depend on these anchors.                                                                                                                                                                        | P21      | [verified] (build), [reading] (CI)      |
+| F8  | **Small errors.** The user guide asks for event names "in the past tense" and gives `epoch_end`. `CONTRIBUTING.md` lints `src tests` (the rule is `src tests dev`) and does not name `lint-imports`.                                                                                                                                                                                                                                                                                | P19, P20 | [reading]                               |
+| F9  | **The code breaks a written rule.** `CLAUDE.md` forbids a validator of one `isinstance`. `_validate_event` is one, used by four callers, and it is the right code. #930 changes the rule.                                                                                                                                                                                                                                                                                           | P20      | [reading]                               |
+| F10 | **Nothing runs the tests of the source distribution** (#910). They pass today (808 tests from the unpacked archive), but a pull request can break them without a failure: they were broken until #915.                                                                                                                                                                                                                                                                              | P24      | [verified]                              |
+| F11 | **A script without a test.** `dev/generate_versions.py` (#924) has no test, which `CLAUDE.md` requires, and a weekly workflow (#927) runs it. Its output, `dev/config/package_versions.json`, is `{}` while `minevent` has no dependency.                                                                                                                                                                                                                                           | P25      | [reading], [verified] (output)          |
+| F12 | **Not released.** The last tag is `v0.5.0`, whose API is not the one of `main`: `pip install minevent` gives a library that the documentation of `main` does not describe. `SECURITY.md` supports `0.5.x` only.                                                                                                                                                                                                                                                                     | P26      | [verified] (tags), [reading] (the rest) |
 
 What is already right and must not regress: callables as handlers and conditions; the signature
 checked once, at registration; the early rejection of coroutine and generator functions; one
@@ -167,10 +151,12 @@ outside the lock; errors that are never replaced by `minevent`; the exact counte
 
 ## 4. Architecture
 
+The library keeps its design.
+
 ```text
 add_event_handler(event, handler, *, once, condition)
-        |   _check_event, callable, once is a bool
-        |   Subscription: calls.check_signature, calls.has_kind  -> TypeError if f(context) does not fit
+        |   _validate_event, callable, once is a bool
+        |   Subscription: calls.validate_signature, calls.has_kind  -> TypeError if f(context) does not fit
         v
 EventManager._subscriptions                  event -> ordered dict of Subscription, under the lock
         |   the manager alone sets Subscription._active
@@ -186,154 +172,148 @@ for each subscription:
         exception          -> note with calls.describe and calls.describe_event
 ```
 
-The modules and their layers are the ones of `main`:
+| Module                   | Layer | Holds                                                                                | Change     |
+| ------------------------ | ----- | ------------------------------------------------------------------------------------ | ---------- |
+| `minevent/__init__.py`   | top   | the exports, `__version__`                                                           | none       |
+| `minevent/manager.py`    | 1     | `Subscription`, `EventManager`, `_validate_event`, `_as_context`                     | docstrings |
+| `minevent/calls.py`      | 2     | how user code is checked and named: `Handler`, `validate_signature`, `describe`, ... | docstrings |
+| `minevent/conditions.py` | 2     | `Condition`, `PeriodicCondition`                                                     | docstrings |
+| `minevent/context.py`    | 3     | `Context`                                                                            | none       |
 
-| Module                   | Layer | Holds                                                                             | Change        |
-| ------------------------ | ----- | --------------------------------------------------------------------------------- | ------------- |
-| `minevent/__init__.py`   | top   | the exports, `__version__`                                                        | none          |
-| `minevent/manager.py`    | 1     | `Subscription`, `EventManager`, `_check_event`, `_as_context`                     | 4.1, 4.2, 4.7 |
-| `minevent/calls.py`      | 2     | how user code is checked and named: `Handler`, `check_signature`, `describe`, ... | 4.5, 4.7      |
-| `minevent/conditions.py` | 2     | `Condition`, `PeriodicCondition`                                                  | 4.3, 4.4, 4.7 |
-| `minevent/context.py`    | 3     | `Context`                                                                         | none          |
+The code is small (413 lines without docstrings, comments and blank lines, in 1,546), the layers
+are checked, and no module has a second job. Merging or splitting modules would move code without
+removing any.
 
-### 4.1 The lock says what it protects (F1, F3)
+### 4.1 Background work from a handler (F1)
 
-The registry stays a dict of dicts under an `RLock`. Making every method safe against an
-interruption between any two instructions needs either a copy of the registry at each change, which
-loses the O(1) removal, or a protocol that is harder to read than the registry itself. The limit is
-stated instead (D1), and the comment says why the lock is reentrant:
+One rule, already true (P10), stated where a user meets it: **a handler that starts background work
+returns nothing.** The manager cannot tell a task that the user wants to keep running from a
+coroutine that was forgotten, so it does not guess (D1). The recipe, in the examples page, replaces
+no code:
 
-```python
-# This lock protects the state above against the other threads. The handlers run without it. It is
-# reentrant, so a signal handler or a finalizer that interrupts a method does not deadlock, but it
-# must not change the manager: the method that it interrupts expects the state to stay.
-self._lock = threading.RLock()
+```pycon
+>>> import asyncio
+>>> from minevent import Context, EventManager
+>>> async def upload(path: str) -> None:
+...     await asyncio.sleep(0)
+...     print(f"uploaded {path}")
+>>> tasks = set()  # asyncio keeps a weak reference to a task only
+>>> def start_upload(context: Context) -> None:
+...     task = asyncio.get_running_loop().create_task(upload(context["path"]))
+...     tasks.add(task)
+...     task.add_done_callback(tasks.discard)
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler("checkpoint_saved", start_upload)
+>>> async def main() -> None:
+...     manager.trigger_event("checkpoint_saved", {"path": "model.pt"})
+...     print("training continues")
+...     await asyncio.gather(*tasks)
+>>> asyncio.run(main())
+training continues
+uploaded model.pt
+
 ```
 
-The sentences of `clear_event` and `reset` about the finalizers of the removed handlers stay: these
-handlers are released when the method returns, outside the lock.
+The limits of the architecture page get one bullet, the row "Concurrent or background dispatch" of
+the design page links to the recipe, and so does the troubleshooting of "returned an awaitable".
 
-No code catches `StopIteration`: a coroutine cannot raise it, so `minevent` could only replace it by
-another exception.
+### 4.2 Examples that work as written (F2, F3, F4, F8)
 
-### 4.2 The `repr` of a subscription (F4)
+| Page              | Change                                                                                                                                     |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `design.md`       | "any function, method, lambda, ... that takes the context works", with the link to the calling rule                                        |
+| `examples.md`     | "Register a handler only once" compares with `==`, and its example registers a bound method                                                |
+| `examples.md`     | new recipe "Resume a training": `condition=lambda context: context["epoch"] % 3 == 0`, or save the `PeriodicCondition` with the checkpoint |
+| `guide.md`        | event names "after what happens": `epoch_end`, `checkpoint_saved`                                                                          |
+| `CONTRIBUTING.md` | `ruff check src tests dev`, `ruff format src tests dev` and `lint-imports`                                                                 |
 
-The options that are not the default, and the state if the registration is gone:
+### 4.3 One home per rule (F5, F9)
 
-```python
-def __repr__(self) -> str:
-    parts = [f"event={self._event!r}", f"handler={describe(self._handler)!r}"]
-    if self._once:
-        parts.append("once=True")
-    if self._condition is not None:
-        parts.append(f"condition={describe(self._condition)!r}")
-    if not self._active:
-        parts.append("active=False")
-    return f"{self.__class__.__qualname__}({', '.join(parts)})"
+The line between a page and a docstring follows what the rule is about:
+
+| Rule                                          | Home                             | The other place becomes                                     |
+| --------------------------------------------- | -------------------------------- | ----------------------------------------------------------- |
+| the calling rule (it binds the whole library) | `architecture.md`                | `validate_signature`: one sentence, the link, its `Raises:` |
+| the copy, `step` and `repr` of the condition  | docstring of `PeriodicCondition` | the "Threads" bullet keeps the thread safety only           |
+| the `repr` of a subscription                  | docstring of `Subscription`      | the bullet of the architecture page is deleted              |
+| the keys listed by a `KeyError`               | docstring of `Context`           | the "Errors" bullet keeps "the messages stay short"         |
+
+The "Performance" bullet of the architecture page drops the number of keys too. The docstrings that
+point to `validate_signature` for the rule (`add_event_handler`, the module of `conditions`) point to
+the page.
+
+The pull request #930 gives `CLAUDE.md` the exception that the code already uses (D7): a validator
+is allowed when several functions share it, and the message of a `TypeError` can name the type of
+the value instead of the value.
+
+### 4.4 One reference page (F6)
+
+Delete `refs/manager.md`, `refs/conditions.md`, `refs/context.md` and `refs/calls.md`, and their
+lines in the navigation of `mkdocs.yml`. `refs/index.md` keeps `::: minevent`: it renders the
+exported names, `Handler` included, and nothing else, so the reference and the public API (P1)
+cannot differ. A copy of `docs` with this change and the one of 4.5 builds [verified].
+
+### 4.5 A build that checks the links (F7)
+
+In `docs/mkdocs.yml`, so the local build, the pull requests (`mike deploy`) and the releases follow
+the same rule:
+
+```yaml
+strict: true
+validation:
+  anchors: warn
 ```
 
-A registered handler without options reads as today.
+The pages of `main` pass with this setting, and the broken anchor of F7 aborts the build
+[verified, MkDocs 1.6.1, `mkdocs build`; the effect on `mike deploy` is [reading] and is checked by
+step 4].
 
-### 4.3 Bounded errors of the condition (F2)
+### 4.6 Test the source distribution in CI (F10)
 
-The two `ValueError` of `PeriodicCondition` show the value with `reprlib.repr`, like the other
-values of the library:
+One step in the build job of `ci-build.yaml`, for the `sdist` cells, with no new job and no
+hardcoded Python version or package name:
 
-```python
-msg = f"freq must be greater than or equal to 1, got {reprlib.repr(freq)}"
+```yaml
+- name: Test the source distribution
+  if: matrix.dist-type == 'sdist'
+  run: |
+    set -euo pipefail
+    uv build --sdist --out-dir "$RUNNER_TEMP/dist"
+    mkdir "$RUNNER_TEMP/sdist"
+    tar -xzf "$RUNNER_TEMP"/dist/*.tar.gz -C "$RUNNER_TEMP/sdist" --strip-components=1
+    cd "$RUNNER_TEMP/sdist"
+    uv venv "$RUNNER_TEMP/sdist-venv"
+    VIRTUAL_ENV="$RUNNER_TEMP/sdist-venv" uv pip install . anyio pytest pytest-timeout ty
+    "$RUNNER_TEMP/sdist-venv/bin/python" -m pytest tests/unit tests/integration
 ```
 
-### 4.4 The `step` of the condition (F12)
+The same commands, run by hand, give 808 passed tests: the 820 of the repository without the 12 of
+the script of `dev/` [verified, 3.14, macOS; the step itself was not run in CI].
 
-A read-only property, next to `freq` and `start`. It does not advance the counter:
+### 4.7 Test the package versions script (F11)
 
-```python
-@property
-def step(self) -> int:
-    return self._step
-```
+The script, its file, its workflow and the `feu[all]` dependency stay: they are part of the layout
+shared with `coola` (D6). The script gets what `CLAUDE.md` asks of every script:
 
-It is the number of calls since the creation or the last `reset()`, and a copy starts with the value
-of the original. It reads one integer, so it needs no lock.
+- unit tests of `fetch_package_versions` and `main` in `tests/unit/test_generate_versions.py`, with
+  the fetch functions of `feu` patched, so no test uses the network;
+- an integration test in `tests/integration/test_generate_versions.py` that runs the real
+  `fetch_package_versions` on a `pyproject.toml` without dependency, which makes no request;
+- both files in the `exclude` list of the source distribution, which does not ship `dev/`.
 
-### 4.5 One home per rule (F5, F6)
+The real function, run on the repository with the network blocked, returns `{}` [verified].
 
-| Page              | Its only job                                 | Change                                                                                 |
-| ----------------- | -------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `README.md`       | what it is, one example, installation, links | the calling rule becomes one sentence and a link; the usage keeps register and trigger |
-| `index.md`        | entry page of the site                       | none                                                                                   |
-| `quickstart.md`   | the first contact, one example per feature   | no rule restated beside an example                                                     |
-| `examples.md`     | recipes that combine features                | the recipes that repeat a quickstart section are removed or merged into it             |
-| `guide.md`        | recommendations and troubleshooting          | "Pitfalls" is deleted                                                                  |
-| `architecture.md` | **the rules, the guarantees and the limits** | the public API statement (P1), the limits of section 1                                 |
-| `design.md`       | the reasons and the trade-offs               | "In practice" links to the guide when the guide says it                                |
-| `refs/`           | the exported names                           | `refs/calls.md` shows `Handler` and `check_signature` only (the `members` option)      |
+### 4.8 Release `0.6.0` (F12)
 
-The changelog describes `0.6.0` against `0.5.0` only: the entries about names and behaviours that
-existed between two releases are folded into the description of the final one.
+After the steps that change what is shipped or documented: the version of `pyproject.toml` (and
+`uv.lock`), the heading of the changelog, the version table of the README, `SECURITY.md` set to
+`0.6.x` with its generic advice reduced to what concerns `minevent`, then the tag `v0.6.0`, which
+publishes. The `Changelog` URL of `pyproject.toml` can point to `CHANGELOG.md`, which holds the
+migration.
 
-### 4.6 Repository and tests (F7 to F11)
+## 5. Public API
 
-- **Lean**: delete `review/context_object_design.md` (git keeps it) and the unused docs dependency.
-- **Layers**: `exhaustive = true` in the contract of `import-linter`.
-- **Tests**: split the test of three asserts, delete the second test of each identical pair, and
-  split `test_manager.py` by feature (`test_manager_registration.py`, `test_manager_context.py`,
-  `test_manager_trigger.py`, next to the files for async, `once` and subscriptions).
-- **CI comments**: `ci.yaml` and `GUIDELINES.md` describe the protection that exists (D6).
-- **Distribution** (F7): the sdist keeps the tests and the `src/` layout, and leaves out the one
-  test of `dev/`, which stays in the repository and in CI. The rewrite of the paths is a setting of
-  the wheel only, so the wheel holds the same files as today:
-
-  ```toml
-  [tool.hatch.build.targets.sdist]
-  only-include = ["src", "tests"]
-  exclude = ["tests/unit/test_benchmark_trend.py"]
-
-  [tool.hatch.build.targets.wheel]
-  packages = ["src/minevent"]
-  ```
-
-### 4.7 One call, checked (F13)
-
-`calls.adapt_call` returned a callable of the context. It becomes a check that returns nothing:
-
-```python
-def check_signature(func: Callable[..., object], name: str) -> None:
-    # The generator check and the read of the signature are the ones of adapt_call.
-    required = [param for param in signature.parameters.values() if param.default is param.empty]
-    positional = (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
-    if len(required) != 1 or required[0].kind not in positional:
-        msg = (
-            f"{name} {describe(func)} must take the context as its only required argument; "
-            "wrap it in a function or a lambda"
-        )
-        raise TypeError(msg)
-```
-
-- `Subscription` calls the handler and the condition directly: `_handler_call` and `_condition_call`
-  are deleted.
-- `Handler` is `Callable[[Context], object]`, and `Condition` is `Callable[[Context], bool]`.
-- `PeriodicCondition.__call__` takes the context and ignores it. The parameter is named `_context`,
-  which the lint accepts without a `noqa` [verified].
-
-A handler that does not need the context declares it and ignores it. `def f(_)` is the form that the
-documentation recommends; it passes `ty` and the unused argument rules of ruff [verified]:
-
-```python
-def save_model(_: Context) -> None: ...
-
-
-manager.add_event_handler("epoch_end", save_model)
-manager.add_event_handler("epoch_start", lambda _: model.train())  # an existing function
-```
-
-A lambda is for a function that cannot be changed. It costs two things [verified]: the notes and the
-`repr` show `<lambda>`, and a coroutine function behind it is only detected after its call by
-`trigger_event`, once the earlier handlers have run.
-
-## 5. Public API after the change
-
-The manager keeps its signatures. A handler and a condition take the context.
+Unchanged:
 
 ```text
 from minevent import (
@@ -363,267 +343,164 @@ with subscription: ...  # removed on exit
 condition(context), condition.reset(), condition.freq, condition.start, condition.step
 ```
 
-### Migration
+**Migration** from `main`: no change for the exported names. `calls.check_signature`, which is not
+public, is renamed to `calls.validate_signature` (#931). The URLs of the four module pages of the reference
+disappear from the new versions of the documentation. Migration from `0.5.0`: see the changelog.
 
-| Before                                                              | After                                                     |
-| ------------------------------------------------------------------- | --------------------------------------------------------- |
-| `repr` of a `once`, conditional or removed subscription: two fields | it adds `once=True`, `condition='...'` or `active=False`  |
-| the whole integer in a `ValueError` of `PeriodicCondition`          | shortened by `reprlib`                                    |
-| `minevent/` at the root of the source distribution                  | `src/minevent/`, next to `tests/`                         |
-| the functions of `minevent.calls` in the reference                  | `check_signature` only; the others have no stability rule |
-| `calls.adapt_call`                                                  | removed                                                   |
-
-### Migration of the handlers and the conditions
-
-| Today                                               | After                                               |
-| --------------------------------------------------- | --------------------------------------------------- |
-| `def f():`                                          | `def f(_):`, or register `lambda _: f()`            |
-| `add_event_handler("e", model.train)`               | `add_event_handler("e", lambda _: model.train())`   |
-| `lambda: print("done")`                             | `lambda _: print("done")`                           |
-| `lambda i=i: save(i)`                               | `lambda _, i=i: save(i)`                            |
-| `functools.partial(save, "model.pt")`, `save(path)` | `lambda _: save("model.pt")`                        |
-| `condition=lambda: flag.enabled`                    | `condition=lambda _: flag.enabled`                  |
-| `lambda: all([a(), b()])`                           | `lambda context: all([a(context), b(context)])`     |
-| `condition()` of a `PeriodicCondition`              | `condition(context)`                                |
-| `add_event_handler("e", manager.reset)`             | `add_event_handler("e", lambda _: manager.reset())` |
+**Dependents**: none in this repository.
 
 ## 6. Evidence
 
-**Interrupted methods** [verified]. A loop of `add_event_handler`, a check of `active` against
-`get_subscriptions` with the signal blocked, `remove()` and `repr()`, during 20 s, with a `SIGALRM`
-about every 37 µs whose handler calls `reset()`. The rate is far above what a program does: it shows
-that the window exists, not how often a program meets it.
+All [verified], 2026-11-26, macOS, on `ebbee93`.
 
-| Python  | Iterations | `KeyError` from the loop (`remove`) | `active` but not registered |
-| ------- | ---------: | ----------------------------------: | --------------------------: |
-| 3.11.18 |  2,123,342 |                               8,113 |                       7,847 |
-| 3.13.18 |  2,021,317 |                               6,452 |                       6,687 |
-| 3.14.10 |  1,634,167 |                               1,592 |                       2,146 |
+**Tests per interpreter**, unit and integration tests against the built wheel (the repository
+environment for 3.14):
 
-A `reset()` or an `add_event_handler` injected with a trace function at each line of a method also
-gives the `RuntimeError` of `repr` [verified, 3.14, by injection only]. A stress with a finalizer run
-by the garbage collector (300,000 iterations) showed no failure: the finalizer case is **[reading]**.
+| Python          | Passed | Skipped |
+| --------------- | -----: | ------: |
+| 3.11.18         |    813 |       7 |
+| 3.12.16         |    815 |       5 |
+| 3.13.18         |    815 |       5 |
+| 3.14.10         |    820 |       0 |
+| 3.14.10, no GIL |    820 |       0 |
+| 3.15.2          |    820 |       0 |
+| 3.15.2, no GIL  |    820 |       0 |
 
-**Prototype** of 4.2 and 4.3 on a scratch copy of `main` [verified, 3.14]. `ruff check`,
-`ruff format --check` and `ty check` are clean on its `src`, the doctests of `src`, the README and
-the documentation pages pass, and 797 tests pass and 4 fail: the 4 tests of the `repr` of a
-subscription that is built by hand, which now shows `active=False`. The message of
-`PeriodicCondition(-10**4000)` has 85 characters.
+The benchmarks, run once without measure on 3.14, pass (40 tests).
 
-**Prototype** of 4.7: section 10. It has no new docstrings, its tests are not adapted, and it was not
-combined with the other prototypes.
+**Behaviour probes** (3.14; the calling rule on 3.11 to 3.15):
 
-**Source distribution** [verified, 3.14, macOS]. Built with `uv build`, installed in a new
-environment with the test tools, and tested from the unpacked archive:
+| Probe                                                                             | Result                                                                     |
+| --------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `print`, `max`, `dict.update`, `Mock()`, `AsyncMock()`; `set().add`, `time.sleep` | rejected; the last two on 3.11 and 3.12 only                               |
+| `trigger_event`, handler that returns a task                                      | `TypeError`, the task is already scheduled                                 |
+| `atrigger_event`, the same handler                                                | the task is done when the trigger returns                                  |
+| condition that returns `None`                                                     | the handler is skipped, without error                                      |
+| two concurrent `atrigger_event` on a `once` registration                          | one call                                                                   |
+| `trigger_event` rejected for a coroutine handler                                  | the `step` of its condition stays 0                                        |
+| signature whose reading raises (`__signature__`, an annotation `1/0`)             | the exception of the user code propagates unchanged, the manager unchanged |
 
-| Configuration            | Unit and integration tests | Benchmarks, disabled |
-| ------------------------ | -------------------------- | -------------------- |
-| `main`                   | collection error           | 40 pass              |
-| `main` plus `dev/`       | 800 pass, 1 fails          | 40 pass              |
-| the configuration of 4.6 | 789 pass                   | 40 pass              |
+**Types**: on a sample of user code, `ty` and `pyright` report the same two errors (a handler
+without parameter, an asynchronous condition) and accept the partial, the lambda, the decorator, the
+`PeriodicCondition` and a `dict[str, int]` payload. Both report a condition typed to return `None`.
 
-The second row shows the failure of the layout alone. The configuration of 4.6 runs the 801 tests of
-`main` without the 12 of `test_benchmark_trend.py`. Its wheel lists the same files as on `main`, and
-its archive has 56,309 bytes, against 57,267 on `main`. An editable install with the same settings of
-the wheel imports `src/minevent`.
+**Speed** (Python 3.14.10, µs, best of 9 repetitions): 0.20 for a trigger without handler, 0.29
+with one, 0.71 with ten, 4.9 with a hundred, 0.77 with one and a small dict, 6.2 for a
+registration plus its removal, 0.16 for a call of a `PeriodicCondition`.
 
-**Speed of `main`** (Python 3.14.10, µs, best of 9 repetitions) [verified]: 0.20 for a trigger
-without handler, 0.31 with one, 0.88 with ten, 0.73 with one and a small dict, 5.5 for a
-registration plus its removal, 0.15 for a call of a `PeriodicCondition`. They agree with P18.
+**Size**: `src` has 1,546 lines, 1,004 of them in docstrings; the unit, integration and benchmark
+tests have 5,322, 1,312 and 390 lines.
 
-**Size of `main`** [verified]: `src` has 1,499 lines, 969 of them in docstrings; the unit,
-integration and benchmark tests have 5,131, 1,269 and 391 lines.
-
-**Not verified**: the tests, the signal stress and the speed on Linux; the free-threaded builds; F1
-on 3.12 and 3.15, and F2 on 3.15; the changes of 4.1 and 4.4 to 4.6, apart from the `exhaustive`
-contract and the configuration of the distributions; 4.7 beyond its prototype.
+**Not verified**: Linux; the stress of a signal handler of the previous review (not run again); the
+changes of section 4 in CI; the recipe of 4.2 for a resumed training (not written yet).
 
 ## 7. Changes to reach the target state
 
-One branch and one pull request per step (`CLAUDE.md`), each green on its own. Each step updates the
-docstrings, the documentation and the changelog for what it changes.
+Two changes are already proposed: the validator rule of `CLAUDE.md` (#930, F9) and the rename (#931).
+One branch and one pull request per step (`CLAUDE.md`), each green on its own, each with its
+changelog entry when it changes what a user or a developer sees.
 
-| Step | Branch                                       | Change                                                                                                                           | Breaking     | Fixes      |
-| ---- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------ | ---------- |
-| 1    | `docs/state-the-limits-of-the-manager`       | The comment of the lock, the limits on signals, `StopIteration`, async generators, signatures and huge integers (4.1, section 1) | guarantee    | F1, F3     |
-| 2    | `bugfix/shorten-condition-errors`            | `reprlib` in the errors of `PeriodicCondition` (4.3)                                                                             | messages     | F2         |
-| 3    | `feat/show-subscription-options`             | The `repr` of a subscription (4.2), the troubleshooting of the guide                                                             | output       | F4         |
-| 4    | `chore/remove-unused-files`                  | The old proposal, the docs dependency, `exhaustive = true` (4.6)                                                                 | no           | F8, F9     |
-| 5    | `bugfix/run-the-tests-of-the-sdist`          | The content and the layout of the sdist (4.6)                                                                                    | distribution | F7         |
-| 6    | `test/split-manager-tests`                   | The tests (4.6)                                                                                                                  | no           | F10        |
-| 7    | `ci/fix-protection-comments`                 | The comments about the branch protection (D6)                                                                                    | no           | F11        |
-| 8    | `docs/give-each-rule-one-page` (on 1, 3, 10) | The pages, the reference of `calls`, the public API statement, the changelog (4.5)                                               | no           | F5, F6, F8 |
-| 9    | `feat/add-condition-step`                    | The `step` property (4.4)                                                                                                        | no           | F12        |
-| 10   | `feat/always-pass-the-context` (on 2, 3)     | One call, checked, with its documentation, changelog and tests (4.7)                                                             | **yes**      | F13        |
+| Step | Branch                                | Change                                                                    | Breaking  | Fixes     |
+| ---- | ------------------------------------- | ------------------------------------------------------------------------- | --------- | --------- |
+| 1    | `docs/fix-misleading-examples`        | The background recipe and limit (4.1), the corrections (4.2)              | no        | F1-F4, F8 |
+| 2    | `docs/state-each-rule-once` (on 1)    | The docstrings and the bullets of the architecture page (4.3)             | no        | F5        |
+| 3    | `docs/keep-one-reference-page` (on 2) | One reference page (4.4)                                                  | site URLs | F6        |
+| 4    | `ci/check-the-documentation-links`    | `strict` and `anchors` in `mkdocs.yml` (4.5)                              | no        | F7        |
+| 5    | `ci/test-the-sdist`                   | The step of `ci-build.yaml` (4.6), `.github/GUIDELINES.md`; closes #910   | no        | F10       |
+| 6    | `test/generate-versions` (on 5)       | The tests of the script and the `exclude` list of the sdist (4.7)         | no        | F11       |
+| 7    | `chore/release-0.6.0` (after 1-3)     | The version, the changelog, `SECURITY.md`, the README, then the tag (4.8) | release   | F12       |
 
-Order of value if only part is taken: **1 and 2** (a documented guarantee is false), then **3** and
-**10** (the largest breaking change, best made before a release), then **5** (a release that cannot
-be tested), **8** (the largest maintenance gain) and the others. Release `0.6.0` after the steps 1 to
-3, 5 and 8 to 10, with `SECURITY.md` set to `0.6.x` and its generic advice reduced to what concerns
-`minevent`.
+Order of value if only part is taken: **1** (a user copies these pages), then **7** (nothing on
+`main` reaches a user until it is released), **4** and **5** (cheap gates), then **2**, **3** and
+**6**. The release waits for the steps 1 to 3 only, which change the documentation that it
+publishes, and can be made without 2 and 3 if they are not taken.
 
 ## 8. Tests and gates
 
-Unit tests mirror the source tree; the rules of `CLAUDE.md` apply (one behaviour per test, `match` on
-every `pytest.raises`, literals for expected values, a regression test that fails on `main`).
+No step changes the behaviour of `src`, so no unit test of the library is added. Each step proves its
+change:
 
-| Test                                                                   | Behaviour                                          | Step |
-| ---------------------------------------------------------------------- | -------------------------------------------------- | ---- |
-| `test_event_manager_atrigger_event_stop_iteration`                     | `RuntimeError`, as documented                      | 1    |
-| `test_atrigger_event_stop_iteration_has_the_noted_cause` (integration) | the `__cause__` has the note                       | 1    |
-| `test_periodic_condition_huge_negative_freq` and `..._start`           | the whole message as one literal (fails on `main`) | 2    |
-| `test_subscription_repr_options` (parametrized)                        | `once`, condition, both, removed: one literal each | 3    |
-| `test_subscription_repr_registered`                                    | no extra field for a registration without options  | 3    |
-| `test_subscription_repr_condition_ignores_repr`                        | a condition whose `repr` raises is named           | 3    |
-| `test_periodic_condition_step` (parametrized)                          | 0 at creation, then the number of calls            | 9    |
-| `test_periodic_condition_step_reset`                                   | 0 after `reset()`                                  | 9    |
-| `test_periodic_condition_step_does_not_advance`                        | a read leaves the next result unchanged            | 9    |
-| `test_check_signature_accepted` (parametrized)                         | `f(context)`, `f(_)`, one more default, a partial  | 10   |
-| `test_check_signature_rejected` (parametrized)                         | no parameter, only defaults, `*args`, two, keyword | 10   |
-| `test_periodic_condition_call_with_context`                            | the context changes no result                      | 10   |
-| `test_type_checker_reports_a_wrong_handler` (integration, new cases)   | `ty` reports a function without parameter          | 10   |
+| Step | Check                                                                                                                                                  |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1    | The new examples are `pycon` blocks, run by `inv test.doctest`. An integration test starts a task from a handler with both triggers, without patching. |
+| 2    | `inv test.doctest`; a search finds each rule of the table of 4.3 in its home only.                                                                     |
+| 3    | The strict build; the reference page lists the six names.                                                                                              |
+| 4    | A temporary broken anchor, pushed to the branch, fails the documentation job; it is removed before the merge.                                          |
+| 5    | The job runs the tests from the archive on every `sdist` cell. A temporary import of `dev` in a test fails it.                                         |
+| 6    | The new tests cover the script; the sdist holds neither of them, and the step of 4.6 passes.                                                           |
+| 7    | `ci.yaml` passes on the released commit (`release-pypi.yaml` requires it), then `nightly-package.yaml`, run by hand, passes on the published package.  |
 
-No test asserts the behaviour under a signal (F1): it is a limit, and a test of it would depend on
-timing.
+Test of step 1 (`tests/integration/test_manager_async.py`):
+`test_handler_starts_a_background_task` (parametrized on the two triggers), "Test that a handler
+that returns nothing leaves its task running after the trigger".
 
-Gates before each merge: `ruff check src tests`, `ruff format src tests`, `ty check`,
-`lint-imports`, `pytest tests/unit tests/integration --cov=minevent --cov-branch` at 100%,
-`inv test.doctest`, `mkdocs build --strict -f docs/mkdocs.yml` and `python tests/package_checks.py`.
-Step 5 is checked with `uv build`, the tests run from the unpacked sdist and the list of the files
-of the wheel. Step 6 compares the list of the collected tests before and after: only the removed
-duplicates and the split test differ.
+Gates before each merge: `ruff check src tests dev`, `ruff format src tests dev`, `ty check`,
+`pyright`, `lint-imports`, `pytest tests/unit tests/integration --cov=minevent --cov-branch` at
+100%, `inv test.doctest`, `mkdocs build --strict -f docs/mkdocs.yml` and
+`python tests/package_checks.py`.
 
 ## 9. Decisions for the maintainers
 
-- **D1. Support a signal handler that changes the manager?** _Recommended: no, state the limit._ The
-  safe pattern (set a flag) is the usual one for signals. Alternative: replace the dicts by immutable
-  tuples swapped under the lock. It removes the `RuntimeError` but not a lost update between a read
-  and a swap, and a removal becomes O(n). A plain `Lock` is worse: it deadlocks.
-- **D2. Replace the calling rule by one shape, `f(context)`?** _Decided: yes, checked at
-  registration_ (4.7). A user can assume that there is always an input context. `model.train` is no
-  longer registered as it is. Compared in section 10.
-- **D3. Show the options in the `repr` of a subscription?** _Recommended: yes_ (about 8 lines).
-  Alternative: keep the short form and the troubleshooting steps.
-- **D4. Ship the tests in the sdist?** _Decided: yes_, without `dev/`, and not in the wheel.
-  Downstream packagers, such as Linux distributions and conda-forge, and offline users build from the
-  sdist and run its tests. The test of `dev/benchmark_trend.py` is left out of the sdist. Alternative:
-  skip it in the test file when `dev` is missing, which adds a condition to a test.
-- **D5. Remove `ci-cyclic-imports.yaml`?** _Decided: no._ It has another purpose than the layers
-  contract: it verifies the package itself, from the imports of its source, while the contract checks
-  declared rules, which can be outdated and miss a cycle.
-- **D6. Require the checks that `ci.yaml` names, or fix the comment?** _Recommended: fix the
-  comment._ When read, the last 60 runs of `ci.yaml` (2026-11-26) held 1 success, 46 cancelled, 12
-  queued and 1 pending [verified]: a required check would block merges while the queue is that long.
-  Requiring the three checks later needs no new job.
-- **D7. Remove `on` or `in`, which duplicate another way?** _Recommended: no._ `on` returns the
-  function and `add_event_handler` the subscription; `in` is O(1), while `events` copies the names.
-- **D8. `_check_event` is a validator of one `isinstance`, which `CLAUDE.md` forbids.**
-  _Recommended: keep it and let the rule allow a validator that several functions share._ Four
-  functions use it. Alternative: write the check four times.
-- **D9. Give `PeriodicCondition` a `step` property?** _Decided: yes_ (4.4).
-- **D10. Test the sdist in CI?** _Decided: later._ Tracked in #910. Until then, P23 is checked by
-  hand.
+### Changes of the library that were compared and rejected
 
-## 10. D2: why one call, checked
+- **D1. Let `trigger_event` accept a task or a future?** (Only a coroutine would raise.)
+  _Recommended: no._ It would make `lambda _: loop.create_task(...)` work, but the error of a task
+  that nobody reads is lost, an awaitable that is not scheduled would be dropped in silence, and
+  `atrigger_event` would still await the task, so the two triggers would differ in one more way.
+  One rule and one recipe (4.1) are simpler.
+- **D2. Require a `bool` from a condition?** _Recommended: no._ It would catch a condition without
+  `return`, which a type checker already reports. It would reject `numpy.bool_`, which is not a
+  `bool` and is what a comparison of a NumPy loss returns, and the idiom
+  `context.get("is_best")`. Rejecting `None` only breaks the same idiom.
+- **D3. Give the handler the name of the event?** _Recommended: no._ A registration names one event,
+  so `functools.partial` binds it where it is known. It would add a field to `Context` or a second
+  call shape.
+- **D4. Return a tuple from `events`, like `get_subscriptions`?** _Recommended: no._ It breaks code
+  for a consistency that fixes no problem.
+- **D5. Move the checks of `add_event_handler` into `Subscription`?** One place would check
+  everything, also for a subscription built by hand. _Recommended: no._ The constructor is internal,
+  and such a subscription is never `active`.
+- **Support a signal handler that changes the manager, replace the dicts by tuples, collect the
+  errors, run handlers concurrently**: no change, for the reasons of the design page and of the
+  previous reviews (a removal would be O(n), or the dispatch would need a policy).
 
-The comparison behind the decision. On `main`, a handler or a condition is called as `f()` or
-`f(context)`, and its signature decides which. The alternative is one call, `f(context)`, in two
-variants, which differ in what happens to a callable that does not fit:
+### Decisions that the plan needs
 
-- **Today** (`main`): `f()` if no parameter lacks a default, `f(context)` if exactly one positional
-  parameter does, otherwise `TypeError` at registration.
-- **A. One call, checked** (chosen): always `f(context)`. A callable is accepted if exactly one
-  parameter lacks a default and it is positional; otherwise `TypeError` at registration. It is
-  today's rule without its `f()` branch.
-- **B. One call, unchecked**: always `f(context)`. The signature is not read; Python raises at the
-  trigger if the call does not fit. Generator and coroutine functions are still detected.
+- **D6. Remove the package versions script?** _Decided: no._ The script stays, as a part of the
+  layout shared with `coola` (P25), and gets its tests (4.7).
+- **D7. Let `CLAUDE.md` allow a shared validator?** _Decided: yes_ (#930).
+- **D8. Keep one reference page?** _Recommended: yes_ (4.4). Alternative: keep the module pages and
+  delete `::: minevent`, which keeps `validate_signature` in the reference and hides what is exported.
+- **D9. Test the source distribution in CI now?** _Recommended: yes_ (4.6). It was postponed until
+  the content was fixed (#915). The tests take about 2 s on a laptop.
+- **D10. Where is the home of a rule?** _Recommended: the table of 4.3._ Alternative: the pages state
+  everything and the docstrings only link, which leaves `help()` without the behaviour of an object.
 
-In both variants `Handler` is `Callable[[Context], object]`, `Condition` is
-`Callable[[Context], bool]`, and `PeriodicCondition` is called as `condition(context)`.
-
-### What a registration does
-
-[verified, 3.14, prototypes of A and B on a scratch copy of `main`]
-
-| Callable                         | Today             | A: checked        | B: unchecked                        |
-| -------------------------------- | ----------------- | ----------------- | ----------------------------------- |
-| `def f(context)`                 | gets the context  | gets the context  | gets the context                    |
-| `def f(context, verbose=False)`  | gets the context  | gets the context  | gets the context                    |
-| `partial(save, "model.pt")`      | gets the context  | gets the context  | gets the context                    |
-| `Model.save`, unbound            | context as `self` | context as `self` | context as `self`                   |
-| `def f()`                        | `f()`             | rejected          | `TypeError` at the trigger          |
-| `model.train(mode=True)`         | `model.train()`   | rejected          | **`model.train(context)`**          |
-| `lambda i=i: ...`                | keeps `i`         | rejected          | **`i` is the context**              |
-| `def f(context=None)`            | **gets `None`**   | rejected          | gets the context                    |
-| `print`                          | rejected          | rejected          | prints the context                  |
-| `Mock()`                         | rejected          | rejected          | gets the context                    |
-| `max`                            | rejected          | rejected          | **runs on the keys of the context** |
-| `def f(a, b)`, `def f(*, epoch)` | rejected          | rejected          | `TypeError` at the trigger          |
-
-Bold cells run without an error and probably not as the author meant. **B does not drop the support
-of `model.train`: it calls it with the context as `mode`.**
-
-### Cost
-
-| Measure [verified, 3.14, macOS]                            | Today |       A |      B |
-| ---------------------------------------------------------- | ----: | ------: | -----: |
-| code lines of `src`, without docstrings and comments       |   404 |     402 |    384 |
-| trigger with 1 handler that takes the context, µs          |  0.29 |    0.29 |   0.29 |
-| trigger with 10 such handlers, µs                          |  0.71 |    0.71 |   0.71 |
-| trigger with 10 handlers without argument today, µs        |  0.89 |     n/a |    n/a |
-| registration plus removal, µs                              |   6.3 |     6.3 |    2.3 |
-| unit and integration tests of `main` that fail             |     0 |     350 |    190 |
-| tests not collected (`test_calls.py` imports `adapt_call`) |     0 |     135 |    135 |
-| failing doctest examples, README and pages / `src`         | 0 / 0 | 68 / 18 | 27 / 5 |
-
-The tests and the examples were not adapted: the counts show the size of the migration, mostly the
-handlers without parameter. B fails fewer of them partly because a wrong registration that is never
-triggered passes [reading].
-
-With the types of A, which B shares, `ty check` reports `def f()`, `model.train`, `lambda: None`
-and `def f(a, b)` in a sample (today: `def f(a, b)` only) [verified]. It does not report
-`def f(context=None)`, `lambda i=3: None` or `print`.
-
-### Pros and cons
-
-| Approach         | Pros                                                                                                                                                                                                                                                                                              | Cons                                                                                                                                                                                                                                                                                                                                               |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Today**        | `model.train`, `lambda: ...` and functions without parameter are registered as they are. No change for users or tests.                                                                                                                                                                            | Two call shapes to learn, chosen implicitly. Adding or removing a default changes the call. `def f(context=None)` silently gets `None`. A table of 11 rows documents the rule.                                                                                                                                                                     |
-| **A: checked**   | **One call to learn.** An accepted callable behaves as today, and a callable that no longer fits is rejected at registration, so no migration is silent. The footgun of the optional parameter becomes an error. A wrong signature is still found before the first trigger. No cost on a trigger. | A function without parameter needs one (`def f(context)`) or a lambda. A function that calls a `PeriodicCondition` without argument raises at the trigger. `def f(context: Context \| None = None)` is rejected. The signature inspection, the `annotationlib` branch and the differences between Python versions stay: almost no code is removed. |
-| **B: unchecked** | One call to learn, and the simplest rule: what Python accepts runs. About 20 code lines, `adapt_call` and `annotationlib` go. A registration is 4 µs faster. `print`, `Mock()` and any `*args` callable work. No difference between Python versions.                                              | **A callable with an optional first parameter receives the context silently**, including code that works today. A wrong signature raises at the trigger, perhaps hours into a training, after the earlier handlers ran, and consumes a `once` registration. It gives up "validated at the door" (P4) for signatures.                               |
-
-### Why A
-
-It gives what motivates the change, a context that is always there, without a silent change of
-behaviour: the one call that is not checked at registration, `condition()` inside a function of the
-user, raises. B is the real simplification of the code, but it saves only 20 code lines of the 404,
-next to what it costs: calls that succeed with the wrong argument.
-
-## 11. Not covered
+## 10. Not covered
 
 - **The non-goals of the design page** (event objects, priorities, wildcards, weak references,
   collected errors, concurrent dispatch): unchanged.
-- **The name of the event in the `Context`**, for a handler registered to several events: bind it with
-  `functools.partial`.
 - **Return values of handlers** and **typed payloads**: need their own design if users ask.
-- **A helper that ignores the context**, such as `ignore_context(model.train)`: a lambda does it.
-  It could keep the name and the detection of a coroutine, so revisit it if users wrap often.
-- **The nightly benchmark**: whether its 50% threshold is a usable signal on the shared runners, and
-  whether `dev/benchmark_trend.py` is worth its upkeep. No scheduled run of `main` with the current
-  baseline (#878) had been read.
-- **The `bot-`, `release-` and `security-` workflows and the `.make/` subtree**: not reviewed.
+- **The nightly benchmark.** The scheduled runs of 2026-11-19 to 2026-11-25 failed, all with the
+  workflow before #878, and no scheduled run of the current one was read [verified]. The two results
+  saved by the last of them come from different CPUs (AMD EPYC 9V45 and Intel Xeon 8370C), so a 50%
+  threshold between two runs may report the runner and not the code [reading]. Read a week of runs,
+  then decide between the threshold, a baseline on the same runner, and the trend table alone.
+- **The queue of the CI**: when read, most recent runs of `ci.yaml` were queued or cancelled
+  [verified]. It can delay step 7.
+- **Material for MkDocs** announces its end of life on 2027-05-05 when it builds [verified]. The
+  choice of its successor needs its own review.
+- **The `bot-`, `release-` and `security-` workflows and the `.make/` subtree**: not reviewed,
+  except where section 4 names them.
 
 ---
 
-## Appendix: effect on the size of the package
+## Appendix: effect on the size of the repository
 
-| Item                   | Today | Target | Why                                    |
-| ---------------------- | ----: | -----: | -------------------------------------- |
-| exported names         |     7 |      7 | six names and `__version__`            |
-| modules                |     5 |      5 | no change                              |
-| runtime dependencies   |     0 |      0 |                                        |
-| `src` lines            | 1,499 |    n/a | not measured with the final docstrings |
-| documents in `review/` |     2 |      1 | the old proposal is deleted            |
-
-The prototype of 4.2 and 4.3 adds 11 lines and removes 6. Without docstrings and comments, the one of
-4.7 removes 2 of the 404 lines of `main`. The gate is the behaviour (sections 1 and 8), not the size.
+| Item                 | Today | Target | Why                          |
+| -------------------- | ----: | -----: | ---------------------------- |
+| exported names       |     7 |      7 | six names and `__version__`  |
+| modules              |     5 |      5 | no change                    |
+| runtime dependencies |     0 |      0 |                              |
+| code lines of `src`  |   413 |    413 | docstrings only              |
+| reference pages      |     5 |      1 | the module pages are deleted |
