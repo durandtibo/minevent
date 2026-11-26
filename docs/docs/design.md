@@ -48,7 +48,8 @@ The data of a trigger is passed as one `Context`, not as keyword arguments.
   no handler, each handler decides what a missing key means, and no handler can add, replace or
   remove a key seen by the next one.
 - **Costs**: the signature of a handler does not list the data that it needs, a typo in a key is
-  found at run time, and a dict is copied at each trigger.
+  found at run time, and a dict is copied at each trigger. `Context` is final: it is data, so build
+  one from your mapping, or wrap it, instead of subclassing it.
 - **In practice**: read a required value with `context["key"]` and an optional one with
   `context.get("key", default)`. Build a `Context` once to reuse it. To give named arguments to an
   existing function, adapt it: `lambda context: f(context["epoch"])`.
