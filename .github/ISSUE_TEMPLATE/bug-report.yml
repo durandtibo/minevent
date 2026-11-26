@@ -33,10 +33,10 @@ body:
     attributes:
       label: Versions
       description: |
-        Please indicate the versions of the packages used. If you are using a conda environment,
-        you can run the following and paste the output below.
+        Please indicate the operating system and the versions of Python and of `minevent`. You can
+        run the following and paste the output below.
         ```sh
-        conda list
+        python -c "import platform, minevent; print(platform.platform(), platform.python_version(), minevent.__version__)"
         ```
     validations:
       required: true
