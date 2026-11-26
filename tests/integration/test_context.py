@@ -157,7 +157,7 @@ def test_async_condition_is_rejected_at_registration() -> None:
     condition: Any = functools.partial(Schedule().is_late, 2)
     with pytest.raises(TypeError, match=r"^condition must be synchronous, but got .*is_late$"):
         manager.add_event_handler("epoch_end", lambda: None, condition=condition)
-    assert len(manager) == 0
+    assert manager.events == []
 
 
 def test_context_is_read_only_for_a_handler() -> None:

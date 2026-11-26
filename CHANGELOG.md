@@ -77,8 +77,9 @@ the new API are in the
 - The keyword-only options `once` (run at most once, the first time the condition is `True`, even
   with several threads) and `condition` of `add_event_handler`, and the `on` decorator. `once` must
   be a `bool`: another value, such as `1` or `"False"`, raises a `TypeError` (#895).
-- `EventManager.events`, `get_subscriptions`, `clear_event`, `__len__` and `__contains__`. A manager
-  is always truthy.
+- `EventManager.events`, `get_subscriptions`, `clear_event` and `__contains__`. A manager is always
+  truthy. It has no length: the `__len__` of the development versions is removed, and the number of
+  handlers of an event is `len(manager.get_subscriptions(event))` (#901).
 - The `start` option and the `reset` method of `PeriodicCondition`, which now validates `freq`.
   `PeriodicCondition(freq=1, start=n)` is a warm-up, `False` for the first `n` calls: it replaces
   the `AfterNCondition(n)` of the development versions (#898).

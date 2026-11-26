@@ -288,7 +288,7 @@ def test_once_removed_after_condition_becomes_true() -> None:
         "my_event", hello_handler, condition=PeriodicCondition(1, start=2), once=True
     )
     trigger_n_times(manager, 3)
-    assert len(manager) == 0
+    assert manager.events == []
 
 
 def test_once_runs_once_when_condition_stays_true() -> None:

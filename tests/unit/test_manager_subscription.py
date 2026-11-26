@@ -262,7 +262,7 @@ def test_subscription_remove_inactive_after_remove() -> None:
 def test_subscription_remove_removes_from_manager() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", noop_handler).remove()
-    assert len(manager) == 0
+    assert manager.events == []
 
 
 def test_subscription_remove_middle_keeps_order() -> None:
@@ -321,7 +321,7 @@ def test_subscription_remove_same_handler_registered_twice_keeps_other_registrat
     manager.add_event_handler("my_event", handler)
     first.remove()
     first.remove()
-    assert len(manager) == 1
+    assert len(manager.get_subscriptions("my_event")) == 1
 
 
 def test_subscription_remove_same_handler_registered_twice_second_stays_active() -> None:
@@ -365,7 +365,7 @@ def test_subscription_exit_removes() -> None:
     manager = EventManager()
     with manager.add_event_handler("my_event", noop_handler):
         pass
-    assert len(manager) == 0
+    assert manager.events == []
 
 
 def test_subscription_exit_does_not_swallow_exception_of_block() -> None:
@@ -383,7 +383,7 @@ def test_subscription_exit_removes_when_block_raises() -> None:
         manager.add_event_handler("my_event", noop_handler),
     ):
         failing_handler()
-    assert len(manager) == 0
+    assert manager.events == []
 
 
 ############################
