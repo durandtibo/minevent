@@ -1,3 +1,0 @@
-# Conditions
-
-::: minevent.conditions
