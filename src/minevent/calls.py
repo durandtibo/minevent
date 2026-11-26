@@ -1,7 +1,7 @@
 r"""Implement how the code of a user is called.
 
-``Handler`` is the type of a handler. ``needs_context`` says how a
-handler or a condition is called, ``describe`` names it,
+``Handler`` is the type of a handler. ``adapt_call`` turns a handler or
+a condition into a callable of the context, ``describe`` names it,
 ``reject_awaitable`` rejects the awaitable result of a synchronous call,
 and ``add_error_note`` completes the exception that it raises. These
 helpers are used by ``minevent.manager``, and ``minevent`` exports
@@ -10,7 +10,7 @@ helpers are used by ``minevent.manager``, and ``minevent`` exports
 
 from __future__ import annotations
 
-__all__ = ["Handler", "add_error_note", "describe", "needs_context", "reject_awaitable"]
+__all__ = ["Handler", "adapt_call", "add_error_note", "describe", "reject_awaitable"]
 
 import contextlib
 import functools
@@ -28,9 +28,8 @@ Handler = Callable[[], object] | Callable[[Context], object]
 the trigger."""
 
 
-def needs_context(func: Callable[..., object], name: str) -> bool:
-    r"""Indicate if a handler or a condition must be called with the
-    context.
+def adapt_call(func: Callable[..., object], name: str) -> Callable[[Context], object]:
+    r"""Turn a handler or a condition into a callable of the context.
 
     A callable is called as ``func()`` or ``func(context)``. A
     parameter that has a default keeps it: the manager never fills it.
@@ -55,8 +54,10 @@ def needs_context(func: Callable[..., object], name: str) -> bool:
             the error messages.
 
     Returns:
-        ``True`` if ``func`` is called as ``func(context)``, and
-            ``False`` if it is called as ``func()``.
+        ``func`` itself if it is called as ``func(context)``, and
+            otherwise a function of the context that calls ``func()``.
+            The signature is read once, by this function: calling the
+            result does not read it again.
 
     Raises:
         TypeError: if ``func`` is a generator function, if its
@@ -65,16 +66,18 @@ def needs_context(func: Callable[..., object], name: str) -> bool:
 
     Example:
         ```pycon
-        >>> from minevent.calls import needs_context
-        >>> def func(): ...
-        >>> needs_context(func, "handler")
-        False
-        >>> def func(context): ...
-        >>> needs_context(func, "handler")
+        >>> from minevent import Context
+        >>> from minevent.calls import adapt_call
+        >>> def read_epoch(context):
+        ...     return context["epoch"]
+        ...
+        >>> adapt_call(read_epoch, "handler") is read_epoch
         True
-        >>> def func(mode=True): ...
-        >>> needs_context(func, "handler")
-        False
+        >>> def train(mode=True):
+        ...     return mode
+        ...
+        >>> adapt_call(train, "handler")(Context({"epoch": 3}))
+        True
 
         ```
     """
@@ -97,10 +100,10 @@ def needs_context(func: Callable[..., object], name: str) -> bool:
     # ``**kwargs`` parameter has no default.
     required = [param for param in signature.parameters.values() if param.default is param.empty]
     if not required:
-        return False
+        return lambda _context: func()
     positional = (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
     if len(required) == 1 and required[0].kind in positional:
-        return True
+        return func
     raise TypeError(msg)
 
 

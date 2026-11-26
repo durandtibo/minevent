@@ -4,7 +4,7 @@ A condition is any synchronous function that returns a boolean (a
 lambda, a method or a callable object). It is called before its handler,
 like a handler: as ``condition()``, or as ``condition(context)`` with
 the read-only ``Context`` of the trigger (see
-``minevent.calls.needs_context``). ``Condition`` is its type, and
+``minevent.calls.adapt_call``). ``Condition`` is its type, and
 ``EventManager.add_event_handler`` states how a registration uses it.
 ``PeriodicCondition`` and ``AfterNCondition`` count their calls. The
 user guide of the documentation shows how to combine conditions.

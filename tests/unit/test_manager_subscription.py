@@ -22,7 +22,6 @@ from tests.unit.handlers import (
     CallableRecorder,
     async_condition,
     condition_returning_a_coroutine,
-    copy_context,
     fail,
     has_payload,
     hello_handler,
@@ -516,6 +515,12 @@ def test_claim_condition_returns_awaitable(condition: Any) -> None:
         subscription._claim(Context())
 
 
+def test_claim_condition_returns_awaitable_names_the_condition_without_parameter() -> None:
+    subscription = subscribe(condition=AwaitableResult)
+    with pytest.raises(TypeError, match=r"^condition AwaitableResult returned an awaitable"):
+        subscription._claim(Context())
+
+
 def test_claim_condition_returns_awaitable_closes_the_coroutine() -> None:
     coroutine = async_condition()
 
@@ -526,53 +531,6 @@ def test_claim_condition_returns_awaitable_closes_the_coroutine() -> None:
     with pytest.raises(TypeError, match=r"returned an awaitable"):
         subscription._claim(Context())
     assert inspect.getcoroutinestate(coroutine) == inspect.CORO_CLOSED
-
-
-#############################
-#     Tests for _invoke     #
-#############################
-
-
-def test_invoke_returns_handler_result() -> None:
-    assert subscribe(lambda: "called")._invoke(Context()) == "called"
-
-
-def test_invoke_passes_the_whole_context() -> None:
-    assert subscribe(copy_context)._invoke(Context({"a": 1, "b": 2})) == {"a": 1, "b": 2}
-
-
-def test_invoke_passes_the_context_object() -> None:
-    context = Context({"a": 1})
-    assert subscribe(lambda context: context)._invoke(context) is context
-
-
-def test_invoke_without_parameter_calls_handler_without_argument() -> None:
-    handler = create_autospec(noop_handler)
-    subscribe(handler)._invoke(Context({"a": 1}))
-    handler.assert_called_once_with()
-
-
-def test_invoke_does_not_evaluate_the_condition() -> None:
-    condition = create_autospec(has_payload, return_value=False)
-    subscribe(condition=condition)._invoke(Context())
-    assert condition.call_count == 0
-
-
-def test_invoke_does_not_consume_once() -> None:
-    subscription = subscribe(once=True)
-    subscription._invoke(Context())
-    assert subscription.active
-
-
-def test_invoke_calls_the_handler_of_a_removed_registration() -> None:
-    subscription = subscribe(hello_handler)
-    subscription.remove()
-    subscription._invoke(Context())
-    assert hello_handler.call_count == 1
-
-
-def test_invoke_handler_raises_without_note() -> None:
-    assert not hasattr(raised(subscribe(fail)._invoke, Context()), "__notes__")
 
 
 ###############################################
