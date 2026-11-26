@@ -1,5 +1,6 @@
 # Reusable workflow for testing the installed package.
-# Tests package installation from PyPI and validates basic functionality.
+# Tests package installation from PyPI and validates basic functionality, with the package checks of
+# the tag of the installed version.
 # Used to test stable releases, pre-releases, and different installation configurations.
 
 name: PyPI Package Install Test
@@ -10,6 +11,10 @@ on:
         default: "uv pip install minevent"
         description: "Command to install the package"
         required: false
+        type: string
+      package-name:
+        description: "Name of the installed package, from lib-get-package-metadata.yaml"
+        required: true
         type: string
       test-matrix:
         description: "JSON test matrix from lib-get-test-matrix.yaml, loaded once by the caller"
@@ -46,6 +51,15 @@ jobs:
           INSTALL_CMD: ${{ inputs.install-cmd }}
         run: |
           $INSTALL_CMD
+      # The checks of the branch can use an API that the published version does not have: take the
+      # ones of the tag of the installed version.
+      - name: Check out the package checks of the installed version
+        env:
+          PACKAGE_NAME: ${{ inputs.package-name }}
+        run: |
+          version=$(python -c "import os; from importlib.metadata import version; print(version(os.environ['PACKAGE_NAME']))")
+          git fetch --depth 1 origin tag "v$version"
+          git checkout "v$version" -- tests/package_checks.py
       # Display dependency tree and run basic package checks (imports, version, etc.)
       - name: Verify installed package
         uses: ./.github/actions/verify-installed-package
