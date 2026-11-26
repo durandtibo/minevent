@@ -103,6 +103,5 @@ the new API are in the
 - Development: each pull request runs `tests/package_checks.py` (#851), and the benchmarks run
   nightly only. A benchmark run compares the medians with the ones of the last finished run of
   `main`. The nightly package test runs the checks of the tag of the installed version.
-- Development: the tests run on Linux, macOS and Windows, one runner each, instead of 13 Linux and
-  macOS runners, and the CI ends with a job `ci` that fails unless every other job succeeded, to be
-  the required check of `main` (#894).
+- Development: the tests run on one Linux and one macOS runner instead of 13, and the CI ends with a
+  job `ci` that fails unless every other job succeeded, to be the required check of `main` (#894).
