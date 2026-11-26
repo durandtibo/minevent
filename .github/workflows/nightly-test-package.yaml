@@ -48,7 +48,6 @@ jobs:
       - name: Install package
         env:
           INSTALL_CMD: ${{ inputs.install-cmd }}
-        shell: bash
         run: |
           $INSTALL_CMD
       # The checks of the branch can use an API that the published version does not have: take the
@@ -56,7 +55,6 @@ jobs:
       - name: Check out the package checks of the installed version
         env:
           PACKAGE_NAME: ${{ inputs.package-name }}
-        shell: bash
         run: |
           version=$(python -c "import os; from importlib.metadata import version; print(version(os.environ['PACKAGE_NAME']))")
           git fetch --depth 1 origin tag "v$version"
