@@ -94,6 +94,9 @@ the new API are in the
   expression only, without a `License ::` classifier (#890).
 - Development: `import-linter` checks the layering of the modules, and the invoke tasks come from
   `invoke-tasklib` `>=0.1.0` (#890).
+- Releases: the files published to PyPI are signed, and the GitHub release has a SLSA provenance
+  file. A GitHub build provenance attestation is stored. A manual run only publishes a pre-release
+  (#891).
 - Development: each pull request runs `tests/package_checks.py` (#851), and the benchmarks run
   nightly only. A benchmark run compares the medians with the ones of the last finished run of
   `main`. The nightly package test runs the checks of the tag of the installed version.

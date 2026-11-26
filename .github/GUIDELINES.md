@@ -53,7 +53,7 @@ The trigger of a reusable workflow is `workflow_call`: it runs when another work
 | `lib-get-package-metadata.yaml`     | called by other workflows, manual      | Read the name and the version of the package from `pyproject.toml`.                           |
 | `nightly-package.yaml`              | nightly (10:30 UTC), manual            | Test the package published on PyPI: calls `nightly-test-package.yaml`.                        |
 | `nightly-test-package.yaml`         | called by `nightly-package.yaml`       | Run the tests against the installed PyPI package.                                             |
-| `release-pypi.yaml`                 | version tag `v*.*.*`, manual           | Build and publish the package to PyPI.                                                        |
+| `release-pypi.yaml`                 | version tag `v*.*.*`, manual           | Run `ci.yaml`, then build, sign, attest (SLSA, GitHub provenance) and publish to PyPI.        |
 | `release-docs.yaml`                 | version tag `v*.*.*`, manual           | Deploy the documentation of the stable version (with `mike`).                                 |
 | `release-docs-dev.yaml`             | push to `main`, manual                 | Deploy the documentation of the development version.                                          |
 | `release-docs-publish.yaml`         | called by the two previous workflows   | Build and deploy the documentation (shared logic).                                            |
@@ -77,6 +77,11 @@ therefore fails one run: the next one compares with it.
 `nightly-test-package.yaml` checks the published package with `tests/package_checks.py` of the tag
 `v<installed version>`, not of `main`, so each version is checked with its own checks. A published
 version without a tag fails the run.
+
+`release-pypi.yaml` publishes with PyPI Trusted Publishing: it needs a GitHub environment named
+`pypi`, configured as a trusted publisher with the workflow `release-pypi.yaml`. It refuses to
+publish a version that is already on PyPI, a tag that does not match the version of
+`pyproject.toml`, and a manual run of a version that is not a pre-release.
 
 ## Composite actions vs. reusable workflows
 
@@ -102,7 +107,9 @@ action/reusable workflow over copy-pasting steps.
   [`ratchet`](https://github.com/sethvargo/ratchet) via `workflows/bot-pin-action.yaml`.
   Never hand-pin a SHA without that comment — the next `bot-pin-action` run
   would otherwise silently downgrade or drift it. Local composite actions
-  (`uses: ./.github/actions/...`) are referenced by path, not pinned. Any
+  (`uses: ./.github/actions/...`) are referenced by path, not pinned. The one
+  exception is the SLSA generator of `release-pypi.yaml`: it verifies its own
+  ref, so it is referenced by a tag, with a `# ratchet:exclude` comment. Any
   runtime tool invoked outside of a pinned action (e.g. `npx <pkg>`) should
   also pin an explicit version, so a bot-authored PR can't pick up an
   unreviewed upstream release.

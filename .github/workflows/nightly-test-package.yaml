@@ -8,9 +8,8 @@ on:
   workflow_call:
     inputs:
       install-cmd:
-        default: "uv pip install minevent"
         description: "Command to install the package"
-        required: false
+        required: true
         type: string
       package-name:
         description: "Name of the installed package, from lib-get-package-metadata.yaml"
