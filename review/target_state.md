@@ -28,13 +28,13 @@ construction. "Status" compares the row with `main`: **same** (stated and true t
 
 ### Surface and registration
 
-| #   | Property              | Statement                                                                                                                                                                                                                                                                                                                                      | Status  | Enforced by                           |
-| --- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ------------------------------------- |
-| P1  | Small surface         | Six exported names and `__version__` (`EventManager`, `Subscription`, `Context`, `Handler`, `Condition`, `PeriodicCondition`). `EventManager` has 8 public members (`events`, `get_subscriptions`, `add_event_handler`, `on`, `trigger_event`, `atrigger_event`, `clear_event`, `reset`) and `in`. **One way to do each thing.**               | changed | `__all__` and review                  |
-| P2  | Standard library only | No runtime dependency. `import minevent` starts no thread, emits no warning and writes no output and no log. Plain imports at the top of the modules; the import time is not a design input.                                                                                                                                                   | same    | `package_checks.py`, `test_import.py` |
-| P3  | Events are strings    | An event name is a case-sensitive `str` (a `StrEnum` member is one, and is kept as given). The methods of the manager raise `TypeError` for another type, and `in` answers like a dict. The empty string is valid. Reading the manager never creates an event.                                                                                 | same    | `_check_event`                        |
-| P4  | Validated at the door | Every argument is checked by the function that receives it: `TypeError` for a wrong type, `ValueError` for a wrong value. `once` is a `bool`; the integers of a condition are any integer (an object with `__index__`) but not a `bool`. A callable that cannot be called as documented is rejected. A rejection leaves the manager as it was. | fixed   | `add_event_handler`, `calls`          |
-| P5  | Two calls             | A handler and a condition are called as `f()` or `f(context)`. A parameter that has a default keeps it. Without another parameter: `f()`. With exactly one, positional: `f(context)`. Anything else is rejected. Names and annotations are not checked. The signature is read once.                                                            | same    | `calls.adapt_call`                    |
+| #   | Property              | Statement                                                                                                                                                                                                                                                                                                                        | Status  | Enforced by                           |
+| --- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ------------------------------------- |
+| P1  | Small surface         | Six exported names and `__version__` (`EventManager`, `Subscription`, `Context`, `Handler`, `Condition`, `PeriodicCondition`). `EventManager` has 8 public members (`events`, `get_subscriptions`, `add_event_handler`, `on`, `trigger_event`, `atrigger_event`, `clear_event`, `reset`) and `in`. **One way to do each thing.** | changed | `__all__` and review                  |
+| P2  | Standard library only | No runtime dependency. `import minevent` starts no thread, emits no warning and writes no output and no log. Plain imports at the top of the modules; the import time is not a design input.                                                                                                                                     | same    | `package_checks.py`, `test_import.py` |
+| P3  | Events are strings    | An event name is a case-sensitive `str` (a `StrEnum` member is one, and is kept as given). The methods of the manager raise `TypeError` for another type, and `in` answers like a dict. The empty string is valid. Reading the manager never creates an event.                                                                   | same    | `_check_event`                        |
+| P4  | Validated at the door | Every argument is checked by the function that receives it: `TypeError` for a wrong type, `ValueError` for a wrong value. `once` is a `bool`; the integers of a condition are an `int` but not a `bool`. A callable that cannot be called as documented is rejected. A rejection leaves the manager as it was.                   | fixed   | `add_event_handler`, `calls`          |
+| P5  | Two calls             | A handler and a condition are called as `f()` or `f(context)`. A parameter that has a default keeps it. Without another parameter: `f()`. With exactly one, positional: `f(context)`. Anything else is rejected. Names and annotations are not checked. The signature is read once.                                              | same    | `calls.adapt_call`                    |
 
 ### Dispatch
 
@@ -122,7 +122,7 @@ No defect was found in the dispatch (P7 to P10). The findings are at the edges.
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | ---------- |
 | F1  | **`once` is not validated.** `add_event_handler("e", f, once="False")` runs `f` once, because the string is truthy, and `subscription.once` is `'False'`.                                                                                                                                  | P4       | [verified] |
 | F2  | **`active` can lie.** `copy.copy(subscription)` returns a second object that stays `active` after the registration is removed, and whose `remove()` returns `False`. `Subscription(manager, "e", f)`, a public constructor, is `active` without being registered, and one test asserts it. | P6       | [verified] |
-| F3  | **Only `int` is an integer.** `PeriodicCondition(x)` and `AfterNCondition(x)` reject an object with `__index__`, such as the integer types of numeric libraries that do not subclass `int`.                                                                                                | P4       | [verified] |
+| F3  | **Only `int` is an integer** (not changed, see 4.4). `PeriodicCondition(x)` and `AfterNCondition(x)` reject an object with `__index__`, such as the integer types of numeric libraries that do not subclass `int`.                                                                         | P4       | [verified] |
 | F4  | **The `repr` of a condition misreads.** `PeriodicCondition(1000, start=2000)` shows `PeriodicCondition(freq=1,000, start=2,000, step=0)`, which reads as more arguments and is a syntax error if pasted.                                                                                   | P15      | [verified] |
 | F5  | **The event name is not bounded.** With an event of 100,000 characters, the note of an exception has 100,060 characters and the message of the coroutine rejection 100,077.                                                                                                                | P12      | [verified] |
 | F6  | **Two classes for one behaviour.** `AfterNCondition(n)` returns the same results as `PeriodicCondition(1, start=n)` (checked for `n` from 0 to 4, 20 calls). It costs a class, a private base class, their documentation and their tests.                                                  | P1       | [verified] |
@@ -226,24 +226,17 @@ def describe_event(event: str) -> str:
 The note of `add_error_note` and the message of the coroutine rejection use it. The default limits of
 `reprlib` (30) would cut ordinary names, such as the `repr` of a `StrEnum` member, hence 200.
 
-### 4.4 One condition class (F3, F4, F6)
+### 4.4 One condition class (F4, F6)
+
+`freq` and `start` stay an `int` that is not a `bool`: a user converts another integer type with
+`int(value)`, so F3 is not changed.
 
 ```python
-def _to_int(value: object, name: str, minimum: int) -> int:
-    if isinstance(value, bool) or not isinstance(value, SupportsIndex):
-        msg = f"{name} must be an integer, got {type(value).__qualname__}"
-        raise TypeError(msg)
-    result = operator.index(value)
-    if result < minimum:
-        msg = f"{name} must be greater than or equal to {minimum}, got {result}"
-        raise ValueError(msg)
-    return result
-
-
 class PeriodicCondition:
-    def __init__(self, freq: SupportsIndex, *, start: SupportsIndex = 0) -> None:
-        self._freq = _to_int(freq, "freq", 1)
-        self._start = _to_int(start, "start", 0)
+    def __init__(self, freq: int, *, start: int = 0) -> None:
+        # freq and start are checked as today
+        self._freq = freq
+        self._start = start
         self._step = 0
         self._lock = threading.Lock()
 
@@ -336,7 +329,6 @@ Of 4.6, only the content of the distribution was tried.
 | Probe                                   | `main`                   | Prototype           |
 | --------------------------------------- | ------------------------ | ------------------- |
 | `once="False"`                          | registered, runs once    | `TypeError`         |
-| `freq` with `__index__`                 | `TypeError`              | `freq=3`            |
 | `repr` of `PeriodicCondition(1000)`     | `freq=1,000`             | `freq=1000`         |
 | copy of a subscription                  | a copy that stays active | `TypeError`         |
 | hand-built subscription: `active`       | `True`                   | `False`             |
@@ -363,10 +355,9 @@ subscription to be active and 1 expects no note for an event whose `repr` raises
 
 The ranges overlap: no cost was measured.
 
-**Not verified**: the test suite and the speed on Linux; a numeric library (`__index__`
-was tried with a stand-in class); the workflow changes of 4.6, which a pull request alone cannot
-prove; the build of the documentation; and the nightly benchmark since #878, which had not run on
-`main` after that change when it was read.
+**Not verified**: the test suite and the speed on Linux; the workflow changes of 4.6, which a pull
+request alone cannot prove; the build of the documentation; and the nightly benchmark since #878,
+which had not run on `main` after that change when it was read.
 
 ## 7. Changes to reach the target state
 
@@ -381,8 +372,8 @@ README and the changelog for what it changes.
 | 3    | `bugfix/inactive-until-registered`   | The owner of `active`, `Subscription.__reduce__`, the comment of the lock (4.2)       | **yes**  | F2, F9 |
 | 4    | `bugfix/shorten-event-names`         | `describe_event` (4.3)                                                                | messages | F5     |
 | 5    | `feat/single-counting-condition`     | Delete `AfterNCondition` and the base class (4.4)                                     | **yes**  | F6     |
-| 6    | `feat/accept-index-integers` (on 5)  | `_to_int` (4.4)                                                                       | no       | F3     |
-| 7    | `bugfix/plain-condition-repr` (on 6) | The `repr` of the condition (4.4)                                                     | output   | F4     |
+| 6    | none                                 | Dropped: `freq` and `start` stay `int` (4.4)                                          | no       | none   |
+| 7    | `bugfix/plain-condition-repr` (on 5) | The `repr` of the condition (4.4)                                                     | output   | F4     |
 | 8    | `feat/remove-manager-len`            | Delete `__len__` and `__bool__` (4.1); `repr` and `get_subscriptions` in the examples | **yes**  | F7     |
 | 9    | `feat/final-context`                 | `typing.final` (4.5)                                                                  | typing   | F8     |
 | 10   | `docs/state-async-trigger-start`     | The limit of `atrigger_event` and the hidden coroutine of a cache (section 1)         | no       | F9     |
@@ -401,20 +392,19 @@ Release `0.6.0` after the plan, so the release does not publish an API that chan
 Unit tests mirror the source tree; the rules of `CLAUDE.md` apply (one behaviour per test, `match` on
 every `pytest.raises`, literals for expected values, a regression test that fails on `main`).
 
-| Test                                                        | Behaviour                                                     | Step |
-| ----------------------------------------------------------- | ------------------------------------------------------------- | ---- |
-| `test_add_event_handler_once_not_bool` (parametrized)       | `TypeError` for `"False"`, `1`, `None`; the manager unchanged | 2    |
-| `test_on_once_not_bool`                                     | `TypeError` when the decorator is applied                     | 2    |
-| `test_subscription_active_never_registered` (inverted)      | `False`                                                       | 3    |
-| `test_subscription_cannot_be_copied` (parametrized)         | `copy`, `deepcopy` and `pickle` raise                         | 3    |
-| `test_describe_event` (parametrized)                        | short name, `StrEnum` member, long name as one literal        | 4    |
-| `test_trigger_event_note_long_event`                        | the whole note as one literal                                 | 4    |
-| `test_periodic_condition_freq_one_warm_up` (parametrized)   | `False` for `start` calls, then `True`                        | 5    |
-| `test_to_int` (parametrized, with a class with `__index__`) | value, `bool`, `float`, below the minimum                     | 6    |
-| `test_periodic_condition_repr_large_values`                 | `freq=1000`, without separator                                | 7    |
-| `test_event_manager_bool_empty` (kept), `..._has_no_len`    | truthy; `len` raises                                          | 8    |
-| `test_context_subclass_is_reported` (integration, `ty`)     | the type checker reports a subclass                           | 9    |
-| `test_atrigger_event_reads_payload_at_start` (integration)  | the documented behaviour                                      | 10   |
+| Test                                                       | Behaviour                                                     | Step |
+| ---------------------------------------------------------- | ------------------------------------------------------------- | ---- |
+| `test_add_event_handler_once_not_bool` (parametrized)      | `TypeError` for `"False"`, `1`, `None`; the manager unchanged | 2    |
+| `test_on_once_not_bool`                                    | `TypeError` when the decorator is applied                     | 2    |
+| `test_subscription_active_never_registered` (inverted)     | `False`                                                       | 3    |
+| `test_subscription_cannot_be_copied` (parametrized)        | `copy`, `deepcopy` and `pickle` raise                         | 3    |
+| `test_describe_event` (parametrized)                       | short name, `StrEnum` member, long name as one literal        | 4    |
+| `test_trigger_event_note_long_event`                       | the whole note as one literal                                 | 4    |
+| `test_periodic_condition_freq_one_warm_up` (parametrized)  | `False` for `start` calls, then `True`                        | 5    |
+| `test_periodic_condition_repr_large_values`                | `freq=1000`, without separator                                | 7    |
+| `test_event_manager_bool_empty` (kept), `..._has_no_len`   | truthy; `len` raises                                          | 8    |
+| `test_context_subclass_is_reported` (integration, `ty`)    | the type checker reports a subclass                           | 9    |
+| `test_atrigger_event_reads_payload_at_start` (integration) | the documented behaviour                                      | 10   |
 
 Gates before each merge: `ruff check src tests`, `ruff format src tests`, `ty check`, `lint-imports`,
 `pytest tests/unit tests/integration --cov=minevent --cov-branch` at 100%, `inv test.doctest`,
@@ -426,7 +416,7 @@ of the sdist.
 
 - **D1. Delete `AfterNCondition`?** _Recommended: yes._ It is `PeriodicCondition(1, start=n)`; one
   class then holds the counter, the lock, the copy and the checks. The cost is real: `freq=1` reads
-  less well than the name for a warm-up. Alternative: keep both classes and apply steps 6 and 7 to
+  less well than the name for a warm-up. Alternative: keep both classes and apply step 7 to
   the base class.
 - **D2. Remove `len(manager)`?** _Recommended: yes._ It has no obvious unit next to `in` and
   `events`, its use in the documentation is to show that a removal happened, which `repr` shows
@@ -470,7 +460,7 @@ of the sdist.
 | ---------------------------- | ---------: | ---------: | --------------------------------------------------- |
 | exported names               | 7, version | 6, version | no `AfterNCondition`                                |
 | classes in `conditions.py`   |          3 |          1 | no base class                                       |
-| `conditions.py` statements   |         69 |         46 | one class, one check of the integers                |
+| `conditions.py` statements   |         69 |         46 | one class                                           |
 | other `src` statements       |        278 |        286 | the check of `once`, `describe_event`, `__reduce__` |
 | `src` statements             |        347 |        332 |                                                     |
 | test jobs of a CI run        |        104 |        104 | the matrix is unchanged (D5)                        |
