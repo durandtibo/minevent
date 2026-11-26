@@ -3338,7 +3338,10 @@ registration itself, so <code>remove</code> removes that registration only,
 even if the same handler is registered several times. Subscriptions
 are compared by identity, and copying or pickling one raises a
 <code>TypeError</code>. A subscription is a context manager: the
-registration is removed when the <code>with</code> block exits.</p>
+registration is removed when the <code>with</code> block exits. Its <code>repr</code>
+shows the event and the name of the handler, then what else decides
+whether the handler runs: <code>once=True</code>, the name of the condition
+and <code>active=False</code> if the registration is not in the manager.</p>
 <p>The constructor is internal: subscriptions are created by the event
 manager, and one that is built by hand is not <code>active</code>.</p>
 
@@ -3477,6 +3480,12 @@ manager, and one that is built by hand is not <code>active</code>.</p>
 <details class="example" open>
   <summary>Example</summary>
   <div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventManager</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">print_epoch</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="n">context</span><span class="p">[</span><span class="s2">"epoch"</span><span class="p">])</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">is_late</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">context</span><span class="p">[</span><span class="s2">"epoch"</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">2</span>
+<span class="gp">...</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">subscription</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">subscription</span>
@@ -3485,6 +3494,11 @@ manager, and one that is built by hand is not <code>active</code>.</p>
 <span class="go">(True, False)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">subscription</span><span class="o">.</span><span class="n">active</span>
 <span class="go">False</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">subscription</span>
+<span class="go">Subscription(event='my_event', handler='&lt;lambda&gt;', active=False)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="n">print_epoch</span><span class="p">,</span> <span class="n">once</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="n">is_late</span><span class="p">)</span>
+<span class="go">Subscription(event='my_event', handler='print_epoch', once=True, condition='is_late')</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"my_event"</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">):</span>
 <span class="gp">... </span>    <span class="n">manager</span>
 <span class="gp">...</span>

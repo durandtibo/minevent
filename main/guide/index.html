@@ -1601,11 +1601,13 @@ data, build one <code>Context</code> and reuse it.</p>
 <h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
 <h3 id="my-handler-does-not-run">My handler does not run<a class="headerlink" href="#my-handler-does-not-run" title="Permanent link">&para;</a></h3>
 <ol>
-<li>The handler is registered for that event: <code>manager.get_subscriptions("my_event")</code>.</li>
+<li>The handler is registered for that event: <code>print(manager.get_subscriptions("my_event"))</code> lists
+   the registrations of the event, with <code>once=True</code> and <code>condition='...'</code> for the ones that have
+   these options.</li>
 <li>The event name matches exactly (case-sensitive).</li>
 <li>The condition returns <code>True</code> (a <code>PeriodicCondition(freq=5)</code> skips four calls out of five).</li>
 <li>The registration was not removed, for example consumed by <code>once=True</code> or removed by its own
-   condition: <code>subscription.active</code> is <code>True</code>.</li>
+   condition: the <code>repr</code> of a removed <code>Subscription</code> that you kept shows <code>active=False</code>.</li>
 <li>A handler of the same event ahead of it raised: the next handlers are skipped.</li>
 </ol>
 <h3 id="keyerror-key-epoch-not-found-in-the-context"><code>KeyError: "key 'epoch' not found in the context; ..."</code><a class="headerlink" href="#keyerror-key-epoch-not-found-in-the-context" title="Permanent link">&para;</a></h3>
@@ -1649,7 +1651,8 @@ before it have run.</p>
 <p>The registration is already removed. This is not an error.</p>
 <h3 id="debug">Debug<a class="headerlink" href="#debug" title="Permanent link">&para;</a></h3>
 <p><code>minevent</code> does not log. <code>print(manager)</code> shows the number of handlers of each event, and
-<code>manager.get_subscriptions(event)</code> lists the registrations of an event with the name of each handler.
+<code>manager.get_subscriptions(event)</code> lists the registrations of an event with the name of each handler
+and its options.
 To see the calls and the payload, <a href="../examples/#trace-the-handlers">trace the handlers</a>.</p>
 
 

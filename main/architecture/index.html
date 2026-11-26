@@ -1551,6 +1551,9 @@ first, without default: <code>lambda context, i=i: print(i, context["epoch"])</c
   becomes <code>False</code> when the registration is removed, by whatever means. A <code>Subscription</code> cannot be
   copied or pickled (<code>copy.copy</code>, <code>copy.deepcopy</code> and <code>pickle</code> raise a <code>TypeError</code>), and the manager
   alone creates one.</li>
+<li>The <code>repr</code> of a <code>Subscription</code> shows what decides whether its handler runs: after the event and
+  the name of the handler, <code>once=True</code>, the name of the condition and <code>active=False</code>, each only if
+  it applies.</li>
 <li><code>bool(manager)</code> is always <code>True</code>, empty or not, and a manager has no length: the number of
   handlers of an event is <code>len(manager.get_subscriptions(event))</code>, and <code>repr(manager)</code> shows it for
   each event. A manager cannot be copied or pickled (<code>copy.copy</code>, <code>copy.deepcopy</code> and <code>pickle</code>
@@ -1667,9 +1670,9 @@ first, without default: <code>lambda context, i=i: print(i, context["epoch"])</c
   from 3.13.</li>
 <li><strong>A condition counts its calls, not the triggers.</strong> It is not called when an earlier handler
   raised, nor for a removed registration.</li>
-<li><strong>A huge integer in a message.</strong> Showing an integer of more than 4,300 digits raises the
-  <code>ValueError</code> of Python instead of the error of <code>minevent</code>: on Python 3.11 and 3.12 for a value
-  given as a handler or a key, and on every version for an argument of <code>PeriodicCondition</code>.</li>
+<li><strong>A huge integer in a message</strong> on Python 3.11 and 3.12: showing an integer of more than 4,300
+  digits (a value given as a handler, a key, an argument of <code>PeriodicCondition</code>) raises the
+  <code>ValueError</code> of Python instead of the error of <code>minevent</code>.</li>
 <li><strong>A mutable value of the payload</strong> can be mutated by a handler, and the next ones see it.</li>
 <li><strong>Delayed release.</strong> A manager with registrations is in a reference cycle (manager, registry,
   <code>Subscription</code>, manager): <code>del manager</code> does not free it until the garbage collector runs.
