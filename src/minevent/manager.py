@@ -103,11 +103,12 @@ class Subscription:
     ``EventManager.add_event_handler`` returns a subscription: it is the
     registration itself, so ``remove`` removes that registration only,
     even if the same handler is registered several times. Subscriptions
-    are compared by identity. A subscription is a context manager: the
+    are compared by identity, and copying or pickling one raises a
+    ``TypeError``. A subscription is a context manager: the
     registration is removed when the ``with`` block exits.
 
     The constructor is internal: subscriptions are created by the event
-    manager.
+    manager, and one that is built by hand is not ``active``.
 
     Args:
         manager: The event manager that stores the registration.
@@ -170,8 +171,9 @@ class Subscription:
         self._is_async = has_kind(handler, inspect.iscoroutinefunction)
         # A trigger only calls ``_claim`` for these registrations: the others save a method call.
         self._guarded = bool(once) or condition is not None
-        # Set to False by the manager when the registration leaves its registry.
-        self._active = True
+        # Only the manager changes it, under its lock: True while the registration is in its
+        # registry.
+        self._active = False
 
     def __enter__(self) -> Self:
         return self
@@ -189,6 +191,10 @@ class Subscription:
             f"{self.__class__.__qualname__}"
             f"(event={self._event!r}, handler={describe(self._handler)!r})"
         )
+
+    def __reduce__(self) -> NoReturn:
+        msg = f"{type(self).__qualname__} cannot be copied or pickled: register the handler again"
+        raise TypeError(msg)
 
     @property
     def event(self) -> str:
@@ -270,9 +276,10 @@ class Subscription:
         r"""Indicate if the registration is still registered.
 
         Returns:
-            ``True`` until the registration is removed, by whatever means
-                (``remove``, ``clear_event``, ``reset`` or the claim of a
-                ``once`` registration), then ``False``.
+            ``True`` exactly while the registration is in the manager:
+                it becomes ``False`` when the registration is removed, by
+                whatever means (``remove``, ``clear_event``, ``reset`` or
+                the claim of a ``once`` registration).
 
         Example:
             ```pycon
@@ -395,7 +402,8 @@ class EventManager:
         # This variable is used to store the registrations of each event, in the order they run.
         # A dict is an ordered set: the keys keep the registration order and removing is O(1).
         self._subscriptions: dict[str, dict[Subscription, None]] = {}
-        # This lock protects the state above. It is reentrant, so a handler can use the manager.
+        # This lock protects the state above. The handlers run without it. It is reentrant, so a
+        # signal handler or a finalizer that runs while it is held can use the manager.
         self._lock = threading.RLock()
 
     def __repr__(self) -> str:
@@ -556,6 +564,7 @@ class EventManager:
         subscription = Subscription(self, event, handler, once=once, condition=condition)
         with self._lock:
             self._subscriptions.setdefault(event, {})[subscription] = None
+            subscription._active = True
         return subscription
 
     def on(

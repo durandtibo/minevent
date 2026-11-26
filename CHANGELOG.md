@@ -70,7 +70,9 @@ the new API are in the
 - `atrigger_event` to await coroutine handlers.
 - The error messages stay short whatever the size of the data: values are shown with `reprlib`.
 - `add_event_handler` returns a `Subscription`, which removes exactly its registration, is a context
-  manager and has the properties `event`, `handler`, `once`, `condition` and `active`.
+  manager and has the properties `event`, `handler`, `once`, `condition` and `active`. `active` is
+  `True` exactly while the registration is in the manager, and a `Subscription` cannot be copied or
+  pickled (#896).
 - The keyword-only options `once` (run at most once, the first time the condition is `True`, even
   with several threads) and `condition` of `add_event_handler`, and the `on` decorator. `once` must
   be a `bool`: another value, such as `1` or `"False"`, raises a `TypeError` (#895).

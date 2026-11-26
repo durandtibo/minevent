@@ -72,7 +72,9 @@ comparing callables.
 - **Benefits**: the same callable can be registered several times with different options, a removal
   is exact and O(1), including for lambdas and partials that you cannot compare, and a `with` block
   scopes a registration.
-- **Costs**: you must keep the `Subscription` if you want to remove it later.
+- **Costs**: you must keep the `Subscription` if you want to remove it later, and an object that
+  holds one cannot be copied or pickled as it is: a copy would describe a registration that does not
+  exist.
 - **In practice**: otherwise, search the result of `get_subscriptions(event)` for your handler.
 
 ## A trigger works on a snapshot

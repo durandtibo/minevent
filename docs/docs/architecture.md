@@ -124,7 +124,10 @@ first, without default: `lambda context, i=i: print(i, context["epoch"])`.
 - Reading the manager never creates an event: `events` lists the events that have at least one
   registration.
 - `subscription.remove()` removes that registration only. It returns `True` the first time, then
-  `False`. `subscription.active` is `True` until the registration is removed, by whatever means.
+  `False`. `subscription.active` is `True` exactly while the registration is in the manager, so it
+  becomes `False` when the registration is removed, by whatever means. A `Subscription` cannot be
+  copied or pickled (`copy.copy`, `copy.deepcopy` and `pickle` raise a `TypeError`), and the manager
+  alone creates one.
 - `bool(manager)` is always `True`, empty or not, and `len(manager)` is the number of
   registrations. A manager cannot be copied or pickled (`copy.copy`, `copy.deepcopy` and `pickle`
   raise a `TypeError`).
