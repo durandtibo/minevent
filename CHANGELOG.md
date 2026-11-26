@@ -135,3 +135,5 @@ the new API are in the
   in the releases too (#936).
 - Development: the CI runs the unit and integration tests from the source distribution on every
   `sdist` build (#937).
+- Development: the script of the package versions has unit and integration tests, which the source
+  distribution leaves out (#938).
