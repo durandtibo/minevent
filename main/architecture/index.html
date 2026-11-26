@@ -1596,9 +1596,9 @@ first, without default: <code>lambda context, i=i: print(i, context["epoch"])</c
 <li>The messages of <code>minevent</code> do not run the <code>repr</code> of your objects to name a callable. Naming one
   never raises in place of your exception: the name of its class is used if its own name cannot be
   read.</li>
-<li>The messages of <code>minevent</code> stay short whatever the size of your data: a value is shown with
-  <a href="https://docs.python.org/3/library/reprlib.html"><code>reprlib</code></a>, and the <code>KeyError</code> of a <code>Context</code>
-  lists at most 20 keys.</li>
+<li>The messages and the notes of <code>minevent</code> stay short whatever the size of your data: a value is
+  shown with <a href="https://docs.python.org/3/library/reprlib.html"><code>reprlib</code></a>, an event name is
+  shortened above 200 characters, and the <code>KeyError</code> of a <code>Context</code> lists at most 20 keys.</li>
 </ul>
 <h3 id="coroutines">Coroutines<a class="headerlink" href="#coroutines" title="Permanent link">&para;</a></h3>
 <ul>
