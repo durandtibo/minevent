@@ -1341,7 +1341,7 @@ handler (see <code>describe</code>).</p>
 
 
 <a href="#minevent.calls.describe" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">describe</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n"><span title="collections.abc.Callable">Callable</span></span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n"><span title="object">object</span></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n"><span title="str">str</span></span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">describe</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n"><span title="object">object</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="str">str</span></span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1349,7 +1349,9 @@ handler (see <code>describe</code>).</p>
         <p>Name a handler or a condition without calling the <code>repr</code> of its
 data.</p>
 <p>The <code>repr</code> of a callable can contain its arguments, which can be
-large or raise, so it is not used in the messages of the package.</p>
+large or raise, so it is not used in the messages of the package.
+Naming never raises an <code>Exception</code>, so it cannot replace the error
+that the name is used to report.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -1368,11 +1370,11 @@ large or raise, so it is not used in the messages of the package.</p>
                 <code>func</code>
             </td>
             <td>
-                  <code><span title="collections.abc.Callable">Callable</span>[..., <span title="object">object</span>]</code>
+                  <code><span title="object">object</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The callable to name.</p>
+                <p>The object to name, usually a handler or a condition.</p>
               </div>
             </td>
             <td>
@@ -1400,8 +1402,9 @@ large or raise, so it is not used in the messages of the package.</p>
               <div class="doc-md-description">
                 <p>The qualified name of the function under a
 <code>functools.partial</code> (nested partials are unwrapped), or
-the qualified name of the class of the callable if it has
-no name (for example a callable object).</p>
+the qualified name of the class of the object if it has no
+name (for example a callable object), if its name is not a
+<code>str</code>, or if reading its name raises.</p>
               </div>
             </td>
           </tr>

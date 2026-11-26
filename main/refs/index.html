@@ -3093,8 +3093,9 @@ finalizers can use the manager.</p>
 
         <p>Run the handlers of an event, in the order they were added.</p>
 <p>The handlers registered when the trigger starts run one after the
-other, and a registration removed before its turn does not run. The
-condition of a registration is evaluated just before its handler.
+other, and a registration removed before its handler is called, even
+by its own condition, does not run. The condition of a registration is
+evaluated just before its handler.
 No handler runs if the event has none. The trigger is fail-fast:
 an exception of a handler or a condition propagates unwrapped, with a
 note that says what raised it, and the next handlers are skipped.</p>
