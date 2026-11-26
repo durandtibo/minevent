@@ -104,7 +104,7 @@ the new API are in the
 - Documentation: the limits state that a signal handler or a garbage collection finalizer must not
   change the manager, that a `StopIteration` leaves `atrigger_event` as a `RuntimeError`, that a
   returned asynchronous generator does nothing, and which signatures depend on the version of
-  Python (#PR).
+  Python (#911).
 - Packaging: the classifiers are `Development Status :: 3 - Alpha`, `Operating System :: MacOS` and
   `Operating System :: POSIX :: Linux`, and there is no `all` extra. Windows is not supported
   (#894). The license is given by its SPDX expression only, without a `License ::` classifier (#890).
