@@ -3,7 +3,7 @@ r"""Implement the conditions that can be used in the event system.
 A condition is any synchronous function that returns a boolean (a
 lambda, a method or a callable object). It is called before its handler,
 like a handler: as ``condition(context)`` with the read-only ``Context``
-of the trigger (see ``minevent.calls.check_signature``). ``Condition``
+of the trigger (see ``minevent.calls.validate_signature``). ``Condition``
 is its type, and
 ``EventManager.add_event_handler`` states how a registration uses it.
 ``PeriodicCondition`` counts its calls. The user guide of the

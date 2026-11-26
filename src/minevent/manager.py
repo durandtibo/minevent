@@ -19,11 +19,11 @@ from typing import TYPE_CHECKING, NoReturn, Self, TypeVar
 from minevent.calls import (
     Handler,
     add_error_note,
-    check_signature,
     describe,
     describe_event,
     has_kind,
     reject_awaitable,
+    validate_signature,
 )
 from minevent.context import Context
 
@@ -36,7 +36,7 @@ if TYPE_CHECKING:
 _F = TypeVar("_F", bound=Handler)
 
 
-def _check_event(event: object) -> None:
+def _validate_event(event: object) -> None:
     r"""Check that an event name is a string.
 
     Args:
@@ -47,8 +47,8 @@ def _check_event(event: object) -> None:
 
     Example:
         ```pycon
-        >>> from minevent.manager import _check_event
-        >>> _check_event("epoch_end")
+        >>> from minevent.manager import _validate_event
+        >>> _validate_event("epoch_end")
 
         ```
     """
@@ -175,9 +175,9 @@ class Subscription:
         self._condition = condition
         # The signatures are checked once, at registration: a trigger gives the context to the
         # callables.
-        check_signature(handler, "handler")
+        validate_signature(handler, "handler")
         if condition is not None:
-            check_signature(condition, "condition")
+            validate_signature(condition, "condition")
             # The condition is rejected now, not at the first trigger, which can be much later.
             if has_kind(condition, inspect.iscoroutinefunction):
                 msg = f"condition must be synchronous, but got {describe(condition)}"
@@ -500,7 +500,7 @@ class EventManager:
 
             ```
         """
-        _check_event(event)
+        _validate_event(event)
         with self._lock:
             return tuple(self._subscriptions.get(event, ()))
 
@@ -516,7 +516,7 @@ class EventManager:
 
         Each trigger of the event calls the handler after the handlers added
         before it, as ``handler(context)`` with the read-only ``Context`` of
-        the trigger. ``minevent.calls.check_signature`` states which
+        the trigger. ``minevent.calls.validate_signature`` states which
         signatures are accepted.
 
         Args:
@@ -564,7 +564,7 @@ class EventManager:
 
             ```
         """
-        _check_event(event)
+        _validate_event(event)
         if not callable(handler):
             msg = f"handler must be callable, but got {reprlib.repr(handler)}"
             raise TypeError(msg)
@@ -622,7 +622,7 @@ class EventManager:
 
             ```
         """
-        _check_event(event)
+        _validate_event(event)
 
         def decorator(func: _F) -> _F:
             r"""Register ``func`` and return it unchanged (see
@@ -808,7 +808,7 @@ class EventManager:
 
             ```
         """
-        _check_event(event)
+        _validate_event(event)
         with self._lock:
             removed = self._subscriptions.pop(event, {})
             for subscription in removed:

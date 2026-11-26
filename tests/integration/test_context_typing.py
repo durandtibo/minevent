@@ -35,7 +35,7 @@ manager = EventManager()
 """
 
 
-def check_types(path: Path, code: str) -> subprocess.CompletedProcess[str]:
+def validate_types(path: Path, code: str) -> subprocess.CompletedProcess[str]:
     r"""Run ``ty check`` on a sample of the code of a user.
 
     Args:
@@ -166,7 +166,7 @@ def test_type_checker_accepts_a_correct_sample(tmp_path: Path) -> None:
     """Test that ``ty`` accepts a correct sample, so the reports of the
     other samples come from their handlers."""
     code = "def handler(context: Context) -> None: ...\n\n\nmanager.add_event_handler('e', handler)"
-    result = check_types(tmp_path, code)
+    result = validate_types(tmp_path, code)
     assert result.returncode == 0, result.stdout + result.stderr
 
 
@@ -213,14 +213,14 @@ def test_type_checker_accepts_a_correct_sample(tmp_path: Path) -> None:
 def test_type_checker_reports_a_wrong_handler(tmp_path: Path, code: str) -> None:
     """Test that ``ty`` reports a handler that the manager cannot
     call."""
-    result = check_types(tmp_path, code)
+    result = validate_types(tmp_path, code)
     assert "error[invalid-argument-type]" in result.stdout, result.stdout + result.stderr
 
 
 def test_context_subclass_is_reported(tmp_path: Path) -> None:
     """Test that ``ty`` reports a subclass of ``Context``, which is
     final."""
-    result = check_types(tmp_path, "class MyContext(Context): ...")
+    result = validate_types(tmp_path, "class MyContext(Context): ...")
     assert "error[subclass-of-final-class]" in result.stdout, result.stdout + result.stderr
 
 
