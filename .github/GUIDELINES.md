@@ -20,9 +20,10 @@ Every file is prefixed by what it does:
 
 `workflows/ci.yaml` is the entry point for pull requests/pushes to `main`; it fans out
 to the `ci-*.yaml` reusable workflows so each check can also be run/dispatched
-on its own. Job ids in `ci.yaml` and in the workflows it calls are
-load-bearing for branch protection (see the comment at the top of `ci.yaml`)
-— keep them in sync if you rename either side.
+on its own. A status check is named after the job id in `ci.yaml` and the job id
+in the called workflow. No status check is required to merge into `main` (see the
+comment at the top of `ci.yaml`): to require one, add its name to the branch
+protection or the ruleset, and update it there if you rename one of the two jobs.
 
 Two `ci-*` workflows are deliberately _not_ called from `ci.yaml`, each standalone with its own
 trigger instead: `ci-benchmark.yaml` runs nightly on its own schedule rather than gating every
