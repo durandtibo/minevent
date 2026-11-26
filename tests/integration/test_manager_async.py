@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import asyncio
 import functools
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
 from minevent import Context, EventManager
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
 
 
 def test_atrigger_event_reads_payload_at_start() -> None:
@@ -56,6 +59,40 @@ def test_atrigger_event_reads_registrations_at_start() -> None:
 
     asyncio.run(main())
     assert calls == ["added"]
+
+
+async def run_trigger_event(manager: EventManager, event: str) -> None:
+    r"""Trigger an event with ``trigger_event``, inside an event
+    loop."""
+    manager.trigger_event(event)
+
+
+@pytest.mark.parametrize("trigger", [run_trigger_event, EventManager.atrigger_event])
+def test_handler_starts_a_background_task(
+    trigger: Callable[[EventManager, str], Awaitable[None]],
+) -> None:
+    """Test that a handler that returns nothing leaves its task running
+    after the trigger."""
+    manager = EventManager()
+    calls: list[str] = []
+    tasks: list[asyncio.Task[None]] = []
+
+    async def upload() -> None:
+        await asyncio.sleep(0)
+        calls.append("upload")
+
+    def start_upload(_: Context) -> None:
+        tasks.append(asyncio.get_running_loop().create_task(upload()))
+
+    manager.add_event_handler("checkpoint_saved", start_upload)
+
+    async def main() -> None:
+        await trigger(manager, "checkpoint_saved")
+        calls.append("after the trigger")
+        await asyncio.gather(*tasks)
+
+    asyncio.run(main())
+    assert calls == ["after the trigger", "upload"]
 
 
 def test_trigger_event_detects_the_coroutine_of_a_wrapper_after_its_call() -> None:

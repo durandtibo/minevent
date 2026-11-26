@@ -20,8 +20,9 @@ An event is a `str`, not an object.
 
 There is no base class or protocol to implement, and a condition is a function too.
 
-- **Benefits**: any function, method, lambda, `functools.partial` or callable object works, and a
-  handler can be tested without a manager. There is one way to extend the library: write a callable.
+- **Benefits**: any function, method, lambda, `functools.partial` or callable object that takes the
+  context works (see [the calling rule](architecture.md#the-calling-rule)), and a handler can be
+  tested without a manager. There is one way to extend the library: write a callable.
 - **Costs**: the library cannot attach a name, a priority or metadata to a handler. A mistake in a
   signature is found at registration (or by your type checker), not by an interface.
 - **In practice**: use a class with `__call__` when a handler needs a state.
@@ -179,11 +180,11 @@ and it cannot be copied or pickled.
 `minevent` depends on the standard library only, so it can be added to any project without a version
 conflict. It also leaves out features that other event libraries have:
 
-| Not provided                              | What to do instead                                 |
-| ----------------------------------------- | -------------------------------------------------- |
-| Event objects with metadata               | Pass the data in the payload.                      |
-| Priorities or ordering rules              | Register the handlers in the order they must run.  |
-| Hierarchy or wildcards of events          | Register the handler to each event.                |
-| Weak references, filtering by sender      | Remove the subscriptions; filter with a condition. |
-| Collecting the errors of several handlers | Catch the exceptions in the handlers.              |
-| Concurrent or background dispatch         | Start the tasks or threads inside a handler.       |
+| Not provided                              | What to do instead                                                                               |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Event objects with metadata               | Pass the data in the payload.                                                                    |
+| Priorities or ordering rules              | Register the handlers in the order they must run.                                                |
+| Hierarchy or wildcards of events          | Register the handler to each event.                                                              |
+| Weak references, filtering by sender      | Remove the subscriptions; filter with a condition.                                               |
+| Collecting the errors of several handlers | Catch the exceptions in the handlers.                                                            |
+| Concurrent or background dispatch         | [Start the tasks or threads inside a handler](examples.md#start-background-work-from-a-handler). |

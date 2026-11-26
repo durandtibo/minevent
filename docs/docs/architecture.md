@@ -247,13 +247,18 @@ context comes first, without default.
   a `once` registration is consumed.
 - **A cached function.** `functools.cache` and `functools.lru_cache` hash their arguments, and a
   `Context` is not hashable: such a handler or condition raises a `TypeError` at the trigger.
+- **A background task returned by a handler** is an awaitable like any other: `trigger_event`
+  raises after the task is scheduled, and `atrigger_event` waits for it. A handler that
+  [starts background work](examples.md#start-background-work-from-a-handler) returns nothing.
 - **Hidden generators.** A function that returns a generator or an asynchronous generator, such as
   a lambda that calls a generator function, does nothing.
 - **A signature that depends on Python.** The standard library adds signatures to C callables
   between versions: `set().add` and `time.sleep` are rejected on Python 3.11 and 3.12, and accepted
   from 3.13.
 - **A condition is evaluated by truthiness, and counts its calls, not the triggers.** It is not
-  called when an earlier handler raised, nor for a removed registration.
+  called when an earlier handler raised, nor for a removed registration. The count of a
+  `PeriodicCondition` starts at 0 in a new process, unless the condition is saved and restored (see
+  [Resume a training](examples.md#resume-a-training)).
 - **Names are not checked.** An unbound method such as `Model.save` has one parameter without
   default, `self`, so it is accepted and called with the context as `self`.
 - **A huge integer in a message** on Python 3.11 and 3.12: showing an integer of more than 4,300

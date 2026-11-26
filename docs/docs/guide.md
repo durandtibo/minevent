@@ -9,8 +9,7 @@ This guide collects the recommendations and the troubleshooting tips for using `
 
 ### Events
 
-- Name the event after what happened, in the past tense: `epoch_end`, `checkpoint_saved`, not
-  `event1` or `done`.
+- Name the event after what happens: `epoch_end`, `checkpoint_saved`, not `event1` or `done`.
 - Pick one convention for the whole project, for example `snake_case` (`batch_end`) or a namespace
   (`training.batch.end`). Names are only strings, so `minevent` has no notion of hierarchy.
 - Define the names in one place (constants or a `StrEnum`) to avoid typos: the events
@@ -29,7 +28,8 @@ This guide collects the recommendations and the troubleshooting tips for using `
   such as `lambda _: model.train()` (see [the calling rule](architecture.md#the-calling-rule)).
 - If the failure of a handler must not stop the program, catch the exception in the handler.
 - A synchronous handler that is slow blocks the caller (and the event loop in `atrigger_event`).
-  Hand the work to an executor in the handler if the caller must not wait.
+  Hand the work to an executor in the handler if the caller must not wait, and
+  [return nothing](examples.md#start-background-work-from-a-handler).
 
 ### Conditions
 
@@ -135,6 +135,9 @@ A coroutine handler was triggered with `trigger_event`. Call
 `await manager.atrigger_event(...)`. For a coroutine function, nothing ran. A handler that returns
 an awaitable another way (a lambda that returns a coroutine) fails after its call, so the handlers
 before it have run.
+
+A handler that starts a background task must not return it: see
+[Start background work from a handler](examples.md#start-background-work-from-a-handler).
 
 ### `subscription.remove()` returns `False`
 

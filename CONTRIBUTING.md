@@ -33,9 +33,10 @@ We actively welcome your pull requests.
 
    ```shell
    pre-commit run --all-files
-   ruff check src tests
-   ruff format src tests
+   ruff check src tests dev
+   ruff format src tests dev
    ty check
+   lint-imports  # installed on Python 3.14 and later
    ```
 
 ## Issues
