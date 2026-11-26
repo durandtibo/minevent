@@ -169,7 +169,7 @@ class Subscription:
         # trigger is rejected before anything runs.
         self._is_async = has_kind(handler, inspect.iscoroutinefunction)
         # A trigger only calls ``_claim`` for these registrations: the others save a method call.
-        self._guarded = once or condition is not None
+        self._guarded = bool(once) or condition is not None
         # Set to False by the manager when the registration leaves its registry.
         self._active = True
 
