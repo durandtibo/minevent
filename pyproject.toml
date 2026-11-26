@@ -2,11 +2,14 @@
 requires = ["hatchling>=1.33"]
 build-backend = "hatchling.build"
 
-[tool.hatch.build]
-sources = ["src"]
-
 [tool.hatch.build.targets.sdist]
+# The tests of the package run from the source distribution, in the layout of the repository. The
+# test of ``dev/``, which is not shipped, is left out.
 only-include = ["src", "tests"]
+exclude = ["tests/unit/test_benchmark_trend.py"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/minevent"]
 
 [project]
 name = "minevent"

@@ -122,3 +122,6 @@ the new API are in the
   and trend script and the `inv test.benchmark-import` task are removed (#905).
 - Development: `import-linter` rejects a module that is in no layer, and the documentation no longer
   depends on `mkdocs-include-markdown-plugin` (#914).
+- Packaging: the source distribution holds the sources and the tests in the layout of the repository
+  (`src/minevent/` next to `tests/`), so the tests pass from it. It leaves out the test of a script
+  of `dev/`. The wheel holds the package only (#PR).
