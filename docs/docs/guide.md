@@ -111,10 +111,11 @@ An event is a `str`, for example a `StrEnum` member. A member of a plain `Enum` 
 `once` is `True` or `False`. A value that is only truthy or falsy, such as `1` or the string
 `"False"`, is rejected: convert it first.
 
-### `TypeError: EventManager cannot be copied or pickled`
+### `TypeError: EventManager cannot be copied or pickled` and `Subscription cannot be ...`
 
-A manager, or an object that holds one, was copied or sent to another process. Create a new manager
-there and register the handlers, or exclude the manager from the state of the object.
+A manager or a subscription, or an object that holds one, was copied or sent to another process.
+Create a new manager there and register the handlers, or exclude the manager and the subscriptions
+from the state of the object.
 
 ### `TypeError: ... must need no argument or only the context`
 
