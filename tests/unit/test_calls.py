@@ -8,13 +8,21 @@ import inspect
 import logging
 import sys
 from collections.abc import Awaitable
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, Mock, create_autospec
 
 import pytest
 
 from minevent import Context, calls
-from minevent.calls import adapt_call, add_error_note, describe, has_kind, reject_awaitable
+from minevent.calls import (
+    adapt_call,
+    add_error_note,
+    describe,
+    describe_event,
+    has_kind,
+    reject_awaitable,
+)
 from tests.unit.handlers import (
     AsyncConditionMethod,
     AsyncConditionObject,
@@ -496,6 +504,69 @@ def test_reject_awaitable_does_not_close_a_future() -> None:
 
 
 ####################################
+#     Tests for describe_event     #
+####################################
+
+
+class Event(StrEnum):
+    r"""Implement event names that are strings."""
+
+    EPOCH_END = "epoch_end"
+
+
+@pytest.mark.parametrize(
+    ("event", "expected"),
+    [
+        pytest.param("", "''", id="empty"),
+        pytest.param("epoch_end", "'epoch_end'", id="short"),
+        pytest.param("it's", '"it\'s"', id="quote"),
+        pytest.param("a\nb", "'a\\nb'", id="newline"),
+        pytest.param(Event.EPOCH_END, "<Event.EPOCH_END: 'epoch_end'>", id="str-enum"),
+        pytest.param(
+            "a" * 100 + "x" * 100_000 + "b" * 100,
+            (
+                "'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                "aaaaaaaaaaaaaaaaaa...bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'"
+            ),
+            id="long",
+        ),
+    ],
+)
+def test_describe_event(event: str, expected: str) -> None:
+    assert describe_event(event) == expected
+
+
+def test_describe_event_longest_name_is_not_shortened() -> None:
+    # The repr has the 198 characters of the name and 2 quotes.
+    event = "a" * 198
+    assert describe_event(event) == repr(event)
+
+
+@pytest.mark.parametrize("size", [199, 100_000])
+def test_describe_event_length_is_bounded(size: int) -> None:
+    assert len(describe_event("a" * size)) == 200
+
+
+def test_describe_event_long_str_enum_member_is_bounded() -> None:
+    class LongEvent(StrEnum):
+        LONG = "a" * 1000
+
+    assert len(describe_event(LongEvent.LONG)) == 200
+
+
+def test_describe_event_repr_raises() -> None:
+    class BadReprEvent(str):
+        __slots__ = ()
+
+        def __repr__(self) -> str:
+            msg = "repr failed"
+            raise RuntimeError(msg)
+
+    assert describe_event(BadReprEvent("my_event")).startswith("<BadReprEvent instance at ")
+
+
+####################################
 #     Tests for add_error_note     #
 ####################################
 
@@ -604,4 +675,19 @@ def test_add_error_note_unprintable_event() -> None:
 
     error = ValueError("boom")
     add_error_note(error, "fail", BadReprEvent("my_event"))
-    assert not hasattr(error, "__notes__")
+    assert error.__notes__[0].startswith(
+        "raised by fail while handling the event <BadReprEvent instance at "
+    )
+
+
+def test_add_error_note_long_event() -> None:
+    error = ValueError("boom")
+    add_error_note(error, "fail", "a" * 100 + "x" * 100_000 + "b" * 100)
+    assert error.__notes__ == [
+        (
+            "raised by fail while handling the event "
+            "'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            "aaaaaaaaaaaaaaaaaa...bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'"
+        )
+    ]

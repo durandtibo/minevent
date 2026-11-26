@@ -21,6 +21,7 @@ from minevent.calls import (
     adapt_call,
     add_error_note,
     describe,
+    describe_event,
     has_kind,
     reject_awaitable,
 )
@@ -697,7 +698,10 @@ class EventManager:
         for subscription in subscriptions:
             if subscription._is_async:
                 name = describe(subscription.handler)
-                msg = f"{name} is a coroutine function; use atrigger_event for the event {event!r}"
+                msg = (
+                    f"{name} is a coroutine function; use atrigger_event for the event "
+                    f"{describe_event(event)}"
+                )
                 raise TypeError(msg)
         for subscription in subscriptions:
             if not subscription._active or (
