@@ -102,7 +102,7 @@ the new API are in the
   user guide, and the FAQ is removed (#861). The documentation describes the current library, with
   a "How It Works" page for the rules and a "Design Choices" page for the trade-offs (#876). The
   limits state when `atrigger_event` reads the registrations and the payload, and that the coroutine
-  of a `functools.cache` is detected after its call (#903).
+  of a `functools.cache` is detected after its call (#904).
 - Packaging: the classifiers are `Development Status :: 3 - Alpha` and
   `Operating System :: OS Independent`, and there is no `all` extra. The license is given by its SPDX
   expression only, without a `License ::` classifier (#890).
