@@ -65,8 +65,9 @@
 - Shared helpers are public functions (no leading underscore) with their own tests, not private
   functions imported across modules.
 - Validate an argument in the function that receives it: a `TypeError` for a wrong type and a
-  `ValueError` for a wrong value, with a message that names the argument and the value. Do not add
-  a validator that is one `isinstance` or one comparison.
+  `ValueError` for a wrong value, with a message that names the argument and the value (a
+  `TypeError` can name the type of the value instead). Do not add a validator that is one
+  `isinstance` or one comparison, unless several functions share it.
 - Keep new options keyword-only (`*`), as
   `add_event_handler(..., once=..., condition=...)` does.
 - Every function, public or private (leading underscore), needs a docstring and its own unit
