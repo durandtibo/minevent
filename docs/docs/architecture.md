@@ -222,9 +222,13 @@ first, without default: `lambda context, i=i: print(i, context["epoch"])`.
   it.
 - **Recursion.** A handler that triggers its own event recurses until `RecursionError`.
 - **Blocking.** A synchronous handler in `atrigger_event` blocks the event loop.
-- **A hidden coroutine.** A lambda, or a synchronous `functools.wraps` wrapper, that returns a
-  coroutine is only detected after its call by `trigger_event`: the handlers before it have run, and
-  a `once` registration is consumed.
+- **The start of a coroutine.** `atrigger_event` reads the registrations and copies the payload when
+  its coroutine starts to run, not when it is created: a task sees a change made to the dict, or a
+  handler added, before it starts. To fix the payload at the creation, give it a `Context`, which is
+  copied when it is built.
+- **A hidden coroutine.** A lambda, a `functools.cache` of a coroutine function, or a synchronous
+  `functools.wraps` wrapper, that returns a coroutine is only detected after its call by
+  `trigger_event`: the handlers before it have run, and a `once` registration is consumed.
 - **Hidden generators.** A function that returns a generator, such as a lambda that calls a
   generator function, does nothing.
 - **An optional parameter never receives the context.** `def f(context=None)` is called as `f()` and
