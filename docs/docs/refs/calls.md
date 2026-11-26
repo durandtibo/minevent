@@ -5,7 +5,5 @@ How the handlers and the conditions are called. `minevent` exports `Handler` onl
 the [public API](../architecture.md#overview), and neither are the other functions of the module.
 
 ::: minevent.calls
-    options:
-      members:
-        - Handler
-        - check_signature
+options:
+members: - Handler - check_signature
