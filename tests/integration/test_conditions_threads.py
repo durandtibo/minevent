@@ -62,7 +62,7 @@ def test_periodic_condition_step_is_exact_after_calls_from_threads() -> None:
     number of calls made from several threads."""
     condition = PeriodicCondition(freq=2)
     count_true_calls(condition)
-    assert repr(condition) == "PeriodicCondition(freq=2, start=0, step=160,000)"
+    assert repr(condition) == "PeriodicCondition(freq=2, start=0, step=160000)"
 
 
 def test_condition_of_a_trigger_counts_every_trigger_from_threads() -> None:
