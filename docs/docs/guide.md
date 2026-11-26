@@ -25,8 +25,8 @@ recipes, the [how it works page](architecture.md) states the rules of the librar
   it is validated and copied only once.
 - Read an optional value with `context.get(key, default)`, so that handlers with different needs can
   share an event.
-- Register a method or a function that has default arguments as it is, and wrap it in a lambda to
-  choose a value (see [the calling rule](architecture.md#the-calling-rule)).
+- Write `def f(_)` for a handler that ignores the context, and wrap an existing function in a lambda
+  such as `lambda _: model.train()` (see [the calling rule](architecture.md#the-calling-rule)).
 - If the failure of a handler must not stop the program, catch the exception in the handler.
 - A synchronous handler that is slow blocks the caller (and the event loop in `atrigger_event`).
   Hand the work to an executor in the handler if the caller must not wait.
@@ -37,9 +37,10 @@ recipes, the [how it works page](architecture.md) states the rules of the librar
   the same counter. Call `reset()` to restart it.
 - For a warm-up, use `PeriodicCondition(freq=1, start=n)`: it is `False` for the first `n` calls,
   then `True`.
-- To combine conditions, write a function. `lambda: a() and b()` skips `b` when `a` is `False`, so
-  use it when `b` is costly and stateless. `lambda: all([a(), b()])` evaluates both, so stateful
-  conditions advance together.
+- To combine conditions, write a function. `lambda context: a(context) and b(context)` skips `b` when
+  `a` is `False`, so use it when `b` is costly and stateless.
+  `lambda context: all([a(context), b(context)])` evaluates both, so stateful conditions advance
+  together.
 - Use a condition to avoid the work of an expensive handler.
 
 ### The event manager
@@ -72,7 +73,6 @@ data, build one `Context` and reuse it.
   [Register a handler only once](examples.md#register-a-handler-only-once)).
 - **Mutating a value of the payload**: the values are not copied, so the next handlers see the
   change.
-- **An optional parameter**: `def f(context=None)` never receives the context.
 - **Threads**: a handler that shares state must protect it, and so must a stateful condition that
   you write. `PeriodicCondition` protects its counter.
 
@@ -121,10 +121,11 @@ A manager or a subscription, or an object that holds one, was copied or sent to 
 Create a new manager there and register the handlers, or exclude the manager and the subscriptions
 from the state of the object.
 
-### `TypeError: ... must need no argument or only the context`
+### `TypeError: ... must take the context as its only required argument`
 
-The manager cannot call the handler or the condition with nothing or with the context only. Wrap it
-in a function or a lambda, or bind the extra arguments with `functools.partial` (see
+The manager cannot call the handler or the condition as `f(context)`, for example a function without
+parameter, or `def f(context=None)`. Give it one parameter without default, wrap it in a function or
+a lambda, or bind the extra arguments with `functools.partial` (see
 [the calling rule](architecture.md#the-calling-rule)).
 
 ### `TypeError: ... must not be a generator function`

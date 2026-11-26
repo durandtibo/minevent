@@ -57,22 +57,14 @@ def check_types(path: Path, code: str) -> subprocess.CompletedProcess[str]:
 
 
 class Trainer:
-    r"""Implement an object whose methods are handlers.
+    r"""Implement a handler that is a callable object.
 
     Args:
-        calls: The list that receives the calls of the methods.
+        calls: The list that receives the calls of the object.
     """
 
     def __init__(self, calls: list[object]) -> None:
         self._calls = calls
-
-    def evaluate(self) -> None:
-        r"""Implement a handler without parameter."""
-        self._calls.append("evaluate")
-
-    def train(self, mode: bool = True) -> None:
-        r"""Implement a method whose parameters all have a default."""
-        self._calls.append(("train", mode))
 
     def __call__(self, context: Context) -> None:
         r"""Implement a handler that is a callable object."""
@@ -92,8 +84,8 @@ def test_typed_handler_shapes_are_registered_and_called() -> None:
     trainer = Trainer(calls)
     contexts: list[Context] = []
 
-    def no_parameter() -> None:
-        calls.append("no_parameter")
+    def ignored(_: Context) -> None:
+        calls.append("ignored")
 
     def with_context(context: Context) -> None:
         calls.append(("with_context", context["epoch"]))
@@ -105,17 +97,14 @@ def test_typed_handler_shapes_are_registered_and_called() -> None:
         calls.append(("context_and_default", context["epoch"], verbose))
 
     handlers: list[Handler] = [
-        no_parameter,
+        ignored,
         with_context,
         with_mapping,
-        trainer.evaluate,
         context_and_default,
-        trainer.train,
         trainer,
     ]
     for handler in handlers:
         manager.add_event_handler("epoch_end", handler)
-    manager.add_event_handler("epoch_end", lambda i=1: calls.append(("lambda", i)))
     manager.add_event_handler(
         "epoch_end", lambda context, i=2: calls.append(("context_lambda", context["epoch"], i))
     )
@@ -124,14 +113,11 @@ def test_typed_handler_shapes_are_registered_and_called() -> None:
     manager.trigger_event("epoch_end", {"epoch": 3})
     assert (calls, contexts) == (
         [
-            "no_parameter",
+            "ignored",
             ("with_context", 3),
             ("with_mapping", 3),
-            "evaluate",
             ("context_and_default", 3, False),
-            ("train", True),
             ("call", 3),
-            ("lambda", 1),
             ("context_lambda", 3, 2),
         ],
         [Context({"epoch": 3})],
@@ -170,7 +156,9 @@ def test_typed_handler_accepted_by_the_type_checker_but_rejected_at_registration
     """Test that ``print``, which a type checker accepts, is still
     rejected by the registration."""
     manager = EventManager()
-    with pytest.raises(TypeError, match=r"^handler print must need no argument"):
+    with pytest.raises(
+        TypeError, match=r"^handler print must take the context as its only required argument"
+    ):
         manager.add_event_handler("epoch_end", print)
 
 
@@ -205,6 +193,20 @@ def test_type_checker_accepts_a_correct_sample(tmp_path: Path) -> None:
         pytest.param(
             "@manager.on('e')\ndef handler(a: int, b: int) -> None: ...",
             id="decorator",
+        ),
+        pytest.param(
+            "def handler() -> None: ...\n\n\nmanager.add_event_handler('e', handler)",
+            id="no-parameter",
+        ),
+        pytest.param(
+            "class Model:\n    def train(self, mode: bool = True) -> None: ...\n\n\n"
+            "manager.add_event_handler('e', Model().train)",
+            id="bound-method-with-default",
+        ),
+        pytest.param("manager.add_event_handler('e', lambda: None)", id="lambda-no-parameter"),
+        pytest.param(
+            "manager.add_event_handler('e', print, condition=lambda: True)",
+            id="condition-no-parameter",
         ),
     ],
 )

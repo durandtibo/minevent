@@ -19,11 +19,11 @@ happens, so logging, checkpointing or monitoring is added without changing the l
 ...     manager.trigger_event("training_end")
 >>> manager = EventManager()
 >>> train(manager, epochs=2)
->>> _ = manager.add_event_handler("training_start", lambda: print("Training started"))
+>>> _ = manager.add_event_handler("training_start", lambda _: print("Training started"))
 >>> _ = manager.add_event_handler(
 ...     "epoch_end", lambda context: print(f"epoch {context['epoch']}: loss={context['loss']}")
 ... )
->>> _ = manager.add_event_handler("training_end", lambda: print("Training ended"))
+>>> _ = manager.add_event_handler("training_end", lambda _: print("Training ended"))
 >>> train(manager, epochs=2)
 Training started
 epoch 0: loss=1.0
@@ -95,16 +95,16 @@ validate at epoch 3
 A class with `__call__` is useful when a condition has a state or reads another object:
 
 ```pycon
->>> from minevent import EventManager
+>>> from minevent import Context, EventManager
 >>> class Flag:
 ...     def __init__(self) -> None:
 ...         self.enabled = False
 ...
-...     def __call__(self) -> bool:
+...     def __call__(self, _: Context) -> bool:
 ...         return self.enabled
 >>> verbose = Flag()
 >>> manager = EventManager()
->>> _ = manager.add_event_handler("batch_end", lambda: print("batch done"), condition=verbose)
+>>> _ = manager.add_event_handler("batch_end", lambda _: print("batch done"), condition=verbose)
 >>> manager.trigger_event("batch_end")
 >>> verbose.enabled = True
 >>> manager.trigger_event("batch_end")
@@ -120,7 +120,7 @@ batch done
 >>> from minevent import EventManager, PeriodicCondition
 >>> warmup = PeriodicCondition(freq=1, start=1)
 >>> manager = EventManager()
->>> _ = manager.add_event_handler("epoch_end", lambda: print("validate"), condition=warmup)
+>>> _ = manager.add_event_handler("epoch_end", lambda _: print("validate"), condition=warmup)
 >>> for _ in range(2):
 ...     manager.trigger_event("epoch_end")
 validate
@@ -131,8 +131,8 @@ validate
 
 ## Combine conditions
 
-Write a function. `all([a(), b()])` evaluates every condition at each call, so stateful conditions
-advance together:
+Write a function. `all([a(context), b(context)])` evaluates every condition at each call, so
+stateful conditions advance together:
 
 ```pycon
 >>> from minevent import EventManager, PeriodicCondition
@@ -140,8 +140,8 @@ advance together:
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler(
 ...     "epoch_end",
-...     lambda: print("validate"),
-...     condition=lambda: all([after_one(), periodic()]),
+...     lambda _: print("validate"),
+...     condition=lambda context: all([after_one(context), periodic(context)]),
 ... )
 >>> for _ in range(5):
 ...     manager.trigger_event("epoch_end")
@@ -157,9 +157,9 @@ with a function:
 
 ```pycon
 >>> import functools
->>> from minevent import EventManager, PeriodicCondition
+>>> from minevent import Context, EventManager, PeriodicCondition
 >>> manager = EventManager()
->>> def say(name: str) -> None:
+>>> def say(name: str, _: Context) -> None:
 ...     print(name)
 >>> def register(name: str) -> None:
 ...     manager.add_event_handler(
@@ -176,7 +176,7 @@ second
 
 ## Decide from the payload
 
-A condition with a parameter reads the payload of the trigger. A handler and its condition can read
+A condition reads the payload of the trigger. A handler and its condition can read
 different keys:
 
 ```pycon
@@ -196,9 +196,9 @@ save the model of epoch 3
 
 ```
 
-`PeriodicCondition` takes no parameter. To combine it with a condition on the payload, write a
-function that calls it:
-`condition=lambda context: periodic() and is_improving(context)`.
+`PeriodicCondition` ignores the payload. To combine it with a condition on the payload, write a
+function that calls both:
+`condition=lambda context: periodic(context) and is_improving(context)`.
 
 ## Keep a state in a handler
 
@@ -301,10 +301,11 @@ save epoch 4 to model.pt
 
 ```
 
-## Register methods that have default arguments
+## Adapt an existing function
 
-A parameter that has a default keeps it, so a method such as `model.train(mode=True)` is registered
-as it is, and a lambda chooses another value. A default also saves the value of a loop variable:
+A handler is called with the context, so wrap a function that does not take it, such as
+`model.train`, in a lambda that ignores it and chooses the arguments. A default saves the value of a
+loop variable:
 
 ```pycon
 >>> from minevent import EventManager
@@ -313,14 +314,14 @@ as it is, and a lambda chooses another value. A default also saves the value of 
 ...         print(f"train mode: {mode}")
 >>> model = Model()
 >>> manager = EventManager()
->>> _ = manager.add_event_handler("epoch_start", model.train)
->>> _ = manager.add_event_handler("validation_start", lambda: model.train(mode=False))
+>>> _ = manager.add_event_handler("epoch_start", lambda _: model.train())
+>>> _ = manager.add_event_handler("validation_start", lambda _: model.train(mode=False))
 >>> manager.trigger_event("epoch_start", {"epoch": 0})
 train mode: True
 >>> manager.trigger_event("validation_start")
 train mode: False
 >>> for i in range(3):
-...     _ = manager.add_event_handler("batch_end", lambda i=i: print(i))
+...     _ = manager.add_event_handler("batch_end", lambda _, i=i: print(i))
 >>> manager.trigger_event("batch_end")
 0
 1
@@ -356,7 +357,7 @@ the first trigger where the condition is `True`:
 >>> manager = EventManager()
 >>> subscription = manager.add_event_handler(
 ...     "epoch_end",
-...     lambda: print("saved"),
+...     lambda _: print("saved"),
 ...     once=True,
 ...     condition=PeriodicCondition(freq=1, start=2),
 ... )
@@ -377,7 +378,7 @@ program:
 ```pycon
 >>> from minevent import EventManager
 >>> manager = EventManager()
->>> with manager.add_event_handler("batch_end", lambda: print("profiling")):
+>>> with manager.add_event_handler("batch_end", lambda _: print("profiling")):
 ...     manager.trigger_event("batch_end")
 profiling
 >>> manager.trigger_event("batch_end")
@@ -395,8 +396,8 @@ Registering the same handler twice runs it twice. Look at the registrations to a
 not there:
 
 ```pycon
->>> from minevent import EventManager
->>> def hello_handler() -> None:
+>>> from minevent import Context, EventManager
+>>> def hello_handler(_: Context) -> None:
 ...     print("Hello!")
 >>> manager = EventManager()
 >>> for _ in range(3):
@@ -409,8 +410,8 @@ EventManager(events={'my_event': 1})
 
 ## Trace the handlers
 
-Wrap a handler to see its calls. `functools.wraps` keeps the signature, which decides whether the
-handler receives the context:
+Wrap a handler to see its calls. `functools.wraps` keeps the signature, which is checked at
+registration:
 
 ```pycon
 >>> import functools
@@ -537,7 +538,7 @@ handler is done:
 ...     "fetch_start", lambda context: print(f"fetching {context['count']} urls")
 ... )
 >>> _ = manager.add_event_handler("fetch_done", log_done)
->>> _ = manager.add_event_handler("fetch_end", lambda: print("done"))
+>>> _ = manager.add_event_handler("fetch_end", lambda _: print("done"))
 >>> asyncio.run(fetch_all(manager, ["a.com", "b.com"]))
 fetching 2 urls
 fetched a.com
@@ -598,8 +599,8 @@ from a coroutine handler.
 handler runs:
 
 ```pycon
->>> from minevent import EventManager
->>> async def notify() -> None:
+>>> from minevent import Context, EventManager
+>>> async def notify(_: Context) -> None:
 ...     print("notified")
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("my_event", notify)
@@ -617,12 +618,12 @@ The exception of a handler reaches the caller with a note that names the event a
 the error of a condition, the note names the condition and its handler):
 
 ```pycon
->>> from minevent import EventManager
->>> def fail() -> None:
+>>> from minevent import Context, EventManager
+>>> def fail(_: Context) -> None:
 ...     raise ValueError("boom")
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("my_event", fail)
->>> _ = manager.add_event_handler("my_event", lambda: print("not reached"))
+>>> _ = manager.add_event_handler("my_event", lambda _: print("not reached"))
 >>> try:
 ...     manager.trigger_event("my_event")
 ... except ValueError as exc:

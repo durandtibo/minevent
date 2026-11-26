@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from minevent import EventManager
+from minevent import Context, EventManager
 from tests.integration.helpers import run_threads
 
 if TYPE_CHECKING:
@@ -19,13 +19,13 @@ NUM_THREADS = 4
 NUM_TRIGGERS = 200
 
 
-def no_argument() -> None:
-    r"""Implement a handler without argument."""
+def ignore_context(_: Context) -> None:
+    r"""Implement a handler that ignores the context."""
 
 
 def test_trigger_event_threads_benchmark(benchmark: BenchmarkFixture) -> None:
     manager = EventManager()
-    manager.add_event_handler("e", no_argument)
+    manager.add_event_handler("e", ignore_context)
 
     def work(_index: int) -> None:
         for _ in range(NUM_TRIGGERS):
@@ -36,7 +36,7 @@ def test_trigger_event_threads_benchmark(benchmark: BenchmarkFixture) -> None:
 
 def test_add_and_remove_threads_benchmark(benchmark: BenchmarkFixture) -> None:
     manager = EventManager()
-    handler = no_argument
+    handler = ignore_context
 
     def work(_index: int) -> None:
         for _ in range(NUM_TRIGGERS):

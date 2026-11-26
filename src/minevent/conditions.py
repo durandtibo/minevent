@@ -2,9 +2,9 @@ r"""Implement the conditions that can be used in the event system.
 
 A condition is any synchronous function that returns a boolean (a
 lambda, a method or a callable object). It is called before its handler,
-like a handler: as ``condition()``, or as ``condition(context)`` with
-the read-only ``Context`` of the trigger (see
-``minevent.calls.adapt_call``). ``Condition`` is its type, and
+like a handler: as ``condition(context)`` with the read-only ``Context``
+of the trigger (see ``minevent.calls.check_signature``). ``Condition``
+is its type, and
 ``EventManager.add_event_handler`` states how a registration uses it.
 ``PeriodicCondition`` counts its calls. The user guide of the
 documentation shows how to combine conditions.
@@ -14,16 +14,16 @@ Example:
     >>> from minevent import EventManager, PeriodicCondition
     >>> manager = EventManager()
     >>> _ = manager.add_event_handler(
-    ...     "hello", lambda: print("Hello!"), condition=PeriodicCondition(freq=3)
+    ...     "hello", lambda _: print("Hello!"), condition=PeriodicCondition(freq=3)
     ... )
     >>> manager.trigger_event("hello")
     Hello!
     >>> manager.trigger_event("hello")
-    >>> _ = manager.add_event_handler("bye", lambda: print("Bye!"), condition=lambda: False)
+    >>> _ = manager.add_event_handler("bye", lambda _: print("Bye!"), condition=lambda _: False)
     >>> manager.trigger_event("bye")
     >>> _ = manager.add_event_handler(
     ...     "epoch_end",
-    ...     lambda: print("late epoch"),
+    ...     lambda _: print("late epoch"),
     ...     condition=lambda context: context.get("epoch", 0) >= 2,
     ... )
     >>> manager.trigger_event("epoch_end", {"epoch": 1})
@@ -43,9 +43,9 @@ from collections.abc import Callable
 
 from minevent.context import Context
 
-Condition = Callable[[], bool] | Callable[[Context], bool]
-"""A condition: a function that returns a boolean, without parameter or
-with the ``Context`` of the trigger."""
+Condition = Callable[[Context], bool]
+"""A condition: a function of the ``Context`` of the trigger that
+returns a boolean."""
 
 
 class PeriodicCondition:
@@ -63,7 +63,8 @@ class PeriodicCondition:
     counter, so the condition is stateful. Do not share one instance
     between several handlers, because they would advance the same
     counter. The ``step`` property reads the counter without advancing
-    it, and ``reset`` restarts it.
+    it, and ``reset`` restarts it. The condition is called with the
+    context of the trigger, like any condition, and ignores it.
 
     The counter is protected by a lock, so every call is counted once,
     from any number of threads, with and without the GIL. A lock cannot
@@ -85,15 +86,16 @@ class PeriodicCondition:
 
     Example:
         ```pycon
-        >>> from minevent import PeriodicCondition
+        >>> from minevent import Context, PeriodicCondition
+        >>> context = Context()
         >>> condition = PeriodicCondition(freq=3)
-        >>> [condition() for _ in range(7)]
+        >>> [condition(context) for _ in range(7)]
         [True, False, False, True, False, False, True]
         >>> condition = PeriodicCondition(freq=3, start=2)
-        >>> [condition() for _ in range(7)]
+        >>> [condition(context) for _ in range(7)]
         [False, False, True, False, False, True, False]
         >>> condition = PeriodicCondition(freq=1, start=2)
-        >>> [condition() for _ in range(4)]
+        >>> [condition(context) for _ in range(4)]
         [False, False, True, True]
         >>> import copy
         >>> clone = copy.deepcopy(condition)
@@ -134,7 +136,7 @@ class PeriodicCondition:
             f"start={self._start}, step={self._step})"
         )
 
-    def __call__(self) -> bool:
+    def __call__(self, _context: Context) -> bool:
         with self._lock:
             step = self._step
             self._step = step + 1
@@ -190,11 +192,11 @@ class PeriodicCondition:
 
         Example:
             ```pycon
-            >>> from minevent import PeriodicCondition
+            >>> from minevent import Context, PeriodicCondition
             >>> condition = PeriodicCondition(freq=3)
             >>> condition.step
             0
-            >>> condition(), condition()
+            >>> condition(Context()), condition(Context())
             (True, False)
             >>> condition.step
             2
@@ -209,12 +211,12 @@ class PeriodicCondition:
 
         Example:
             ```pycon
-            >>> from minevent import PeriodicCondition
+            >>> from minevent import Context, PeriodicCondition
             >>> condition = PeriodicCondition(freq=2)
-            >>> condition(), condition()
+            >>> condition(Context()), condition(Context())
             (True, False)
             >>> condition.reset()
-            >>> condition()
+            >>> condition(Context())
             True
 
             ```

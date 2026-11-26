@@ -65,6 +65,15 @@ def keyword_bound_handler(context: Context, *, k: int = 0) -> None:
 INVALID_HANDLERS = [None, "handler", 5, EventManager()]
 
 
+def no_parameter_handler() -> None:
+    r"""Implement a handler without parameter."""
+
+
+def optional_context_handler(context: Context | None = None) -> None:
+    r"""Implement a handler with an optional context."""
+    logger.info("Payload: %s", context)
+
+
 class BadReprValue:
     r"""Implement a value that is not callable and whose ``repr``
     raises."""
@@ -182,14 +191,14 @@ def test_event_manager_add_event_handler_payload_does_not_override_keyword_bound
 
 def test_event_manager_add_event_handler_condition_false_does_not_run_handler() -> None:
     manager = EventManager()
-    manager.add_event_handler("my_event", hello_handler, condition=lambda: False)
+    manager.add_event_handler("my_event", hello_handler, condition=lambda _: False)
     manager.trigger_event("my_event")
     assert hello_handler.call_count == 0
 
 
 def test_event_manager_add_event_handler_condition_true_runs_handler() -> None:
     manager = EventManager()
-    manager.add_event_handler("my_event", hello_handler, condition=lambda: True)
+    manager.add_event_handler("my_event", hello_handler, condition=lambda _: True)
     manager.trigger_event("my_event")
     assert hello_handler.call_count == 1
 
@@ -263,8 +272,8 @@ def test_event_manager_on_registers_function() -> None:
     manager = EventManager()
 
     @manager.on("my_event")
-    def handler() -> None:
-        hello_handler()
+    def handler(_: Context) -> None:
+        hello_handler(Context())
 
     manager.trigger_event("my_event")
     assert hello_handler.call_count == 1
@@ -273,7 +282,7 @@ def test_event_manager_on_registers_function() -> None:
 def test_event_manager_on_returns_function_unchanged() -> None:
     manager = EventManager()
 
-    def handler() -> None:
+    def handler(_: Context) -> None:
         pass
 
     assert manager.on("my_event")(handler) is handler
@@ -308,14 +317,14 @@ def test_event_manager_on_condition_reaches_subscription() -> None:
 
 def test_event_manager_on_condition_false_does_not_run_handler() -> None:
     manager = EventManager()
-    manager.on("my_event", condition=lambda: False)(hello_handler)
+    manager.on("my_event", condition=lambda _: False)(hello_handler)
     manager.trigger_event("my_event")
     assert hello_handler.call_count == 0
 
 
 def test_event_manager_on_condition_true_runs_handler() -> None:
     manager = EventManager()
-    manager.on("my_event", condition=lambda: True)(hello_handler)
+    manager.on("my_event", condition=lambda _: True)(hello_handler)
     manager.trigger_event("my_event")
     assert hello_handler.call_count == 1
 
@@ -324,12 +333,12 @@ def test_event_manager_on_condition_evaluated_before_handler() -> None:
     manager = EventManager()
     calls: list[str] = []
 
-    def condition() -> bool:
+    def condition(_: Context) -> bool:
         calls.append("condition")
         return True
 
     @manager.on("my_event", condition=condition)
-    def handler() -> None:
+    def handler(_: Context) -> None:
         calls.append("handler")
 
     manager.trigger_event("my_event")
@@ -346,12 +355,12 @@ def test_event_manager_on_condition_reads_the_payload() -> None:
 
 def test_event_manager_on_condition_returns_function_unchanged() -> None:
     manager = EventManager()
-    assert manager.on("my_event", condition=lambda: True)(hello_handler) is hello_handler
+    assert manager.on("my_event", condition=lambda _: True)(hello_handler) is hello_handler
 
 
 def test_event_manager_on_once_with_options() -> None:
     manager = EventManager()
-    manager.on("my_event", once=True, condition=lambda: True)(hello_handler)
+    manager.on("my_event", once=True, condition=lambda _: True)(hello_handler)
     manager.trigger_event("my_event")
     manager.trigger_event("my_event")
     assert hello_handler.call_count == 1
@@ -376,14 +385,14 @@ def test_event_manager_on_event_must_be_str(event: Any) -> None:
 
 @requires_lazy_annotations
 def test_event_manager_add_event_handler_unresolved_annotation(tmp_path: Path) -> None:
-    handler = unresolved_function(tmp_path, "no_parameter")
+    handler = unresolved_function(tmp_path, "unresolved_return")
     subscription = EventManager().add_event_handler("my_event", handler)
     assert subscription.active
 
 
 @requires_lazy_annotations
 def test_event_manager_add_event_handler_condition_unresolved_annotation(tmp_path: Path) -> None:
-    condition = unresolved_function(tmp_path, "no_parameter")
+    condition = unresolved_function(tmp_path, "unresolved_return")
     subscription = EventManager().add_event_handler("my_event", noop_handler, condition=condition)
     assert subscription.active
 
@@ -456,7 +465,10 @@ def test_event_manager_on_rejected_signature() -> None:
     manager = EventManager()
     decorator = manager.on("my_event")
     handler: Any = named_handler
-    with pytest.raises(TypeError, match=r"^handler named_handler must need no argument"):
+    with pytest.raises(
+        TypeError,
+        match=r"^handler named_handler must take the context as its only required argument",
+    ):
         decorator(handler)
     assert manager.events == []
 
@@ -464,45 +476,46 @@ def test_event_manager_on_rejected_signature() -> None:
 def test_event_manager_on_rejected_condition_signature() -> None:
     manager = EventManager()
     decorator = manager.on("my_event", condition=Mock())
-    with pytest.raises(TypeError, match=r"^condition Mock must need no argument"):
+    with pytest.raises(
+        TypeError, match=r"^condition Mock must take the context as its only required argument"
+    ):
         decorator(noop_handler)
     assert manager.events == []
 
 
-def test_event_manager_trigger_event_keeps_the_default_of_a_bound_method() -> None:
-    model = ModelStandIn()
+@pytest.mark.parametrize(
+    "handler",
+    [no_parameter_handler, ModelStandIn().train, lambda i=0: i, optional_context_handler],
+    ids=["no-parameter", "bound-method", "lambda-default", "optional-context"],
+)
+def test_event_manager_add_event_handler_handler_without_required_parameter(handler: Any) -> None:
     manager = EventManager()
-    manager.add_event_handler("my_event", model.train)
-    manager.trigger_event("my_event", {"epoch": 3})
-    assert model.mode is True
+    with pytest.raises(TypeError, match=r"^handler .+ must take the context as its only required"):
+        manager.add_event_handler("my_event", handler)
+    assert manager.events == []
 
 
-def test_event_manager_trigger_event_keeps_the_default_arguments_of_lambdas() -> None:
+@pytest.mark.parametrize(
+    "condition",
+    [no_parameter_handler, lambda flag=False: flag, optional_context_handler],
+    ids=["no-parameter", "lambda-default", "optional-context"],
+)
+def test_event_manager_add_event_handler_condition_without_required_parameter(
+    condition: Any,
+) -> None:
+    manager = EventManager()
+    with pytest.raises(TypeError, match=r"^condition .+ must take the context as its only"):
+        manager.add_event_handler("my_event", noop_handler, condition=condition)
+    assert manager.events == []
+
+
+def test_event_manager_trigger_event_lambda_keeps_its_saved_value() -> None:
     values: list[object] = []
     manager = EventManager()
-    manager.add_event_handler("my_event", lambda i=0: values.append(i))
-    manager.add_event_handler("my_event", lambda i=1: values.append(i))
+    manager.add_event_handler("my_event", lambda _, i=0: values.append(i))
+    manager.add_event_handler("my_event", lambda _, i=1: values.append(i))
     manager.trigger_event("my_event", {"epoch": 3})
     assert values == [0, 1]
-
-
-def test_event_manager_trigger_event_condition_keeps_its_default_argument() -> None:
-    manager = EventManager()
-    manager.add_event_handler("my_event", hello_handler, condition=lambda flag=False: flag)
-    manager.trigger_event("my_event", {"epoch": 3})
-    assert hello_handler.call_count == 0
-
-
-def test_event_manager_trigger_event_optional_parameter_does_not_receive_the_context() -> None:
-    values: list[object] = []
-
-    def handler(context: object = None) -> None:
-        values.append(context)
-
-    manager = EventManager()
-    manager.add_event_handler("my_event", handler)
-    manager.trigger_event("my_event", {"epoch": 3})
-    assert values == [None]
 
 
 def test_event_manager_trigger_event_context_before_a_default_argument() -> None:

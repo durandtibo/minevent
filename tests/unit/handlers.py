@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def fail() -> None:
+def fail(_: Context) -> None:
     r"""Implements a handler that raises a ``ValueError``."""
     msg = "boom"
     raise ValueError(msg)
@@ -52,7 +52,7 @@ class BadReprCallable:
         msg = "repr failed"
         raise RuntimeError(msg)
 
-    def __call__(self) -> None:
+    def __call__(self, _: Context) -> None:
         r"""Implement a handler."""
 
 
@@ -63,7 +63,7 @@ class BadReprCondition:
         msg = "repr failed"
         raise RuntimeError(msg)
 
-    def __call__(self) -> bool:
+    def __call__(self, _: Context) -> bool:
         return True
 
 
@@ -77,7 +77,7 @@ class UnnameableCallable:
             raise RuntimeError(msg)
         raise AttributeError(name)
 
-    def __call__(self) -> NoReturn:
+    def __call__(self, _: Context) -> NoReturn:
         r"""Implement a handler or a condition that raises."""
         msg = "boom"
         raise ValueError(msg)
@@ -94,7 +94,7 @@ class UnreadableClass:
 
 
 @trace
-def hello_handler() -> None:
+def hello_handler(_: Context) -> None:
     r"""Implements a simple handler that prints hello."""
     logger.info("Hello!")
 
@@ -105,7 +105,7 @@ def payload_handler(context: Context) -> None:
     logger.info("Payload: %s", context)
 
 
-def noop_handler() -> None:
+def noop_handler(_: Context) -> None:
     r"""Implement a handler that does nothing."""
 
 
@@ -115,7 +115,7 @@ class CustomCondition:
     def __init__(self) -> None:
         self._count = 0
 
-    def __call__(self) -> bool:
+    def __call__(self, _: Context) -> bool:
         self._count += 1
         return self._count % 2 == 1
 
@@ -130,7 +130,7 @@ class CallableRecorder:
         self._calls.append(dict(context))
 
 
-async def async_condition() -> bool:
+async def async_condition(_: Context) -> bool:
     r"""Implement an async condition that is ``False``."""
     return False
 
@@ -138,7 +138,7 @@ async def async_condition() -> bool:
 class AsyncConditionObject:
     r"""Implement a condition with an async ``__call__``."""
 
-    async def __call__(self) -> bool:
+    async def __call__(self, _: Context) -> bool:
         r"""Return ``False``."""
         return False
 
@@ -146,14 +146,14 @@ class AsyncConditionObject:
 class AsyncConditionMethod:
     r"""Implement an object with an async condition method."""
 
-    async def check(self) -> bool:
+    async def check(self, _: Context) -> bool:
         r"""Return ``False``."""
         return False
 
 
-def condition_returning_a_coroutine() -> object:
+def condition_returning_a_coroutine(context: Context) -> object:
     r"""Implement a synchronous condition that returns a coroutine."""
-    return async_condition()
+    return async_condition(context)
 
 
 class AwaitableResult:
@@ -164,12 +164,18 @@ class AwaitableResult:
         return False
 
 
+def condition_returning_an_awaitable(_: Context) -> object:
+    r"""Implement a synchronous condition that returns an awaitable that
+    is not a coroutine."""
+    return AwaitableResult()
+
+
 def named_handler(first_name: str, last_name: str) -> None:
     r"""Implements a handler with two named arguments."""
     logger.info("Hello. I am %s %s", first_name, last_name)
 
 
-def generator_handler() -> Iterator[None]:
+def generator_handler(_: Context) -> Iterator[None]:
     r"""Implement a generator handler."""
     yield
 
@@ -177,7 +183,7 @@ def generator_handler() -> Iterator[None]:
 class GeneratorObject:
     r"""Implement a callable object whose ``__call__`` yields."""
 
-    def __call__(self) -> Iterator[None]:
+    def __call__(self, _: Context) -> Iterator[None]:
         r"""Yield once."""
         yield
 
@@ -186,7 +192,7 @@ class AsyncGeneratorObject:
     r"""Implement a callable object whose ``__call__`` is an async
     generator."""
 
-    async def __call__(self) -> AsyncIterator[None]:
+    async def __call__(self, _: Context) -> AsyncIterator[None]:
         r"""Yield once."""
         yield
 
@@ -202,7 +208,7 @@ class ModelStandIn:
         r"""Set the training mode."""
         self.mode = mode
 
-    def generate(self) -> Iterator[None]:
+    def generate(self, _: Context) -> Iterator[None]:
         r"""Implement a generator method."""
         yield
 
@@ -216,10 +222,10 @@ if TYPE_CHECKING:
     from decimal import Decimal
 
 
-def no_parameter() -> Decimal: ...
+def unresolved_return(context) -> Decimal: ...
 
 
-def one_parameter(context: Decimal) -> None: ...
+def unresolved_parameter(context: Decimal) -> None: ...
 """
 
 

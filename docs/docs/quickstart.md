@@ -15,8 +15,8 @@ rules of the library. To install it, see [Get Started](get_started.md).
 Create an `EventManager`, add a handler to an event and trigger the event:
 
 ```pycon
->>> from minevent import EventManager
->>> def hello_handler() -> None:
+>>> from minevent import Context, EventManager
+>>> def hello_handler(_: Context) -> None:
 ...     print("Hello!")
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("training_end", hello_handler)
@@ -25,6 +25,9 @@ Hello!
 
 ```
 
+A handler is called with the context of the trigger, which holds its data. One that does not need it
+declares it and ignores it, as `_`.
+
 The manager has no global state: create one instance and pass it where it is needed. Triggering an
 event that has no handler does nothing. The handlers of an event run one after the other, in the
 order they were added:
@@ -32,8 +35,8 @@ order they were added:
 ```pycon
 >>> from minevent import EventManager
 >>> manager = EventManager()
->>> _ = manager.add_event_handler("training_end", lambda: print("save the model"))
->>> _ = manager.add_event_handler("training_end", lambda: print("send a report"))
+>>> _ = manager.add_event_handler("training_end", lambda _: print("save the model"))
+>>> _ = manager.add_event_handler("training_end", lambda _: print("send a report"))
 >>> manager.trigger_event("training_end")
 save the model
 send a report
@@ -47,10 +50,10 @@ EventManager(events={'training_end': 2})
 The decorator `on` registers a function and returns it unchanged:
 
 ```pycon
->>> from minevent import EventManager
+>>> from minevent import Context, EventManager
 >>> manager = EventManager()
 >>> @manager.on("training_start")
-... def log_start() -> None:
+... def log_start(_: Context) -> None:
 ...     print("start")
 >>> manager.trigger_event("training_start")
 start
@@ -59,8 +62,8 @@ start
 
 ## Pass data to the handlers
 
-The second argument of `trigger_event` is the payload, a dict for example. A handler that has a
-parameter receives it in a read-only `Context`; a handler without parameter ignores it:
+The second argument of `trigger_event` is the payload, a dict for example. Every handler receives it
+in a read-only `Context`:
 
 ```pycon
 >>> from minevent import Context, EventManager
@@ -68,7 +71,7 @@ parameter receives it in a read-only `Context`; a handler without parameter igno
 ...     print(f"epoch {context['epoch']}, loss {context.get('loss', 'unknown')}")
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler("epoch_end", log_epoch)
->>> _ = manager.add_event_handler("epoch_end", lambda: print("done"))
+>>> _ = manager.add_event_handler("epoch_end", lambda _: print("done"))
 >>> manager.trigger_event("epoch_end", {"epoch": 1, "loss": 0.5})
 epoch 1, loss 0.5
 done
@@ -94,9 +97,9 @@ save epoch 3 to model.pt
 
 ```
 
-A handler needs no argument or only the context. A callable such as `print` is rejected when it is
-registered: wrap it in a function or a lambda (see
-[the calling rule](architecture.md#the-calling-rule)).
+A handler takes the context as its only required argument. A function without parameter, or a
+callable such as `print`, is rejected when it is registered: wrap it in a function or a lambda, such
+as `lambda _: model.train()` (see [the calling rule](architecture.md#the-calling-rule)).
 
 ## Control when a handler runs
 
@@ -107,11 +110,11 @@ A **condition** is a function that returns a boolean: the handler runs only if i
 >>> from minevent import EventManager, PeriodicCondition
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler(
-...     "epoch_end", lambda: print("checkpoint"), condition=PeriodicCondition(freq=2)
+...     "epoch_end", lambda _: print("checkpoint"), condition=PeriodicCondition(freq=2)
 ... )
 >>> _ = manager.add_event_handler(
 ...     "epoch_end",
-...     lambda: print("late epoch"),
+...     lambda _: print("late epoch"),
 ...     condition=lambda context: context["epoch"] >= 2,
 ... )
 >>> for epoch in range(3):
@@ -127,7 +130,7 @@ With `once=True`, a handler runs at most once:
 ```pycon
 >>> from minevent import EventManager
 >>> manager = EventManager()
->>> _ = manager.add_event_handler("epoch_end", lambda: print("first epoch"), once=True)
+>>> _ = manager.add_event_handler("epoch_end", lambda _: print("first epoch"), once=True)
 >>> manager.trigger_event("epoch_end")
 first epoch
 >>> manager.trigger_event("epoch_end")
@@ -142,7 +145,7 @@ removes that registration only:
 ```pycon
 >>> from minevent import EventManager
 >>> manager = EventManager()
->>> subscription = manager.add_event_handler("epoch_end", lambda: print("epoch"))
+>>> subscription = manager.add_event_handler("epoch_end", lambda _: print("epoch"))
 >>> subscription.remove()
 True
 >>> subscription.remove()
@@ -157,11 +160,11 @@ event, and `reset` removes all the handlers:
 ```pycon
 >>> from minevent import EventManager
 >>> manager = EventManager()
->>> with manager.add_event_handler("batch_end", lambda: print("batch")):
+>>> with manager.add_event_handler("batch_end", lambda _: print("batch")):
 ...     manager.trigger_event("batch_end")
 batch
->>> _ = manager.add_event_handler("batch_end", lambda: None)
->>> _ = manager.add_event_handler("epoch_end", lambda: None)
+>>> _ = manager.add_event_handler("batch_end", lambda _: None)
+>>> _ = manager.add_event_handler("epoch_end", lambda _: None)
 >>> manager.clear_event("batch_end")
 >>> manager.events
 ['epoch_end']

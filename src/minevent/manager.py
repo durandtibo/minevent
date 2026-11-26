@@ -18,8 +18,8 @@ from typing import TYPE_CHECKING, NoReturn, Self, TypeVar
 
 from minevent.calls import (
     Handler,
-    adapt_call,
     add_error_note,
+    check_signature,
     describe,
     describe_event,
     has_kind,
@@ -137,7 +137,7 @@ class Subscription:
         ...     return context["epoch"] >= 2
         ...
         >>> manager = EventManager()
-        >>> subscription = manager.add_event_handler("my_event", lambda: None)
+        >>> subscription = manager.add_event_handler("my_event", lambda _: None)
         >>> subscription
         Subscription(event='my_event', handler='<lambda>')
         >>> subscription.remove(), subscription.remove()
@@ -149,7 +149,7 @@ class Subscription:
         >>> manager.add_event_handler("my_event", print_epoch, once=True, condition=is_late)
         Subscription(event='my_event', handler='print_epoch', once=True, condition='is_late')
         >>> manager.reset()
-        >>> with manager.add_event_handler("my_event", lambda: None):
+        >>> with manager.add_event_handler("my_event", lambda _: None):
         ...     manager
         ...
         EventManager(events={'my_event': 1})
@@ -174,13 +174,14 @@ class Subscription:
         self._once = once
         self._condition = condition
         # The signatures are checked once, at registration: a trigger gives the context to the
-        # adapted callables.
-        self._handler_call = adapt_call(handler, "handler")
-        self._condition_call = None if condition is None else adapt_call(condition, "condition")
-        # The condition is rejected now, not at the first trigger, which can be much later.
-        if condition is not None and has_kind(condition, inspect.iscoroutinefunction):
-            msg = f"condition must be synchronous, but got {describe(condition)}"
-            raise TypeError(msg)
+        # callables.
+        check_signature(handler, "handler")
+        if condition is not None:
+            check_signature(condition, "condition")
+            # The condition is rejected now, not at the first trigger, which can be much later.
+            if has_kind(condition, inspect.iscoroutinefunction):
+                msg = f"condition must be synchronous, but got {describe(condition)}"
+                raise TypeError(msg)
         # ``trigger_event`` cannot run a coroutine function: it is detected now, so that the
         # trigger is rejected before anything runs.
         self._is_async = has_kind(handler, inspect.iscoroutinefunction)
@@ -226,7 +227,7 @@ class Subscription:
             ```pycon
             >>> from minevent import EventManager
             >>> manager = EventManager()
-            >>> manager.add_event_handler("epoch_end", lambda: None).event
+            >>> manager.add_event_handler("epoch_end", lambda _: None).event
             'epoch_end'
 
             ```
@@ -244,7 +245,7 @@ class Subscription:
             ```pycon
             >>> from minevent import EventManager
             >>> manager = EventManager()
-            >>> def handler() -> None: ...
+            >>> def handler(_) -> None: ...
             >>> manager.add_event_handler("epoch_end", handler).handler is handler
             True
 
@@ -265,7 +266,7 @@ class Subscription:
             ```pycon
             >>> from minevent import EventManager
             >>> manager = EventManager()
-            >>> manager.add_event_handler("epoch_end", lambda: None, once=True).once
+            >>> manager.add_event_handler("epoch_end", lambda _: None, once=True).once
             True
 
             ```
@@ -283,7 +284,7 @@ class Subscription:
             ```pycon
             >>> from minevent import EventManager
             >>> manager = EventManager()
-            >>> print(manager.add_event_handler("epoch_end", lambda: None).condition)
+            >>> print(manager.add_event_handler("epoch_end", lambda _: None).condition)
             None
 
             ```
@@ -304,7 +305,7 @@ class Subscription:
             ```pycon
             >>> from minevent import EventManager
             >>> manager = EventManager()
-            >>> subscription = manager.add_event_handler("epoch_end", lambda: None)
+            >>> subscription = manager.add_event_handler("epoch_end", lambda _: None)
             >>> subscription.active
             True
             >>> manager.reset()
@@ -325,8 +326,7 @@ class Subscription:
         consume the registration.
 
         Args:
-            context: The context of the trigger, given to a condition that
-                needs it.
+            context: The context of the trigger, given to the condition.
 
         Returns:
             ``True`` if the handler must be called, ``False`` if the
@@ -342,15 +342,15 @@ class Subscription:
             ```pycon
             >>> from minevent import Context, EventManager
             >>> manager = EventManager()
-            >>> subscription = manager.add_event_handler("my_event", lambda: None, once=True)
+            >>> subscription = manager.add_event_handler("my_event", lambda _: None, once=True)
             >>> subscription._claim(Context()), subscription._claim(Context())
             (True, False)
 
             ```
         """
-        if self._condition_call is not None:
+        if self._condition is not None:
             try:
-                result = self._condition_call(context)
+                result = self._condition(context)
                 # A coroutine is truthy: a condition that returns one would always run the handler.
                 if result is not True and result is not False:
                     msg = f"condition {describe(self._condition)} returned an awaitable"
@@ -378,7 +378,7 @@ class Subscription:
             ```pycon
             >>> from minevent import EventManager
             >>> manager = EventManager()
-            >>> subscription = manager.add_event_handler("epoch_end", lambda: None)
+            >>> subscription = manager.add_event_handler("epoch_end", lambda _: None)
             >>> subscription.remove()
             True
             >>> subscription.remove()
@@ -409,7 +409,7 @@ class EventManager:
         ```pycon
         >>> from minevent import EventManager
         >>> manager = EventManager()
-        >>> _ = manager.add_event_handler("my_event", lambda: print("Hello!"))
+        >>> _ = manager.add_event_handler("my_event", lambda _: print("Hello!"))
         >>> manager.trigger_event("my_event")
         Hello!
         >>> manager
@@ -454,7 +454,7 @@ class EventManager:
             >>> manager = EventManager()
             >>> manager.events
             []
-            >>> _ = manager.add_event_handler("my_event", lambda: None)
+            >>> _ = manager.add_event_handler("my_event", lambda _: None)
             >>> manager.events
             ['my_event']
             >>> "my_event" in manager
@@ -487,7 +487,7 @@ class EventManager:
             >>> manager = EventManager()
             >>> manager.get_subscriptions("my_event")
             ()
-            >>> def handler():
+            >>> def handler(_):
             ...     print("Hello!")
             ...
             >>> subscription = manager.add_event_handler("my_event", handler)
@@ -515,11 +515,11 @@ class EventManager:
         r"""Add a handler to an event.
 
         Each trigger of the event calls the handler after the handlers added
-        before it, as ``handler()``, or as ``handler(context)`` with the
-        read-only ``Context`` of the trigger if it has one parameter without
-        default. ``minevent.calls.adapt_call`` states the whole rule. Use
-        a function, a lambda or a ``functools.partial`` to give other
-        arguments.
+        before it, as ``handler(context)`` with the read-only ``Context`` of
+        the trigger. ``minevent.calls.check_signature`` states which
+        signatures are accepted. A handler that does not need the context
+        declares it and ignores it (``def handler(_)``). Use a function, a
+        lambda or a ``functools.partial`` to give other arguments.
 
         Args:
             event: The event name (case-sensitive string).
@@ -542,8 +542,8 @@ class EventManager:
             TypeError: if ``event`` is not a string, if ``handler`` is not
                 callable, if ``condition`` is neither ``None`` nor callable, if
                 ``once`` is not a ``bool``, if ``handler`` or ``condition`` is
-                a generator function, needs another argument than the context,
-                or has a signature that cannot be inspected, or if
+                a generator function, cannot be called with the context as its
+                only argument, or has a signature that cannot be inspected, or if
                 ``condition`` is a coroutine function. A callable object is
                 judged by its ``__call__``. The manager is unchanged.
 
@@ -556,7 +556,7 @@ class EventManager:
             ...     lambda context: print(f"epoch {context['epoch']}"),
             ...     condition=PeriodicCondition(freq=2),
             ... )
-            >>> _ = manager.add_event_handler("epoch_end", lambda: print("first"), once=True)
+            >>> _ = manager.add_event_handler("epoch_end", lambda _: print("first"), once=True)
             >>> manager.trigger_event("epoch_end", {"epoch": 0})
             epoch 0
             first
@@ -648,7 +648,7 @@ class EventManager:
             ```pycon
             >>> from minevent import EventManager
             >>> manager = EventManager()
-            >>> subscription = manager.add_event_handler("epoch_end", lambda: None)
+            >>> subscription = manager.add_event_handler("epoch_end", lambda _: None)
             >>> manager._remove(subscription), manager._remove(subscription)
             (True, False)
 
@@ -723,7 +723,7 @@ class EventManager:
             ):
                 continue
             try:
-                result = subscription._handler_call(context)
+                result = subscription._handler(context)
                 if result is not None and isinstance(result, Awaitable):
                     name = describe(subscription.handler)
                     msg = f"{name} returned an awaitable; use atrigger_event"
@@ -780,7 +780,7 @@ class EventManager:
             ):
                 continue
             try:
-                result = subscription._handler_call(context)
+                result = subscription._handler(context)
                 if result is not None and isinstance(result, Awaitable):
                     await result
             except Exception as exc:
@@ -803,7 +803,7 @@ class EventManager:
             ```pycon
             >>> from minevent import EventManager
             >>> manager = EventManager()
-            >>> _ = manager.add_event_handler("my_event", lambda: None)
+            >>> _ = manager.add_event_handler("my_event", lambda _: None)
             >>> manager.clear_event("my_event")
             >>> manager.events
             []
@@ -828,7 +828,7 @@ class EventManager:
             ```pycon
             >>> from minevent import EventManager
             >>> manager = EventManager()
-            >>> _ = manager.add_event_handler("my_event", lambda: None)
+            >>> _ = manager.add_event_handler("my_event", lambda _: None)
             >>> manager.reset()
             >>> manager
             EventManager(events={})

@@ -21,8 +21,8 @@ if TYPE_CHECKING:
     from pytest_benchmark.fixture import BenchmarkFixture
 
 
-def no_argument() -> None:
-    r"""Implement a handler without argument."""
+def ignore_context(_: Context) -> None:
+    r"""Implement a handler that ignores the context."""
 
 
 def with_payload(context: Context) -> None:
@@ -31,15 +31,15 @@ def with_payload(context: Context) -> None:
     context.get("loss")
 
 
-async def async_no_argument() -> None:
-    r"""Implement a coroutine handler without argument."""
+async def async_ignore_context(_: Context) -> None:
+    r"""Implement a coroutine handler that ignores the context."""
 
 
 def make_manager(num_handlers: int) -> EventManager:
     r"""Create a manager with ``num_handlers`` handlers on ``"e"``."""
     manager = EventManager()
     for _ in range(num_handlers):
-        manager.add_event_handler("e", no_argument)
+        manager.add_event_handler("e", ignore_context)
     return manager
 
 
@@ -68,26 +68,26 @@ def test_trigger_event_extra_payload_keys_benchmark(benchmark: BenchmarkFixture)
 
 def test_trigger_event_periodic_condition_benchmark(benchmark: BenchmarkFixture) -> None:
     manager = EventManager()
-    manager.add_event_handler("e", no_argument, condition=PeriodicCondition(10))
+    manager.add_event_handler("e", ignore_context, condition=PeriodicCondition(10))
     benchmark(manager.trigger_event, "e")
 
 
 def test_trigger_event_callable_condition_benchmark(benchmark: BenchmarkFixture) -> None:
     manager = EventManager()
-    manager.add_event_handler("e", no_argument, condition=lambda: True)
+    manager.add_event_handler("e", ignore_context, condition=lambda _: True)
     benchmark(manager.trigger_event, "e")
 
 
 def test_trigger_event_many_events_benchmark(benchmark: BenchmarkFixture) -> None:
     manager = EventManager()
     for i in range(1000):
-        manager.add_event_handler(f"event_{i}", no_argument)
+        manager.add_event_handler(f"event_{i}", ignore_context)
     benchmark(manager.trigger_event, "event_500")
 
 
 def test_trigger_event_once_benchmark(benchmark: BenchmarkFixture) -> None:
     manager = EventManager()
-    handler = no_argument
+    handler = ignore_context
 
     def register_and_trigger() -> None:
         manager.add_event_handler("e", handler, once=True)
@@ -99,7 +99,7 @@ def test_trigger_event_once_benchmark(benchmark: BenchmarkFixture) -> None:
 def test_trigger_event_rejected_async_handler_benchmark(benchmark: BenchmarkFixture) -> None:
     # The coroutine handler is the last one: the whole snapshot is visited before the rejection.
     manager = make_manager(99)
-    manager.add_event_handler("e", async_no_argument)
+    manager.add_event_handler("e", async_ignore_context)
 
     def trigger() -> None:
         with pytest.raises(TypeError, match=r"use atrigger_event"):
@@ -110,7 +110,7 @@ def test_trigger_event_rejected_async_handler_benchmark(benchmark: BenchmarkFixt
 
 def test_atrigger_event_benchmark(benchmark: BenchmarkFixture) -> None:
     manager = EventManager()
-    manager.add_event_handler("e", async_no_argument)
+    manager.add_event_handler("e", async_ignore_context)
 
     async def trigger_many() -> None:
         # 100 triggers per round, because asyncio.run alone costs more than a trigger

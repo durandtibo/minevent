@@ -14,37 +14,39 @@ the new API are in the
 - **Python**: `minevent` requires Python `>=3.11` (`0.5.0` supported `>=3.10`).
 - **Dependencies**: `minevent` has no dependency (`0.5.0` required `coola>=1.0,<2.0`).
 - **Handlers**: `EventHandler`, `BaseEventHandler`, `BaseEventHandlerWithArguments` and
-  `ConditionalEventHandler` are removed. A handler is a callable that needs no argument or only the
-  context, and the options of a registration are the keyword-only arguments of `add_event_handler`
-  and `on`:
+  `ConditionalEventHandler` are removed. A handler is a callable that is called with the context of
+  the trigger, and the options of a registration are the keyword-only arguments of
+  `add_event_handler` and `on`:
 
-  | `0.5.0`                                       | Now                                                                |
-  | --------------------------------------------- | ------------------------------------------------------------------ |
-  | `add_event_handler("e", EventHandler(f))`     | `add_event_handler("e", f)`                                        |
-  | `EventHandler(f, ["a"], {"k": 1})`            | `functools.partial(f, "a", k=1)`                                   |
-  | `ConditionalEventHandler(f, c)`               | `add_event_handler("e", f, condition=c)`                           |
-  | `class H(BaseEventHandler): def handle(self)` | `class H: def __call__(self)`                                      |
-  | `EventHandler(print, ["a"])`                  | `lambda: print("a")` (a callable that accepts `*args` is rejected) |
+  | `0.5.0`                                       | Now                                      |
+  | --------------------------------------------- | ---------------------------------------- |
+  | `add_event_handler("e", EventHandler(f))`     | `add_event_handler("e", lambda _: f())`  |
+  | `EventHandler(f, ["a"], {"k": 1})`            | `lambda _: f("a", k=1)`                  |
+  | `ConditionalEventHandler(f, c)`               | `add_event_handler("e", f, condition=c)` |
+  | `class H(BaseEventHandler): def handle(self)` | `class H: def __call__(self, context)`   |
+  | `EventHandler(print, ["a"])`                  | `lambda _: print("a")`                   |
 
-- **Calling rule**: a parameter of a handler or of a condition that has a default keeps it, and a
-  callable that needs anything else than nothing or the context raises a `TypeError` at registration
-  (`*args`, `**kwargs`, two parameters, a keyword-only parameter, a signature that cannot be
-  inspected), as does a generator or async generator function, or a callable object whose
-  `__call__` is one.
+- **Calling rule**: a handler and a condition are always called as `f(context)`. Exactly one
+  parameter must lack a default, and it must be positional. Anything else raises a `TypeError` at
+  registration (a function without parameter, `def f(context=None)`, `*args`, `**kwargs`, two
+  parameters, a keyword-only parameter, a signature that cannot be inspected), as does a generator or
+  async generator function, or a callable object whose `__call__` is one. Write `def f(_)` for a
+  handler that ignores the context (#920).
 - **Conditions**: `BaseCondition` (with `evaluate` and `equal`) is removed. A condition is a
-  function that returns a boolean: implement `__call__` instead of `evaluate`, and call
-  `condition()` instead of `condition.evaluate()`. Combine conditions with a function, for example
-  `lambda: a() and b()`. A coroutine function, or an object with `async def __call__`, used as a
-  condition raises a `TypeError` at registration, and a condition that returns an awaitable another
-  way raises it at the trigger.
+  function of the context that returns a boolean: implement `__call__(self, context)` instead of
+  `evaluate`, and call `condition(context)` instead of `condition.evaluate()`, also for a
+  `PeriodicCondition`, which ignores the context. Combine conditions with a function, for example
+  `lambda context: a(context) and b(context)`. A coroutine function, or an object with
+  `async def __call__`, used as a condition raises a `TypeError` at registration, and a condition
+  that returns an awaitable another way raises it at the trigger.
 - **Registrations**: `EventManager.has_event_handler` and `remove_event_handler` are removed, and so
   is the comparison of handlers and conditions with `equal` and `==`. Keep the `Subscription`
   returned by `add_event_handler` and call `subscription.remove()` (it returns `False` when the
   registration is already removed, where `remove_event_handler` raised a `RuntimeError`), or use
   `manager.get_subscriptions(event)`.
-- **Typing**: a handler argument is typed `Handler`, so a type checker reports a handler that needs
-  two arguments, a keyword-only argument or an argument of another type. Annotate the parameter of a
-  handler `Context` (or `Mapping`).
+- **Typing**: a handler argument is typed `Handler`, so a type checker reports a handler without
+  parameter, or one that needs two arguments, a keyword-only argument or an argument of another
+  type. Annotate the parameter of a handler `Context` (or `Mapping`).
 - **Events**: an event name must be a `str`, such as a `StrEnum` member (other types, a member of
   a plain `Enum` included, raise a `TypeError`; they were converted with `str` at registration).
 - **Dispatch**: a trigger runs the registrations that exist when it starts: a handler added by a
@@ -103,8 +105,7 @@ the new API are in the
 - Documentation: an [examples page](https://durandtibo.github.io/minevent/main/examples/) and a
   user guide, and the FAQ is removed (#861). The documentation describes the current library, with
   a "How It Works" page for the rules and a "Design Choices" page for the trade-offs (#876). The
-  limits state when `atrigger_event` reads the registrations and the payload, and that the coroutine
-  of a `functools.cache` is detected after its call (#904).
+  limits state when `atrigger_event` reads the registrations and the payload (#904).
 - Documentation: the limits state that a signal handler or a garbage collection finalizer must not
   change the manager, that a `StopIteration` leaves `atrigger_event` as a `RuntimeError`, that a
   returned asynchronous generator does nothing, and which signatures depend on the version of

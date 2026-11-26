@@ -19,13 +19,13 @@ EVENTS = ("my_event", "my_other_event")
 
 
 @trace
-def hello_handler() -> None:
+def hello_handler(_: Context) -> None:
     r"""Implements a simple handler that prints hello."""
     logger.info("Hello!")
 
 
 @trace
-def failing_handler() -> None:
+def failing_handler(_: Context) -> None:
     r"""Implements a handler that always fails."""
     msg = "handler failed"
     raise RuntimeError(msg)
@@ -123,7 +123,7 @@ def test_event_manager_subscription_remove_after_clear_event() -> None:
 def test_event_manager_subscription_remove_keeps_other_events() -> None:
     manager = EventManager()
     subscription = manager.add_event_handler("my_event", hello_handler)
-    manager.add_event_handler("my_event", lambda: None)
+    manager.add_event_handler("my_event", lambda _: None)
     subscription.remove()
     assert manager.events == ["my_event"]
 
@@ -169,8 +169,8 @@ def test_event_manager_add_event_handler_once_runs_once_when_handler_raises() ->
 def test_event_manager_add_event_handler_once_runs_once_when_handler_retriggers() -> None:
     manager = EventManager()
 
-    def retrigger() -> None:
-        hello_handler()
+    def retrigger(_: Context) -> None:
+        hello_handler(Context())
         manager.trigger_event("my_event")
 
     manager.add_event_handler("my_event", retrigger, once=True)
@@ -251,7 +251,7 @@ async def test_event_manager_atrigger_event_once_runs_once() -> None:
 def test_once_false_condition_does_not_consume() -> None:
     manager = EventManager()
     subscription = manager.add_event_handler(
-        "my_event", hello_handler, condition=lambda: False, once=True
+        "my_event", hello_handler, condition=lambda _: False, once=True
     )
     manager.trigger_event("my_event")
     assert subscription.active
@@ -259,7 +259,7 @@ def test_once_false_condition_does_not_consume() -> None:
 
 def test_once_false_condition_does_not_call_handler() -> None:
     manager = EventManager()
-    manager.add_event_handler("my_event", hello_handler, condition=lambda: False, once=True)
+    manager.add_event_handler("my_event", hello_handler, condition=lambda _: False, once=True)
     manager.trigger_event("my_event")
     assert hello_handler.call_count == 0
 
@@ -293,13 +293,13 @@ def test_once_removed_after_condition_becomes_true() -> None:
 
 def test_once_runs_once_when_condition_stays_true() -> None:
     manager = EventManager()
-    manager.add_event_handler("my_event", hello_handler, condition=lambda: True, once=True)
+    manager.add_event_handler("my_event", hello_handler, condition=lambda _: True, once=True)
     trigger_n_times(manager, 3)
     assert hello_handler.call_count == 1
 
 
 def test_once_raising_condition_keeps_registration() -> None:
-    def condition() -> bool:
+    def condition(_: Context) -> bool:
         msg = "condition failed"
         raise RuntimeError(msg)
 
@@ -323,7 +323,7 @@ def test_once_raising_handler_consumes_registration() -> None:
 async def test_once_false_condition_does_not_consume_async() -> None:
     manager = EventManager()
     subscription = manager.add_event_handler(
-        "my_event", hello_handler, condition=lambda: False, once=True
+        "my_event", hello_handler, condition=lambda _: False, once=True
     )
     await manager.atrigger_event("my_event")
     assert subscription.active
@@ -339,7 +339,7 @@ def test_event_manager_once_removed_by_earlier_handler_of_same_trigger_does_not_
     manager = EventManager()
     subscriptions: list[Subscription] = []
 
-    def remove_once() -> None:
+    def remove_once(_: Context) -> None:
         subscriptions[0].remove()
 
     manager.add_event_handler("my_event", remove_once)
@@ -352,7 +352,7 @@ async def test_event_manager_atrigger_event_once_removed_by_earlier_handler_does
     manager = EventManager()
     subscriptions: list[Subscription] = []
 
-    def remove_once() -> None:
+    def remove_once(_: Context) -> None:
         subscriptions[0].remove()
 
     manager.add_event_handler("my_event", remove_once)
