@@ -719,7 +719,9 @@ class EventManager:
 
         It behaves like ``trigger_event``, but the awaitable that a handler
         returns is awaited before the next handler. A synchronous handler
-        blocks the event loop while it runs.
+        blocks the event loop while it runs. The registrations and the context
+        are read when the coroutine starts to run, not when it is created
+        (see the "Limits" of the "How It Works" page of the documentation).
 
         Args:
             event: The event name (case-sensitive string) to trigger.

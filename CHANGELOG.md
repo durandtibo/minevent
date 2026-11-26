@@ -98,7 +98,9 @@ the new API are in the
   `__version__` is read from the package metadata at the import.
 - Documentation: an [examples page](https://durandtibo.github.io/minevent/main/examples/) and a
   user guide, and the FAQ is removed (#861). The documentation describes the current library, with
-  a "How It Works" page for the rules and a "Design Choices" page for the trade-offs (#876).
+  a "How It Works" page for the rules and a "Design Choices" page for the trade-offs (#876). The
+  limits state when `atrigger_event` reads the registrations and the payload, and that the coroutine
+  of a `functools.cache` is detected after its call (#904).
 - Packaging: the classifiers are `Development Status :: 3 - Alpha`, `Operating System :: MacOS` and
   `Operating System :: POSIX :: Linux`, and there is no `all` extra. Windows is not supported
   (#894). The license is given by its SPDX expression only, without a `License ::` classifier (#890).
