@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from minevent import AfterNCondition, PeriodicCondition
+from minevent import PeriodicCondition
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -114,6 +114,21 @@ def test_periodic_condition_call_start(freq: int, start: int, expected: str) -> 
     assert "".join("T" if condition() else "F" for _ in range(10)) == expected
 
 
+@pytest.mark.parametrize(
+    ("start", "expected"),
+    [
+        (0, "TTTTTTTT"),
+        (1, "FTTTTTTT"),
+        (2, "FFTTTTTT"),
+        (7, "FFFFFFFT"),
+        (8, "FFFFFFFF"),
+    ],
+)
+def test_periodic_condition_freq_one_warm_up(start: int, expected: str) -> None:
+    condition = PeriodicCondition(freq=1, start=start)
+    assert "".join("T" if condition() else "F" for _ in range(8)) == expected
+
+
 def test_periodic_condition_reset() -> None:
     condition = PeriodicCondition(3)
     condition()
@@ -128,6 +143,39 @@ def test_periodic_condition_reset_start() -> None:
     condition()
     condition.reset()
     assert [condition() for _ in range(2)] == [False, True]
+
+
+def test_periodic_condition_reset_restores_initial_state() -> None:
+    condition = PeriodicCondition(3, start=2)
+    condition()
+    condition()
+    condition.reset()
+    assert repr(condition) == "PeriodicCondition(freq=3, start=2, step=0)"
+
+
+def test_periodic_condition_reset_before_first_call() -> None:
+    condition = PeriodicCondition(1, start=1)
+    condition.reset()
+    assert [condition() for _ in range(2)] == [False, True]
+
+
+def test_periodic_condition_call_counts_the_call() -> None:
+    condition = PeriodicCondition(3)
+    condition()
+    condition()
+    assert repr(condition) == "PeriodicCondition(freq=3, start=0, step=2)"
+
+
+def test_periodic_condition_call_releases_the_lock() -> None:
+    condition = PeriodicCondition(3)
+    condition()
+    assert not condition._lock.locked()
+
+
+def test_periodic_condition_reset_releases_the_lock() -> None:
+    condition = PeriodicCondition(3)
+    condition.reset()
+    assert not condition._lock.locked()
 
 
 def test_periodic_condition_repr() -> None:
@@ -150,159 +198,62 @@ def always_false() -> bool:
     return False
 
 
-#####################################
-#     Tests for AfterNCondition     #
-#####################################
+###################################################
+#     Tests for the copy of PeriodicCondition     #
+###################################################
 
 
-def test_after_n_condition_repr() -> None:
-    assert repr(AfterNCondition(2)) == "AfterNCondition(n=2, step=0)"
-
-
-def test_after_n_condition_n() -> None:
-    assert AfterNCondition(2).n == 2
-
-
-def test_after_n_condition_call() -> None:
-    condition = AfterNCondition(2)
-    assert [condition() for _ in range(4)] == [False, False, True, True]
-
-
-def test_after_n_condition_call_n_0() -> None:
-    condition = AfterNCondition(0)
-    assert [condition() for _ in range(2)] == [True, True]
-
-
-def test_after_n_condition_reset() -> None:
-    condition = AfterNCondition(2)
-    condition()
-    condition()
-    condition.reset()
-    assert [condition() for _ in range(3)] == [False, False, True]
-
-
-def test_after_n_condition_reset_restores_initial_state() -> None:
-    condition = AfterNCondition(2)
-    condition()
-    condition()
-    condition()
-    condition.reset()
-    assert repr(condition) == "AfterNCondition(n=2, step=0)"
-
-
-def test_after_n_condition_reset_before_first_call() -> None:
-    condition = AfterNCondition(1)
-    condition.reset()
-    assert [condition() for _ in range(2)] == [False, True]
-
-
-def test_after_n_condition_negative() -> None:
-    with pytest.raises(ValueError, match=r"n must be greater than or equal to 0"):
-        AfterNCondition(-1)
-
-
-@pytest.mark.parametrize("n", [1.5, "2", None, True])
-def test_after_n_condition_incorrect_type(n: Any) -> None:
-    with pytest.raises(TypeError, match=r"n must be an integer"):
-        AfterNCondition(n)
-
-
-########################################
-#     Tests for _CountingCondition     #
-########################################
-
-
-@pytest.mark.parametrize("condition_class", [PeriodicCondition, AfterNCondition])
-def test_counting_condition_next_step_first(
-    condition_class: type[PeriodicCondition | AfterNCondition],
-) -> None:
-    assert condition_class(3)._next_step() == 0
-
-
-def test_counting_condition_next_step_increments() -> None:
-    condition = AfterNCondition(3)
-    assert [condition._next_step() for _ in range(3)] == [0, 1, 2]
-
-
-def test_counting_condition_next_step_after_reset() -> None:
-    condition = AfterNCondition(3)
-    condition()
-    condition.reset()
-    assert condition._next_step() == 0
-
-
-def test_counting_condition_next_step_releases_the_lock() -> None:
-    condition = AfterNCondition(3)
-    condition._next_step()
-    assert not condition._lock.locked()
-
-
-def test_counting_condition_reset_releases_the_lock() -> None:
-    condition = AfterNCondition(3)
-    condition.reset()
-    assert not condition._lock.locked()
-
-
-def test_counting_condition_getstate() -> None:
+def test_periodic_condition_getstate() -> None:
     condition = PeriodicCondition(3, start=2)
     condition()
     assert condition.__getstate__() == {"_step": 1, "_freq": 3, "_start": 2}
 
 
-def test_counting_condition_getstate_does_not_remove_the_lock() -> None:
-    condition = AfterNCondition(3)
+def test_periodic_condition_getstate_does_not_remove_the_lock() -> None:
+    condition = PeriodicCondition(3)
     condition.__getstate__()
     assert hasattr(condition, "_lock")
 
 
-def test_counting_condition_setstate() -> None:
-    condition = AfterNCondition(3)
-    condition.__setstate__({"_step": 2, "_n": 5})
-    assert repr(condition) == "AfterNCondition(n=5, step=2)"
+def test_periodic_condition_setstate() -> None:
+    condition = PeriodicCondition(3)
+    condition.__setstate__({"_step": 2, "_freq": 5, "_start": 1})
+    assert repr(condition) == "PeriodicCondition(freq=5, start=1, step=2)"
 
 
-def test_counting_condition_setstate_creates_a_new_lock() -> None:
-    condition = AfterNCondition(3)
+def test_periodic_condition_setstate_creates_a_new_lock() -> None:
+    condition = PeriodicCondition(3)
     lock = condition._lock
-    condition.__setstate__({"_step": 2, "_n": 5})
+    condition.__setstate__({"_step": 2, "_freq": 5, "_start": 1})
     assert condition._lock is not lock
 
 
 @pytest.mark.parametrize("protocol", range(pickle.HIGHEST_PROTOCOL + 1))
-@pytest.mark.parametrize("condition_class", [PeriodicCondition, AfterNCondition])
-def test_condition_pickle(
-    condition_class: type[PeriodicCondition | AfterNCondition], protocol: int
-) -> None:
-    assert pickle.dumps(condition_class(3), protocol)
+def test_periodic_condition_pickle(protocol: int) -> None:
+    condition = PeriodicCondition(3, start=2)
+    condition()
+    clone = pickle.loads(pickle.dumps(condition, protocol))  # noqa: S301
+    assert repr(clone) == "PeriodicCondition(freq=3, start=2, step=1)"
 
 
 @pytest.mark.parametrize("copier", [copy.copy, copy.deepcopy])
-@pytest.mark.parametrize(
-    ("condition_class", "expected"),
-    [
-        (PeriodicCondition, "PeriodicCondition(freq=3, start=0, step=1)"),
-        (AfterNCondition, "AfterNCondition(n=3, step=1)"),
-    ],
-)
-def test_condition_copy_starts_at_the_same_step(
-    condition_class: type[PeriodicCondition | AfterNCondition],
-    expected: str,
+def test_periodic_condition_copy_starts_at_the_same_step(copier: Callable[[Any], Any]) -> None:
+    condition = PeriodicCondition(3)
+    condition()
+    assert repr(copier(condition)) == "PeriodicCondition(freq=3, start=0, step=1)"
+
+
+@pytest.mark.parametrize("copier", [copy.copy, copy.deepcopy])
+def test_periodic_condition_copy_has_an_independent_counter(
     copier: Callable[[Any], Any],
 ) -> None:
-    condition = condition_class(3)
-    condition()
-    assert repr(copier(condition)) == expected
-
-
-@pytest.mark.parametrize("copier", [copy.copy, copy.deepcopy])
-def test_condition_copy_has_an_independent_counter(copier: Callable[[Any], Any]) -> None:
-    condition = AfterNCondition(3)
+    condition = PeriodicCondition(3)
     clone = copier(condition)
     clone()
-    assert repr(condition) == "AfterNCondition(n=3, step=0)"
+    assert repr(condition) == "PeriodicCondition(freq=3, start=0, step=0)"
 
 
 @pytest.mark.parametrize("copier", [copy.copy, copy.deepcopy])
-def test_condition_copy_has_an_independent_lock(copier: Callable[[Any], Any]) -> None:
-    condition = AfterNCondition(3)
+def test_periodic_condition_copy_has_an_independent_lock(copier: Callable[[Any], Any]) -> None:
+    condition = PeriodicCondition(3)
     assert copier(condition)._lock is not condition._lock

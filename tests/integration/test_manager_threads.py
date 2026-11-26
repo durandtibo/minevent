@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from minevent import AfterNCondition, Context, EventManager, PeriodicCondition
+from minevent import Context, EventManager, PeriodicCondition
 from tests.integration.helpers import run_threads
 
 if TYPE_CHECKING:
@@ -219,7 +219,7 @@ def test_add_event_handler_options_from_threads() -> None:
             "my_event",
             functools.partial(record, index),
             once=True,
-            condition=AfterNCondition(n=0),
+            condition=PeriodicCondition(freq=1, start=0),
         )
 
     run_threads(work, NUM_THREADS)

@@ -101,7 +101,7 @@ registered: wrap it in a function or a lambda (see
 ## Control when a handler runs
 
 A **condition** is a function that returns a boolean: the handler runs only if it returns `True`.
-`PeriodicCondition` and `AfterNCondition` are provided, and a condition can read the payload:
+`PeriodicCondition` is provided, and a condition can read the payload:
 
 ```pycon
 >>> from minevent import EventManager, PeriodicCondition
