@@ -76,7 +76,7 @@ the new API are in the
   manager and has the properties `event`, `handler`, `once`, `condition` and `active`. `active` is
   `True` exactly while the registration is in the manager, and a `Subscription` cannot be copied or
   pickled (#896). Its `repr` shows the event and the name of the handler, then `once=True`, the
-  name of the condition and `active=False` when they apply (#PR).
+  name of the condition and `active=False` when they apply (#913).
 - The keyword-only options `once` (run at most once, the first time the condition is `True`, even
   with several threads) and `condition` of `add_event_handler`, and the `on` decorator. `once` must
   be a `bool`: another value, such as `1` or `"False"`, raises a `TypeError` (#895).
