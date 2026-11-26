@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 import pytest
 
@@ -197,6 +198,23 @@ def test_event_manager_add_event_handler_once_subscription_remove_before_trigger
 def test_event_manager_add_event_handler_once_subscription_is_once() -> None:
     manager = EventManager()
     assert manager.add_event_handler("my_event", hello_handler, once=True).once
+
+
+@pytest.mark.parametrize("once", ["False", 1, None])
+def test_event_manager_add_event_handler_once_not_bool(once: Any) -> None:
+    manager = EventManager()
+    with pytest.raises(TypeError, match=r"^once must be a bool, but got (str|int|NoneType)$"):
+        manager.add_event_handler("my_event", hello_handler, once=once)
+    assert manager.events == []
+
+
+def test_event_manager_on_once_not_bool() -> None:
+    manager = EventManager()
+    once: Any = "False"
+    decorator = manager.on("my_event", once=once)
+    with pytest.raises(TypeError, match=r"^once must be a bool, but got str$"):
+        decorator(hello_handler)
+    assert manager.events == []
 
 
 def test_event_manager_add_event_handler_not_once_subscription_is_not_once() -> None:

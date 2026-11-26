@@ -35,8 +35,8 @@ has the following members:
 
 `add_event_handler` does the following, once:
 
-1. It checks that the event is a `str`, and that the handler and the condition (if any) are
-   callable.
+1. It checks that the event is a `str`, that the handler and the condition (if any) are callable,
+   and that `once` is a `bool` (not `1` or `"yes"`).
 2. It reads the signature of the handler and of the condition to decide how to call each of them
    (see [the calling rule](#the-calling-rule)). It also rejects a generator function, and a
    coroutine function used as a condition. A callable object is judged by its `__call__`. It
