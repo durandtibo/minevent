@@ -85,4 +85,5 @@ the new API are in the
 - Packaging: the classifiers are `Development Status :: 3 - Alpha` and
   `Operating System :: OS Independent`, and there is no `all` extra.
 - Development: each pull request runs `tests/package_checks.py` (#851), and the benchmarks run
-  nightly only.
+  nightly only. A benchmark run compares the medians with the ones of the last finished run of
+  `main`.

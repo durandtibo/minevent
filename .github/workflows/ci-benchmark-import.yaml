@@ -30,21 +30,28 @@ jobs:
         continue-on-error: true # there is no previous run the first time
         env:
           GH_TOKEN: ${{ github.token }}
+        # The baseline is the last run of main that finished, successful or not: a regression then
+        # fails one run, and the next run compares with it. A run that failed before it uploaded its
+        # results is skipped, so the history is not lost.
         run: |
-          run_id=$(gh run list --workflow ci-benchmark-import.yaml --status success --limit 1 \
-            --json databaseId --jq '.[0].databaseId')
-          gh run download "$run_id" --name benchmark-import-results --dir .benchmarks
+          run_ids=$(gh run list --workflow ci-benchmark-import.yaml --branch main --limit 20 \
+            --json databaseId,conclusion \
+            --jq '.[] | select(.conclusion == "success" or .conclusion == "failure") | .databaseId')
+          for run_id in $run_ids; do
+            gh run download "$run_id" --name benchmark-import-results --dir .benchmarks && break
+          done
 
       - name: Run the import time benchmarks
-        # Save the results and fail if an import is more than 50% slower than in the previous
-        # run (the runners are noisy, so the threshold is loose). The GitHub runners do not
-        # always have the same CPU, so pytest-benchmark warns that the machine info is different
-        # from the saved one. The repository turns warnings into errors, which crashed pytest
-        # before it compared and saved the results, so this warning is ignored.
+        # Save the results and fail if the median of an import is more than 50% slower than in the
+        # previous run (the runners are noisy, so the threshold is loose, and the median is not moved
+        # by a single pause of the runner, unlike the mean). The GitHub runners do not always have
+        # the same CPU, so pytest-benchmark warns that the machine info is different from the saved
+        # one. The repository turns warnings into errors, which crashed pytest before it compared and
+        # saved the results, so this warning is ignored.
         run: |
           compare=()
           if [ -n "$(find .benchmarks -name '*.json' 2>/dev/null)" ]; then
-            compare=(--benchmark-compare --benchmark-compare-fail=mean:50%)
+            compare=(--benchmark-compare --benchmark-compare-fail=median:50%)
           fi
           python -m pytest tests/benchmarks/test_import_benchmark.py --benchmark-only \
             --benchmark-storage=.benchmarks --benchmark-save=daily \

@@ -416,7 +416,7 @@ for what it changes.
 | 6    | `refactor/adapt-calls` (on 5)             | `adapt_call` (4.1)                                                                                 | internal | F11    |              |
 | 7    | `feat/detect-async-callables` (on 6)      | `has_kind` for the generators and the conditions (4.2)                                             | **yes**  | F3     |              |
 | 8    | `feat/reject-async-handlers-early` (on 7) | The pre-pass of `trigger_event` (4.3), a benchmark                                                 | **yes**  | F2     |              |
-| 9    | `ci/fix-benchmark-baseline`               | The baseline and the median (4.6), `GUIDELINES.md`                                                 | no       | F8     |              |
+| 9    | `ci/fix-benchmark-baseline`               | The baseline and the median (4.6), `GUIDELINES.md`                                                 | no       | F8     | #878         |
 | 10   | `ci/check-published-package`              | The checks of the installed version (4.6), `GUIDELINES.md`                                         | no       | F9     |              |
 
 Order of value if only part is taken: **9** (without it no later cost or regression can be seen),
