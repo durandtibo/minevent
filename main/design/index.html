@@ -1531,8 +1531,8 @@ your code outside of it.</p>
   protects its counter.</li>
 </ul>
 <h2 id="the-manager-is-an-explicit-object">The manager is an explicit object<a class="headerlink" href="#the-manager-is-an-explicit-object" title="Permanent link">&para;</a></h2>
-<p>There is no global manager and no automatic discovery. A manager is always truthy, and it cannot be
-copied or pickled.</p>
+<p>There is no global manager and no automatic discovery. A manager is always truthy, it has no length,
+and it cannot be copied or pickled.</p>
 <ul>
 <li><strong>Benefits</strong>: the ownership is visible, tests do not share state, and <code>manager or default</code> means
   "is there a manager". A copy that silently shares or loses registrations cannot happen.</li>

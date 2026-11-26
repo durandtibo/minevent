@@ -1298,8 +1298,8 @@ event, and <code>reset</code> removes all the handlers:</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">events</span>
 <span class="go">['epoch_end']</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">manager</span><span class="p">)</span>
-<span class="go">0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span>
+<span class="go">EventManager(events={})</span>
 </code></pre></div>
 <h2 id="coroutine-handlers">Coroutine handlers<a class="headerlink" href="#coroutine-handlers" title="Permanent link">&para;</a></h2>
 <p>Trigger an event with <code>atrigger_event</code> to await its coroutine handlers (<code>trigger_event</code> raises a

@@ -1409,7 +1409,7 @@ has the following members:</p>
 <td>Same, and await the coroutine handlers</td>
 </tr>
 <tr>
-<td><code>events</code>, <code>get_subscriptions(event)</code>, <code>event in manager</code>, <code>len(manager)</code></td>
+<td><code>events</code>, <code>get_subscriptions(event)</code>, <code>event in manager</code></td>
 <td>Look at the registrations.</td>
 </tr>
 <tr>
@@ -1551,8 +1551,9 @@ first, without default: <code>lambda context, i=i: print(i, context["epoch"])</c
   becomes <code>False</code> when the registration is removed, by whatever means. A <code>Subscription</code> cannot be
   copied or pickled (<code>copy.copy</code>, <code>copy.deepcopy</code> and <code>pickle</code> raise a <code>TypeError</code>), and the manager
   alone creates one.</li>
-<li><code>bool(manager)</code> is always <code>True</code>, empty or not, and <code>len(manager)</code> is the number of
-  registrations. A manager cannot be copied or pickled (<code>copy.copy</code>, <code>copy.deepcopy</code> and <code>pickle</code>
+<li><code>bool(manager)</code> is always <code>True</code>, empty or not, and a manager has no length: the number of
+  handlers of an event is <code>len(manager.get_subscriptions(event))</code>, and <code>repr(manager)</code> shows it for
+  each event. A manager cannot be copied or pickled (<code>copy.copy</code>, <code>copy.deepcopy</code> and <code>pickle</code>
   raise a <code>TypeError</code>).</li>
 </ul>
 <h3 id="dispatch">Dispatch<a class="headerlink" href="#dispatch" title="Permanent link">&para;</a></h3>
