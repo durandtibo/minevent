@@ -59,6 +59,7 @@ trigger_event(event, context)
 for each registration of the snapshot, in registration order:
     removed since the snapshot?          -> skip
     has a condition that is False?       -> skip
+    removed by its condition?            -> skip
     once=True?                           -> remove the registration, or skip if already removed
     call handler() or handler(context)
     the handler returned an awaitable?   -> trigger_event raises, atrigger_event awaits it
@@ -130,8 +131,9 @@ first, without default: `lambda context, i=i: print(i, context["epoch"])`.
 - The handlers of an event run in the order they were registered, one after the other, in the calling
   thread.
 - A trigger visits the registrations that exist when it starts. A registration **added** by a
-  running handler takes effect at the next trigger. A registration **removed** before its turn (by
-  `remove()`, `clear_event`, `reset` or a `once` claim) does not run.
+  running handler takes effect at the next trigger. A registration **removed** before its handler is
+  called (by `remove()`, `clear_event`, `reset` or a `once` claim) does not run, whoever removed it:
+  another handler, or its own condition.
 - A condition is called just before its handler, so it sees the effects of the handlers that ran
   before.
 - A `once` registration is removed by an atomic claim just before its handler is called, after its
@@ -193,7 +195,8 @@ first, without default: `lambda context, i=i: print(i, context["epoch"])`.
 
 `minevent` does not protect against the following:
 
-- **A removal in another thread** cannot stop a handler that a trigger is about to call.
+- **A removal in another thread** cannot stop a handler whose trigger has already checked that it is
+  registered.
 - **Concurrent calls.** A registration without `once` is called by every thread that triggers its
   event, possibly at the same time. A handler or a condition of yours that shares state must protect
   it.
@@ -209,8 +212,6 @@ first, without default: `lambda context, i=i: print(i, context["epoch"])`.
   between versions: `set.add` is rejected on Python 3.11 and 3.12, and accepted from 3.13.
 - **A condition counts its calls, not the triggers.** It is not called when an earlier handler
   raised, nor for a removed registration.
-- **A condition that removes its own registration** (without `once`) does not stop the call that it
-  allows.
 - **A mutable value of the payload** can be mutated by a handler, and the next ones see it.
 - **Delayed release.** A manager with registrations is in a reference cycle (manager, registry,
   `Subscription`, manager): `del manager` does not free it until the garbage collector runs.

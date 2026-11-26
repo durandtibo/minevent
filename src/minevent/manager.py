@@ -287,11 +287,13 @@ class Subscription:
         return self._active
 
     def _claim(self, context: Context) -> bool:
-        r"""Decide if a trigger calls the handler: condition, then once claim.
+        r"""Decide if a trigger calls the handler: condition, removal, then
+        once claim.
 
-        The claim of a ``once`` registration is its atomic removal, so one
-        caller only gets ``True``. A condition that is ``False`` (or that
-        raises) does not consume the registration.
+        A registration that its condition removed is not called. The claim of
+        a ``once`` registration is its atomic removal, so one caller only gets
+        ``True``. A condition that is ``False`` (or that raises) does not
+        consume the registration.
 
         Args:
             context: The context of the trigger, given to a condition that
@@ -299,7 +301,8 @@ class Subscription:
 
         Returns:
             ``True`` if the handler must be called, ``False`` if the
-                condition is ``False`` or if the registration lost the claim.
+                condition is ``False``, if the registration is removed (by its
+                condition or by another thread) or if it lost the claim.
 
         Raises:
             TypeError: if the condition returns an awaitable (a coroutine is
@@ -334,7 +337,7 @@ class Subscription:
                 source = f"the condition {condition} of {describe(self._handler)}"
                 add_error_note(exc, source, self._event)
                 raise
-        return not self._once or self.remove()
+        return self.remove() if self._once else self._active
 
     def _invoke(self, context: Context) -> object:
         r"""Call the handler, without checking the removal, the condition or
@@ -664,8 +667,9 @@ class EventManager:
         r"""Run the handlers of an event, in the order they were added.
 
         The handlers registered when the trigger starts run one after the
-        other, and a registration removed before its turn does not run. The
-        condition of a registration is evaluated just before its handler.
+        other, and a registration removed before its handler is called, even
+        by its own condition, does not run. The condition of a registration is
+        evaluated just before its handler.
         No handler runs if the event has none. The trigger is fail-fast:
         an exception of a handler or a condition propagates unwrapped, with a
         note that says what raised it, and the next handlers are skipped.

@@ -408,7 +408,7 @@ for what it changes.
 
 | Step | Branch                                    | Change                                                                                             | Breaking | Fixes  | Pull request |
 | ---- | ----------------------------------------- | -------------------------------------------------------------------------------------------------- | -------- | ------ | ------------ |
-| 1    | `bugfix/skip-removed-by-condition`        | The return of `_claim` (4.3)                                                                       | **yes**  | F1     |              |
+| 1    | `bugfix/skip-removed-by-condition`        | The return of `_claim` (4.3)                                                                       | **yes**  | F1     | #879         |
 | 2    | `bugfix/keep-the-error-of-the-user`       | `describe` never raises (4.2)                                                                      | no       | F4     |              |
 | 3    | `bugfix/shorten-error-messages`           | `reprlib` in the messages of the manager and of `Context` (4.4)                                    | messages | F5, F6 |              |
 | 4    | `bugfix/check-copied-context-keys`        | Validate the copy (4.4), on 3                                                                      | no       | F7     |              |

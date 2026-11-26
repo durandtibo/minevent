@@ -82,7 +82,7 @@ removal applies immediately.
 
 - **Benefits**: a handler can add or remove handlers without changing the list that is being
   visited, and a handler that registers another one cannot loop forever. A removed handler does not
-  run any more.
+  run any more, even if its own condition removed it.
 - **Costs**: a handler cannot extend the current dispatch.
 - **In practice**: trigger another event if some work must happen immediately.
 
