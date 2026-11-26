@@ -133,7 +133,13 @@ def test_subscription_options_are_keyword_only() -> None:
 
 @pytest.mark.parametrize(
     "condition",
-    [async_condition, AsyncConditionMethod().check, functools.partial(async_condition)],
+    [
+        async_condition,
+        AsyncConditionMethod().check,
+        functools.partial(async_condition),
+        AsyncConditionObject(),
+        functools.partial(AsyncConditionObject()),
+    ],
 )
 def test_subscription_async_condition(condition: Any) -> None:
     with pytest.raises(TypeError, match=r"^condition must be synchronous, but got "):
@@ -158,7 +164,7 @@ def test_subscription_async_condition_rejected_signature_first() -> None:
         Subscription(EventManager(), "my_event", noop_handler, condition=condition_any)
 
 
-@pytest.mark.parametrize("condition", [AsyncConditionObject(), condition_returning_a_coroutine])
+@pytest.mark.parametrize("condition", [AwaitableResult, condition_returning_a_coroutine])
 def test_subscription_condition_that_returns_a_coroutine_is_accepted(condition: Any) -> None:
     subscription = Subscription(EventManager(), "my_event", noop_handler, condition=condition)
     assert subscription.condition is condition
@@ -503,7 +509,6 @@ def test_claim_condition_base_exception_has_no_note() -> None:
 @pytest.mark.parametrize(
     "condition",
     [
-        AsyncConditionObject(),
         condition_returning_a_coroutine,
         condition_of_context_returning_a_coroutine,
         AwaitableResult,

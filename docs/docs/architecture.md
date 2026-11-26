@@ -39,7 +39,7 @@ has the following members:
    callable.
 2. It reads the signature of the handler and of the condition to decide how to call each of them
    (see [the calling rule](#the-calling-rule)). It also rejects a generator function, and a
-   coroutine function used as a condition.
+   coroutine function used as a condition. A callable object is judged by its `__call__`.
 3. It creates a `Subscription` and appends it to the registrations of the event.
 
 Every rejection is a `TypeError` that says which argument is wrong, and it leaves the manager
@@ -93,7 +93,8 @@ Names and annotations are not checked. Coroutine functions, bound methods, calla
 and `functools.partial` objects follow the same table. The signature is the one that
 `inspect.signature` reports: the signature of a partial does not contain the positional arguments
 that it binds, and a decorator that uses `functools.wraps` has the signature of the wrapped
-function.
+function. For the generator and coroutine checks, a callable object is judged by its `__call__` (a
+partial by its function): an object whose `__call__` yields is rejected like a generator function.
 
 To adapt a callable, wrap it in a function, a lambda or a `functools.partial`:
 
@@ -172,8 +173,9 @@ first, without default: `lambda context, i=i: print(i, context["epoch"])`.
 - `trigger_event` never awaits: a handler that returns an awaitable raises a `TypeError`.
 - `atrigger_event` awaits what a handler returns, if it is awaitable, before it calls the next
   handler. It also runs the synchronous handlers.
-- Conditions are synchronous in both: a coroutine function is rejected at registration, and a
-  condition that returns an awaitable raises a `TypeError` at the trigger.
+- Conditions are synchronous in both: a coroutine function, or an object whose `__call__` is one,
+  is rejected at registration, and a condition that returns an awaitable raises a `TypeError` at the
+  trigger.
 - A coroutine that is rejected is closed, so it does not emit a "never awaited" warning.
 
 ### Threads
@@ -208,8 +210,8 @@ first, without default: `lambda context, i=i: print(i, context["epoch"])`.
 - **Blocking.** A synchronous handler in `atrigger_event` blocks the event loop.
 - **A coroutine handler used with `trigger_event`.** The `TypeError` is raised after the call: the
   handlers before it have run, and a `once` registration is consumed.
-- **Generators that are not generator functions.** A callable object whose `__call__` yields, and a
-  function that returns a generator, do nothing.
+- **Hidden generators.** A function that returns a generator, such as a lambda that calls a
+  generator function, does nothing.
 - **An optional parameter never receives the context.** `def f(context=None)` is called as `f()` and
   gets `None`, without an error: the context needs a parameter without default.
 - **A signature that depends on Python.** The standard library adds signatures to C callables

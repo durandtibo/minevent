@@ -1,7 +1,8 @@
 r"""Implement how the code of a user is called.
 
 ``Handler`` is the type of a handler. ``adapt_call`` turns a handler or
-a condition into a callable of the context, ``describe`` names it,
+a condition into a callable of the context, ``has_kind`` says if it is a
+generator or a coroutine function, ``describe`` names it,
 ``reject_awaitable`` rejects the awaitable result of a synchronous call,
 and ``add_error_note`` completes the exception that it raises. These
 helpers are used by ``minevent.manager``, and ``minevent`` exports
@@ -10,7 +11,14 @@ helpers are used by ``minevent.manager``, and ``minevent`` exports
 
 from __future__ import annotations
 
-__all__ = ["Handler", "adapt_call", "add_error_note", "describe", "reject_awaitable"]
+__all__ = [
+    "Handler",
+    "adapt_call",
+    "add_error_note",
+    "describe",
+    "has_kind",
+    "reject_awaitable",
+]
 
 import contextlib
 import functools
@@ -39,7 +47,8 @@ def adapt_call(func: Callable[..., object], name: str) -> Callable[[Context], ob
     rejected, including ``*args`` and ``**kwargs`` (they do not say
     whether the context is expected), and so is a callable whose
     signature cannot be inspected. A generator function or an async
-    generator function is rejected too, because calling it runs none of
+    generator function, and a callable object whose ``__call__`` is one
+    (see ``has_kind``), is rejected too, because calling it runs none of
     its code. The signature is the one that ``inspect.signature``
     reports: it does not contain the positional arguments that a
     ``functools.partial`` binds, and it is the one of the wrapped
@@ -60,7 +69,8 @@ def adapt_call(func: Callable[..., object], name: str) -> Callable[[Context], ob
             result does not read it again.
 
     Raises:
-        TypeError: if ``func`` is a generator function, if its
+        TypeError: if ``func`` is a generator function or an async
+            generator function (see ``has_kind``), if its
             signature cannot be inspected, or if it needs another
             argument than the context.
 
@@ -81,7 +91,7 @@ def adapt_call(func: Callable[..., object], name: str) -> Callable[[Context], ob
 
         ```
     """
-    if inspect.isgeneratorfunction(func) or inspect.isasyncgenfunction(func):
+    if has_kind(func, inspect.isgeneratorfunction) or has_kind(func, inspect.isasyncgenfunction):
         msg = f"{name} must not be a generator function, but got {describe(func)}"
         raise TypeError(msg)
     msg = (
@@ -105,6 +115,48 @@ def adapt_call(func: Callable[..., object], name: str) -> Callable[[Context], ob
     if len(required) == 1 and required[0].kind in positional:
         return func
     raise TypeError(msg)
+
+
+def has_kind(func: Callable[..., object], predicate: Callable[[object], bool]) -> bool:
+    r"""Indicate if the code that a call runs is of a given kind.
+
+    A ``functools.partial`` is judged by its function (nested partials
+    are unwrapped). A callable object is judged by its ``__call__``,
+    unless the predicate already accepts the object itself, for example
+    one marked with ``inspect.markcoroutinefunction``. A class is not
+    judged by the ``__call__`` of its instances: calling it creates one.
+
+    Args:
+        func: The callable to inspect.
+        predicate: A function of ``inspect`` that recognizes a kind of
+            function, such as ``inspect.iscoroutinefunction`` or
+            ``inspect.isgeneratorfunction``.
+
+    Returns:
+        ``True`` if ``predicate`` accepts the function or the
+            ``__call__`` that a call of ``func`` runs.
+
+    Example:
+        ```pycon
+        >>> import inspect
+        >>> from minevent.calls import has_kind
+        >>> class Notifier:
+        ...     async def __call__(self):
+        ...         pass
+        ...
+        >>> has_kind(Notifier(), inspect.iscoroutinefunction)
+        True
+        >>> has_kind(Notifier, inspect.iscoroutinefunction)
+        False
+
+        ```
+    """
+    while isinstance(func, functools.partial):
+        func = func.func
+    if predicate(func):
+        return True
+    # A function or a method has no other code than its own: only an object has a ``__call__``.
+    return not inspect.isroutine(func) and predicate(type(func).__call__)
 
 
 def describe(func: object) -> str:

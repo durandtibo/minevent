@@ -13,7 +13,7 @@ import pytest
 from tests.unit.utils import trace
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Generator, Iterator
+    from collections.abc import AsyncIterator, Callable, Generator, Iterator
     from pathlib import Path
     from typing import NoReturn
 
@@ -161,6 +161,23 @@ def named_handler(first_name: str, last_name: str) -> None:
 def generator_handler() -> Iterator[None]:
     r"""Implement a generator handler."""
     yield
+
+
+class GeneratorObject:
+    r"""Implement a callable object whose ``__call__`` yields."""
+
+    def __call__(self) -> Iterator[None]:
+        r"""Yield once."""
+        yield
+
+
+class AsyncGeneratorObject:
+    r"""Implement a callable object whose ``__call__`` is an async
+    generator."""
+
+    async def __call__(self) -> AsyncIterator[None]:
+        r"""Yield once."""
+        yield
 
 
 class ModelStandIn:
