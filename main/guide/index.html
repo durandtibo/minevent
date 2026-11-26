@@ -1511,8 +1511,7 @@
 <h2 id="recommendations">Recommendations<a class="headerlink" href="#recommendations" title="Permanent link">&para;</a></h2>
 <h3 id="events">Events<a class="headerlink" href="#events" title="Permanent link">&para;</a></h3>
 <ul>
-<li>Name the event after what happened, in the past tense: <code>epoch_end</code>, <code>checkpoint_saved</code>, not
-  <code>event1</code> or <code>done</code>.</li>
+<li>Name the event after what happens: <code>epoch_end</code>, <code>checkpoint_saved</code>, not <code>event1</code> or <code>done</code>.</li>
 <li>Pick one convention for the whole project, for example <code>snake_case</code> (<code>batch_end</code>) or a namespace
   (<code>training.batch.end</code>). Names are only strings, so <code>minevent</code> has no notion of hierarchy.</li>
 <li>Define the names in one place (constants or a <code>StrEnum</code>) to avoid typos: the events
@@ -1531,7 +1530,8 @@
   such as <code>lambda _: model.train()</code> (see <a href="../architecture/#the-calling-rule">the calling rule</a>).</li>
 <li>If the failure of a handler must not stop the program, catch the exception in the handler.</li>
 <li>A synchronous handler that is slow blocks the caller (and the event loop in <code>atrigger_event</code>).
-  Hand the work to an executor in the handler if the caller must not wait.</li>
+  Hand the work to an executor in the handler if the caller must not wait, and
+  <a href="../examples/#start-background-work-from-a-handler">return nothing</a>.</li>
 </ul>
 <h3 id="conditions">Conditions<a class="headerlink" href="#conditions" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1615,6 +1615,8 @@ payload, or decide inside a coroutine handler.</p>
 <code>await manager.atrigger_event(...)</code>. For a coroutine function, nothing ran. A handler that returns
 an awaitable another way (a lambda that returns a coroutine) fails after its call, so the handlers
 before it have run.</p>
+<p>A handler that starts a background task must not return it: see
+<a href="../examples/#start-background-work-from-a-handler">Start background work from a handler</a>.</p>
 <h3 id="subscriptionremove-returns-false"><code>subscription.remove()</code> returns <code>False</code><a class="headerlink" href="#subscriptionremove-returns-false" title="Permanent link">&para;</a></h3>
 <p>The registration is already removed. This is not an error.</p>
 <h3 id="debug">Debug<a class="headerlink" href="#debug" title="Permanent link">&para;</a></h3>

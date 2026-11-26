@@ -1669,13 +1669,18 @@ context comes first, without default.</p>
   a <code>once</code> registration is consumed.</li>
 <li><strong>A cached function.</strong> <code>functools.cache</code> and <code>functools.lru_cache</code> hash their arguments, and a
   <code>Context</code> is not hashable: such a handler or condition raises a <code>TypeError</code> at the trigger.</li>
+<li><strong>A background task returned by a handler</strong> is an awaitable like any other: <code>trigger_event</code>
+  raises after the task is scheduled, and <code>atrigger_event</code> waits for it. A handler that
+  <a href="../examples/#start-background-work-from-a-handler">starts background work</a> returns nothing.</li>
 <li><strong>Hidden generators.</strong> A function that returns a generator or an asynchronous generator, such as
   a lambda that calls a generator function, does nothing.</li>
 <li><strong>A signature that depends on Python.</strong> The standard library adds signatures to C callables
   between versions: <code>set().add</code> and <code>time.sleep</code> are rejected on Python 3.11 and 3.12, and accepted
   from 3.13.</li>
 <li><strong>A condition is evaluated by truthiness, and counts its calls, not the triggers.</strong> It is not
-  called when an earlier handler raised, nor for a removed registration.</li>
+  called when an earlier handler raised, nor for a removed registration. The count of a
+  <code>PeriodicCondition</code> starts at 0 in a new process, unless the condition is saved and restored (see
+  <a href="../examples/#resume-a-training">Resume a training</a>).</li>
 <li><strong>Names are not checked.</strong> An unbound method such as <code>Model.save</code> has one parameter without
   default, <code>self</code>, so it is accepted and called with the context as <code>self</code>.</li>
 <li><strong>A huge integer in a message</strong> on Python 3.11 and 3.12: showing an integer of more than 4,300

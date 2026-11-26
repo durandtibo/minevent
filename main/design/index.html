@@ -1409,8 +1409,9 @@ themselves are on the <a href="../architecture/">how it works page</a>.</p>
 <h2 id="a-handler-is-a-plain-callable">A handler is a plain callable<a class="headerlink" href="#a-handler-is-a-plain-callable" title="Permanent link">&para;</a></h2>
 <p>There is no base class or protocol to implement, and a condition is a function too.</p>
 <ul>
-<li><strong>Benefits</strong>: any function, method, lambda, <code>functools.partial</code> or callable object works, and a
-  handler can be tested without a manager. There is one way to extend the library: write a callable.</li>
+<li><strong>Benefits</strong>: any function, method, lambda, <code>functools.partial</code> or callable object that takes the
+  context works (see <a href="../architecture/#the-calling-rule">the calling rule</a>), and a handler can be
+  tested without a manager. There is one way to extend the library: write a callable.</li>
 <li><strong>Costs</strong>: the library cannot attach a name, a priority or metadata to a handler. A mistake in a
   signature is found at registration (or by your type checker), not by an interface.</li>
 <li><strong>In practice</strong>: use a class with <code>__call__</code> when a handler needs a state.</li>
@@ -1585,7 +1586,7 @@ conflict. It also leaves out features that other event libraries have:</p>
 </tr>
 <tr>
 <td>Concurrent or background dispatch</td>
-<td>Start the tasks or threads inside a handler.</td>
+<td><a href="../examples/#start-background-work-from-a-handler">Start the tasks or threads inside a handler</a>.</td>
 </tr>
 </tbody>
 </table>
