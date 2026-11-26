@@ -31,7 +31,7 @@ the new API are in the
   registration (a function without parameter, `def f(context=None)`, `*args`, `**kwargs`, two
   parameters, a keyword-only parameter, a signature that cannot be inspected), as does a generator or
   async generator function, or a callable object whose `__call__` is one. Write `def f(_)` for a
-  handler that ignores the context (#PR).
+  handler that ignores the context (#920).
 - **Conditions**: `BaseCondition` (with `evaluate` and `equal`) is removed. A condition is a
   function of the context that returns a boolean: implement `__call__(self, context)` instead of
   `evaluate`, and call `condition(context)` instead of `condition.evaluate()`, also for a
