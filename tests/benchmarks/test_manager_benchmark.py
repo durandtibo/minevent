@@ -11,14 +11,14 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from minevent import EventManager
+from minevent import Context, EventManager
 
 if TYPE_CHECKING:
     from pytest_benchmark.fixture import BenchmarkFixture
 
 
-def no_argument() -> None:
-    r"""Implement a handler without argument."""
+def ignore_context(_: Context) -> None:
+    r"""Implement a handler that ignores the context."""
 
 
 def make_manager(num_events: int, num_handlers: int) -> EventManager:
@@ -27,14 +27,14 @@ def make_manager(num_events: int, num_handlers: int) -> EventManager:
     manager = EventManager()
     for i in range(num_events):
         for _ in range(num_handlers):
-            manager.add_event_handler(f"event_{i}", no_argument)
+            manager.add_event_handler(f"event_{i}", ignore_context)
     return manager
 
 
 def test_add_event_handler_and_remove_benchmark(benchmark: BenchmarkFixture) -> None:
     # Adding alone would grow the registry at each round, so the registration is removed
     manager = EventManager()
-    handler = no_argument
+    handler = ignore_context
 
     def add_and_remove() -> bool:
         return manager.add_event_handler("e", handler).remove()
@@ -45,7 +45,7 @@ def test_add_event_handler_and_remove_benchmark(benchmark: BenchmarkFixture) -> 
 @pytest.mark.parametrize("num_handlers", [1, 10, 100])
 def test_subscription_remove_last_benchmark(benchmark: BenchmarkFixture, num_handlers: int) -> None:
     manager = make_manager(1, num_handlers)
-    handler = no_argument
+    handler = ignore_context
 
     def add_last_and_remove_it() -> bool:
         # The cost of remove() does not depend on the number of handlers of the event
@@ -55,7 +55,7 @@ def test_subscription_remove_last_benchmark(benchmark: BenchmarkFixture, num_han
 
 
 def test_subscription_active_benchmark(benchmark: BenchmarkFixture) -> None:
-    subscription = EventManager().add_event_handler("event_0", no_argument)
+    subscription = EventManager().add_event_handler("event_0", ignore_context)
     benchmark(lambda: subscription.active)
 
 
@@ -64,7 +64,7 @@ def test_subscription_remove_many_lifo_benchmark(benchmark: BenchmarkFixture) ->
         # The order of nested ``with manager.add_event_handler(...)`` blocks. The total cost
         # must be linear in the number of registrations.
         manager = EventManager()
-        handler = no_argument
+        handler = ignore_context
         subscriptions = [manager.add_event_handler("event_0", handler) for _ in range(10_000)]
         for subscription in reversed(subscriptions):
             subscription.remove()

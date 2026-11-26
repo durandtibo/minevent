@@ -11,7 +11,7 @@ recommendations.
 | Name                | Role                                                                             |
 | ------------------- | -------------------------------------------------------------------------------- |
 | event               | A case-sensitive `str` that names something that happens.                        |
-| `Handler`           | A callable that runs when the event happens, called as `f()` or `f(context)`.    |
+| `Handler`           | A callable that runs when the event happens, called as `f(context)`.             |
 | `EventManager`      | Stores the registrations and triggers the events.                                |
 | `Subscription`      | The registration of one handler to one event: it holds the options and `remove`. |
 | `Context`           | The read-only payload of one trigger.                                            |
@@ -36,10 +36,10 @@ has the following members:
 
 1. It checks that the event is a `str`, that the handler and the condition (if any) are callable,
    and that `once` is a `bool` (not `1` or `"yes"`).
-2. It reads the signature of the handler and of the condition to decide how to call each of them
-   (see [the calling rule](#the-calling-rule)). It also rejects a generator function, and a
-   coroutine function used as a condition. A callable object is judged by its `__call__`. It
-   remembers whether the handler is a coroutine function.
+2. It reads the signature of the handler and of the condition, and rejects one that cannot be called
+   with the context (see [the calling rule](#the-calling-rule)). It also rejects a generator
+   function, and a coroutine function used as a condition. A callable object is judged by its
+   `__call__`. It remembers whether the handler is a coroutine function.
 3. It creates a `Subscription` and appends it to the registrations of the event.
 
 Every rejection is a `TypeError` that says which argument is wrong, and it leaves the manager
@@ -62,7 +62,7 @@ for each registration of the snapshot, in registration order:
     has a condition that is False?       -> skip
     removed by its condition?            -> skip
     once=True?                           -> remove the registration, or skip if already removed
-    call handler() or handler(context)
+    call handler(context)
     the handler returned an awaitable?   -> trigger_event raises, atrigger_event awaits it
 ```
 
@@ -72,23 +72,24 @@ the context are still checked).
 
 ## The Calling Rule
 
-A handler is written as `def g()` or `def g(context: Context)`, and any callable that can be called
-in one of these two ways works: **the parameters that have a default are ignored.** The same rule
-applies to a condition, which returns a boolean. It is checked once, at registration.
+A handler and a condition are always called as `f(context)`, with the read-only `Context` of the
+trigger. **Exactly one parameter must lack a default, and it must be positional: it receives the
+context.** The other parameters keep their default. A condition returns a boolean. The rule is
+checked once, at registration.
 
-| Parameters without default            | Example                            | Result       |
-| ------------------------------------- | ---------------------------------- | ------------ |
-| none: no parameter                    | `def g()`                          | `g()`        |
-| none: only positional with defaults   | `model.train`, `lambda i=i: ...`   | `g()`        |
-| none: only keyword-only with defaults | `def g(*, v=1)`, `partial(f, v=1)` | `g()`        |
-| one, positional                       | `def g(context)`                   | `g(context)` |
-| one, positional, then defaults        | `def g(context, verbose=False)`    | `g(context)` |
-| `*args`, with or without `**kwargs`   | `print`, `Mock()`, `AsyncMock()`   | `TypeError`  |
-| `**kwargs`                            | `def g(**kw)`                      | `TypeError`  |
-| cannot be inspected                   | `max`, `dict.update`               | `TypeError`  |
-| two or more                           | `def g(a, b)`                      | `TypeError`  |
-| one, keyword-only                     | `def g(*, epoch)`                  | `TypeError`  |
-| (any) generator or async generator    | `def g(): yield`                   | `TypeError`  |
+| Parameters without default          | Example                              | Result                |
+| ----------------------------------- | ------------------------------------ | --------------------- |
+| one, positional                     | `def g(context)`, `def g(_)`         | `g(context)`          |
+| one, positional, then defaults      | `def g(context, verbose=False)`      | `g(context)`          |
+| one, left by a partial              | `partial(save, "model.pt")`          | `save(path, context)` |
+| none: no parameter                  | `def g()`                            | `TypeError`           |
+| none: only parameters with defaults | `def g(context=None)`, `model.train` | `TypeError`           |
+| `*args`, with or without `**kwargs` | `print`, `Mock()`, `AsyncMock()`     | `TypeError`           |
+| `**kwargs`                          | `def g(**kw)`                        | `TypeError`           |
+| cannot be inspected                 | `max`, `dict.update`                 | `TypeError`           |
+| two or more                         | `def g(a, b)`                        | `TypeError`           |
+| one, keyword-only                   | `def g(*, epoch)`                    | `TypeError`           |
+| (any) generator or async generator  | `def g(context): yield`              | `TypeError`           |
 
 Names and annotations are not checked. Coroutine functions, bound methods, callable objects, classes
 and `functools.partial` objects follow the same table. The signature is the one that
@@ -97,21 +98,24 @@ that it binds, and a decorator that uses `functools.wraps` has the signature of 
 function. For the generator and coroutine checks, a callable object is judged by its `__call__` (a
 partial by its function): an object whose `__call__` yields is rejected like a generator function.
 
-To adapt a callable, wrap it in a function, a lambda or a `functools.partial`:
+A handler that does not need the context declares it and ignores it: `def save_model(_)` is the
+recommended form. To register a function that cannot be changed, wrap it in a lambda:
 
 ```python
-manager.add_event_handler("epoch_start", model.train)  # model.train()
-manager.add_event_handler("epoch_start", lambda: model.train(mode=True))  # a chosen value
+manager.add_event_handler("epoch_start", lambda _: model.train())  # an existing function
 manager.add_event_handler("batch_end", lambda context: print(context))  # print the context
-manager.add_event_handler("epoch_end", functools.partial(save, "model.pt"))  # save(path, context)
+manager.add_event_handler("epoch_end", lambda _: save("model.pt"))  # save(path)
+manager.add_event_handler("epoch_end", functools.partial(log, "log.txt"))  # log(path, context)
 ```
+
+A lambda costs two things: the notes and the `repr` show `<lambda>`, and a coroutine function behind
+it is only detected after its call by `trigger_event`, once the earlier handlers have run.
 
 In a test, `unittest.mock.create_autospec(func)` replaces `Mock()`: it has the signature of `func`.
 
 A lambda created in a loop reads the loop variable when it is **called**, but a default value is
-evaluated when the lambda is **created**. So `lambda i=i: print(i)` saves the current value, and it
-is called without argument. A handler that needs a saved value **and** the context takes the context
-first, without default: `lambda context, i=i: print(i, context["epoch"])`.
+evaluated when the lambda is **created**. So `lambda _, i=i: print(i)` saves the current value: the
+context comes first, without default.
 
 ## Behavior You Can Rely On
 
@@ -210,8 +214,9 @@ first, without default: `lambda context, i=i: print(i, context["epoch"])`.
   and writes no output and no log. It reads `__version__` from the metadata of the installed
   package.
 - The package is fully typed (`py.typed`). A handler argument is typed `Handler`, so a type checker
-  reports a callable that needs two arguments, a keyword-only argument or an argument of another
-  type than `Context`. The run-time check of the calling rule stays the authority. The values of a
+  reports a function without parameter, or a callable that needs two arguments, a keyword-only
+  argument or an argument of another type than `Context`. The run-time check of the calling rule
+  stays the authority. The values of a
   `Context` are typed `Any`.
 
 ## Limits
@@ -236,13 +241,13 @@ first, without default: `lambda context, i=i: print(i, context["epoch"])`.
   its coroutine starts to run, not when it is created: a task sees a change made to the dict, or a
   handler added, before it starts. To fix the payload at the creation, give it a `Context`, which is
   copied when it is built.
-- **A hidden coroutine.** A lambda, a `functools.cache` of a coroutine function, or a synchronous
-  `functools.wraps` wrapper, that returns a coroutine is only detected after its call by
-  `trigger_event`: the handlers before it have run, and a `once` registration is consumed.
+- **A hidden coroutine.** A lambda, or a synchronous `functools.wraps` wrapper, that returns a
+  coroutine is only detected after its call by `trigger_event`: the handlers before it have run, and
+  a `once` registration is consumed.
+- **A cached function.** `functools.cache` and `functools.lru_cache` hash their arguments, and a
+  `Context` is not hashable: such a handler or condition raises a `TypeError` at the trigger.
 - **Hidden generators.** A function that returns a generator or an asynchronous generator, such as
   a lambda that calls a generator function, does nothing.
-- **An optional parameter never receives the context.** `def f(context=None)` is called as `f()` and
-  gets `None`, without an error: the context needs a parameter without default.
 - **A signature that depends on Python.** The standard library adds signatures to C callables
   between versions: `set().add` and `time.sleep` are rejected on Python 3.11 and 3.12, and accepted
   from 3.13.

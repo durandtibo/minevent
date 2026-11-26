@@ -1,20 +1,21 @@
 r"""Implement how the code of a user is called.
 
-``Handler`` is the type of a handler. ``adapt_call`` turns a handler or
-a condition into a callable of the context, ``has_kind`` says if it is a
-generator or a coroutine function, ``describe`` names it,
-``describe_event`` shows an event name, ``reject_awaitable`` rejects the
-awaitable result of a synchronous call, and ``add_error_note`` completes
-the exception that it raises. These helpers are used by
-``minevent.manager``, and ``minevent`` exports ``Handler`` only.
+``Handler`` is the type of a handler. ``check_signature`` rejects a
+handler or a condition that cannot be called with the context,
+``has_kind`` says if it is a generator or a coroutine function,
+``describe`` names it, ``describe_event`` shows an event name,
+``reject_awaitable`` rejects the awaitable result of a synchronous call,
+and ``add_error_note`` completes the exception that it raises. These
+helpers are used by ``minevent.manager``, and ``minevent`` exports
+``Handler`` only.
 """
 
 from __future__ import annotations
 
 __all__ = [
     "Handler",
-    "adapt_call",
     "add_error_note",
+    "check_signature",
     "describe",
     "describe_event",
     "has_kind",
@@ -38,63 +39,56 @@ if sys.version_info >= (3, 14):
 _EVENT_REPR = reprlib.Repr()
 _EVENT_REPR.maxstring = _EVENT_REPR.maxother = 200
 
-Handler = Callable[[], object] | Callable[[Context], object]
-"""A handler: a function without parameter or with the ``Context`` of
-the trigger."""
+Handler = Callable[[Context], object]
+"""A handler: a function of the ``Context`` of the trigger."""
 
 
-def adapt_call(func: Callable[..., object], name: str) -> Callable[[Context], object]:
-    r"""Turn a handler or a condition into a callable of the context.
+def check_signature(func: Callable[..., object], name: str) -> None:
+    r"""Check that a handler or a condition can be called with the
+    context.
 
-    A callable is called as ``func()`` or ``func(context)``. A
-    parameter that has a default keeps it: the manager never fills it.
-    The callable is called as ``func()`` if no other parameter is left,
-    and as ``func(context)`` if exactly one is left and it is positional.
-    Names and annotations are not checked. Any other signature is
-    rejected, including ``*args`` and ``**kwargs`` (they do not say
-    whether the context is expected), and so is a callable whose
-    signature cannot be inspected. A generator function or an async
-    generator function, and a callable object whose ``__call__`` is one
-    (see ``has_kind``), is rejected too, because calling it runs none of
-    its code. The signature is the one that ``inspect.signature``
-    reports: it does not contain the positional arguments that a
-    ``functools.partial`` binds, and it is the one of the wrapped
-    function for a decorator that uses ``functools.wraps``. The
-    annotations do not have to be resolvable: on Python 3.14+, a name
-    that is only imported under ``TYPE_CHECKING`` is kept as a forward
-    reference instead of raising a ``NameError``.
+    A handler and a condition are always called as ``func(context)``.
+    Exactly one parameter must lack a default, and it must be
+    positional: it receives the context. The other parameters keep their
+    default, because the manager never fills them. Names and annotations
+    are not checked. Any other signature is rejected, including
+    ``*args`` and ``**kwargs`` (they do not say whether the context is
+    expected), and so is a callable whose signature cannot be inspected.
+    A generator function or an async generator function, and a callable
+    object whose ``__call__`` is one (see ``has_kind``), is rejected too,
+    because calling it runs none of its code. The signature is the one
+    that ``inspect.signature`` reports: it does not contain the
+    positional arguments that a ``functools.partial`` binds, and it is
+    the one of the wrapped function for a decorator that uses
+    ``functools.wraps``. The annotations do not have to be resolvable:
+    on Python 3.14+, a name that is only imported under
+    ``TYPE_CHECKING`` is kept as a forward reference instead of raising
+    a ``NameError``. ``func`` is not called.
 
     Args:
         func: The callable to inspect.
         name: The name of the argument that receives ``func``, used in
             the error messages.
 
-    Returns:
-        ``func`` itself if it is called as ``func(context)``, and
-            otherwise a function of the context that calls ``func()``.
-            The signature is read once, by this function: calling the
-            result does not read it again.
-
     Raises:
         TypeError: if ``func`` is a generator function or an async
-            generator function (see ``has_kind``), if its
-            signature cannot be inspected, or if it needs another
-            argument than the context.
+            generator function (see ``has_kind``), if its signature
+            cannot be inspected, or if it cannot be called with the
+            context as its only argument.
 
     Example:
         ```pycon
-        >>> from minevent import Context
-        >>> from minevent.calls import adapt_call
+        >>> from minevent.calls import check_signature
         >>> def read_epoch(context):
         ...     return context["epoch"]
         ...
-        >>> adapt_call(read_epoch, "handler") is read_epoch
-        True
-        >>> def train(mode=True):
-        ...     return mode
+        >>> check_signature(read_epoch, "handler")
+        >>> def train(mode=True): ...
         ...
-        >>> adapt_call(train, "handler")(Context({"epoch": 3}))
-        True
+        >>> check_signature(train, "handler")
+        Traceback (most recent call last):
+        ...
+        TypeError: handler train must take the context as its only required argument; wrap it in a function or a lambda
 
         ```
     """
@@ -102,7 +96,7 @@ def adapt_call(func: Callable[..., object], name: str) -> Callable[[Context], ob
         msg = f"{name} must not be a generator function, but got {describe(func)}"
         raise TypeError(msg)
     msg = (
-        f"{name} {describe(func)} must need no argument or only the context; "
+        f"{name} {describe(func)} must take the context as its only required argument; "
         "wrap it in a function or a lambda"
     )
     try:
@@ -113,15 +107,12 @@ def adapt_call(func: Callable[..., object], name: str) -> Callable[[Context], ob
             signature = inspect.signature(func)
     except (TypeError, ValueError) as exc:
         raise TypeError(msg) from exc
-    # The parameters that have a default keep it: only the others need a value. A ``*args`` or a
-    # ``**kwargs`` parameter has no default.
+    # The parameters that have a default keep it. A ``*args`` or a ``**kwargs`` parameter has no
+    # default.
     required = [param for param in signature.parameters.values() if param.default is param.empty]
-    if not required:
-        return lambda _context: func()
     positional = (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
-    if len(required) == 1 and required[0].kind in positional:
-        return func
-    raise TypeError(msg)
+    if len(required) != 1 or required[0].kind not in positional:
+        raise TypeError(msg)
 
 
 def has_kind(func: Callable[..., object], predicate: Callable[[object], bool]) -> bool:

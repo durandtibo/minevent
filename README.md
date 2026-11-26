@@ -64,7 +64,7 @@ different API: see [Installation](#installation).
 ## Features
 
 - **No dependency**, standard library only
-- **Plain callables** as handlers, called with no argument or with the data of the trigger
+- **Plain callables** as handlers, always called with the data of the trigger
 - **Read-only payload**: the data of a trigger is shared in an immutable `Context`
 - **Conditions** to control when a handler runs, with `PeriodicCondition` or any function that
   returns a boolean
@@ -79,8 +79,8 @@ different API: see [Installation](#installation).
 
 ### Register a handler and trigger an event
 
-A handler is a callable that needs no argument or only the context, which holds the data of the
-trigger:
+A handler is a callable that receives the context, which holds the data of the trigger. One that
+does not need it declares it and ignores it, as `_`:
 
 ```pycon
 >>> from minevent import Context, EventManager
@@ -88,7 +88,7 @@ trigger:
 >>> @manager.on("epoch_end")
 ... def log_epoch(context: Context) -> None:
 ...     print(f"epoch {context['epoch']}, loss {context.get('loss', 'unknown')}")
->>> _ = manager.add_event_handler("epoch_end", lambda: print("done"))
+>>> _ = manager.add_event_handler("epoch_end", lambda _: print("done"))
 >>> manager.trigger_event("epoch_end", {"epoch": 1, "loss": 0.5})
 epoch 1, loss 0.5
 done
@@ -107,14 +107,14 @@ A condition is a function that returns a boolean. It can read the data of the tr
 >>> from minevent import EventManager, PeriodicCondition
 >>> manager = EventManager()
 >>> _ = manager.add_event_handler(
-...     "epoch_end", lambda: print("checkpoint"), condition=PeriodicCondition(freq=2)
+...     "epoch_end", lambda _: print("checkpoint"), condition=PeriodicCondition(freq=2)
 ... )
 >>> _ = manager.add_event_handler(
 ...     "epoch_end",
 ...     lambda context: print(f"late epoch {context['epoch']}"),
 ...     condition=lambda context: context["epoch"] >= 2,
 ... )
->>> _ = manager.add_event_handler("epoch_end", lambda: print("first epoch"), once=True)
+>>> _ = manager.add_event_handler("epoch_end", lambda _: print("first epoch"), once=True)
 >>> for epoch in range(3):
 ...     manager.trigger_event("epoch_end", {"epoch": epoch})
 checkpoint
@@ -131,10 +131,10 @@ late epoch 2
 ```pycon
 >>> from minevent import EventManager
 >>> manager = EventManager()
->>> subscription = manager.add_event_handler("batch_end", lambda: print("batch"))
+>>> subscription = manager.add_event_handler("batch_end", lambda _: print("batch"))
 >>> subscription.remove()
 True
->>> with manager.add_event_handler("batch_end", lambda: print("profiling")):
+>>> with manager.add_event_handler("batch_end", lambda _: print("profiling")):
 ...     manager.trigger_event("batch_end")
 profiling
 >>> manager
@@ -161,10 +161,10 @@ upload epoch 1
 
 ### Which callables can be handlers
 
-The parameters that have a default are ignored. A callable is then called as `f()` if no parameter
-is left, and as `f(context)` if exactly one positional parameter is left. Anything else raises a
-`TypeError` at registration, including `*args` and `**kwargs`, so wrap a callable such as `print` in
-a lambda, or bind its arguments with `functools.partial`. See
+A handler and a condition are always called as `f(context)`: exactly one parameter must lack a
+default, and it must be positional. Anything else raises a `TypeError` at registration, including a
+function without parameter, `*args` and `**kwargs`, so wrap a callable such as `print` or
+`model.train` in a lambda. See
 [the calling rule](https://durandtibo.github.io/minevent/main/architecture/#the-calling-rule).
 
 ## Documentation

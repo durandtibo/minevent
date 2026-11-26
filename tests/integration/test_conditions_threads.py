@@ -6,7 +6,7 @@ import threading
 from concurrent.futures import ProcessPoolExecutor
 from typing import TYPE_CHECKING
 
-from minevent import EventManager, PeriodicCondition
+from minevent import Context, EventManager, PeriodicCondition
 from tests.integration.helpers import run_threads
 
 if TYPE_CHECKING:
@@ -16,7 +16,7 @@ NUM_THREADS = 8
 NUM_ITERATIONS = 20_000
 
 
-def count_true_calls(condition: Callable[[], bool]) -> int:
+def count_true_calls(condition: Callable[[Context], bool]) -> int:
     r"""Call a condition from several threads.
 
     Args:
@@ -30,7 +30,8 @@ def count_true_calls(condition: Callable[[], bool]) -> int:
     lock = threading.Lock()
 
     def work(_index: int) -> None:
-        count = sum(condition() for _ in range(NUM_ITERATIONS))
+        context = Context()
+        count = sum(condition(context) for _ in range(NUM_ITERATIONS))
         with lock:
             counts.append(count)
 
@@ -72,7 +73,7 @@ def test_condition_of_a_trigger_counts_every_trigger_from_threads() -> None:
     calls: list[int] = []
     lock = threading.Lock()
 
-    def handler() -> None:
+    def handler(_: Context) -> None:
         with lock:
             calls.append(1)
 
@@ -90,7 +91,7 @@ def test_periodic_condition_goes_to_a_worker_process() -> None:
     """Test that a condition sent to a worker process comes back with
     the same state."""
     condition = PeriodicCondition(freq=2)
-    condition()
+    condition(Context())
     spawn = multiprocessing.get_context("spawn")
     with ProcessPoolExecutor(max_workers=1, mp_context=spawn) as executor:
         result = executor.submit(copy.copy, condition).result()

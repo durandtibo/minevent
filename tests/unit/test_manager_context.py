@@ -52,18 +52,11 @@ def test_event_manager_trigger_event_payload_is_a_context() -> None:
     assert isinstance(payload_handler.args[0], Context)
 
 
-def test_event_manager_trigger_event_payload_ignored_by_handler_without_parameter() -> None:
+def test_event_manager_trigger_event_payload_ignored_by_handler() -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", hello_handler)
     manager.trigger_event("my_event", {"epoch": 3})
     assert hello_handler.call_count == 1
-
-
-def test_event_manager_trigger_event_handler_without_parameter_called_without_argument() -> None:
-    manager = EventManager()
-    manager.add_event_handler("my_event", hello_handler)
-    manager.trigger_event("my_event", {"epoch": 3})
-    assert (hello_handler.args, hello_handler.kwargs) == ((), {})
 
 
 def test_event_manager_trigger_event_handlers_read_different_keys() -> None:

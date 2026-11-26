@@ -8,6 +8,7 @@ from unittest.mock import create_autospec
 import pytest
 
 from minevent import (
+    Context,
     EventManager,
     PeriodicCondition,
     Subscription,
@@ -18,6 +19,7 @@ from tests.unit.handlers import (
     CustomCondition,
     UnnameableCallable,
     condition_returning_a_coroutine,
+    condition_returning_an_awaitable,
     fail,
     has_payload,
     hello_handler,
@@ -31,20 +33,20 @@ def add_hello_handler_when_triggered(manager: EventManager) -> None:
     r"""Register a handler that adds ``hello_handler`` to
     ``my_event``."""
     manager.add_event_handler(
-        "my_event", lambda: manager.add_event_handler("my_event", hello_handler)
+        "my_event", lambda _: manager.add_event_handler("my_event", hello_handler)
     )
 
 
-async def async_handler_with_argument(secret: str) -> None:
+async def async_handler_with_argument(secret: str, _: Context) -> None:
     r"""Implement a coroutine handler that has an argument."""
 
 
-def coroutine_with_argument(secret: str) -> object:
+def coroutine_with_argument(secret: str, context: Context) -> object:
     r"""Implement a synchronous handler that returns a coroutine."""
-    return async_handler_with_argument(secret)
+    return async_handler_with_argument(secret, context)
 
 
-def fail_with_argument(value: object) -> None:
+def fail_with_argument(value: object, _: Context) -> None:
     r"""Implements a handler with an argument that raises a
     ``ValueError``."""
     msg = f"boom {type(value).__qualname__}"
@@ -59,7 +61,7 @@ class BadReprAwaitableCallable:
         msg = "repr failed"
         raise RuntimeError(msg)
 
-    def __call__(self) -> object:
+    def __call__(self, _: Context) -> object:
         r"""Return an awaitable."""
         return AwaitableResult()
 
@@ -71,7 +73,7 @@ class FrozenError(Exception):
     code: int = 1
 
 
-def failing_condition() -> bool:
+def failing_condition(_: Context) -> bool:
     r"""Implement a condition that raises a ``ValueError``."""
     msg = "boom"
     raise ValueError(msg)
@@ -109,7 +111,7 @@ def test_event_manager_trigger_event_removed_registration_does_not_run() -> None
     event_manager = EventManager()
     subscriptions: list[Subscription] = []
 
-    def remove_hello() -> None:
+    def remove_hello(_: Context) -> None:
         subscriptions[0].remove()
 
     event_manager.add_event_handler("my_event", remove_hello)
@@ -120,7 +122,7 @@ def test_event_manager_trigger_event_removed_registration_does_not_run() -> None
 
 def test_event_manager_trigger_event_removed_by_clear_event_does_not_run() -> None:
     event_manager = EventManager()
-    event_manager.add_event_handler("my_event", lambda: event_manager.clear_event("my_event"))
+    event_manager.add_event_handler("my_event", lambda _: event_manager.clear_event("my_event"))
     event_manager.add_event_handler("my_event", hello_handler)
     event_manager.trigger_event("my_event")
     assert hello_handler.call_count == 0
@@ -128,7 +130,7 @@ def test_event_manager_trigger_event_removed_by_clear_event_does_not_run() -> No
 
 def test_event_manager_trigger_event_removed_by_reset_does_not_run() -> None:
     event_manager = EventManager()
-    event_manager.add_event_handler("my_event", event_manager.reset)
+    event_manager.add_event_handler("my_event", lambda _: event_manager.reset())
     event_manager.add_event_handler("my_event", hello_handler)
     event_manager.trigger_event("my_event")
     assert hello_handler.call_count == 0
@@ -136,7 +138,7 @@ def test_event_manager_trigger_event_removed_by_reset_does_not_run() -> None:
 
 def test_event_manager_trigger_event_removed_by_clear_event_keeps_other_events() -> None:
     event_manager = EventManager()
-    event_manager.add_event_handler("my_event", lambda: event_manager.clear_event("other_event"))
+    event_manager.add_event_handler("my_event", lambda _: event_manager.clear_event("other_event"))
     event_manager.add_event_handler("my_event", hello_handler)
     event_manager.add_event_handler("other_event", noop_handler)
     event_manager.trigger_event("my_event")
@@ -147,7 +149,7 @@ def test_event_manager_trigger_event_handler_removed_during_dispatch_is_removed(
     event_manager = EventManager()
     subscriptions: list[Subscription] = []
 
-    def remove_hello() -> None:
+    def remove_hello(_: Context) -> None:
         subscriptions[0].remove()
 
     event_manager.add_event_handler("my_event", remove_hello)
@@ -192,7 +194,7 @@ def test_event_manager_trigger_event_reused_exception_has_one_note() -> None:
 def test_event_manager_trigger_event_retrigger_own_event_has_one_note() -> None:
     manager = EventManager()
 
-    def retrigger() -> None:
+    def retrigger(_: Context) -> None:
         manager.trigger_event("my_event")
 
     manager.add_event_handler("my_event", retrigger)
@@ -204,7 +206,7 @@ def test_event_manager_trigger_event_retrigger_own_event_has_one_note() -> None:
 def test_event_manager_trigger_event_nested_events_have_one_note_each() -> None:
     manager = EventManager()
 
-    def trigger_b() -> None:
+    def trigger_b(_: Context) -> None:
         manager.trigger_event("b")
 
     manager.add_event_handler("a", trigger_b)
@@ -240,7 +242,7 @@ def test_event_manager_trigger_event_handler_retriggering_its_event_raises_recur
     None
 ):
     manager = EventManager()
-    manager.add_event_handler("my_event", lambda: manager.trigger_event("my_event"))
+    manager.add_event_handler("my_event", lambda _: manager.trigger_event("my_event"))
     with pytest.raises(RecursionError, match=r"maximum recursion depth exceeded"):
         manager.trigger_event("my_event")
 
@@ -306,7 +308,9 @@ def test_event_manager_trigger_event_custom_handler_receives_payload() -> None:
 ############################################
 
 
-@pytest.mark.parametrize("condition", [AwaitableResult, condition_returning_a_coroutine])
+@pytest.mark.parametrize(
+    "condition", [condition_returning_an_awaitable, condition_returning_a_coroutine]
+)
 def test_event_manager_trigger_event_condition_returns_awaitable(condition: Any) -> None:
     manager = EventManager()
     manager.add_event_handler("my_event", hello_handler, condition=condition)
@@ -341,7 +345,7 @@ def test_event_manager_trigger_event_condition_awaitable_has_note() -> None:
 def test_event_manager_trigger_event_removed_registration_does_not_evaluate_condition() -> None:
     manager = EventManager()
     condition = create_autospec(has_payload, return_value=True)
-    manager.add_event_handler("my_event", lambda: manager.clear_event("my_event"))
+    manager.add_event_handler("my_event", lambda _: manager.clear_event("my_event"))
     manager.add_event_handler("my_event", noop_handler, condition=condition)
     manager.trigger_event("my_event")
     assert condition.call_count == 0
@@ -351,7 +355,7 @@ def test_event_manager_trigger_event_removed_registration_does_not_evaluate_cond
 def test_event_manager_trigger_event_condition_removes_registration(once: bool) -> None:
     manager = EventManager()
 
-    def condition() -> bool:
+    def condition(_: Context) -> bool:
         return manager.get_subscriptions("my_event")[0].remove()
 
     manager.add_event_handler("my_event", hello_handler, once=once, condition=condition)
@@ -363,7 +367,7 @@ def test_event_manager_trigger_event_condition_removes_registration(once: bool) 
 def test_event_manager_trigger_event_condition_resets_manager(once: bool) -> None:
     manager = EventManager()
 
-    def condition() -> bool:
+    def condition(_: Context) -> bool:
         manager.reset()
         return True
 
@@ -375,7 +379,7 @@ def test_event_manager_trigger_event_condition_resets_manager(once: bool) -> Non
 def test_event_manager_trigger_event_condition_removes_registration_runs_next_handler() -> None:
     manager = EventManager()
 
-    def condition() -> bool:
+    def condition(_: Context) -> bool:
         return manager.get_subscriptions("my_event")[0].remove()
 
     manager.add_event_handler("my_event", noop_handler, condition=condition)
@@ -462,7 +466,7 @@ def test_event_manager_trigger_event_condition_raises_note_names_condition() -> 
 
 def test_event_manager_trigger_event_handler_raises_after_condition_note() -> None:
     manager = EventManager()
-    manager.add_event_handler("my_event", fail, condition=lambda: True)
+    manager.add_event_handler("my_event", fail, condition=lambda _: True)
     assert raised(manager.trigger_event, "my_event").__notes__ == [
         "raised by fail while handling the event 'my_event'"
     ]

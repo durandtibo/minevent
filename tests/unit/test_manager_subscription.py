@@ -3,7 +3,6 @@ from __future__ import annotations
 import copy
 import functools
 import inspect
-import logging
 import pickle
 from typing import TYPE_CHECKING, Any
 from unittest.mock import create_autospec
@@ -19,12 +18,12 @@ from minevent import (
 from tests.unit.handlers import (
     AsyncConditionMethod,
     AsyncConditionObject,
-    AwaitableResult,
     BadReprCallable,
     BadReprCondition,
     CallableRecorder,
     async_condition,
     condition_returning_a_coroutine,
+    condition_returning_an_awaitable,
     fail,
     has_payload,
     hello_handler,
@@ -35,24 +34,15 @@ from tests.unit.utils import raised
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-logger = logging.getLogger(__name__)
 
-
-def read_secret(secret: str) -> None:
+def read_secret(secret: str, _: Context) -> None:
     r"""Implement a handler that needs a bound argument."""
 
 
-def failing_handler() -> None:
+def failing_handler(_: Context) -> None:
     r"""Implement a handler that raises a ``RuntimeError``."""
     msg = "handler failed"
     raise RuntimeError(msg)
-
-
-def condition_of_context_returning_a_coroutine(context: Context) -> object:
-    r"""Implement a synchronous condition of the context that returns a
-    coroutine."""
-    logger.info("context %s", context)
-    return async_condition()
 
 
 def flag_and_registry(manager: EventManager, subscription: Subscription) -> tuple[bool, bool]:
@@ -222,11 +212,13 @@ def test_subscription_async_condition_rejected_signature_first() -> None:
         return first < second
 
     condition_any: Any = condition
-    with pytest.raises(TypeError, match=r"must need no argument or only the context"):
+    with pytest.raises(TypeError, match=r"must take the context as its only required argument"):
         Subscription(EventManager(), "my_event", noop_handler, condition=condition_any)
 
 
-@pytest.mark.parametrize("condition", [AwaitableResult, condition_returning_a_coroutine])
+@pytest.mark.parametrize(
+    "condition", [condition_returning_an_awaitable, condition_returning_a_coroutine]
+)
 def test_subscription_condition_that_returns_a_coroutine_is_accepted(condition: Any) -> None:
     subscription = Subscription(EventManager(), "my_event", noop_handler, condition=condition)
     assert subscription.condition is condition
@@ -246,14 +238,16 @@ def test_subscription_remembers_an_async_handler(handler: Any) -> None:
 
 
 @pytest.mark.parametrize(
-    "handler", [noop_handler, condition_returning_a_coroutine, AwaitableResult]
+    "handler", [noop_handler, condition_returning_a_coroutine, condition_returning_an_awaitable]
 )
 def test_subscription_remembers_a_synchronous_handler(handler: Any) -> None:
     assert not Subscription(EventManager(), "my_event", handler)._is_async
 
 
 def test_subscription_rejected_signature() -> None:
-    with pytest.raises(TypeError, match=r"^handler print must need no argument"):
+    with pytest.raises(
+        TypeError, match=r"^handler print must take the context as its only required argument"
+    ):
         Subscription(EventManager(), "my_event", print)
 
 
@@ -427,7 +421,7 @@ def test_subscription_exit_does_not_swallow_exception_of_block() -> None:
         pytest.raises(RuntimeError, match=r"handler failed"),
         EventManager().add_event_handler("my_event", noop_handler),
     ):
-        failing_handler()
+        failing_handler(Context())
 
 
 def test_subscription_exit_removes_when_block_raises() -> None:
@@ -436,7 +430,7 @@ def test_subscription_exit_removes_when_block_raises() -> None:
         pytest.raises(RuntimeError, match=r"handler failed"),
         manager.add_event_handler("my_event", noop_handler),
     ):
-        failing_handler()
+        failing_handler(Context())
     assert manager.events == []
 
 
@@ -463,7 +457,7 @@ def subscribe_removed_by_its_condition(*, once: bool) -> Subscription:
     returns ``True``."""
     manager = EventManager()
 
-    def condition() -> bool:
+    def condition(_: Context) -> bool:
         return manager.get_subscriptions("my_event")[0].remove()
 
     return manager.add_event_handler("my_event", noop_handler, once=once, condition=condition)
@@ -480,7 +474,7 @@ def test_claim_without_option_keeps_registration() -> None:
 
 
 def test_claim_does_not_call_the_handler() -> None:
-    subscribe(hello_handler, once=True, condition=lambda: True)._claim(Context())
+    subscribe(hello_handler, once=True, condition=lambda _: True)._claim(Context())
     assert hello_handler.call_count == 0
 
 
@@ -507,34 +501,28 @@ def test_claim_condition_removes_registration(once: bool) -> None:
 
 
 def test_claim_removed_registration_with_condition() -> None:
-    subscription = subscribe(condition=lambda: True)
+    subscription = subscribe(condition=lambda _: True)
     subscription.remove()
     assert not subscription._claim(Context())
 
 
 @pytest.mark.parametrize("result", [True, 1, "yes", [0]])
 def test_claim_condition_truthy(result: Any) -> None:
-    assert subscribe(condition=lambda: result)._claim(Context())
+    assert subscribe(condition=lambda _: result)._claim(Context())
 
 
 @pytest.mark.parametrize("result", [False, 0, "", [], None])
 def test_claim_condition_falsy(result: Any) -> None:
-    assert not subscribe(condition=lambda: result)._claim(Context())
+    assert not subscribe(condition=lambda _: result)._claim(Context())
 
 
 def test_claim_condition_false_does_not_consume_once() -> None:
-    subscription = subscribe(once=True, condition=lambda: False)
+    subscription = subscribe(once=True, condition=lambda _: False)
     subscription._claim(Context())
     assert subscription.active
 
 
-def test_claim_condition_without_parameter() -> None:
-    condition = create_autospec(noop_handler, return_value=True)
-    subscribe(condition=condition)._claim(Context({"a": 1}))
-    condition.assert_called_once_with()
-
-
-def test_claim_condition_with_parameter_receives_the_context() -> None:
+def test_claim_condition_receives_the_context() -> None:
     condition = create_autospec(has_payload, return_value=True)
     subscribe(condition=condition)._claim(Context({"a": 1}))
     condition.assert_called_once_with({"a": 1})
@@ -575,8 +563,8 @@ def test_claim_condition_note_names_function_of_partial() -> None:
 
 def test_claim_condition_note_ignores_repr_of_condition() -> None:
     class BadReprCondition(BadReprCallable):
-        def __call__(self) -> None:
-            fail()
+        def __call__(self, _: Context) -> None:
+            fail(Context())
 
     subscription = subscribe(condition=BadReprCondition())
     assert (
@@ -588,6 +576,9 @@ def test_claim_condition_note_ignores_repr_of_condition() -> None:
 
 def test_claim_condition_bool_raises_has_note() -> None:
     class Ambiguous:
+        def __init__(self, _: Context) -> None:
+            pass
+
         def __bool__(self) -> bool:
             msg = "ambiguous truth value"
             raise ValueError(msg)
@@ -606,11 +597,7 @@ def test_claim_condition_base_exception_has_no_note() -> None:
 
 @pytest.mark.parametrize(
     "condition",
-    [
-        condition_returning_a_coroutine,
-        condition_of_context_returning_a_coroutine,
-        AwaitableResult,
-    ],
+    [condition_returning_a_coroutine, condition_returning_an_awaitable],
 )
 def test_claim_condition_returns_awaitable(condition: Any) -> None:
     subscription = subscribe(condition=condition)
@@ -618,16 +605,18 @@ def test_claim_condition_returns_awaitable(condition: Any) -> None:
         subscription._claim(Context())
 
 
-def test_claim_condition_returns_awaitable_names_the_condition_without_parameter() -> None:
-    subscription = subscribe(condition=AwaitableResult)
-    with pytest.raises(TypeError, match=r"^condition AwaitableResult returned an awaitable"):
+def test_claim_condition_returns_awaitable_names_the_condition() -> None:
+    subscription = subscribe(condition=condition_returning_an_awaitable)
+    with pytest.raises(
+        TypeError, match=r"^condition condition_returning_an_awaitable returned an awaitable"
+    ):
         subscription._claim(Context())
 
 
 def test_claim_condition_returns_awaitable_closes_the_coroutine() -> None:
-    coroutine = async_condition()
+    coroutine = async_condition(Context())
 
-    def condition() -> Any:
+    def condition(_: Context) -> Any:
         return coroutine
 
     subscription = subscribe(condition=condition)

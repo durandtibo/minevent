@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 import pytest
 
 from minevent import (
+    Context,
     EventManager,
     Subscription,
 )
@@ -64,7 +65,7 @@ class LockRecorder:
     def __del__(self) -> None:
         self._lock_held.append(lock_is_held(self._manager))
 
-    def __call__(self) -> bool:
+    def __call__(self, _: Context) -> bool:
         r"""Implement a handler, or a condition that is ``True``."""
         return True
 
@@ -200,7 +201,7 @@ def test_event_manager_clear_event_must_be_str() -> None:
 def test_event_manager_trigger_event_runs_handler_without_lock() -> None:
     manager = EventManager()
     lock_held: list[bool] = []
-    manager.add_event_handler("my_event", lambda: lock_held.append(lock_is_held(manager)))
+    manager.add_event_handler("my_event", lambda _: lock_held.append(lock_is_held(manager)))
     manager.trigger_event("my_event")
     assert lock_held == [False]
 

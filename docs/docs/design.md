@@ -26,19 +26,20 @@ There is no base class or protocol to implement, and a condition is a function t
   signature is found at registration (or by your type checker), not by an interface.
 - **In practice**: use a class with `__call__` when a handler needs a state.
 
-## The signature decides how a handler is called
+## A handler is always called with the context
 
-A handler is called as `f()` or `f(context)`, according to the parameters that have no default
-([the calling rule](architecture.md#the-calling-rule)). The signature is read once, at
+A handler and a condition are called as `f(context)`
+([the calling rule](architecture.md#the-calling-rule)). The signature is checked once, at
 registration.
 
-- **Benefits**: a handler declares only what it needs, with no option to repeat at each
-  registration, and functions with default arguments, such as `model.train(mode=True)`, are
-  registered as they are. A callable that cannot be called is rejected immediately.
-- **Costs**: the behavior is implicit. An optional parameter such as `context=None` never receives
-  the context, and callables that accept `*args` (`print`, `Mock()`) or cannot be inspected are
-  rejected, even when a call would work.
-- **In practice**: wrap such a callable in a lambda or a function, which states how it is called.
+- **Benefits**: there is one call to learn, and a context is always there. Adding or removing a
+  default never changes the call, and a callable that cannot be called is rejected immediately,
+  before a long training.
+- **Costs**: a function that does not need the context declares it anyway, or is wrapped in a lambda,
+  so `model.train` is not registered as it is. Callables that accept `*args` (`print`, `Mock()`) or
+  cannot be inspected are rejected, even when a call would work.
+- **In practice**: write `def f(_)` for a handler that ignores the context, and wrap an existing
+  function in a lambda, which states how it is called.
 
 ## The payload is one read-only Context
 

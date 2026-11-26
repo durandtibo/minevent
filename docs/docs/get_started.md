@@ -31,7 +31,7 @@ Check the installation:
 ```pycon
 >>> from minevent import EventManager
 >>> manager = EventManager()
->>> _ = manager.add_event_handler("hello", lambda: print("Hello!"))
+>>> _ = manager.add_event_handler("hello", lambda _: print("Hello!"))
 >>> manager.trigger_event("hello")
 Hello!
 

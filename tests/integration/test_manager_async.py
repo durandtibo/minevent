@@ -51,29 +51,47 @@ def test_atrigger_event_reads_registrations_at_start() -> None:
 
     async def main() -> None:
         task = asyncio.create_task(manager.atrigger_event("epoch_end"))
-        manager.add_event_handler("epoch_end", lambda: calls.append("added"))
+        manager.add_event_handler("epoch_end", lambda _: calls.append("added"))
         await task
 
     asyncio.run(main())
     assert calls == ["added"]
 
 
-def test_trigger_event_detects_the_coroutine_of_a_cache_after_its_call() -> None:
+def test_trigger_event_detects_the_coroutine_of_a_wrapper_after_its_call() -> None:
     """Test that ``trigger_event`` detects the coroutine returned by a
-    ``functools.cache`` after its call: the handler before it has run,
-    and the ``once`` registration is consumed."""
+    synchronous ``functools.wraps`` wrapper after its call: the handler
+    before it has run, and the ``once`` registration is consumed."""
     manager = EventManager()
     calls: list[str] = []
 
-    async def upload() -> None:
+    async def upload(_: Context) -> None:
         calls.append("upload")
 
-    manager.add_event_handler("epoch_end", lambda: calls.append("first"))
-    cached: Any = functools.cache(upload)
-    subscription = manager.add_event_handler("epoch_end", cached, once=True)
+    @functools.wraps(upload)
+    def wrapper(context: Context) -> object:
+        return upload(context)
+
+    manager.add_event_handler("epoch_end", lambda _: calls.append("first"))
+    subscription = manager.add_event_handler("epoch_end", wrapper, once=True)
     with pytest.raises(TypeError, match=r"upload returned an awaitable; use atrigger_event"):
         manager.trigger_event("epoch_end")
     assert (calls, subscription.active) == (["first"], False)
+
+
+def test_cached_handler_cannot_hash_the_context() -> None:
+    """Test that a ``functools.cache`` handler is registered, and raises
+    at the trigger because a ``Context`` is not hashable."""
+    manager = EventManager()
+
+    def log_epoch(_: object) -> None:
+        pass
+
+    # Typed ``Any``: a type checker reports that the context is not hashable.
+    cached: Any = functools.cache(log_epoch)
+    manager.add_event_handler("epoch_end", cached)
+    with pytest.raises(TypeError, match=r"unhashable type: 'Context'"):
+        manager.trigger_event("epoch_end")
 
 
 def test_atrigger_event_stop_iteration_has_the_noted_cause() -> None:
@@ -81,7 +99,7 @@ def test_atrigger_event_stop_iteration_has_the_noted_cause() -> None:
     ``StopIteration`` of the handler, with its note, as cause."""
     manager = EventManager()
 
-    def stop() -> None:
+    def stop(_: Context) -> None:
         msg = "stop"
         raise StopIteration(msg)
 

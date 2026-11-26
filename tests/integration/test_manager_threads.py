@@ -23,8 +23,8 @@ def test_add_event_handler_from_threads() -> None:
     calls: list[int] = []
     lock = threading.Lock()
 
-    def make_handler(value: int) -> Callable[[], None]:
-        def handler() -> None:
+    def make_handler(value: int) -> Callable[[Context], None]:
+        def handler(_: Context) -> None:
             with lock:
                 calls.append(value)
 
@@ -47,7 +47,7 @@ def test_trigger_event_from_threads() -> None:
     calls: list[int] = []
     lock = threading.Lock()
 
-    def handler(index: int) -> None:
+    def handler(index: int, _: Context) -> None:
         with lock:
             calls.append(index)
 
@@ -69,7 +69,7 @@ def test_add_and_trigger_from_threads() -> None:
     def work(index: int) -> None:
         for _ in range(NUM_ITERATIONS):
             if index % 2:
-                manager.add_event_handler("my_event", functools.partial(len, []))
+                manager.add_event_handler("my_event", lambda _: None)
             else:
                 manager.trigger_event("my_event")
 
@@ -83,7 +83,7 @@ def test_subscription_remove_from_threads() -> None:
     threads remove them."""
     manager = EventManager()
     subscriptions = [
-        manager.add_event_handler("my_event", functools.partial(len, []))
+        manager.add_event_handler("my_event", lambda _: None)
         for _ in range(NUM_THREADS * NUM_ITERATIONS)
     ]
     removed: list[bool] = []
@@ -107,7 +107,7 @@ def test_once_handler_runs_once_from_threads() -> None:
     calls: list[int] = []
     lock = threading.Lock()
 
-    def handler() -> None:
+    def handler(_: Context) -> None:
         with lock:
             calls.append(1)
 
@@ -127,11 +127,11 @@ def test_once_with_condition_runs_at_most_once_from_threads() -> None:
     calls: list[int] = []
     lock = threading.Lock()
 
-    def handler() -> None:
+    def handler(_: Context) -> None:
         with lock:
             calls.append(1)
 
-    manager.add_event_handler("my_event", handler, once=True, condition=lambda: True)
+    manager.add_event_handler("my_event", handler, once=True, condition=lambda _: True)
 
     def work(_index: int) -> None:
         manager.trigger_event("my_event")
@@ -148,7 +148,7 @@ def test_once_handler_runs_once_when_snapshots_taken_before_dispatch() -> None:
     lock = threading.Lock()
     barrier = threading.Barrier(NUM_THREADS)
 
-    def handler() -> None:
+    def handler(_: Context) -> None:
         with lock:
             calls.append(1)
 
@@ -159,7 +159,7 @@ def test_once_handler_runs_once_when_snapshots_taken_before_dispatch() -> None:
         barrier.wait()
         for subscription in subscriptions:
             if not subscription.once or subscription.remove():
-                handler()
+                handler(Context())
 
     run_threads(work, NUM_THREADS)
     assert len(calls) == 1
@@ -181,7 +181,7 @@ def test_remove_from_threads_registrations_added_by_other_threads() -> None:
     by other threads, each exactly once."""
     manager = EventManager()
     subscriptions = [
-        manager.add_event_handler("my_event", lambda: None)
+        manager.add_event_handler("my_event", lambda _: None)
         for _ in range(NUM_THREADS * NUM_ITERATIONS)
     ]
     results: list[bool] = []
@@ -236,8 +236,8 @@ def test_remove_from_threads_while_triggering() -> None:
     calls: list[int] = []
     lock = threading.Lock()
 
-    def make_handler(value: int) -> Callable[[], None]:
-        def handler() -> None:
+    def make_handler(value: int) -> Callable[[Context], None]:
+        def handler(_: Context) -> None:
             with lock:
                 calls.append(value)
 
@@ -283,7 +283,7 @@ class LockingFinalizer:
         thread.join(timeout=1.0)
         self._finished.append(not thread.is_alive())
 
-    def __call__(self) -> None:
+    def __call__(self, _: Context) -> None:
         r"""Implement a handler."""
 
 

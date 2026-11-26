@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from minevent import PeriodicCondition
+from minevent import Context, PeriodicCondition
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -36,7 +36,7 @@ def test_periodic_condition_freq(freq: int) -> None:
 )
 def test_periodic_condition_call_freq(freq: int, expected: str) -> None:
     condition = PeriodicCondition(freq)
-    assert "".join("T" if condition() else "F" for _ in range(10)) == expected
+    assert "".join("T" if condition(Context()) else "F" for _ in range(10)) == expected
 
 
 ##############################################################
@@ -101,9 +101,21 @@ def test_periodic_condition_start_is_keyword_only() -> None:
         PeriodicCondition(*args)
 
 
+@pytest.mark.parametrize("context", [Context(), Context({"epoch": 3})])
+def test_periodic_condition_call_with_context(context: Context) -> None:
+    condition = PeriodicCondition(2)
+    assert [condition(context) for _ in range(4)] == [True, False, True, False]
+
+
+def test_periodic_condition_call_without_context() -> None:
+    condition: Any = PeriodicCondition(2)
+    with pytest.raises(TypeError, match=r"missing 1 required positional argument: '_context'"):
+        condition()
+
+
 def test_periodic_condition_call_sequence() -> None:
     condition = PeriodicCondition(3)
-    assert [condition() for _ in range(7)] == [
+    assert [condition(Context()) for _ in range(7)] == [
         True,
         False,
         False,
@@ -129,7 +141,7 @@ def test_periodic_condition_call_sequence() -> None:
 )
 def test_periodic_condition_call_start(freq: int, start: int, expected: str) -> None:
     condition = PeriodicCondition(freq, start=start)
-    assert "".join("T" if condition() else "F" for _ in range(10)) == expected
+    assert "".join("T" if condition(Context()) else "F" for _ in range(10)) == expected
 
 
 @pytest.mark.parametrize(
@@ -144,29 +156,29 @@ def test_periodic_condition_call_start(freq: int, start: int, expected: str) -> 
 )
 def test_periodic_condition_freq_one_warm_up(start: int, expected: str) -> None:
     condition = PeriodicCondition(freq=1, start=start)
-    assert "".join("T" if condition() else "F" for _ in range(8)) == expected
+    assert "".join("T" if condition(Context()) else "F" for _ in range(8)) == expected
 
 
 def test_periodic_condition_reset() -> None:
     condition = PeriodicCondition(3)
-    condition()
-    condition()
+    condition(Context())
+    condition(Context())
     condition.reset()
-    assert condition()
+    assert condition(Context())
 
 
 def test_periodic_condition_reset_start() -> None:
     condition = PeriodicCondition(3, start=1)
-    condition()
-    condition()
+    condition(Context())
+    condition(Context())
     condition.reset()
-    assert [condition() for _ in range(2)] == [False, True]
+    assert [condition(Context()) for _ in range(2)] == [False, True]
 
 
 def test_periodic_condition_reset_restores_initial_state() -> None:
     condition = PeriodicCondition(3, start=2)
-    condition()
-    condition()
+    condition(Context())
+    condition(Context())
     condition.reset()
     assert repr(condition) == "PeriodicCondition(freq=3, start=2, step=0)"
 
@@ -174,19 +186,19 @@ def test_periodic_condition_reset_restores_initial_state() -> None:
 def test_periodic_condition_reset_before_first_call() -> None:
     condition = PeriodicCondition(1, start=1)
     condition.reset()
-    assert [condition() for _ in range(2)] == [False, True]
+    assert [condition(Context()) for _ in range(2)] == [False, True]
 
 
 def test_periodic_condition_call_counts_the_call() -> None:
     condition = PeriodicCondition(3)
-    condition()
-    condition()
+    condition(Context())
+    condition(Context())
     assert repr(condition) == "PeriodicCondition(freq=3, start=0, step=2)"
 
 
 def test_periodic_condition_call_releases_the_lock() -> None:
     condition = PeriodicCondition(3)
-    condition()
+    condition(Context())
     assert not condition._lock.locked()
 
 
@@ -215,22 +227,22 @@ def test_periodic_condition_repr_large_step() -> None:
 @pytest.mark.parametrize("n_calls", [0, 1, 2, 7])
 def test_periodic_condition_step(n_calls: int) -> None:
     condition = PeriodicCondition(3)
-    _ = [condition() for _ in range(n_calls)]
+    _ = [condition(Context()) for _ in range(n_calls)]
     assert condition.step == n_calls
 
 
 def test_periodic_condition_step_reset() -> None:
     condition = PeriodicCondition(3)
-    condition()
+    condition(Context())
     condition.reset()
     assert condition.step == 0
 
 
 def test_periodic_condition_step_does_not_advance() -> None:
     condition = PeriodicCondition(2)
-    condition()
+    condition(Context())
     _ = condition.step
-    assert not condition()
+    assert not condition(Context())
 
 
 def test_periodic_condition_step_is_read_only() -> None:
@@ -239,12 +251,12 @@ def test_periodic_condition_step_is_read_only() -> None:
         condition.step = 1
 
 
-def always_true() -> bool:
+def always_true(_: Context) -> bool:
     r"""Implement a condition that is ``True``."""
     return True
 
 
-def always_false() -> bool:
+def always_false(_: Context) -> bool:
     r"""Implement a condition that is ``False``."""
     return False
 
@@ -256,7 +268,7 @@ def always_false() -> bool:
 
 def test_periodic_condition_getstate() -> None:
     condition = PeriodicCondition(3, start=2)
-    condition()
+    condition(Context())
     assert condition.__getstate__() == {"_step": 1, "_freq": 3, "_start": 2}
 
 
@@ -282,7 +294,7 @@ def test_periodic_condition_setstate_creates_a_new_lock() -> None:
 @pytest.mark.parametrize("protocol", range(pickle.HIGHEST_PROTOCOL + 1))
 def test_periodic_condition_pickle(protocol: int) -> None:
     condition = PeriodicCondition(3, start=2)
-    condition()
+    condition(Context())
     clone = pickle.loads(pickle.dumps(condition, protocol))  # noqa: S301
     assert repr(clone) == "PeriodicCondition(freq=3, start=2, step=1)"
 
@@ -290,7 +302,7 @@ def test_periodic_condition_pickle(protocol: int) -> None:
 @pytest.mark.parametrize("copier", [copy.copy, copy.deepcopy])
 def test_periodic_condition_copy_starts_at_the_same_step(copier: Callable[[Any], Any]) -> None:
     condition = PeriodicCondition(3)
-    condition()
+    condition(Context())
     assert repr(copier(condition)) == "PeriodicCondition(freq=3, start=0, step=1)"
 
 
@@ -300,7 +312,7 @@ def test_periodic_condition_copy_has_an_independent_counter(
 ) -> None:
     condition = PeriodicCondition(3)
     clone = copier(condition)
-    clone()
+    clone(Context())
     assert repr(condition) == "PeriodicCondition(freq=3, start=0, step=0)"
 
 

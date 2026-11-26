@@ -20,14 +20,14 @@ NUM_ITERATIONS = 50
 
 def test_handlers_read_different_keys() -> None:
     """Test that handlers of one event read different keys of the same
-    trigger, and that a handler without parameter still runs."""
+    trigger, and that a handler that ignores the context runs too."""
     manager = EventManager()
     calls: list[tuple[str, object]] = []
     manager.add_event_handler(
         "epoch_end", lambda context: calls.append(("epoch", context["epoch"]))
     )
     manager.add_event_handler("epoch_end", lambda context: calls.append(("loss", context["loss"])))
-    manager.add_event_handler("epoch_end", lambda: calls.append(("none", None)))
+    manager.add_event_handler("epoch_end", lambda _: calls.append(("none", None)))
     manager.trigger_event("epoch_end", {"epoch": 3, "loss": 0.5, "lr": 0.1})
     assert calls == [("epoch", 3), ("loss", 0.5), ("none", None)]
 
@@ -80,7 +80,7 @@ def test_missing_key_with_getitem_raises_key_error_and_skips_next_handlers() -> 
     manager = EventManager()
     calls: list[str] = []
     manager.add_event_handler("epoch_end", lambda context: calls.append(str(context["lr"])))
-    manager.add_event_handler("epoch_end", lambda: calls.append("next"))
+    manager.add_event_handler("epoch_end", lambda _: calls.append("next"))
     with pytest.raises(KeyError, match=r"key 'lr' not found.*\['epoch'\]"):
         manager.trigger_event("epoch_end", {"epoch": 3})
     assert calls == []
@@ -113,7 +113,7 @@ def test_frozen_exception_of_a_handler_reaches_the_caller() -> None:
     manager = EventManager()
     error = FrozenError("lr")
 
-    async def handler() -> None:
+    async def handler(_: Context) -> None:
         await asyncio.sleep(0)
         raise error
 
@@ -131,7 +131,7 @@ def test_missing_key_in_a_condition_adds_a_note_that_names_the_condition() -> No
     def is_late(context: Context) -> bool:
         return context["epoch"] > 2
 
-    def log_epoch() -> None:
+    def log_epoch(_: Context) -> None:
         pass
 
     manager.add_event_handler("epoch_end", log_epoch, condition=is_late)
@@ -156,7 +156,7 @@ def test_async_condition_is_rejected_at_registration() -> None:
 
     condition: Any = functools.partial(Schedule().is_late, 2)
     with pytest.raises(TypeError, match=r"^condition must be synchronous, but got .*is_late$"):
-        manager.add_event_handler("epoch_end", lambda: None, condition=condition)
+        manager.add_event_handler("epoch_end", lambda _: None, condition=condition)
     assert manager.events == []
 
 
@@ -186,20 +186,21 @@ def test_builtin_bound_method_receives_the_context() -> None:
     assert contexts == [{"epoch": 3}]
 
 
-def test_builtin_bound_method_without_parameter_is_called_without_argument() -> None:
-    """Test that a built-in bound method without parameter is called
-    without argument."""
+def test_builtin_bound_method_without_parameter_is_rejected() -> None:
+    """Test that a built-in bound method without parameter is rejected
+    at registration."""
     manager = EventManager()
     values = [1, 2]
-    manager.add_event_handler("epoch_end", values.clear)
-    manager.trigger_event("epoch_end", {"epoch": 3})
-    assert values == []
+    clear: Any = values.clear
+    with pytest.raises(TypeError, match=r"^handler list.clear must take the context"):
+        manager.add_event_handler("epoch_end", clear)
+    assert manager.events == []
 
 
 def test_atrigger_event_passes_the_context_to_sync_and_async_handlers() -> None:
     """Test that ``atrigger_event`` passes the same context to
-    synchronous and coroutine handlers, and calls a handler without
-    parameter without argument."""
+    synchronous and coroutine handlers, including one that ignores
+    it."""
     manager = EventManager()
     calls: list[tuple[str, object]] = []
 
@@ -209,7 +210,7 @@ def test_atrigger_event_passes_the_context_to_sync_and_async_handlers() -> None:
 
     manager.add_event_handler("epoch_end", lambda context: calls.append(("sync", context["loss"])))
     manager.add_event_handler("epoch_end", read_epoch)
-    manager.add_event_handler("epoch_end", lambda: calls.append(("none", None)))
+    manager.add_event_handler("epoch_end", lambda _: calls.append(("none", None)))
     asyncio.run(manager.atrigger_event("epoch_end", {"epoch": 3, "loss": 0.5}))
     assert calls == [("sync", 0.5), ("async", 3), ("none", None)]
 
@@ -303,9 +304,8 @@ def test_atrigger_event_from_threads() -> None:
 
 
 def test_condition_reads_the_payload() -> None:
-    """Test that a condition with a parameter decides from the payload
-    of each trigger, and that a condition without parameter still
-    works."""
+    """Test that a condition decides from the payload of each trigger,
+    and that a condition that ignores it works too."""
     manager = EventManager()
     calls: list[str] = []
     manager.add_event_handler(
@@ -313,7 +313,9 @@ def test_condition_reads_the_payload() -> None:
         lambda context: calls.append(f"late {context['epoch']}"),
         condition=lambda context: context.get("epoch", 0) >= 2,
     )
-    manager.add_event_handler("epoch_end", lambda: calls.append("always"), condition=lambda: True)
+    manager.add_event_handler(
+        "epoch_end", lambda _: calls.append("always"), condition=lambda _: True
+    )
     for epoch in range(3):
         manager.trigger_event("epoch_end", {"epoch": epoch})
     assert calls == ["always", "always", "late 2", "always"]
@@ -341,7 +343,7 @@ def test_condition_reads_the_payload_with_atrigger_event() -> None:
     manager = EventManager()
     calls: list[str] = []
     manager.add_event_handler(
-        "epoch_end", lambda: calls.append("run"), condition=lambda context: context["go"]
+        "epoch_end", lambda _: calls.append("run"), condition=lambda context: context["go"]
     )
     asyncio.run(manager.atrigger_event("epoch_end", {"go": False}))
     asyncio.run(manager.atrigger_event("epoch_end", {"go": True}))
@@ -355,7 +357,7 @@ def test_condition_reads_the_payload_from_threads() -> None:
     calls: list[int] = []
     lock = threading.Lock()
 
-    def record() -> None:
+    def record(_: Context) -> None:
         with lock:
             calls.append(1)
 

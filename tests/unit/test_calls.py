@@ -14,10 +14,10 @@ from unittest.mock import AsyncMock, Mock, create_autospec
 
 import pytest
 
-from minevent import Context, calls
+from minevent import Context, PeriodicCondition, calls
 from minevent.calls import (
-    adapt_call,
     add_error_note,
+    check_signature,
     describe,
     describe_event,
     has_kind,
@@ -38,7 +38,6 @@ from tests.unit.handlers import (
     condition_returning_a_coroutine,
     fail,
     generator_handler,
-    hello_handler,
     named_handler,
     noop_handler,
     payload_handler,
@@ -56,7 +55,7 @@ logger = logging.getLogger(__name__)
 
 
 class CallableObject:
-    def __call__(self) -> None:
+    def __call__(self, _: Context) -> None:
         r"""Implement a callable without a name."""
 
 
@@ -120,10 +119,6 @@ def context_and_var_positional_handler(context: Context, *args: object) -> None:
     logger.info("context %s %s", context, args)
 
 
-async def async_no_parameter_handler() -> None:
-    r"""Implement a coroutine handler without parameter."""
-
-
 async def async_context_handler(context: Context) -> None:
     r"""Implement a coroutine handler that receives the context."""
 
@@ -133,7 +128,7 @@ def generator_context_handler(context: Context) -> Iterator[Context]:
     yield context
 
 
-async def async_generator_handler() -> AsyncIterator[None]:
+async def async_generator_handler(_: Context) -> AsyncIterator[None]:
     r"""Implement an async generator handler."""
     yield
 
@@ -153,30 +148,17 @@ class UninspectableCallable:
         r"""Implement a handler."""
 
 
-################################
-#     Tests for adapt_call     #
-################################
+#####################################
+#     Tests for check_signature     #
+#####################################
 
 
-@pytest.mark.parametrize(
-    "func",
-    [
-        hello_handler,
-        ModelStandIn().train,
-        lambda i=1: i,
-        keyword_default_handler,
-        functools.partial(keyword_default_handler, value=2),
-        default_handler,
-        functools.partial(positional_handler, Context()),
-        functools.partial(positional_handler, context=Context()),
-        CustomCondition(),
-        ModelStandIn,
-        async_no_parameter_handler,
-        create_autospec(noop_handler),
-    ],
-)
-def test_adapt_call_no_argument(func: Callable[..., object]) -> None:
-    assert adapt_call(func, "handler") is not func
+def no_parameter_handler() -> None:
+    r"""Implement a handler without parameter."""
+
+
+async def async_no_parameter_handler() -> None:
+    r"""Implement a coroutine handler without parameter."""
 
 
 @pytest.mark.parametrize(
@@ -184,55 +166,40 @@ def test_adapt_call_no_argument(func: Callable[..., object]) -> None:
     [
         positional_handler,
         positional_only_handler,
+        noop_handler,
         context_then_default_handler,
         context_then_keyword_default_handler,
         lambda context: context,
-        lambda context, i=1: (context, i),
+        lambda _, i=1: i,
         CallableRecorder([]),
         CallableRecorder,
+        CustomCondition(),
+        PeriodicCondition(3),
         functools.partial(named_handler, "John"),
         async_context_handler,
         wrapping_handler,
         create_autospec(read_epoch),
     ],
 )
-def test_adapt_call_one_argument(func: Callable[..., object]) -> None:
-    assert adapt_call(func, "handler") is func
-
-
-def test_adapt_call_calls_without_argument() -> None:
-    func = create_autospec(noop_handler)
-    adapt_call(func, "handler")(Context({"a": 1}))
-    func.assert_called_once_with()
-
-
-def test_adapt_call_does_not_fill_a_default() -> None:
-    assert adapt_call(lambda i=1: i, "handler")(Context({"a": 1})) == 1
-
-
-def test_adapt_call_calls_with_the_context_object() -> None:
-    context = Context({"a": 1})
-    assert adapt_call(lambda context: context, "handler")(context) is context
-
-
-@pytest.mark.parametrize("func", [lambda: "called", lambda _context: "called"])
-def test_adapt_call_returns_the_result(func: Callable[..., object]) -> None:
-    assert adapt_call(func, "handler")(Context()) == "called"
-
-
-def test_adapt_call_does_not_call_func() -> None:
-    func = create_autospec(noop_handler)
-    adapt_call(func, "handler")
-    assert func.call_count == 0
-
-
-def test_adapt_call_propagates_the_exception_of_func() -> None:
-    adapted = adapt_call(fail, "handler")
-    with pytest.raises(ValueError, match=r"boom"):
-        adapted(Context())
+def test_check_signature_accepted(func: Callable[..., object]) -> None:
+    assert check_signature(func, "handler") is None
 
 
 REJECTED_SIGNATURES = [
+    # No parameter.
+    no_parameter_handler,
+    async_no_parameter_handler,
+    ModelStandIn,
+    create_autospec(no_parameter_handler),
+    # Only parameters with a default.
+    default_handler,
+    keyword_default_handler,
+    ModelStandIn().train,
+    lambda i=1: i,
+    functools.partial(positional_handler, context=Context()),
+    # No parameter left.
+    functools.partial(positional_handler, Context()),
+    # ``*args`` and ``**kwargs``.
     var_positional_handler,
     var_keyword_handler,
     var_handler,
@@ -241,9 +208,11 @@ REJECTED_SIGNATURES = [
     functools.partial(print, "Hello!"),
     Mock(),
     AsyncMock(),
+    # Cannot be inspected.
     max,
     dict.update,
     UninspectableCallable(),
+    # Two required parameters, or a required keyword-only parameter.
     named_handler,
     keyword_only_handler,
     context_and_keyword_only_handler,
@@ -252,9 +221,17 @@ REJECTED_SIGNATURES = [
 
 
 @pytest.mark.parametrize("func", REJECTED_SIGNATURES)
-def test_adapt_call_rejected_signature(func: Callable[..., object]) -> None:
-    with pytest.raises(TypeError, match=r"^handler .+ must need no argument or only the context"):
-        adapt_call(func, "handler")
+def test_check_signature_rejected(func: Callable[..., object]) -> None:
+    with pytest.raises(
+        TypeError, match=r"^handler .+ must take the context as its only required argument"
+    ):
+        check_signature(func, "handler")
+
+
+def test_check_signature_does_not_call_func() -> None:
+    func = create_autospec(read_epoch)
+    check_signature(func, "handler")
+    assert func.call_count == 0
 
 
 @pytest.mark.parametrize(
@@ -270,55 +247,51 @@ def test_adapt_call_rejected_signature(func: Callable[..., object]) -> None:
         functools.partial(GeneratorObject()),
     ],
 )
-def test_adapt_call_generator_function(func: Callable[..., object]) -> None:
+def test_check_signature_generator_function(func: Callable[..., object]) -> None:
     with pytest.raises(TypeError, match=r"^handler must not be a generator function, but got"):
-        adapt_call(func, "handler")
+        check_signature(func, "handler")
 
 
-def test_adapt_call_error_names_the_argument_and_the_function() -> None:
+def test_check_signature_error_names_the_argument_and_the_function() -> None:
     with pytest.raises(
         TypeError,
-        match=r"^condition named_handler must need no argument or only the context; "
+        match=r"^condition named_handler must take the context as its only required argument; "
         r"wrap it in a function or a lambda$",
     ):
-        adapt_call(named_handler, "condition")
+        check_signature(named_handler, "condition")
 
 
-def test_adapt_call_generator_error_names_the_argument_and_the_function() -> None:
+def test_check_signature_generator_error_names_the_argument_and_the_function() -> None:
     with pytest.raises(
         TypeError,
         match=r"^condition must not be a generator function, but got generator_handler$",
     ):
-        adapt_call(generator_handler, "condition")
+        check_signature(generator_handler, "condition")
 
 
-def test_adapt_call_error_ignores_repr_of_bound_arguments() -> None:
+def test_check_signature_error_ignores_repr_of_bound_arguments() -> None:
     func = functools.partial(var_positional_handler, BadReprCallable())
-    with pytest.raises(TypeError, match=r"^handler var_positional_handler must need"):
-        adapt_call(func, "handler")
+    with pytest.raises(TypeError, match=r"^handler var_positional_handler must take"):
+        check_signature(func, "handler")
 
 
-def test_adapt_call_uninspectable_error_has_the_cause() -> None:
-    with pytest.raises(TypeError, match=r"must need no argument or only the context") as exc_info:
-        adapt_call(UninspectableCallable(), "handler")
+def test_check_signature_uninspectable_error_has_the_cause() -> None:
+    with pytest.raises(
+        TypeError, match=r"must take the context as its only required argument"
+    ) as exc_info:
+        check_signature(UninspectableCallable(), "handler")
     assert isinstance(exc_info.value.__cause__, TypeError)
 
 
 @requires_lazy_annotations
-def test_adapt_call_unresolved_return_annotation(tmp_path: Path) -> None:
-    func = unresolved_function(tmp_path, "no_parameter")
-    assert adapt_call(func, "handler") is not func
+@pytest.mark.parametrize("name", ["unresolved_return", "unresolved_parameter"])
+def test_check_signature_unresolved_annotation(tmp_path: Path, name: str) -> None:
+    assert check_signature(unresolved_function(tmp_path, name), "handler") is None
 
 
-@requires_lazy_annotations
-def test_adapt_call_unresolved_parameter_annotation(tmp_path: Path) -> None:
-    func = unresolved_function(tmp_path, "one_parameter")
-    assert adapt_call(func, "handler") is func
-
-
-def test_adapt_call_before_python_3_14(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_check_signature_before_python_3_14(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(sys, "version_info", (3, 13, 0))
-    assert adapt_call(positional_handler, "handler") is positional_handler
+    assert check_signature(positional_handler, "handler") is None
 
 
 def test_calls_does_not_import_annotationlib_before_python_3_14(
@@ -394,8 +367,8 @@ def mark_coroutine_function(func: Callable[..., object]) -> None:
 
 @pytest.mark.skipif(sys.version_info < (3, 12), reason="markcoroutinefunction is new in 3.12")
 def test_has_kind_marked_coroutine_function() -> None:
-    def func() -> object:
-        return async_condition()
+    def func(context: Context) -> object:
+        return async_condition(context)
 
     mark_coroutine_function(func)
     assert has_kind(func, inspect.iscoroutinefunction)
@@ -476,11 +449,11 @@ def test_reject_awaitable_value(result: object) -> None:
 
 def test_reject_awaitable_coroutine_raises() -> None:
     with pytest.raises(TypeError, match=r"^func returned an awaitable$"):
-        reject_awaitable(async_no_parameter_handler(), "func returned an awaitable")
+        reject_awaitable(async_context_handler(Context()), "func returned an awaitable")
 
 
 def test_reject_awaitable_closes_the_coroutine() -> None:
-    coroutine = async_no_parameter_handler()
+    coroutine = async_context_handler(Context())
     with pytest.raises(TypeError, match=r"returned an awaitable"):
         reject_awaitable(coroutine, "func returned an awaitable")
     assert inspect.getcoroutinestate(coroutine) == "CORO_CLOSED"

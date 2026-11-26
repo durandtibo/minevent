@@ -46,7 +46,7 @@ Below is an example on how to use `minevent` library.
 >>> manager = EventManager()
 >>> say_something(manager)
 Hello, I am Bob!
->>> def hello_handler() -> None:
+>>> def hello_handler(_) -> None:
 ...     print("Hello!")
 >>> _ = manager.add_event_handler("after", hello_handler)
 >>> say_something(manager)
