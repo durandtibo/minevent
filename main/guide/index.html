@@ -776,6 +776,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#typeerror-once-must-be-a-bool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TypeError: once must be a bool
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#typeerror-eventmanager-cannot-be-copied-or-pickled" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1402,6 +1413,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#typeerror-once-must-be-a-bool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TypeError: once must be a bool
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#typeerror-eventmanager-cannot-be-copied-or-pickled" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1597,6 +1619,9 @@ Neither <code>trigger_event("epoch_end", epoch=1)</code> nor <code>trigger_event
 valid: write <code>trigger_event("epoch_end", {"epoch": 1})</code>.</p>
 <h3 id="typeerror-event-must-be-a-str"><code>TypeError: event must be a str</code><a class="headerlink" href="#typeerror-event-must-be-a-str" title="Permanent link">&para;</a></h3>
 <p>An event is a <code>str</code>, for example a <code>StrEnum</code> member. A member of a plain <code>Enum</code> is not.</p>
+<h3 id="typeerror-once-must-be-a-bool"><code>TypeError: once must be a bool</code><a class="headerlink" href="#typeerror-once-must-be-a-bool" title="Permanent link">&para;</a></h3>
+<p><code>once</code> is <code>True</code> or <code>False</code>. A value that is only truthy or falsy, such as <code>1</code> or the string
+<code>"False"</code>, is rejected: convert it first.</p>
 <h3 id="typeerror-eventmanager-cannot-be-copied-or-pickled"><code>TypeError: EventManager cannot be copied or pickled</code><a class="headerlink" href="#typeerror-eventmanager-cannot-be-copied-or-pickled" title="Permanent link">&para;</a></h3>
 <p>A manager, or an object that holds one, was copied or sent to another process. Create a new manager
 there and register the handlers, or exclude the manager from the state of the object.</p>

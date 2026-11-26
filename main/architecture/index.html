@@ -1425,8 +1425,8 @@ has the following members:</p>
 <h2 id="registration">Registration<a class="headerlink" href="#registration" title="Permanent link">&para;</a></h2>
 <p><code>add_event_handler</code> does the following, once:</p>
 <ol>
-<li>It checks that the event is a <code>str</code>, and that the handler and the condition (if any) are
-   callable.</li>
+<li>It checks that the event is a <code>str</code>, that the handler and the condition (if any) are callable,
+   and that <code>once</code> is a <code>bool</code> (not <code>1</code> or <code>"yes"</code>).</li>
 <li>It reads the signature of the handler and of the condition to decide how to call each of them
    (see <a href="#the-calling-rule">the calling rule</a>). It also rejects a generator function, and a
    coroutine function used as a condition. A callable object is judged by its <code>__call__</code>. It

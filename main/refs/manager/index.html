@@ -1764,11 +1764,11 @@ only.</p>
               <div class="doc-md-description">
                 <p>if <code>event</code> is not a string, if <code>handler</code> is not
 callable, if <code>condition</code> is neither <code>None</code> nor callable, if
-<code>handler</code> or <code>condition</code> is a generator function, needs
-another argument than the context, or has a signature that
-cannot be inspected, or if <code>condition</code> is a coroutine
-function. A callable object is judged by its <code>__call__</code>.
-The manager is unchanged.</p>
+<code>once</code> is not a <code>bool</code>, if <code>handler</code> or <code>condition</code> is
+a generator function, needs another argument than the context,
+or has a signature that cannot be inspected, or if
+<code>condition</code> is a coroutine function. A callable object is
+judged by its <code>__call__</code>. The manager is unchanged.</p>
               </div>
             </td>
           </tr>
@@ -2260,8 +2260,8 @@ and returned unchanged. Use <code>add_event_handler</code> if you need the
             <td>
               <div class="doc-md-description">
                 <p>if <code>event</code> is not a string, or, when the decorator is
-applied, if <code>add_event_handler</code> rejects the decorated object
-or the condition.</p>
+applied, if <code>add_event_handler</code> rejects the decorated object,
+<code>once</code> or the condition.</p>
               </div>
             </td>
           </tr>
