@@ -1724,8 +1724,9 @@ context comes first, without default.</p>
 <ul>
 <li><strong>Blocking.</strong> A synchronous handler in <code>atrigger_event</code> blocks the event loop.</li>
 <li><strong><code>StopIteration</code> in <code>atrigger_event</code>.</strong> A coroutine cannot raise it, so Python turns the one of a
-  handler or a condition into a <code>RuntimeError</code>, whose <code>__cause__</code> is the original exception and has
-  the note.</li>
+  handler or a condition into a <code>RuntimeError</code>, whose <code>__cause__</code> is the original exception. For a
+  synchronous handler or a condition, the note is on that <code>StopIteration</code>. A coroutine handler turns
+  its own <code>StopIteration</code> into the <code>RuntimeError</code>, so the note is on the <code>RuntimeError</code>.</li>
 <li><strong>The start of a coroutine.</strong> <code>atrigger_event</code> reads the registrations and copies the payload when
   its coroutine starts to run, not when it is created: a task sees a change made to the dict, or a
   handler added, before it starts. To fix the payload at the creation, give it a <code>Context</code>, which is

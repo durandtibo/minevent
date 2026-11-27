@@ -603,6 +603,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#look-at-the-registrations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Look at the registrations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#coroutine-handlers" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1007,6 +1018,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#look-at-the-registrations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Look at the registrations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#coroutine-handlers" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1178,6 +1200,21 @@ removes all the handlers:</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span>
 <span class="go">EventManager(events={})</span>
+</code></pre></div>
+<h2 id="look-at-the-registrations">Look at the registrations<a class="headerlink" href="#look-at-the-registrations" title="Permanent link">&para;</a></h2>
+<p><code>events</code> lists the events that have a handler, <code>in</code> tests one event, and <code>get_subscriptions</code> returns
+the registrations of an event, in the order they run:</p>
+<div class="highlight"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">minevent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">EventManager</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">log_epoch</span><span class="p">(</span><span class="n">_</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">"epoch"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span> <span class="o">=</span> <span class="n">EventManager</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">,</span> <span class="n">log_epoch</span><span class="p">,</span> <span class="n">once</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">events</span>
+<span class="go">['epoch_end']</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="s2">"batch_end"</span> <span class="ow">in</span> <span class="n">manager</span>
+<span class="go">False</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">manager</span><span class="o">.</span><span class="n">get_subscriptions</span><span class="p">(</span><span class="s2">"epoch_end"</span><span class="p">)</span>
+<span class="go">(Subscription(event='epoch_end', handler='log_epoch', once=True),)</span>
 </code></pre></div>
 <h2 id="coroutine-handlers">Coroutine handlers<a class="headerlink" href="#coroutine-handlers" title="Permanent link">&para;</a></h2>
 <p>Trigger an event with <code>atrigger_event</code> to await its coroutine handlers. It runs the synchronous

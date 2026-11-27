@@ -1539,6 +1539,7 @@
 <p>The names that <code>minevent</code> exports. Import them from the package, for example
 <code>from minevent import EventManager</code>. To see how they work together, read
 <a href="../architecture/">How It Works</a>.</p>
+<p>The package also exports <code>__version__</code>, the version of the installed package, as a <code>str</code>.</p>
 
 
 <div class="doc doc-object doc-module">
@@ -1635,6 +1636,10 @@ returns a boolean.</p>
     <div class="doc doc-contents ">
 
         <p>A handler: a function of the <code>Context</code> of the trigger.</p>
+<p>It can be synchronous or a coroutine function, which <code>atrigger_event</code>
+awaits. A trigger ignores the value that it returns, unless it is
+awaitable. The accepted signatures are the ones of
+<a href="https://durandtibo.github.io/minevent/main/architecture/#the-calling-rule">the calling rule</a>.</p>
 
     </div>
 
@@ -2011,7 +2016,9 @@ page.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The event names, in the order they were first registered.</p>
+                <p>The event names, in the order they were first registered. An
+event whose registrations were all removed counts as new
+when a handler is registered to it again.</p>
               </div>
             </td>
           </tr>
@@ -2274,7 +2281,9 @@ judged by its <code>__call__</code>. The manager is unchanged.</p>
 returns is awaited before the next handler. A synchronous handler
 blocks the event loop while it runs. The registrations and the context
 are read when the coroutine starts to run, not when it is created
-(see the "Limits" of the "How It Works" page of the documentation).</p>
+(see the
+<a href="https://durandtibo.github.io/minevent/main/architecture/#limits">limits</a>).
+Both arguments are positional-only.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -2355,8 +2364,9 @@ exception of a handler or a condition also propagates.</p>
               <div class="doc-md-description">
                 <p>if a handler or a condition raises a
 <code>StopIteration</code>: Python does not let a coroutine raise it.
-The <code>__cause__</code> of the error is the <code>StopIteration</code>, which
-has the note.</p>
+The <code>__cause__</code> of the error is the <code>StopIteration</code>. The
+<a href="https://durandtibo.github.io/minevent/main/architecture/#async-programs">limits</a>
+state which of the two has the note.</p>
               </div>
             </td>
           </tr>
@@ -2812,7 +2822,8 @@ an exception of a handler or a condition propagates unwrapped, with a
 note that says what raised it, and the next handlers are skipped.
 If one of the registrations has a coroutine function as handler (a
 callable object is judged by its <code>__call__</code>), the trigger is
-rejected before any condition or handler runs.</p>
+rejected before any condition or handler runs. Both arguments are
+positional-only.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -3020,7 +3031,9 @@ evaluates to <code>True</code>. Must be a positive integer.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>if <code>freq</code> or <code>start</code> is not an integer.</p>
+                <p>if <code>freq</code> or <code>start</code> is not an <code>int</code>. A
+<code>bool</code> is rejected, and so is an integer type that is not
+a subclass of <code>int</code>: convert it with <code>int</code>.</p>
               </div>
             </td>
           </tr>
@@ -3112,8 +3125,9 @@ lower than 0.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The number of calls between each <code>True</code> result. The
-condition evaluates to <code>True</code> every <code>freq</code> calls.</p>
+                <p>The period of the condition: from the call of index
+<code>start</code>, it evaluates to <code>True</code> on one call in
+<code>freq</code>.</p>
               </div>
             </td>
           </tr>

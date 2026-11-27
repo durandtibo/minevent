@@ -787,6 +787,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#typeerror-handler-must-be-callable-and-condition-must-be-callable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TypeError: handler must be callable and condition must be callable
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#typeerror-unhashable-type-context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TypeError: unhashable type: 'Context'
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#typeerror-must-take-the-context-as-its-only-required-argument" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1301,6 +1323,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#typeerror-handler-must-be-callable-and-condition-must-be-callable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TypeError: handler must be callable and condition must be callable
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#typeerror-unhashable-type-context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TypeError: unhashable type: 'Context'
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#typeerror-must-take-the-context-as-its-only-required-argument" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1484,6 +1528,14 @@ valid: write <code>trigger_event("epoch_end", {"epoch": 1})</code>.</p>
 <p>A manager or a subscription, or an object that holds one, was copied or sent to another process.
 Create a new manager there and register the handlers, or exclude the manager and the subscriptions
 from the state of the object.</p>
+<h3 id="typeerror-handler-must-be-callable-and-condition-must-be-callable"><code>TypeError: handler must be callable</code> and <code>condition must be callable</code><a class="headerlink" href="#typeerror-handler-must-be-callable-and-condition-must-be-callable" title="Permanent link">&para;</a></h3>
+<p>The value given is not a function. A frequent cause is a call at registration:
+<code>add_event_handler("epoch_end", save())</code> gives the result of <code>save</code>. Pass the function itself, or
+wrap the call in a lambda: <code>lambda _: save()</code>.</p>
+<h3 id="typeerror-unhashable-type-context"><code>TypeError: unhashable type: 'Context'</code><a class="headerlink" href="#typeerror-unhashable-type-context" title="Permanent link">&para;</a></h3>
+<p>The handler or the condition is cached with <code>functools.cache</code> or <code>functools.lru_cache</code>, which hash
+their arguments (see <a href="../architecture/#handlers-and-conditions">the limits</a>). Register a function that
+reads the values that it needs from the context, and passes them to the cached function.</p>
 <h3 id="typeerror-must-take-the-context-as-its-only-required-argument"><code>TypeError: ... must take the context as its only required argument</code><a class="headerlink" href="#typeerror-must-take-the-context-as-its-only-required-argument" title="Permanent link">&para;</a></h3>
 <p>The manager cannot call the handler or the condition as <code>f(context)</code>, for example a function without
 parameter, or <code>def f(context=None)</code>. Give it one parameter without default, wrap it in a function or
