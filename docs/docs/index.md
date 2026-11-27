@@ -63,6 +63,9 @@ Hello!
 | See what is registered                | [The registry](quickstart.md#look-at-the-registrations)                |
 | Use `async def` handlers              | [`atrigger_event`](quickstart.md#coroutine-handlers)                   |
 | Find which handler raised an error    | [The note of the exception](quickstart.md#errors)                      |
+| Stop a training early                 | [A handler that keeps a flag](examples.md#stop-a-training-early)       |
+| Keep going when a handler fails       | [A wrapper](examples.md#continue-after-a-handler-fails)                |
+| Test handlers and events              | [The recipes for tests](examples.md#tests)                             |
 
 `minevent` has no dependency and is fully typed. A handler is a plain callable, so it can be tested
 without the event manager, and there is no base class to extend. The library leaves out features

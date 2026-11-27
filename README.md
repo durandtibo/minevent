@@ -80,6 +80,36 @@ different API: see [Installation](#installation).
 
 ## Usage
 
+### Add behavior to a training loop
+
+The loop triggers events and knows nothing about the handlers. Logging and checkpointing are added
+by the code that calls it:
+
+```pycon
+>>> from minevent import EventManager, PeriodicCondition
+>>> def train(manager: EventManager, epochs: int) -> None:
+...     for epoch in range(epochs):
+...         loss = 1.0 / (epoch + 1)
+...         manager.trigger_event("epoch_end", {"epoch": epoch, "loss": loss})
+...     manager.trigger_event("training_end")
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler(
+...     "epoch_end", lambda context: print(f"epoch {context['epoch']}: loss={context['loss']}")
+... )
+>>> _ = manager.add_event_handler(
+...     "epoch_end", lambda _: print("checkpoint"), condition=PeriodicCondition(freq=2)
+... )
+>>> _ = manager.add_event_handler("training_end", lambda _: print("Training ended"))
+>>> train(manager, epochs=3)
+epoch 0: loss=1.0
+checkpoint
+epoch 1: loss=0.5
+epoch 2: loss=0.3333333333333333
+checkpoint
+Training ended
+
+```
+
 ### Register a handler and trigger an event
 
 ```pycon
@@ -144,6 +174,31 @@ EventManager(events={})
 
 ```
 
+### Look at the registrations
+
+`events` lists the events that have a handler, and `get_subscriptions` the registrations of one, in
+the order they run. `clear_event` removes the handlers of an event, and `reset` all of them:
+
+```pycon
+>>> from minevent import Context, EventManager
+>>> def save(_: Context) -> None:
+...     print("save")
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler("epoch_end", save)
+>>> _ = manager.add_event_handler("training_end", save, once=True)
+>>> manager.events
+['epoch_end', 'training_end']
+>>> manager.get_subscriptions("training_end")
+(Subscription(event='training_end', handler='save', once=True),)
+>>> manager.clear_event("epoch_end")
+>>> manager
+EventManager(events={'training_end': 1})
+>>> manager.reset()
+>>> manager
+EventManager(events={})
+
+```
+
 ### Await coroutine handlers
 
 `atrigger_event` awaits the coroutine handlers, one after the other, and runs the synchronous ones:
@@ -180,9 +235,18 @@ raised by log_loss while handling the event 'epoch_end'
 
 ```
 
+### More examples
+
 The [quickstart](https://durandtibo.github.io/minevent/main/quickstart/) shows each feature, and the
-[examples](https://durandtibo.github.io/minevent/main/examples/) combine them in training loops,
-plugins, async programs and tests.
+[examples](https://durandtibo.github.io/minevent/main/examples/) combine them, for example to:
+
+- [stop a training early](https://durandtibo.github.io/minevent/main/examples/#stop-a-training-early)
+- [resume a training](https://durandtibo.github.io/minevent/main/examples/#resume-a-training)
+- [name the events in one place](https://durandtibo.github.io/minevent/main/examples/#name-the-events-in-one-place)
+- [continue after a handler fails](https://durandtibo.github.io/minevent/main/examples/#continue-after-a-handler-fails)
+- [write a plugin](https://durandtibo.github.io/minevent/main/examples/#write-a-plugin)
+- [trigger events from an async function](https://durandtibo.github.io/minevent/main/examples/#trigger-events-from-an-async-function)
+- [test your handlers and events](https://durandtibo.github.io/minevent/main/examples/#tests)
 
 ## Documentation
 

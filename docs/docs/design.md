@@ -92,7 +92,8 @@ A handler acts through its effects: a trigger gives nothing back to the code tha
   and there is no rule to combine the results of several handlers.
 - **Costs**: a handler cannot answer the caller, for example to ask a training loop to stop.
 - **In practice**: share an object, in the payload or in a
-  [handler with a state](examples.md#keep-a-state-in-a-handler), and read it after the trigger.
+  [handler with a state](examples.md#keep-a-state-in-a-handler), and read it after the trigger, as in
+  [stop a training early](examples.md#stop-a-training-early).
 
 ### Conditions are synchronous
 
@@ -136,8 +137,8 @@ A `once` registration is removed after its condition and just before its handler
 - **Benefits**: the handler runs at most once, even with several threads, and a false condition
   keeps the registration for a later trigger.
 - **Costs**: a handler that raises is not retried.
-- **In practice**: for a retry, register without `once` and call `subscription.remove()` after the
-  success.
+- **In practice**: for a retry,
+  [remove the handler after it succeeds](examples.md#remove-a-handler-after-it-succeeds).
 
 ## Dispatch
 
@@ -163,7 +164,8 @@ removal applies immediately.
   visited, and a handler that registers another one cannot loop forever. A removed handler does not
   run any more, even if its own condition removed it.
 - **Costs**: a handler cannot extend the current dispatch.
-- **In practice**: trigger another event if some work must happen immediately.
+- **In practice**: [trigger another event](examples.md#trigger-an-event-from-a-handler) if some work
+  must happen immediately.
 
 ### A trigger stops at the first error
 
@@ -174,7 +176,9 @@ handlers are skipped.
   your code, and the dispatch has no error policy to configure.
 - **Costs**: one failing handler prevents the next ones from running, and there is no option to
   collect the errors into an `ExceptionGroup`.
-- **In practice**: catch in the handler the errors that must not stop the program.
+- **In practice**:
+  [catch in the handler](examples.md#continue-after-a-handler-fails) the errors that must not stop
+  the program.
 
 ### A synchronous trigger rejects coroutine handlers first
 
@@ -238,7 +242,7 @@ conflict. It also leaves out features that other event libraries have:
 | ----------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | Event objects with metadata               | Pass the data in the payload.                                                                    |
 | Priorities or ordering rules              | Register the handlers in the order they must run.                                                |
-| Hierarchy or wildcards of events          | Register the handler to each event.                                                              |
+| Hierarchy or wildcards of events          | [Register the handler to each event](examples.md#register-a-handler-to-several-events).          |
 | Weak references, filtering by sender      | Remove the subscriptions; filter with a condition.                                               |
-| Collecting the errors of several handlers | Catch the exceptions in the handlers.                                                            |
+| Collecting the errors of several handlers | [Catch the exceptions in the handlers](examples.md#continue-after-a-handler-fails).              |
 | Concurrent or background dispatch         | [Start the tasks or threads inside a handler](examples.md#start-background-work-from-a-handler). |

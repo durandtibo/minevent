@@ -14,7 +14,8 @@ This guide collects the recommendations and the troubleshooting tips for using `
   (`training.batch.end`). Names are only strings, so `minevent` has no notion of hierarchy.
 - Define the names in one place (constants or a `StrEnum`) to avoid typos: the events
   `"epoch_end"` and `"epoch-end"` are different, and triggering an event without handler does
-  nothing. A member of a plain `Enum` is not a `str`, so it is rejected.
+  nothing. A member of a plain `Enum` is not a `str`, so it is rejected (see
+  [Name the events in one place](examples.md#name-the-events-in-one-place)).
 
 ### Handlers and payload
 
@@ -26,7 +27,8 @@ This guide collects the recommendations and the troubleshooting tips for using `
   so that handlers with different needs can share an event.
 - Write `def f(_)` for a handler that ignores the context, and wrap an existing function in a lambda
   such as `lambda _: model.train()` (see [the calling rule](architecture.md#the-calling-rule)).
-- If the failure of a handler must not stop the program, catch the exception in the handler.
+- If the failure of a handler must not stop the program,
+  [catch the exception in the handler](examples.md#continue-after-a-handler-fails).
 - A synchronous handler that is slow blocks the caller (and the event loop in `atrigger_event`).
   Hand the work to an executor in the handler if the caller must not wait, and
   [return nothing](examples.md#start-background-work-from-a-handler).
@@ -106,8 +108,9 @@ An event is a `str`, for example a `StrEnum` member. A member of a plain `Enum` 
 ### `TypeError: EventManager cannot be copied or pickled` and `Subscription cannot be ...`
 
 A manager or a subscription, or an object that holds one, was copied or sent to another process.
-Create a new manager there and register the handlers, or exclude the manager and the subscriptions
-from the state of the object.
+Create a new manager there and register the handlers, or
+[exclude the manager and the subscriptions](examples.md#copy-an-object-that-holds-a-manager) from the
+state of the object.
 
 ### `TypeError: handler must be callable` and `condition must be callable`
 
