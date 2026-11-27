@@ -1106,10 +1106,12 @@ the <a href="https://docs.astral.sh/uv/getting-started/installation/">official i
 <h3 id="install-the-dependencies">Install the dependencies<a class="headerlink" href="#install-the-dependencies" title="Permanent link">&para;</a></h3>
 <p>Create the virtual environment <code>.venv</code> with the package (in editable mode) and its development
 dependencies, then activate it:</p>
-<div class="highlight"><pre><span></span><code>uv<span class="w"> </span>sync<span class="w"> </span>--python<span class="w"> </span><span class="m">3</span>.13
+<div class="highlight"><pre><span></span><code>uv<span class="w"> </span>sync<span class="w"> </span>--python<span class="w"> </span><span class="m">3</span>.14
 <span class="nb">source</span><span class="w"> </span>.venv/bin/activate
 </code></pre></div>
-<p>To also install the documentation dependencies, use <code>uv sync --python 3.13 --group docs</code>.</p>
+<p>To also install the documentation dependencies, use <code>uv sync --python 3.14 --group docs</code>. An older
+supported Python works too, but <code>lint-imports</code>, which a <code>pre-commit</code> hook runs, is only installed
+on Python 3.14 and later.</p>
 <p>Once the environment is activated, <code>inv env.install</code> installs the dependencies again, and
 <code>inv env.update</code> updates them. <code>inv --list</code> shows all the tasks.</p>
 <h3 id="verify-the-installation">Verify the installation<a class="headerlink" href="#verify-the-installation" title="Permanent link">&para;</a></h3>

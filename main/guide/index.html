@@ -1448,7 +1448,8 @@
   (<code>training.batch.end</code>). Names are only strings, so <code>minevent</code> has no notion of hierarchy.</li>
 <li>Define the names in one place (constants or a <code>StrEnum</code>) to avoid typos: the events
   <code>"epoch_end"</code> and <code>"epoch-end"</code> are different, and triggering an event without handler does
-  nothing. A member of a plain <code>Enum</code> is not a <code>str</code>, so it is rejected.</li>
+  nothing. A member of a plain <code>Enum</code> is not a <code>str</code>, so it is rejected (see
+  <a href="../examples/#name-the-events-in-one-place">Name the events in one place</a>).</li>
 </ul>
 <h3 id="handlers-and-payload">Handlers and payload<a class="headerlink" href="#handlers-and-payload" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1460,7 +1461,8 @@
   so that handlers with different needs can share an event.</li>
 <li>Write <code>def f(_)</code> for a handler that ignores the context, and wrap an existing function in a lambda
   such as <code>lambda _: model.train()</code> (see <a href="../architecture/#the-calling-rule">the calling rule</a>).</li>
-<li>If the failure of a handler must not stop the program, catch the exception in the handler.</li>
+<li>If the failure of a handler must not stop the program,
+  <a href="../examples/#continue-after-a-handler-fails">catch the exception in the handler</a>.</li>
 <li>A synchronous handler that is slow blocks the caller (and the event loop in <code>atrigger_event</code>).
   Hand the work to an executor in the handler if the caller must not wait, and
   <a href="../examples/#start-background-work-from-a-handler">return nothing</a>.</li>
@@ -1526,8 +1528,9 @@ valid: write <code>trigger_event("epoch_end", {"epoch": 1})</code>.</p>
 <code>"False"</code>, is rejected: convert it first.</p>
 <h3 id="typeerror-eventmanager-cannot-be-copied-or-pickled-and-subscription-cannot-be"><code>TypeError: EventManager cannot be copied or pickled</code> and <code>Subscription cannot be ...</code><a class="headerlink" href="#typeerror-eventmanager-cannot-be-copied-or-pickled-and-subscription-cannot-be" title="Permanent link">&para;</a></h3>
 <p>A manager or a subscription, or an object that holds one, was copied or sent to another process.
-Create a new manager there and register the handlers, or exclude the manager and the subscriptions
-from the state of the object.</p>
+Create a new manager there and register the handlers, or
+<a href="../examples/#copy-an-object-that-holds-a-manager">exclude the manager and the subscriptions</a> from the
+state of the object.</p>
 <h3 id="typeerror-handler-must-be-callable-and-condition-must-be-callable"><code>TypeError: handler must be callable</code> and <code>condition must be callable</code><a class="headerlink" href="#typeerror-handler-must-be-callable-and-condition-must-be-callable" title="Permanent link">&para;</a></h3>
 <p>The value given is not a function. A frequent cause is a call at registration:
 <code>add_event_handler("epoch_end", save())</code> gives the result of <code>save</code>. Pass the function itself, or

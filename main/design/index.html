@@ -1597,7 +1597,8 @@ registration.</p>
   and there is no rule to combine the results of several handlers.</li>
 <li><strong>Costs</strong>: a handler cannot answer the caller, for example to ask a training loop to stop.</li>
 <li><strong>In practice</strong>: share an object, in the payload or in a
-  <a href="../examples/#keep-a-state-in-a-handler">handler with a state</a>, and read it after the trigger.</li>
+  <a href="../examples/#keep-a-state-in-a-handler">handler with a state</a>, and read it after the trigger, as in
+  <a href="../examples/#stop-a-training-early">stop a training early</a>.</li>
 </ul>
 <h3 id="conditions-are-synchronous">Conditions are synchronous<a class="headerlink" href="#conditions-are-synchronous" title="Permanent link">&para;</a></h3>
 <p>A condition is a plain function, never a coroutine function.</p>
@@ -1636,8 +1637,8 @@ comparing callables.</p>
 <li><strong>Benefits</strong>: the handler runs at most once, even with several threads, and a false condition
   keeps the registration for a later trigger.</li>
 <li><strong>Costs</strong>: a handler that raises is not retried.</li>
-<li><strong>In practice</strong>: for a retry, register without <code>once</code> and call <code>subscription.remove()</code> after the
-  success.</li>
+<li><strong>In practice</strong>: for a retry,
+  <a href="../examples/#remove-a-handler-after-it-succeeds">remove the handler after it succeeds</a>.</li>
 </ul>
 <h2 id="dispatch">Dispatch<a class="headerlink" href="#dispatch" title="Permanent link">&para;</a></h2>
 <h3 id="handlers-run-one-after-the-other">Handlers run one after the other<a class="headerlink" href="#handlers-run-one-after-the-other" title="Permanent link">&para;</a></h3>
@@ -1660,7 +1661,8 @@ removal applies immediately.</p>
   visited, and a handler that registers another one cannot loop forever. A removed handler does not
   run any more, even if its own condition removed it.</li>
 <li><strong>Costs</strong>: a handler cannot extend the current dispatch.</li>
-<li><strong>In practice</strong>: trigger another event if some work must happen immediately.</li>
+<li><strong>In practice</strong>: <a href="../examples/#trigger-an-event-from-a-handler">trigger another event</a> if some work
+  must happen immediately.</li>
 </ul>
 <h3 id="a-trigger-stops-at-the-first-error">A trigger stops at the first error<a class="headerlink" href="#a-trigger-stops-at-the-first-error" title="Permanent link">&para;</a></h3>
 <p>An exception of a handler or a condition reaches the caller unchanged, with a note, and the next
@@ -1670,7 +1672,9 @@ handlers are skipped.</p>
   your code, and the dispatch has no error policy to configure.</li>
 <li><strong>Costs</strong>: one failing handler prevents the next ones from running, and there is no option to
   collect the errors into an <code>ExceptionGroup</code>.</li>
-<li><strong>In practice</strong>: catch in the handler the errors that must not stop the program.</li>
+<li><strong>In practice</strong>:
+  <a href="../examples/#continue-after-a-handler-fails">catch in the handler</a> the errors that must not stop
+  the program.</li>
 </ul>
 <h3 id="a-synchronous-trigger-rejects-coroutine-handlers-first">A synchronous trigger rejects coroutine handlers first<a class="headerlink" href="#a-synchronous-trigger-rejects-coroutine-handlers-first" title="Permanent link">&para;</a></h3>
 <p><code>trigger_event</code> looks for a coroutine function among the handlers before it runs anything.</p>
@@ -1740,7 +1744,7 @@ conflict. It also leaves out features that other event libraries have:</p>
 </tr>
 <tr>
 <td>Hierarchy or wildcards of events</td>
-<td>Register the handler to each event.</td>
+<td><a href="../examples/#register-a-handler-to-several-events">Register the handler to each event</a>.</td>
 </tr>
 <tr>
 <td>Weak references, filtering by sender</td>
@@ -1748,7 +1752,7 @@ conflict. It also leaves out features that other event libraries have:</p>
 </tr>
 <tr>
 <td>Collecting the errors of several handlers</td>
-<td>Catch the exceptions in the handlers.</td>
+<td><a href="../examples/#continue-after-a-handler-fails">Catch the exceptions in the handlers</a>.</td>
 </tr>
 <tr>
 <td>Concurrent or background dispatch</td>
