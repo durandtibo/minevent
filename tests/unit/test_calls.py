@@ -55,6 +55,8 @@ logger = logging.getLogger(__name__)
 
 
 class CallableObject:
+    r"""Implement a callable object, which has no name of its own."""
+
     def __call__(self, _: Context) -> None:
         r"""Implement a callable without a name."""
 

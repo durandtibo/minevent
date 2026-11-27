@@ -82,7 +82,9 @@ class PeriodicCondition:
             ``0``.
 
     Raises:
-        TypeError: if ``freq`` or ``start`` is not an integer.
+        TypeError: if ``freq`` or ``start`` is not an ``int``. A
+            ``bool`` is rejected, and so is an integer type that is not
+            a subclass of ``int``: convert it with ``int``.
         ValueError: if ``freq`` is lower than 1, or if ``start`` is
             lower than 0.
 
@@ -150,8 +152,9 @@ class PeriodicCondition:
         r"""Get the frequency of the periodic condition.
 
         Returns:
-            The number of calls between each ``True`` result. The
-                condition evaluates to ``True`` every ``freq`` calls.
+            The period of the condition: from the call of index
+                ``start``, it evaluates to ``True`` on one call in
+                ``freq``.
 
         Example:
             ```pycon

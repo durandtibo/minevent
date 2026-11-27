@@ -77,7 +77,7 @@ jobs:
       contents: read
     uses: ./.github/workflows/ci-format.yaml
 
-  # Check type annotations with ty
+  # Check type annotations with ty and pyright
   type-checking:
     permissions:
       contents: read

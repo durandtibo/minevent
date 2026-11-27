@@ -41,7 +41,13 @@ _EVENT_REPR = reprlib.Repr()
 _EVENT_REPR.maxstring = _EVENT_REPR.maxother = 200
 
 Handler = Callable[[Context], object]
-"""A handler: a function of the ``Context`` of the trigger."""
+"""A handler: a function of the ``Context`` of the trigger.
+
+It can be synchronous or a coroutine function, which ``atrigger_event``
+awaits. A trigger ignores the value that it returns, unless it is
+awaitable. The accepted signatures are the ones of
+[the calling rule](https://durandtibo.github.io/minevent/main/architecture/#the-calling-rule).
+"""
 
 
 def validate_signature(func: Callable[..., object], name: str) -> None:
