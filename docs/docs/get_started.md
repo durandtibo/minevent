@@ -61,11 +61,13 @@ Create the virtual environment `.venv` with the package (in editable mode) and i
 dependencies, then activate it:
 
 ```shell
-uv sync --python 3.13
+uv sync --python 3.14
 source .venv/bin/activate
 ```
 
-To also install the documentation dependencies, use `uv sync --python 3.13 --group docs`.
+To also install the documentation dependencies, use `uv sync --python 3.14 --group docs`. An older
+supported Python works too, but `lint-imports`, which a `pre-commit` hook runs, is only installed
+on Python 3.14 and later.
 
 Once the environment is activated, `inv env.install` installs the dependencies again, and
 `inv env.update` updates them. `inv --list` shows all the tasks.

@@ -47,6 +47,22 @@ We actively welcome your pull requests.
    make lint
    ```
 
+## Documentation
+
+The pages are in `docs/docs/`, and `docs/mkdocs.yml` lists them. The reference page is generated
+from the docstrings. To preview the pages while you edit them, or to build them as the CI does, which
+fails on a broken link or anchor (both need the docs dependencies):
+
+```shell
+source .venv/bin/activate && inv doc.serve
+source .venv/bin/activate && inv doc.build
+```
+
+`inv test.doctest` runs the `pycon` examples of the docstrings and of the Markdown files, so write an
+example as a `pycon` block whenever it can run. A `python` block is not run: check it yourself.
+
+State a rule on one page, and link to it from the other pages and from the docstrings.
+
 ## Issues
 
 We use GitHub issues to track public bugs or feature requests.

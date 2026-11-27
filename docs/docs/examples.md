@@ -140,6 +140,105 @@ checkpoint at epoch 12
 
 ```
 
+### Stop a training early
+
+A trigger returns nothing, so a handler answers the loop through an object that both can read. Here
+the handler keeps a flag, and the loop reads it after the trigger:
+
+```pycon
+>>> from minevent import Context, EventManager
+>>> class EarlyStopping:
+...     def __init__(self, patience: int) -> None:
+...         self.patience = patience
+...         self.best = float("inf")
+...         self.bad_epochs = 0
+...
+...     def __call__(self, context: Context) -> None:
+...         if context["loss"] < self.best:
+...             self.best, self.bad_epochs = context["loss"], 0
+...         else:
+...             self.bad_epochs += 1
+...
+...     @property
+...     def should_stop(self) -> bool:
+...         return self.bad_epochs >= self.patience
+>>> manager = EventManager()
+>>> stopping = EarlyStopping(patience=2)
+>>> _ = manager.add_event_handler("epoch_end", stopping)
+>>> for epoch, loss in enumerate([0.9, 0.6, 0.7, 0.8, 0.5]):
+...     manager.trigger_event("epoch_end", {"epoch": epoch, "loss": loss})
+...     if stopping.should_stop:
+...         print(f"stop after epoch {epoch}")
+...         break
+stop after epoch 3
+
+```
+
+### Time each epoch
+
+An object can register several of its methods, which share its state. The clock is an argument, so
+the example (and a test) can give a fake one:
+
+```pycon
+>>> import time
+>>> from collections.abc import Callable
+>>> from minevent import Context, EventManager
+>>> class EpochTimer:
+...     def __init__(self, clock: Callable[[], float] = time.perf_counter) -> None:
+...         self.clock = clock
+...         self.durations = []
+...
+...     def start(self, _: Context) -> None:
+...         self.started = self.clock()
+...
+...     def stop(self, _: Context) -> None:
+...         self.durations.append(self.clock() - self.started)
+>>> timer = EpochTimer(clock=iter([0.0, 2.0, 10.0, 13.0]).__next__)
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler("epoch_start", timer.start)
+>>> _ = manager.add_event_handler("epoch_end", timer.stop)
+>>> for _ in range(2):
+...     manager.trigger_event("epoch_start")
+...     manager.trigger_event("epoch_end")
+>>> timer.durations
+[2.0, 3.0]
+
+```
+
+The duration includes the handlers of `epoch_start` registered after `timer.start`, and the ones of
+`epoch_end` registered before `timer.stop`.
+
+### Trigger an event from a handler
+
+A handler can trigger another event of the same manager, for example to announce what it found. The
+new event runs completely before the next handler of the first one:
+
+```pycon
+>>> from minevent import Context, EventManager
+>>> manager = EventManager()
+>>> best = [float("inf")]
+>>> def track_best(context: Context) -> None:
+...     if context["loss"] < best[0]:
+...         best[0] = context["loss"]
+...         manager.trigger_event("new_best", context)
+>>> _ = manager.add_event_handler("epoch_end", track_best)
+>>> _ = manager.add_event_handler("epoch_end", lambda context: print(f"end {context['epoch']}"))
+>>> _ = manager.add_event_handler(
+...     "new_best", lambda context: print(f"save the model of epoch {context['epoch']}")
+... )
+>>> for epoch, loss in enumerate([0.9, 0.4, 0.6]):
+...     manager.trigger_event("epoch_end", {"epoch": epoch, "loss": loss})
+save the model of epoch 0
+end 0
+save the model of epoch 1
+end 1
+end 2
+
+```
+
+A handler that triggers its own event recurses (see
+[the limits](architecture.md#threads-signals-and-recursion)).
+
 ## Conditions
 
 Decide when a handler runs.
@@ -286,6 +385,22 @@ train mode: False
 
 ```
 
+### Forward the payload to a function
+
+A `Context` is a mapping, so `**context` passes its keys as keyword arguments. The function must
+accept every key of the payload, here with `**metrics`:
+
+```pycon
+>>> from minevent import EventManager
+>>> def report(**metrics: float) -> None:
+...     print(", ".join(f"{name}={value}" for name, value in metrics.items()))
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler("epoch_end", lambda context: report(**context))
+>>> manager.trigger_event("epoch_end", {"loss": 0.5, "accuracy": 0.8})
+loss=0.5, accuracy=0.8
+
+```
+
 ### Keep a state in a handler
 
 A class with a `__call__(self, context)` method is a handler with its own state. This one
@@ -350,6 +465,127 @@ cannot change:
 
 ```
 
+### Name the events in one place
+
+A typo in an event name is silent. A `StrEnum` member is a `str`, so it can be used as an event, and
+a typo in the name of a member raises an `AttributeError`:
+
+```pycon
+>>> from enum import StrEnum
+>>> from minevent import EventManager
+>>> class Event(StrEnum):
+...     EPOCH_START = "epoch_start"
+...     EPOCH_END = "epoch_end"
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler(Event.EPOCH_END, lambda _: print("epoch done"))
+>>> manager.trigger_event(Event.EPOCH_END)
+epoch done
+>>> manager.trigger_event("epoch_end")  # the same event
+epoch done
+
+```
+
+### Register a handler to several events
+
+Register it once per event. The payload does not say which event was triggered, so bind the name
+with `functools.partial` if the handler needs it:
+
+```pycon
+>>> import functools
+>>> from minevent import Context, EventManager
+>>> def log(event: str, context: Context) -> None:
+...     print(f"{event}: {dict(context)}")
+>>> manager = EventManager()
+>>> for event in ["epoch_end", "training_end"]:
+...     _ = manager.add_event_handler(event, functools.partial(log, event))
+>>> manager.trigger_event("epoch_end", {"epoch": 0})
+epoch_end: {'epoch': 0}
+>>> manager.trigger_event("training_end")
+training_end: {}
+
+```
+
+### Register handlers for a part of the program
+
+A `Subscription` is a context manager: its registration is removed when the `with` block exits, also
+when the block raises. One `with` statement can hold several of them:
+
+```pycon
+>>> from minevent import EventManager
+>>> manager = EventManager()
+>>> with (
+...     manager.add_event_handler("batch_start", lambda _: print("start the profiler")),
+...     manager.add_event_handler("batch_end", lambda _: print("stop the profiler")),
+... ):
+...     manager.trigger_event("batch_start")
+...     manager.trigger_event("batch_end")
+...     raise RuntimeError("out of memory")
+Traceback (most recent call last):
+...
+RuntimeError: out of memory
+>>> manager
+EventManager(events={})
+
+```
+
+### Remove a handler after it succeeds
+
+`once=True` removes a registration before the call, so a handler that fails is not tried again. To
+retry until a success, register without `once` and remove the `Subscription` in the handler:
+
+```pycon
+>>> from minevent import Context, EventManager
+>>> class Upload:
+...     def __init__(self, manager: EventManager) -> None:
+...         self.subscription = manager.add_event_handler("epoch_end", self)
+...
+...     def __call__(self, context: Context) -> None:
+...         if not context["online"]:
+...             print("offline, retry at the next epoch")
+...             return
+...         print("uploaded")
+...         self.subscription.remove()
+>>> manager = EventManager()
+>>> upload = Upload(manager)
+>>> for online in [False, True, True]:
+...     manager.trigger_event("epoch_end", {"online": online})
+offline, retry at the next epoch
+uploaded
+
+```
+
+### Continue after a handler fails
+
+A trigger stops at the first error. If the failure of a handler must not stop the next ones, catch
+its exceptions in a wrapper, and report them:
+
+```pycon
+>>> import functools
+>>> from minevent import Context, EventManager
+>>> def optional(handler):
+...     @functools.wraps(handler)
+...     def wrapper(context):
+...         try:
+...             handler(context)
+...         except OSError as exc:
+...             print(f"{handler.__name__} failed: {exc}")
+...
+...     return wrapper
+>>> def send_report(_: Context) -> None:
+...     raise ConnectionError("no network")
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler("training_end", optional(send_report))
+>>> _ = manager.add_event_handler("training_end", lambda _: print("save the model"))
+>>> manager.trigger_event("training_end")
+send_report failed: no network
+save the model
+
+```
+
+Catch the exceptions that you expect only, so a mistake in the handler still reaches the caller.
+A real program writes them to its log. This wrapper is for synchronous handlers: a coroutine function
+needs an `async def` wrapper that awaits it.
+
 ### Register a handler only once
 
 Registering the same handler twice runs it twice. Look at the registrations to add it only if it is
@@ -406,6 +642,39 @@ end 0
 EventManager(events={})
 
 ```
+
+### Copy an object that holds a manager
+
+A manager and a subscription cannot be copied or pickled. An object that holds one defines what its
+copy keeps, here everything except the manager, which is replaced by an empty one:
+
+```pycon
+>>> import copy
+>>> from minevent import EventManager
+>>> class Trainer:
+...     def __init__(self) -> None:
+...         self.epoch = 0
+...         self.manager = EventManager()
+...
+...     def __getstate__(self) -> dict:
+...         return {key: value for key, value in self.__dict__.items() if key != "manager"}
+...
+...     def __setstate__(self, state: dict) -> None:
+...         self.__dict__.update(state)
+...         self.manager = EventManager()
+>>> trainer = Trainer()
+>>> trainer.epoch = 3
+>>> _ = trainer.manager.add_event_handler("epoch_end", lambda _: None)
+>>> clone = copy.deepcopy(trainer)  # pickle uses the same methods
+>>> clone.epoch
+3
+>>> clone.manager
+EventManager(events={})
+
+```
+
+The copy has no handler: register them again, for example with a
+[plugin](#write-a-plugin).
 
 ### Trace the handlers
 
@@ -618,4 +887,51 @@ def test_epoch_end_awaits_the_handler():
     manager.add_event_handler("epoch_end", handler)
     asyncio.run(manager.atrigger_event("epoch_end", {"epoch": 1}))
     handler.assert_awaited_once_with({"epoch": 1})
+```
+
+### Test the events that your code triggers
+
+Register a mock to the event, run your code and check the payloads:
+
+```python
+from unittest.mock import call, create_autospec
+
+from minevent import Context, EventManager
+
+
+def train(manager: EventManager, epochs: int) -> None:
+    for epoch in range(epochs):
+        manager.trigger_event("epoch_end", {"epoch": epoch})
+
+
+def record(context: Context) -> None:
+    pass
+
+
+def test_train_triggers_epoch_end_at_each_epoch():
+    manager = EventManager()
+    handler = create_autospec(record)
+    manager.add_event_handler("epoch_end", handler)
+    train(manager, epochs=2)
+    assert handler.call_args_list == [call({"epoch": 0}), call({"epoch": 1})]
+```
+
+### Test a condition
+
+A condition is a plain function too: call it with a `Context`.
+
+```python
+from minevent import Context
+
+
+def is_improving(context: Context) -> bool:
+    return context.get("loss", 1.0) < 0.5
+
+
+def test_is_improving_low_loss():
+    assert is_improving(Context({"loss": 0.4}))
+
+
+def test_is_improving_missing_loss():
+    assert not is_improving(Context())
 ```
