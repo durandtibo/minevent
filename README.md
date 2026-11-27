@@ -161,6 +161,25 @@ uploaded model.pt
 
 ```
 
+### Find which handler raised an error
+
+An exception of a handler or a condition reaches the caller of the trigger, with a note that names
+what raised it. The next handlers are skipped:
+
+```pycon
+>>> from minevent import Context, EventManager
+>>> def log_loss(context: Context) -> None:
+...     print(context["loss"])
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler("epoch_end", log_loss)
+>>> try:
+...     manager.trigger_event("epoch_end", {"epoch": 1})
+... except KeyError as exc:
+...     print(exc.__notes__[0])
+raised by log_loss while handling the event 'epoch_end'
+
+```
+
 The [quickstart](https://durandtibo.github.io/minevent/main/quickstart/) shows each feature, and the
 [examples](https://durandtibo.github.io/minevent/main/examples/) combine them in training loops,
 plugins, async programs and tests.

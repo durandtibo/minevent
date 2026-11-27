@@ -283,8 +283,9 @@ context comes first, without default.
 
 - **Blocking.** A synchronous handler in `atrigger_event` blocks the event loop.
 - **`StopIteration` in `atrigger_event`.** A coroutine cannot raise it, so Python turns the one of a
-  handler or a condition into a `RuntimeError`, whose `__cause__` is the original exception and has
-  the note.
+  handler or a condition into a `RuntimeError`, whose `__cause__` is the original exception. For a
+  synchronous handler or a condition, the note is on that `StopIteration`. A coroutine handler turns
+  its own `StopIteration` into the `RuntimeError`, so the note is on the `RuntimeError`.
 - **The start of a coroutine.** `atrigger_event` reads the registrations and copies the payload when
   its coroutine starts to run, not when it is created: a task sees a change made to the dict, or a
   handler added, before it starts. To fix the payload at the creation, give it a `Context`, which is

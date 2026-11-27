@@ -60,6 +60,7 @@ Hello!
 | Pass data to the handlers             | [The payload of a trigger](quickstart.md#pass-data-to-the-handlers)    |
 | Run a handler only sometimes, or once | [Conditions and `once`](quickstart.md#control-when-a-handler-runs)     |
 | Remove a handler                      | [The `Subscription` of a registration](quickstart.md#remove-a-handler) |
+| See what is registered                | [The registry](quickstart.md#look-at-the-registrations)                |
 | Use `async def` handlers              | [`atrigger_event`](quickstart.md#coroutine-handlers)                   |
 | Find which handler raised an error    | [The note of the exception](quickstart.md#errors)                      |
 

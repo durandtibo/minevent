@@ -149,3 +149,23 @@ def test_atrigger_event_stop_iteration_has_the_noted_cause() -> None:
             "while handling the event 'epoch_end'"
         )
     ]
+
+
+def test_atrigger_event_stop_iteration_of_a_coroutine_notes_the_runtime_error() -> None:
+    """Test that the note of a ``StopIteration`` raised by a coroutine
+    handler is on the ``RuntimeError`` of ``atrigger_event``."""
+    manager = EventManager()
+
+    async def stop(_: Context) -> None:
+        msg = "stop"
+        raise StopIteration(msg)
+
+    manager.add_event_handler("epoch_end", stop)
+    with pytest.raises(RuntimeError, match=r"coroutine raised StopIteration") as exc_info:
+        asyncio.run(manager.atrigger_event("epoch_end"))
+    assert getattr(exc_info.value, "__notes__", None) == [
+        (
+            "raised by test_atrigger_event_stop_iteration_of_a_coroutine_notes_the_runtime_error."
+            "<locals>.stop while handling the event 'epoch_end'"
+        )
+    ]

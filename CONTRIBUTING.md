@@ -35,8 +35,16 @@ We actively welcome your pull requests.
    pre-commit run --all-files
    ruff check src tests dev
    ruff format src tests dev
-   ty check
+   inv types.check --complete  # ty, then pyright, as in the CI
    lint-imports  # installed on Python 3.14 and later
+   ```
+
+   The CI also formats and lints the other files, such as Markdown, YAML, TOML and shell files.
+   These commands do the same, and install the tools that are missing on your machine:
+
+   ```shell
+   make format
+   make lint
    ```
 
 ## Issues

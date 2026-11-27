@@ -160,6 +160,26 @@ EventManager(events={})
 
 ```
 
+## Look at the registrations
+
+`events` lists the events that have a handler, `in` tests one event, and `get_subscriptions` returns
+the registrations of an event, in the order they run:
+
+```pycon
+>>> from minevent import Context, EventManager
+>>> def log_epoch(_: Context) -> None:
+...     print("epoch")
+>>> manager = EventManager()
+>>> _ = manager.add_event_handler("epoch_end", log_epoch, once=True)
+>>> manager.events
+['epoch_end']
+>>> "batch_end" in manager
+False
+>>> manager.get_subscriptions("epoch_end")
+(Subscription(event='epoch_end', handler='log_epoch', once=True),)
+
+```
+
 ## Coroutine handlers
 
 Trigger an event with `atrigger_event` to await its coroutine handlers. It runs the synchronous

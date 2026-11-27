@@ -1,3 +1,7 @@
+# Nightly tests of the package published on PyPI.
+# Runs every day and on demand. Tests the latest stable release, and the latest
+# version including the pre-releases, with nightly-test-package.yaml.
+
 name: Nightly Package Tests
 on:
   schedule:

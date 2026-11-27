@@ -448,7 +448,9 @@ class EventManager:
         r"""Get the events that have at least one registered handler.
 
         Returns:
-            The event names, in the order they were first registered.
+            The event names, in the order they were first registered. An
+                event whose registrations were all removed counts as new
+                when a handler is registered to it again.
 
         Example:
             ```pycon
@@ -679,7 +681,8 @@ class EventManager:
         note that says what raised it, and the next handlers are skipped.
         If one of the registrations has a coroutine function as handler (a
         callable object is judged by its ``__call__``), the trigger is
-        rejected before any condition or handler runs.
+        rejected before any condition or handler runs. Both arguments are
+        positional-only.
 
         Args:
             event: The event name (case-sensitive string) to trigger.
@@ -744,7 +747,9 @@ class EventManager:
         returns is awaited before the next handler. A synchronous handler
         blocks the event loop while it runs. The registrations and the context
         are read when the coroutine starts to run, not when it is created
-        (see the "Limits" of the "How It Works" page of the documentation).
+        (see the
+        [limits](https://durandtibo.github.io/minevent/main/architecture/#limits)).
+        Both arguments are positional-only.
 
         Args:
             event: The event name (case-sensitive string) to trigger.
@@ -758,8 +763,9 @@ class EventManager:
                 exception of a handler or a condition also propagates.
             RuntimeError: if a handler or a condition raises a
                 ``StopIteration``: Python does not let a coroutine raise it.
-                The ``__cause__`` of the error is the ``StopIteration``, which
-                has the note.
+                The ``__cause__`` of the error is the ``StopIteration``. The
+                [limits](https://durandtibo.github.io/minevent/main/architecture/#async-programs)
+                state which of the two has the note.
 
         Example:
             ```pycon

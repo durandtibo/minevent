@@ -109,6 +109,18 @@ A manager or a subscription, or an object that holds one, was copied or sent to 
 Create a new manager there and register the handlers, or exclude the manager and the subscriptions
 from the state of the object.
 
+### `TypeError: handler must be callable` and `condition must be callable`
+
+The value given is not a function. A frequent cause is a call at registration:
+`add_event_handler("epoch_end", save())` gives the result of `save`. Pass the function itself, or
+wrap the call in a lambda: `lambda _: save()`.
+
+### `TypeError: unhashable type: 'Context'`
+
+The handler or the condition is cached with `functools.cache` or `functools.lru_cache`, which hash
+their arguments (see [the limits](architecture.md#handlers-and-conditions)). Register a function that
+reads the values that it needs from the context, and passes them to the cached function.
+
 ### `TypeError: ... must take the context as its only required argument`
 
 The manager cannot call the handler or the condition as `f(context)`, for example a function without
