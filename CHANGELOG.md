@@ -143,3 +143,7 @@ the new API are in the
 - Documentation: the pages explain the current library: the home page says what it is for, "How It
   Works" shows how the parts fit and groups the limits, "Design Choices" groups the trade-offs under
   the goals of the library, and the examples are grouped by topic (#942).
+- Documentation: the docstrings and the pages say where the note of a `StopIteration` is, that the
+  arguments of the triggers are positional-only and which integers `PeriodicCondition` rejects, the
+  README shows the note of an exception, the quickstart and the user guide cover the registry and two
+  more errors, and the contributing guide matches the checks of the CI (#944).
