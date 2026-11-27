@@ -147,3 +147,8 @@ the new API are in the
   arguments of the triggers are positional-only and which integers `PeriodicCondition` rejects, the
   README shows the note of an exception, the quickstart and the user guide cover the registry and two
   more errors, and the contributing guide matches the checks of the CI (#944).
+- Documentation: the examples add recipes to stop a training early, time the epochs, trigger an event
+  from a handler, name and share the events, scope and retry the registrations, continue after an
+  error, copy an object that holds a manager and test the events and the conditions. The README adds
+  a training loop and the registry, the contributing guide explains how to check the documentation,
+  and the installation from source uses Python 3.14 (#945).
